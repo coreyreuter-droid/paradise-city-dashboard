@@ -1,4 +1,11 @@
 "use client";
+import type {
+  BudgetRow,
+  ActualRow,
+  TransactionRow,
+} from "@/lib/types";
+
+
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
@@ -14,21 +21,6 @@ import {
 } from "recharts";
 import CardContainer from "../CardContainer";
 import SectionHeader from "../SectionHeader";
-
-type BudgetRow = {
-  fiscal_year: number;
-  department_name: string | null;
-  amount: number;
-};
-
-type ActualRow = BudgetRow;
-
-type TransactionRow = {
-  fiscal_year: number;
-  department_name: string | null;
-  vendor: string | null;
-  amount: number;
-};
 
 type Props = {
   budgets: BudgetRow[];

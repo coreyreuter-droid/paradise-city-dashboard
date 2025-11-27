@@ -5,13 +5,7 @@ import Link from "next/link";
 import CardContainer from "../CardContainer";
 import SectionHeader from "../SectionHeader";
 import BudgetCharts from "./BudgetCharts";
-
-
-type RawRow = {
-  fiscal_year: number;
-  department_name: string | null;
-  amount: number;
-};
+import type { BudgetRow, ActualRow } from "../../lib/types";
 
 export type DepartmentSummary = {
   department_name: string;
@@ -21,9 +15,10 @@ export type DepartmentSummary = {
 };
 
 type Props = {
-  budgets: RawRow[];
-  actuals: RawRow[];
+  budgets: BudgetRow[];
+  actuals: ActualRow[];
 };
+
 
 const formatCurrency = (value: number) =>
   value.toLocaleString("en-US", {

@@ -1,16 +1,9 @@
 import SectionHeader from "../../../components/SectionHeader";
 import CardContainer from "../../../components/CardContainer";
 import { supabase } from "../../../lib/supabase";
+import type { TransactionRow } from "../../../lib/types";
 
-type Txn = {
-  date: string;
-  fiscal_year: number;
-  fund_name: string | null;
-  department_name: string | null;
-  vendor: string | null;
-  description: string | null;
-  amount: number;
-};
+type Txn = TransactionRow;
 
 async function getTransactions(): Promise<Txn[]> {
   const { data, error } = await supabase
@@ -48,51 +41,54 @@ export default async function TransactionsPage() {
 
   return (
     <main className="min-h-screen bg-slate-50">
-      <div className="mx-auto max-w-5xl px-4 py-10">
+      <div className="mx-auto max-w-6xl px-4 py-10">
         <SectionHeader
           title="Transactions"
-          description="Most recent 100 transactions for Paradise City."
+          description="Sample recent transactions used for transparency and vendor analysis."
         />
 
         <CardContainer>
           {transactions.length === 0 ? (
-            <p className="text-slate-500">No transactions available.</p>
+            <p className="text-sm text-slate-500">
+              No transactions found. Try uploading some data in the admin
+              portal.
+            </p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="min-w-full text-left text-sm">
-                <thead className="border-b border-slate-200 bg-slate-50">
+              <table className="min-w-full divide-y divide-slate-200 text-sm">
+                <thead className="bg-slate-100">
                   <tr>
-                    <th className="px-3 py-2 font-semibold text-slate-700">
+                    <th className="px-3 py-2 text-left font-semibold text-slate-700">
                       Date
                     </th>
-                    <th className="px-3 py-2 font-semibold text-slate-700">
+                    <th className="px-3 py-2 text-left font-semibold text-slate-700">
                       Fiscal Year
                     </th>
-                    <th className="px-3 py-2 font-semibold text-slate-700">
+                    <th className="px-3 py-2 text-left font-semibold text-slate-700">
                       Fund
                     </th>
-                    <th className="px-3 py-2 font-semibold text-slate-700">
+                    <th className="px-3 py-2 text-left font-semibold text-slate-700">
                       Department
                     </th>
-                    <th className="px-3 py-2 font-semibold text-slate-700">
+                    <th className="px-3 py-2 text-left font-semibold text-slate-700">
                       Vendor
                     </th>
-                    <th className="px-3 py-2 font-semibold text-slate-700">
+                    <th className="px-3 py-2 text-left font-semibold text-slate-700">
                       Description
                     </th>
-                    <th className="px-3 py-2 font-semibold text-slate-700">
+                    <th className="px-3 py-2 text-right font-semibold text-slate-700">
                       Amount
                     </th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-slate-100 bg-white">
                   {transactions.map((tx, idx) => (
-                    <tr key={`${tx.date}-${tx.fiscal_year}-${idx}`} className="border-b border-slate-100">
-                      <td className="px-3 py-2 text-slate-900">
-                        {formatDate(tx.date)}
+                    <tr key={idx}>
+                      <td className="px-3 py-2 text-slate-700">
+                        {tx.date ? formatDate(tx.date) : "—"}
                       </td>
                       <td className="px-3 py-2 text-slate-700">
-                        {tx.fiscal_year}
+                        {tx.fiscal_year ?? "—"}
                       </td>
                       <td className="px-3 py-2 text-slate-700">
                         {tx.fund_name || "—"}
@@ -106,7 +102,7 @@ export default async function TransactionsPage() {
                       <td className="px-3 py-2 text-slate-700 max-w-xs truncate">
                         {tx.description || "—"}
                       </td>
-                      <td className="px-3 py-2 text-slate-700">
+                      <td className="px-3 py-2 text-right text-slate-700">
                         {formatCurrency(Number(tx.amount || 0))}
                       </td>
                     </tr>
