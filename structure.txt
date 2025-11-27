@@ -1,0 +1,58 @@
+.
+├── .env.local
+├── .gitignore
+├── README.md
+├── app
+│   ├── favicon.ico
+│   ├── globals.css
+│   ├── layout.tsx
+│   ├── page.tsx
+│   └── paradise
+│       ├── admin
+│       │   └── upload
+│       │       └── page.tsx
+│       ├── analytics
+│       │   └── page.tsx
+│       ├── budget
+│       │   └── page.tsx
+│       ├── departments
+│       │   ├── [departmentName]
+│       │   │   └── page.tsx
+│       │   └── page.tsx
+│       ├── layout.tsx
+│       ├── page.tsx
+│       └── transactions
+│           └── page.tsx
+├── components
+│   ├── Admin
+│   │   └── UploadClient.tsx
+│   ├── Budget
+│   │   ├── BudgetCharts.tsx
+│   │   ├── BudgetClient.tsx
+│   │   └── DepartmentBudgetClient.tsx
+│   ├── CardContainer.tsx
+│   ├── City
+│   │   └── CitywideDashboardClient.tsx
+│   ├── FiscalYearSelect.tsx
+│   ├── MetricCard.tsx
+│   ├── NavBar.tsx
+│   ├── ParadiseSidebar.tsx
+│   └── SectionHeader.tsx
+├── eslint.config.mjs
+├── lib
+│   └── supabase.ts
+├── next-env.d.ts
+├── next.config.ts
+├── package-lock.json
+├── package.json
+├── postcss.config.mjs
+├── public
+│   ├── file.svg
+│   ├── globe.svg
+│   ├── next.svg
+│   ├── vercel.svg
+│   └── window.svg
+├── structure.txt
+└── tsconfig.json
+
+16 directories, 40 files
