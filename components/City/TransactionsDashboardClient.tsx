@@ -1,106 +1,182 @@
-// components/City/TransactionsDashboardClient.tsx
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
+import { useMemo, useState, FormEvent } from "react";
+import {
+  usePathname,
+  useRouter,
+  useSearchParams,
+} from "next/navigation";
 import type { TransactionRow } from "@/lib/types";
+import { formatCurrency, formatDate } from "@/lib/format";
 import CardContainer from "../CardContainer";
 import SectionHeader from "../SectionHeader";
 import FiscalYearSelect from "../FiscalYearSelect";
+import DataTable, {
+  DataTableColumn,
+} from "../DataTable";
 
 type Props = {
   transactions: TransactionRow[];
+  years: number[];
+  selectedYear?: number;
+  totalCount: number;
+  page: number;
+  pageSize: number;
+  departments: string[];
+  departmentFilter: string; // "all" or dept name
+  vendorQuery: string;
 };
 
-const PAGE_SIZE = 50;
-
-const formatCurrency = (value: number) =>
-  value.toLocaleString("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 0,
-  });
-
-export default function TransactionsDashboardClient({ transactions }: Props) {
+export default function TransactionsDashboardClient({
+  transactions,
+  years,
+  selectedYear, // currently not used directly; year is driven off searchParams + FiscalYearSelect
+  totalCount,
+  page,
+  pageSize,
+  departments,
+  departmentFilter,
+  vendorQuery,
+}: Props) {
+  const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  // All fiscal years present in transactions
-  const years = useMemo(() => {
-    const set = new Set<number>();
-    transactions.forEach((t) => set.add(t.fiscal_year));
-    return Array.from(set).sort((a, b) => b - a);
-  }, [transactions]);
+  const [vendorInput, setVendorInput] =
+    useState<string>(vendorQuery ?? "");
 
-  // Selected fiscal year derived from URL (?year=) or default latest
-  const selectedYear = useMemo(() => {
-    if (years.length === 0) return undefined;
-    const param = searchParams.get("year");
-    const parsed = param ? Number(param) : NaN;
-    if (Number.isFinite(parsed) && years.includes(parsed)) return parsed;
-    return years[0];
-  }, [searchParams, years]);
-
-  // Department + vendor filters
-  const [selectedDept, setSelectedDept] = useState<string>("all");
-  const [vendorQuery, setVendorQuery] = useState<string>("");
-
-  // Pagination
-  const [page, setPage] = useState<number>(1);
-
-  // Unique departments (for dropdown) based on all transactions
-  const departments = useMemo(() => {
-    const set = new Set<string>();
-    transactions.forEach((t) => {
-      const dept = (t.department_name || "Unspecified").trim();
-      if (dept) set.add(dept);
-    });
-    return Array.from(set).sort((a, b) => a.localeCompare(b));
-  }, [transactions]);
-
-  // Reset page when filters change
-  useEffect(() => {
-    setPage(1);
-  }, [selectedYear, selectedDept, vendorQuery]);
-
-  // Apply filters
-  const filtered = useMemo(() => {
-    return transactions.filter((t) => {
-      if (selectedYear && t.fiscal_year !== selectedYear) return false;
-
-      if (selectedDept !== "all") {
-        const dept = (t.department_name || "Unspecified").trim();
-        if (dept !== selectedDept) return false;
-      }
-
-      if (vendorQuery.trim().length > 0) {
-        const q = vendorQuery.toLowerCase();
-        const vendor = (t.vendor || "").toLowerCase();
-        const desc = (t.description || "").toLowerCase();
-        if (!vendor.includes(q) && !desc.includes(q)) return false;
-      }
-
-      return true;
-    });
-  }, [transactions, selectedYear, selectedDept, vendorQuery]);
-
-  const totalCount = filtered.length;
   const totalPages =
-    totalCount === 0 ? 1 : Math.ceil(totalCount / PAGE_SIZE);
-  const currentPage = Math.min(page, totalPages);
+    totalCount === 0
+      ? 1
+      : Math.ceil(totalCount / pageSize);
 
-  const paged = useMemo(() => {
-    const start = (currentPage - 1) * PAGE_SIZE;
-    return filtered.slice(start, start + PAGE_SIZE);
-  }, [filtered, currentPage]);
+  const updateQuery = (patch: {
+    [key: string]: string | undefined;
+  }) => {
+    const params = new URLSearchParams(
+      searchParams.toString()
+    );
 
-  // Aggregates for metrics
-  const totalAmount = filtered.reduce(
+    Object.entries(patch).forEach(([key, value]) => {
+      if (
+        value === undefined ||
+        value === "" ||
+        value === "all"
+      ) {
+        params.delete(key);
+      } else {
+        params.set(key, value);
+      }
+    });
+
+    // Reset page when filters change unless explicitly set
+    if (!("page" in patch)) {
+      params.delete("page");
+    }
+
+    const qs = params.toString();
+    router.push(qs ? `${pathname}?${qs}` : pathname);
+  };
+
+  const handleDepartmentChange = (
+    deptValue: string
+  ) => {
+    updateQuery({
+      department: deptValue,
+      page: "1",
+    });
+  };
+
+  const handleVendorSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    updateQuery({
+      q: vendorInput.trim() || undefined,
+      page: "1",
+    });
+  };
+
+  const handlePageChange = (nextPage: number) => {
+    const safe = Math.min(
+      Math.max(1, nextPage),
+      totalPages
+    );
+    updateQuery({ page: String(safe) });
+  };
+
+  const columns: DataTableColumn<TransactionRow>[] =
+    useMemo(
+      () => [
+        {
+          key: "date",
+          header: "Date",
+          sortable: true,
+          sortAccessor: (row) => row.date,
+          cellClassName: "whitespace-nowrap",
+          cell: (row) => formatDate(row.date),
+        },
+        {
+          key: "fiscal_year",
+          header: "Fiscal year",
+          sortable: true,
+          sortAccessor: (row) => row.fiscal_year,
+          cellClassName: "whitespace-nowrap",
+          cell: (row) => row.fiscal_year,
+        },
+        {
+          key: "department",
+          header: "Department",
+          sortable: true,
+          sortAccessor: (row) =>
+            (row.department_name ||
+              "Unspecified"
+            ).trim(),
+          cellClassName: "whitespace-nowrap",
+          cell: (row) =>
+            row.department_name || "Unspecified",
+        },
+        {
+          key: "vendor",
+          header: "Vendor",
+          sortable: true,
+          sortAccessor: (row) =>
+            (row.vendor || "Unspecified").toLowerCase(),
+          cellClassName: "whitespace-nowrap",
+          cell: (row) =>
+            row.vendor || "Unspecified",
+        },
+        {
+          key: "description",
+          header: "Description",
+          sortable: true,
+          sortAccessor: (row) =>
+            (row.description || "").toLowerCase(),
+          cell: (row) => row.description || "",
+        },
+        {
+          key: "amount",
+          header: "Amount",
+          sortable: true,
+          sortAccessor: (row) =>
+            Number(row.amount || 0),
+          headerClassName: "text-right",
+          cellClassName: "text-right font-mono",
+          cell: (row) =>
+            formatCurrency(
+              Number(row.amount || 0)
+            ),
+        },
+      ],
+      []
+    );
+
+  const pageTotal = transactions.reduce(
     (sum, t) => sum + Number(t.amount || 0),
     0
   );
-
-  const avgAmount =
-    filtered.length === 0 ? 0 : totalAmount / filtered.length;
+  const pageAvg =
+    transactions.length === 0
+      ? 0
+      : pageTotal / transactions.length;
 
   return (
     <main className="min-h-screen bg-slate-50">
@@ -115,7 +191,6 @@ export default function TransactionsDashboardClient({ transactions }: Props) {
           {/* Year */}
           <div>
             {years.length > 0 && (
-              // FiscalYearSelect manages the ?year= param internally
               <FiscalYearSelect
                 options={years}
                 label="Fiscal year"
@@ -129,11 +204,17 @@ export default function TransactionsDashboardClient({ transactions }: Props) {
               Department
             </label>
             <select
-              value={selectedDept}
-              onChange={(e) => setSelectedDept(e.target.value)}
-              className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+              value={departmentFilter}
+              onChange={(e) =>
+                handleDepartmentChange(
+                  e.target.value
+                )
+              }
+              className="w-full rounded-md border border-slate-300 px-2 py-1 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
             >
-              <option value="all">All departments</option>
+              <option value="all">
+                All departments
+              </option>
               {departments.map((dept) => (
                 <option key={dept} value={dept}>
                   {dept}
@@ -147,119 +228,118 @@ export default function TransactionsDashboardClient({ transactions }: Props) {
             <label className="mb-1 block text-xs font-semibold uppercase text-slate-500">
               Vendor or description
             </label>
-            <input
-              type="text"
-              value={vendorQuery}
-              onChange={(e) => setVendorQuery(e.target.value)}
-              placeholder="Search vendor or description…"
-              className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
-            />
+            <form
+              onSubmit={handleVendorSubmit}
+              className="flex gap-2"
+            >
+              <input
+                type="text"
+                value={vendorInput}
+                onChange={(e) =>
+                  setVendorInput(e.target.value)
+                }
+                placeholder="Search vendor or description…"
+                className="w-full rounded-md border border-slate-300 px-2 py-1 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+              />
+              <button
+                type="submit"
+                className="whitespace-nowrap rounded-md bg-sky-600 px-3 py-1 text-xs font-semibold text-white hover:bg-sky-700"
+              >
+                Search
+              </button>
+            </form>
+            {vendorQuery && (
+              <p className="mt-1 text-[11px] text-slate-500">
+                Active filter: “{vendorQuery}”
+              </p>
+            )}
           </div>
         </div>
 
-        {/* Metrics */}
+        {/* Metrics (this page) */}
         <div className="mb-4 grid gap-4 md:grid-cols-3">
           <CardContainer>
             <div className="text-xs font-semibold uppercase text-slate-500">
-              Transactions (filtered)
+              Transactions (this page)
             </div>
             <div className="mt-1 text-2xl font-bold text-slate-900">
+              {transactions.length.toLocaleString(
+                "en-US"
+              )}
+            </div>
+            <div className="mt-1 text-xs text-slate-500">
+              Total in dataset:{" "}
               {totalCount.toLocaleString("en-US")}
             </div>
           </CardContainer>
 
           <CardContainer>
             <div className="text-xs font-semibold uppercase text-slate-500">
-              Total amount
+              Total amount (this page)
             </div>
             <div className="mt-1 text-2xl font-bold text-slate-900">
-              {formatCurrency(totalAmount)}
+              {formatCurrency(pageTotal)}
             </div>
           </CardContainer>
 
           <CardContainer>
             <div className="text-xs font-semibold uppercase text-slate-500">
-              Average transaction
+              Average transaction (this page)
             </div>
             <div className="mt-1 text-2xl font-bold text-slate-900">
-              {formatCurrency(avgAmount)}
+              {formatCurrency(pageAvg)}
             </div>
           </CardContainer>
         </div>
 
         {/* Table */}
         <CardContainer>
-          {filtered.length === 0 ? (
+          {transactions.length === 0 ? (
             <p className="text-sm text-slate-500">
               No transactions match the current filters.
             </p>
           ) : (
             <>
-              <div className="max-h-[520px] overflow-auto text-sm">
-                <table className="min-w-full text-left">
-                  <thead className="border-b bg-slate-100 text-xs uppercase text-slate-600">
-                    <tr>
-                      <th className="px-3 py-2">Date</th>
-                      <th className="px-3 py-2">Fiscal year</th>
-                      <th className="px-3 py-2">Department</th>
-                      <th className="px-3 py-2">Vendor</th>
-                      <th className="px-3 py-2">Description</th>
-                      <th className="px-3 py-2 text-right">Amount</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {paged.map((tx, idx) => (
-                      <tr key={`${tx.date}-${tx.vendor}-${idx}`}>
-                        <td className="px-3 py-2 whitespace-nowrap">
-                          {tx.date}
-                        </td>
-                        <td className="px-3 py-2 whitespace-nowrap">
-                          {tx.fiscal_year}
-                        </td>
-                        <td className="px-3 py-2 whitespace-nowrap">
-                          {tx.department_name || "Unspecified"}
-                        </td>
-                        <td className="px-3 py-2 whitespace-nowrap">
-                          {tx.vendor || "Unspecified"}
-                        </td>
-                        <td className="px-3 py-2">
-                          {tx.description || ""}
-                        </td>
-                        <td className="px-3 py-2 text-right font-mono">
-                          {formatCurrency(Number(tx.amount || 0))}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <DataTable<TransactionRow>
+                data={transactions}
+                columns={columns}
+                pageSize={transactions.length}
+                initialSortKey="date"
+                initialSortDirection="desc"
+                getRowKey={(row, idx) =>
+                  `${row.date}-${row.vendor}-${idx}`
+                }
+                showPagination={false}
+              />
 
-              {/* Pagination controls */}
+              {/* Server-side pagination controls */}
               <div className="mt-3 flex items-center justify-between text-xs text-slate-600">
                 <div>
                   Showing{" "}
                   <span className="font-mono">
-                    {filtered.length === 0
+                    {totalCount === 0
                       ? 0
-                      : (currentPage - 1) * PAGE_SIZE + 1}
+                      : (page - 1) * pageSize + 1}
                   </span>{" "}
                   –{" "}
                   <span className="font-mono">
                     {Math.min(
-                      currentPage * PAGE_SIZE,
-                      filtered.length
+                      page * pageSize,
+                      totalCount
                     )}
                   </span>{" "}
                   of{" "}
                   <span className="font-mono">
-                    {filtered.length.toLocaleString("en-US")}
+                    {totalCount.toLocaleString(
+                      "en-US"
+                    )}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <button
-                    disabled={currentPage <= 1}
+                    disabled={page <= 1}
                     onClick={() =>
-                      setPage((p) => Math.max(1, p - 1))
+                      handlePageChange(page - 1)
                     }
                     className="rounded-md border border-slate-300 px-2 py-1 text-xs disabled:opacity-40"
                   >
@@ -268,7 +348,7 @@ export default function TransactionsDashboardClient({ transactions }: Props) {
                   <span>
                     Page{" "}
                     <span className="font-mono">
-                      {currentPage}
+                      {page}
                     </span>{" "}
                     /{" "}
                     <span className="font-mono">
@@ -276,11 +356,9 @@ export default function TransactionsDashboardClient({ transactions }: Props) {
                     </span>
                   </span>
                   <button
-                    disabled={currentPage >= totalPages}
+                    disabled={page >= totalPages}
                     onClick={() =>
-                      setPage((p) =>
-                        Math.min(totalPages, p + 1)
-                      )
+                      handlePageChange(page + 1)
                     }
                     className="rounded-md border border-slate-300 px-2 py-1 text-xs disabled:opacity-40"
                   >

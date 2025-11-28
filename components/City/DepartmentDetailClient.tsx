@@ -2,7 +2,11 @@
 "use client";
 
 import { useMemo } from "react";
-import { useSearchParams } from "next/navigation";
+import {
+  useSearchParams,
+  useRouter,
+  usePathname,
+} from "next/navigation";
 import {
   LineChart,
   Line,
@@ -12,27 +16,32 @@ import {
   ResponsiveContainer,
   CartesianGrid,
 } from "recharts";
-import type { BudgetRow, ActualRow, TransactionRow } from "@/lib/types";
+import type {
+  BudgetRow,
+  ActualRow,
+  TransactionRow,
+} from "@/lib/types";
 import CardContainer from "../CardContainer";
 import SectionHeader from "../SectionHeader";
 import FiscalYearSelect from "../FiscalYearSelect";
+import {
+  formatCurrency,
+  formatPercent,
+  formatDate,
+} from "@/lib/format";
+import DataTable, {
+  DataTableColumn,
+} from "../DataTable";
 
 type Props = {
   departmentName?: string;
   budgets: BudgetRow[];
   actuals: ActualRow[];
-  transactions: TransactionRow[];
+  transactions: TransactionRow[]; // current page
+  totalTxForYear: number; // total for selected year
+  page: number;
+  pageSize: number;
 };
-
-const formatCurrency = (value: number) =>
-  value.toLocaleString("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 0,
-  });
-
-const formatPercent = (value: number) =>
-  `${value.toFixed(1).replace(/-0\.0/, "0.0")}%`;
 
 const normalizeName = (name: string | null | undefined) =>
   (name ?? "").trim().toLowerCase();
@@ -42,17 +51,22 @@ export default function DepartmentDetailClient({
   budgets,
   actuals,
   transactions,
+  totalTxForYear,
+  page,
+  pageSize,
 }: Props) {
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
 
-  // Robust display name: prop → query → first dept in data → fallback label
   const displayName = useMemo(() => {
     if (departmentName && departmentName.trim().length > 0) {
       return departmentName;
     }
 
     const fromQuery =
-      searchParams.get("department") || searchParams.get("dept");
+      searchParams.get("department") ||
+      searchParams.get("dept");
     if (fromQuery && fromQuery.trim().length > 0) {
       return fromQuery;
     }
@@ -70,7 +84,8 @@ export default function DepartmentDetailClient({
     }
 
     const fromTx =
-      transactions.find((t) => t.department_name)?.department_name;
+      transactions.find((t) => t.department_name)
+        ?.department_name;
     if (fromTx && fromTx.trim().length > 0) {
       return fromTx;
     }
@@ -83,11 +98,13 @@ export default function DepartmentDetailClient({
     [displayName]
   );
 
-  // Filter all data by normalized department name
+  // Filter all data by normalized department name (for totals + years)
   const deptBudgets = useMemo(
     () =>
       budgets.filter(
-        (b) => normalizeName(b.department_name) === normalizedDisplay
+        (b) =>
+          normalizeName(b.department_name) ===
+          normalizedDisplay
       ),
     [budgets, normalizedDisplay]
   );
@@ -95,7 +112,9 @@ export default function DepartmentDetailClient({
   const deptActuals = useMemo(
     () =>
       actuals.filter(
-        (a) => normalizeName(a.department_name) === normalizedDisplay
+        (a) =>
+          normalizeName(a.department_name) ===
+          normalizedDisplay
       ),
     [actuals, normalizedDisplay]
   );
@@ -111,7 +130,11 @@ export default function DepartmentDetailClient({
     if (deptYears.length === 0) return undefined;
     const param = searchParams.get("year");
     const parsed = param ? Number(param) : NaN;
-    if (Number.isFinite(parsed) && deptYears.includes(parsed)) return parsed;
+    if (
+      Number.isFinite(parsed) &&
+      deptYears.includes(parsed)
+    )
+      return parsed;
     return deptYears[0];
   }, [searchParams, deptYears]);
 
@@ -123,58 +146,152 @@ export default function DepartmentDetailClient({
 
     deptBudgets.forEach((b) => {
       const year = b.fiscal_year;
-      const entry = byYear.get(year) || { year, budget: 0, actuals: 0 };
+      const entry =
+        byYear.get(year) || {
+          year,
+          budget: 0,
+          actuals: 0,
+        };
       entry.budget += Number(b.amount || 0);
       byYear.set(year, entry);
     });
 
     deptActuals.forEach((a) => {
       const year = a.fiscal_year;
-      const entry = byYear.get(year) || { year, budget: 0, actuals: 0 };
+      const entry =
+        byYear.get(year) || {
+          year,
+          budget: 0,
+          actuals: 0,
+        };
       entry.actuals += Number(a.amount || 0);
       byYear.set(year, entry);
     });
 
-    return Array.from(byYear.values()).sort((a, b) => a.year - b.year);
+    return Array.from(byYear.values()).sort(
+      (a, b) => a.year - b.year
+    );
   }, [deptBudgets, deptActuals]);
 
   const selectedYearTotals = useMemo(() => {
     if (!selectedYear) {
-      return { budget: 0, actuals: 0, variance: 0, percentSpent: 0 };
+      return {
+        budget: 0,
+        actuals: 0,
+        variance: 0,
+        percentSpent: 0,
+      };
     }
 
     const totalBudget = deptBudgets
       .filter((b) => b.fiscal_year === selectedYear)
-      .reduce((sum, b) => sum + Number(b.amount || 0), 0);
+      .reduce(
+        (sum, b) => sum + Number(b.amount || 0),
+        0
+      );
 
     const totalActuals = deptActuals
       .filter((a) => a.fiscal_year === selectedYear)
-      .reduce((sum, a) => sum + Number(a.amount || 0), 0);
+      .reduce(
+        (sum, a) => sum + Number(a.amount || 0),
+        0
+      );
 
     const variance = totalActuals - totalBudget;
     const percentSpent =
-      totalBudget === 0 ? 0 : (totalActuals / totalBudget) * 100;
+      totalBudget === 0
+        ? 0
+        : (totalActuals / totalBudget) * 100;
 
-    return { budget: totalBudget, actuals: totalActuals, variance, percentSpent };
+    return {
+      budget: totalBudget,
+      actuals: totalActuals,
+      variance,
+      percentSpent,
+    };
   }, [deptBudgets, deptActuals, selectedYear]);
 
-  const deptTxForYear = useMemo(
-    () =>
-      selectedYear
-        ? transactions
-            .filter(
-              (t) =>
-                t.fiscal_year === selectedYear &&
-                normalizeName(t.department_name) === normalizedDisplay
-            )
-            .sort(
-              (a, b) =>
-                new Date(b.date).getTime() -
-                new Date(a.date).getTime()
-            )
-        : [],
-    [transactions, selectedYear, normalizedDisplay]
-  );
+  const totalPages =
+    totalTxForYear === 0
+      ? 1
+      : Math.ceil(totalTxForYear / pageSize);
+
+  const updateQuery = (patch: {
+    [key: string]: string | undefined;
+  }) => {
+    const params = new URLSearchParams(
+      searchParams.toString()
+    );
+
+    Object.entries(patch).forEach(([key, value]) => {
+      if (
+        value === undefined ||
+        value === "" ||
+        value === "all"
+      ) {
+        params.delete(key);
+      } else {
+        params.set(key, value);
+      }
+    });
+
+    const qs = params.toString();
+    router.push(qs ? `${pathname}?${qs}` : pathname);
+  };
+
+  const handlePageChange = (nextPage: number) => {
+    const safe = Math.min(
+      Math.max(1, nextPage),
+      totalPages
+    );
+    updateQuery({ page: String(safe) });
+  };
+
+  const txColumns: DataTableColumn<TransactionRow>[] =
+    useMemo(
+      () => [
+        {
+          key: "date",
+          header: "Date",
+          sortable: true,
+          sortAccessor: (row) => row.date,
+          cellClassName: "whitespace-nowrap",
+          cell: (row) => formatDate(row.date),
+        },
+        {
+          key: "vendor",
+          header: "Vendor",
+          sortable: true,
+          sortAccessor: (row) =>
+            (row.vendor || "Unspecified").toLowerCase(),
+          cellClassName: "whitespace-nowrap",
+          cell: (row) =>
+            row.vendor || "Unspecified",
+        },
+        {
+          key: "description",
+          header: "Description",
+          sortable: true,
+          sortAccessor: (row) =>
+            (row.description || "").toLowerCase(),
+          cell: (row) => row.description || "",
+        },
+        {
+          key: "amount",
+          header: "Amount",
+          sortable: true,
+          sortAccessor: (row) =>
+            Number(row.amount || 0),
+          headerClassName: "text-right",
+          cellClassName: "text-right font-mono",
+          cell: (row) =>
+            formatCurrency(
+              Number(row.amount || 0)
+            ),
+        },
+      ],
+      []
+    );
 
   return (
     <main className="min-h-screen bg-slate-50">
@@ -187,7 +304,10 @@ export default function DepartmentDetailClient({
         {deptYears.length > 0 && (
           <div className="mb-4">
             {/* FiscalYearSelect handles ?year= via router internally */}
-            <FiscalYearSelect options={deptYears} label="Fiscal year" />
+            <FiscalYearSelect
+              options={deptYears}
+              label="Fiscal year"
+            />
           </div>
         )}
 
@@ -210,7 +330,10 @@ export default function DepartmentDetailClient({
               {formatCurrency(selectedYearTotals.actuals)}
             </div>
             <div className="mt-1 text-xs text-slate-500">
-              {formatPercent(selectedYearTotals.percentSpent)} of budget spent
+              {formatPercent(
+                selectedYearTotals.percentSpent
+              )}{" "}
+              of budget spent
             </div>
           </CardContainer>
 
@@ -227,10 +350,13 @@ export default function DepartmentDetailClient({
                   : "text-slate-900"
               }`}
             >
-              {formatCurrency(selectedYearTotals.variance)}
+              {formatCurrency(
+                selectedYearTotals.variance
+              )}
             </div>
             <div className="mt-1 text-xs text-slate-500">
-              Positive = under budget; negative = over budget.
+              Positive = under budget; negative = over
+              budget.
             </div>
           </CardContainer>
 
@@ -239,7 +365,15 @@ export default function DepartmentDetailClient({
               Transactions ({selectedYear ?? "–"})
             </div>
             <div className="mt-1 text-2xl font-bold text-slate-900">
-              {deptTxForYear.length.toLocaleString("en-US")}
+              {totalTxForYear.toLocaleString(
+                "en-US"
+              )}
+            </div>
+            <div className="mt-1 text-xs text-slate-500">
+              This page:{" "}
+              {transactions.length.toLocaleString(
+                "en-US"
+              )}
             </div>
           </CardContainer>
         </div>
@@ -252,22 +386,36 @@ export default function DepartmentDetailClient({
             </h2>
             {multiYearSeries.length === 0 ? (
               <p className="text-sm text-slate-500">
-                No budget/actuals data available for this department.
+                No budget/actuals data available for this
+                department.
               </p>
             ) : (
               <div className="h-72">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer
+                  width="100%"
+                  height="100%"
+                >
                   <LineChart
                     data={multiYearSeries.map((d) => ({
                       year: d.year,
                       Budget: d.budget,
                       Actuals: d.actuals,
                     }))}
-                    margin={{ top: 10, right: 10, left: 0, bottom: 20 }}
+                    margin={{
+                      top: 10,
+                      right: 10,
+                      left: 0,
+                      bottom: 20,
+                    }}
                   >
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      vertical={false}
+                    />
                     <XAxis dataKey="year" />
-                    <YAxis tickFormatter={formatCurrency} />
+                    <YAxis
+                      tickFormatter={formatCurrency}
+                    />
                     <Tooltip
                       formatter={(value: any) =>
                         typeof value === "number"
@@ -275,8 +423,16 @@ export default function DepartmentDetailClient({
                           : value
                       }
                     />
-                    <Line type="monotone" dataKey="Budget" dot={false} />
-                    <Line type="monotone" dataKey="Actuals" dot={false} />
+                    <Line
+                      type="monotone"
+                      dataKey="Budget"
+                      dot={false}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="Actuals"
+                      dot={false}
+                    />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
@@ -289,41 +445,79 @@ export default function DepartmentDetailClient({
           <h2 className="mb-2 text-sm font-semibold text-slate-700">
             Transactions ({selectedYear ?? "–"})
           </h2>
-          {deptTxForYear.length === 0 ? (
+          {transactions.length === 0 ? (
             <p className="text-sm text-slate-500">
               No transactions found for this year.
             </p>
           ) : (
-            <div className="max-h-[480px] overflow-auto text-sm">
-              <table className="min-w-full text-left">
-                <thead className="border-b bg-slate-100 text-xs uppercase text-slate-600">
-                  <tr>
-                    <th className="px-3 py-2">Date</th>
-                    <th className="px-3 py-2">Vendor</th>
-                    <th className="px-3 py-2">Description</th>
-                    <th className="px-3 py-2 text-right">Amount</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {deptTxForYear.map((tx, idx) => (
-                    <tr key={`${tx.date}-${tx.vendor}-${idx}`}>
-                      <td className="px-3 py-2 whitespace-nowrap">
-                        {tx.date}
-                      </td>
-                      <td className="px-3 py-2 whitespace-nowrap">
-                        {tx.vendor || "Unspecified"}
-                      </td>
-                      <td className="px-3 py-2">
-                        {tx.description || ""}
-                      </td>
-                      <td className="px-3 py-2 text-right font-mono">
-                        {formatCurrency(Number(tx.amount || 0))}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <>
+              <DataTable<TransactionRow>
+                data={transactions}
+                columns={txColumns}
+                pageSize={transactions.length}
+                initialSortKey="date"
+                initialSortDirection="desc"
+                getRowKey={(row, idx) =>
+                  `${row.date}-${row.vendor}-${idx}`
+                }
+                showPagination={false}
+              />
+
+              {/* Server-side pagination controls */}
+              <div className="mt-3 flex items-center justify-between text-xs text-slate-600">
+                <div>
+                  Showing{" "}
+                  <span className="font-mono">
+                    {totalTxForYear === 0
+                      ? 0
+                      : (page - 1) * pageSize + 1}
+                  </span>{" "}
+                  –{" "}
+                  <span className="font-mono">
+                    {Math.min(
+                      page * pageSize,
+                      totalTxForYear
+                    )}
+                  </span>{" "}
+                  of{" "}
+                  <span className="font-mono">
+                    {totalTxForYear.toLocaleString(
+                      "en-US"
+                    )}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    disabled={page <= 1}
+                    onClick={() =>
+                      handlePageChange(page - 1)
+                    }
+                    className="rounded-md border border-slate-300 px-2 py-1 text-xs disabled:opacity-40"
+                  >
+                    Prev
+                  </button>
+                  <span>
+                    Page{" "}
+                    <span className="font-mono">
+                      {page}
+                    </span>{" "}
+                    /{" "}
+                    <span className="font-mono">
+                      {totalPages}
+                    </span>
+                  </span>
+                  <button
+                    disabled={page >= totalPages}
+                    onClick={() =>
+                      handlePageChange(page + 1)
+                    }
+                    className="rounded-md border border-slate-300 px-2 py-1 text-xs disabled:opacity-40"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            </>
           )}
         </CardContainer>
       </div>

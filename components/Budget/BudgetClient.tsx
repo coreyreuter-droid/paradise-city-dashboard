@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
 import CardContainer from "../CardContainer";
 import SectionHeader from "../SectionHeader";
 import BudgetCharts from "./BudgetCharts";
 import type { BudgetRow, ActualRow } from "../../lib/types";
+import { formatCurrency, formatPercent } from "@/lib/format";
+import DataTable, { DataTableColumn } from "../DataTable";
 
 export type DepartmentSummary = {
   department_name: string;
@@ -18,14 +20,6 @@ type Props = {
   budgets: BudgetRow[];
   actuals: ActualRow[];
 };
-
-
-const formatCurrency = (value: number) =>
-  value.toLocaleString("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 0,
-  });
 
 export default function BudgetClient({ budgets, actuals }: Props) {
   const years = Array.from(
@@ -74,10 +68,67 @@ export default function BudgetClient({ budgets, actuals }: Props) {
     const percentSpent =
       budget > 0 ? Math.round((actual / budget) * 100) : 0;
 
-    return { department_name: dept, budget, actuals: actual, percentSpent };
+    return {
+      department_name: dept,
+      budget,
+      actuals: actual,
+      percentSpent,
+    };
   });
 
+  // Default sort by budget desc (DataTable also has its own sorting)
   departments.sort((a, b) => b.budget - a.budget);
+
+  const columns: DataTableColumn<DepartmentSummary>[] = useMemo(
+    () => [
+      {
+        key: "department",
+        header: "Department",
+        sortable: true,
+        sortAccessor: (row) =>
+          (row.department_name || "Unspecified").toLowerCase(),
+        cellClassName: "whitespace-nowrap",
+        cell: (row) => (
+          <Link
+            href={`/paradise/departments/${encodeURIComponent(
+              row.department_name || "Unspecified"
+            )}?year=${selectedYear}`}
+            className="text-sky-700 hover:underline"
+          >
+            {row.department_name || "Unspecified"}
+          </Link>
+        ),
+      },
+      {
+        key: "budget",
+        header: "Budget",
+        sortable: true,
+        sortAccessor: (row) => row.budget,
+        headerClassName: "text-right",
+        cellClassName: "text-right font-mono",
+        cell: (row) => formatCurrency(row.budget),
+      },
+      {
+        key: "actuals",
+        header: "Actuals",
+        sortable: true,
+        sortAccessor: (row) => row.actuals,
+        headerClassName: "text-right",
+        cellClassName: "text-right font-mono",
+        cell: (row) => formatCurrency(row.actuals),
+      },
+      {
+        key: "percentSpent",
+        header: "% Spent",
+        sortable: true,
+        sortAccessor: (row) => row.percentSpent,
+        headerClassName: "text-right",
+        cellClassName: "text-right font-mono",
+        cell: (row) => formatPercent(row.percentSpent, 0),
+      },
+    ],
+    [selectedYear]
+  );
 
   return (
     <main className="min-h-screen bg-slate-50">
@@ -88,7 +139,7 @@ export default function BudgetClient({ budgets, actuals }: Props) {
         />
 
         {/* Year selector */}
-        <div className="flex items-center justify-between mb-4">
+        <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <label className="text-sm font-medium text-slate-700">
               Fiscal year
@@ -113,7 +164,10 @@ export default function BudgetClient({ budgets, actuals }: Props) {
         {/* Charts block */}
         {departments.length > 0 && (
           <div className="mb-6">
-            <BudgetCharts year={selectedYear} departments={departments} />
+            <BudgetCharts
+              year={selectedYear}
+              departments={departments}
+            />
           </div>
         )}
 
@@ -124,54 +178,15 @@ export default function BudgetClient({ budgets, actuals }: Props) {
               No budget / actuals data available for display.
             </p>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full text-left text-sm">
-                <thead className="border-b border-slate-200 bg-slate-50">
-                  <tr>
-                    <th className="px-3 py-2 font-semibold text-slate-700">
-                      Department
-                    </th>
-                    <th className="px-3 py-2 font-semibold text-slate-700">
-                      Budget
-                    </th>
-                    <th className="px-3 py-2 font-semibold text-slate-700">
-                      Actuals
-                    </th>
-                    <th className="px-3 py-2 font-semibold text-slate-700">
-                      % Spent
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {departments.map((dept) => (
-                    <tr
-                      key={dept.department_name}
-                      className="border-b border-slate-100"
-                    >
-                    <td className="px-3 py-2 text-slate-900">
-                    <Link
-                      href={`/paradise/departments/${encodeURIComponent(
-                        dept.department_name || "Unspecified"
-                      )}?year=${selectedYear}`}
-                      className="text-sky-700 hover:underline"
-                    >
-                      {dept.department_name || "Unspecified"}
-                    </Link>
-                    </td>
-                      <td className="px-3 py-2 text-slate-700">
-                        {formatCurrency(dept.budget)}
-                      </td>
-                      <td className="px-3 py-2 text-slate-700">
-                        {formatCurrency(dept.actuals)}
-                      </td>
-                      <td className="px-3 py-2 text-slate-700">
-                        {dept.percentSpent}%
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <DataTable<DepartmentSummary>
+              data={departments}
+              columns={columns}
+              initialSortKey="budget"
+              initialSortDirection="desc"
+              getRowKey={(row) =>
+                row.department_name || "Unspecified"
+              }
+            />
           )}
         </CardContainer>
       </div>

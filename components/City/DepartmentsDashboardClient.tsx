@@ -8,6 +8,8 @@ import type { BudgetRow, ActualRow, TransactionRow } from "@/lib/types";
 import CardContainer from "../CardContainer";
 import SectionHeader from "../SectionHeader";
 import FiscalYearSelect from "../FiscalYearSelect";
+import { formatCurrency, formatPercent } from "@/lib/format";
+import DataTable, { DataTableColumn } from "../DataTable";
 
 type Props = {
   budgets: BudgetRow[];
@@ -23,16 +25,6 @@ type DepartmentSummary = {
   variance: number;
   txCount: number;
 };
-
-const formatCurrency = (value: number) =>
-  value.toLocaleString("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 0,
-  });
-
-const formatPercent = (value: number) =>
-  `${value.toFixed(1).replace(/-0\.0/, "0.0")}%`;
 
 export default function DepartmentsDashboardClient({
   budgets,
@@ -116,7 +108,7 @@ export default function DepartmentsDashboardClient({
       };
     });
 
-    // Largest budgets first
+    // Largest budgets first (default order; DataTable adds its own sorting)
     rows.sort((a, b) => b.budget - a.budget);
 
     return rows;
@@ -141,6 +133,88 @@ export default function DepartmentsDashboardClient({
   );
 
   const yearParam = selectedYear ? `?year=${selectedYear}` : "";
+
+  const columns: DataTableColumn<DepartmentSummary>[] = useMemo(
+    () => [
+      {
+        key: "department",
+        header: "Department",
+        sortable: true,
+        sortAccessor: (row) =>
+          (row.department_name || "Unspecified").toLowerCase(),
+        cellClassName: "whitespace-nowrap",
+        cell: (row) => (
+          <Link
+            href={`/paradise/departments/${encodeURIComponent(
+              row.department_name
+            )}${yearParam}`}
+            className="font-medium text-sky-700 hover:underline"
+          >
+            {row.department_name}
+          </Link>
+        ),
+      },
+      {
+        key: "budget",
+        header: "Budget",
+        sortable: true,
+        sortAccessor: (row) => row.budget,
+        headerClassName: "text-right",
+        cellClassName: "text-right font-mono",
+        cell: (row) => formatCurrency(row.budget),
+      },
+      {
+        key: "actuals",
+        header: "Actuals",
+        sortable: true,
+        sortAccessor: (row) => row.actuals,
+        headerClassName: "text-right",
+        cellClassName: "text-right font-mono",
+        cell: (row) => formatCurrency(row.actuals),
+      },
+      {
+        key: "percentSpent",
+        header: "% Spent",
+        sortable: true,
+        sortAccessor: (row) => row.percentSpent,
+        headerClassName: "text-right",
+        cellClassName: "text-right font-mono",
+        cell: (row) => formatPercent(row.percentSpent),
+      },
+      {
+        key: "variance",
+        header: "Variance",
+        sortable: true,
+        sortAccessor: (row) => row.variance,
+        headerClassName: "text-right",
+        cellClassName: "text-right font-mono",
+        cell: (row) => (
+          <span
+            className={
+              row.variance > 0
+                ? "text-emerald-700"
+                : row.variance < 0
+                ? "text-red-700"
+                : "text-slate-700"
+            }
+          >
+            {formatCurrency(row.variance)}
+          </span>
+        ),
+      },
+      {
+        key: "txCount",
+        header: "Transactions",
+        sortable: true,
+        sortAccessor: (row) => row.txCount,
+        headerClassName: "text-right",
+        cellClassName: "text-right font-mono",
+        cell: (row) =>
+          row.txCount.toLocaleString("en-US"),
+      },
+    ],
+    [yearParam]
+  );
 
   return (
     <main className="min-h-screen bg-slate-50">
@@ -205,62 +279,13 @@ export default function DepartmentsDashboardClient({
               No department data available for this year.
             </p>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full text-left text-sm">
-                <thead className="border-b bg-slate-100 text-xs uppercase text-slate-600">
-                  <tr>
-                    <th className="px-3 py-2">Department</th>
-                    <th className="px-3 py-2 text-right">Budget</th>
-                    <th className="px-3 py-2 text-right">Actuals</th>
-                    <th className="px-3 py-2 text-right">% Spent</th>
-                    <th className="px-3 py-2 text-right">Variance</th>
-                    <th className="px-3 py-2 text-right">Transactions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {summaries.map((dept) => (
-                    <tr
-                      key={dept.department_name}
-                      className="hover:bg-slate-50"
-                    >
-                      <td className="px-3 py-2">
-                        <Link
-                          href={`/paradise/departments/${encodeURIComponent(
-                            dept.department_name
-                          )}${yearParam}`}
-                          className="font-medium text-sky-700 hover:underline"
-                        >
-                          {dept.department_name}
-                        </Link>
-                      </td>
-                      <td className="px-3 py-2 text-right font-mono">
-                        {formatCurrency(dept.budget)}
-                      </td>
-                      <td className="px-3 py-2 text-right font-mono">
-                        {formatCurrency(dept.actuals)}
-                      </td>
-                      <td className="px-3 py-2 text-right font-mono">
-                        {formatPercent(dept.percentSpent)}
-                      </td>
-                      <td
-                        className={`px-3 py-2 text-right font-mono ${
-                          dept.variance > 0
-                            ? "text-emerald-700"
-                            : dept.variance < 0
-                            ? "text-red-700"
-                            : "text-slate-700"
-                        }`}
-                      >
-                        {formatCurrency(dept.variance)}
-                      </td>
-                      <td className="px-3 py-2 text-right font-mono">
-                        {dept.txCount.toLocaleString("en-US")}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <DataTable<DepartmentSummary>
+              data={summaries}
+              columns={columns}
+              initialSortKey="budget"
+              initialSortDirection="desc"
+              getRowKey={(row) => row.department_name}
+            />
           )}
         </CardContainer>
       </div>
