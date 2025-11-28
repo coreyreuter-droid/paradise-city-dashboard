@@ -8,11 +8,32 @@ const TABLE_SCHEMAS: Record<
   { required: string[]; numeric: string[] }
 > = {
   budgets: {
-    required: ["fiscal_year", "department_name", "amount"],
+    required: [
+      "fiscal_year",
+      "fund_code",
+      "fund_name",
+      "department_code",
+      "department_name",
+      "category",
+      "account_code",
+      "account_name",
+      "amount",
+    ],
     numeric: ["fiscal_year", "amount"],
   },
   actuals: {
-    required: ["fiscal_year", "department_name", "amount"],
+    required: [
+      "fiscal_year",
+      "period",
+      "fund_code",
+      "fund_name",
+      "department_code",
+      "department_name",
+      "category",
+      "account_code",
+      "account_name",
+      "amount",
+    ],
     numeric: ["fiscal_year", "amount"],
   },
   transactions: {
@@ -33,6 +54,265 @@ const TABLE_SCHEMAS: Record<
   },
 };
 
+function buildTemplateCsv(table: string): string | null {
+  const schema = TABLE_SCHEMAS[table];
+  if (!schema) return null;
+
+  const headers = schema.required;
+
+  const exampleRow = headers.map((h) => {
+    if (h === "fiscal_year") return "2024";
+    if (h === "period") return "2024-01"; // matches your year-period format
+    if (h === "date") return "2024-07-01"; // strict YYYY-MM-DD
+    if (h === "amount") return "12345.67";
+    if (h === "fund_code") return "100";
+    if (h === "fund_name") return "General Fund";
+    if (h === "department_code") return "PW";
+    if (h === "department_name") return "Public Works";
+    if (h === "category") return "Supplies & Materials";
+    if (h === "account_code") return "5000";
+    if (h === "account_name") return "Supplies";
+    if (h === "vendor") return "ACME Supply Co.";
+    if (h === "description") return "Example description";
+    // Fallback: just echo something non-empty so validators pass
+    return h.toUpperCase();
+  });
+
+  // Header row + one example row
+  return [headers.join(","), exampleRow.join(",")].join("\n");
+}
+
+type ValidationIssue = {
+  row: number | null; // 1-based, incl. header if relevant; null = file-level
+  field?: string;
+  message: string;
+};
+
+const BAD_DEPT_VALUES = new Set(["", "na", "n/a", "null", "none"]);
+
+function isReasonableYear(n: unknown): boolean {
+  if (typeof n !== "number" || !Number.isInteger(n)) return false;
+  return n >= 2000 && n <= 2100;
+}
+
+// Strict ISO date: YYYY-MM-DD, no auto-correction
+function isValidISODate(value: unknown): boolean {
+  if (typeof value !== "string") return false;
+  const trimmed = value.trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return false;
+  const d = new Date(trimmed);
+  if (Number.isNaN(d.getTime())) return false;
+  const [y, m, day] = trimmed.split("-").map(Number);
+  return (
+    d.getUTCFullYear() === y &&
+    d.getUTCMonth() + 1 === m &&
+    d.getUTCDate() === day
+  );
+}
+
+function isBadDeptName(value: unknown): boolean {
+  if (value === null || value === undefined) return true;
+  const s = String(value).trim().toLowerCase();
+  return BAD_DEPT_VALUES.has(s);
+}
+
+/**
+ * Parse CSV rows into records and run all validation.
+ * - headers: array of header names from the first row
+ * - dataRows: array of string[] for each data row
+ */
+function validateAndBuildRecords(
+  table: string,
+  schema: { required: string[]; numeric: string[] },
+  headers: string[],
+  dataRows: string[][]
+): {
+  records: Record<string, any>[];
+  yearsInData: number[];
+  issues: ValidationIssue[];
+} {
+  const issues: ValidationIssue[] = [];
+
+  // 1) Header checks: duplicates + missing required
+  const headerCounts = new Map<string, number>();
+  headers.forEach((h) => {
+    const key = h.trim();
+    headerCounts.set(key, (headerCounts.get(key) ?? 0) + 1);
+  });
+
+  for (const [h, count] of headerCounts.entries()) {
+    if (count > 1) {
+      issues.push({
+        row: null,
+        field: h,
+        message: `Duplicate column header "${h}" appears ${count} times. Column names must be unique.`,
+      });
+    }
+  }
+
+  const missingRequired = schema.required.filter((col) => !headers.includes(col));
+  if (missingRequired.length > 0) {
+    issues.push({
+      row: null,
+      message: `CSV is missing required column(s) for ${table}: ${missingRequired.join(
+        ", "
+      )}.`,
+    });
+  }
+
+  // If header-level issues exist, stop early
+  if (issues.length > 0) {
+    return { records: [], yearsInData: [], issues };
+  }
+
+  // 2) Build records and row-level validation
+  const records: Record<string, any>[] = [];
+  const yearSet = new Set<number>();
+
+  dataRows.forEach((cols, idx) => {
+    const rowNum = idx + 2; // 1-based, +1 for header
+    const rec: Record<string, any> = {};
+
+    headers.forEach((h, i) => {
+      const raw = cols[i] ?? "";
+      const trimmed = raw.trim();
+
+      // Treat truly empty as null
+      if (trimmed === "") {
+        rec[h] = null;
+        return;
+      }
+
+      if (schema.numeric.includes(h)) {
+        // allow "4,500.00"
+        const num = Number(trimmed.replace(/,/g, ""));
+        if (Number.isNaN(num)) {
+          rec[h] = null;
+          issues.push({
+            row: rowNum,
+            field: h,
+            message: `Invalid numeric value "${raw}" in column "${h}".`,
+          });
+        } else {
+          rec[h] = num;
+        }
+      } else {
+        rec[h] = trimmed;
+      }
+    });
+
+    // Required value checks
+    const missingValueCols = schema.required.filter(
+      (col) =>
+        rec[col] === null ||
+        rec[col] === undefined ||
+        String(rec[col]).trim() === ""
+    );
+    if (missingValueCols.length > 0) {
+      issues.push({
+        row: rowNum,
+        message: `Missing required value(s) in column(s): ${missingValueCols.join(
+          ", "
+        )}.`,
+      });
+    }
+
+    const fy = rec["fiscal_year"];
+
+    if (table === "transactions") {
+      // date
+      if (!isValidISODate(rec["date"])) {
+        issues.push({
+          row: rowNum,
+          field: "date",
+          message: `Invalid date "${rec["date"]}". Expected format YYYY-MM-DD.`,
+        });
+      }
+
+      // department_name
+      if (isBadDeptName(rec["department_name"])) {
+        issues.push({
+          row: rowNum,
+          field: "department_name",
+          message:
+            "department_name is required and cannot be blank or 'NA'.",
+        });
+      }
+
+      // vendor
+      if (isBadDeptName(rec["vendor"])) {
+        issues.push({
+          row: rowNum,
+          field: "vendor",
+          message: "vendor is required and cannot be blank or 'NA'.",
+        });
+      }
+
+      // description
+      if (isBadDeptName(rec["description"])) {
+        issues.push({
+          row: rowNum,
+          field: "description",
+          message:
+            "description is required and cannot be blank or 'NA'.",
+        });
+      }
+
+      // fiscal_year sanity
+      if (!isReasonableYear(fy)) {
+        issues.push({
+          row: rowNum,
+          field: "fiscal_year",
+          message: `Invalid fiscal_year "${fy}". Expected a 4-digit year between 2000 and 2100.`,
+        });
+      } else {
+        yearSet.add(fy as number);
+      }
+    } else if (table === "budgets" || table === "actuals") {
+      // department_name
+      if (isBadDeptName(rec["department_name"])) {
+        issues.push({
+          row: rowNum,
+          field: "department_name",
+          message:
+            "department_name is required and cannot be blank or 'NA'.",
+        });
+      }
+
+      // fiscal_year sanity
+      if (!isReasonableYear(fy)) {
+        issues.push({
+          row: rowNum,
+          field: "fiscal_year",
+          message: `Invalid fiscal_year "${fy}". Expected a 4-digit year between 2000 and 2100.`,
+        });
+      } else {
+        yearSet.add(fy as number);
+      }
+
+      // amount must be non-negative
+      const amt = rec["amount"];
+      if (typeof amt !== "number" || Number.isNaN(amt)) {
+        issues.push({
+          row: rowNum,
+          field: "amount",
+          message: `Invalid amount "${amt}". Expected a numeric value.`,
+        });
+      } else if (amt < 0) {
+        issues.push({
+          row: rowNum,
+          field: "amount",
+          message: `Negative amount "${amt}" is not allowed for ${table}.`,
+        });
+      }
+    }
+
+    records.push(rec);
+  });
+
+  return { records, yearsInData: Array.from(yearSet), issues };
+}
+
 type Mode = "append" | "replace_year" | "replace_table";
 
 // Simple shared-secret admin password (demo-level)
@@ -51,15 +331,22 @@ export default function UploadClient() {
   const [table, setTable] = useState<string>("budgets");
   const [mode, setMode] = useState<Mode>("append");
   const [replaceYear, setReplaceYear] = useState<string>("");
-  const [replaceTableConfirmed, setReplaceTableConfirmed] = useState(false);
+  const [replaceYearConfirm, setReplaceYearConfirm] =
+    useState<string>("");
+  const [replaceTableConfirmed, setReplaceTableConfirmed] =
+    useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [messageIsError, setMessageIsError] = useState(false);
 
   // --- CSV preview state ---
-  const [previewHeaders, setPreviewHeaders] = useState<string[] | null>(null);
+  const [previewHeaders, setPreviewHeaders] = useState<string[] | null>(
+    null
+  );
   const [previewRows, setPreviewRows] = useState<string[][] | null>(null);
-  const [previewMessage, setPreviewMessage] = useState<string | null>(null);
+  const [previewMessage, setPreviewMessage] = useState<string | null>(
+    null
+  );
 
   function setError(msg: string) {
     setMessage(msg);
@@ -94,9 +381,18 @@ export default function UploadClient() {
       return;
     }
 
-    if (mode === "replace_year" && !replaceYear.trim()) {
-      setError("Please enter a fiscal year to replace.");
-      return;
+    // Mode-level guards
+    if (mode === "replace_year") {
+      if (!replaceYear.trim()) {
+        setError("Please enter a fiscal year to replace.");
+        return;
+      }
+      if (replaceYearConfirm.trim() !== replaceYear.trim()) {
+        setError(
+          `To confirm replacing that year, type ${replaceYear.trim()} in the confirmation box.`
+        );
+        return;
+      }
     }
 
     if (mode === "replace_table" && !replaceTableConfirmed) {
@@ -127,85 +423,37 @@ export default function UploadClient() {
       const headers = rows[0].map((h) => h.trim());
       const dataRows = rows.slice(1);
 
-      // 🔍 HEADER VALIDATION
-      const missingRequired = schema.required.filter(
-        (col) => !headers.includes(col)
+      // ✅ CENTRALIZED VALIDATION + RECORD BUILD
+      const { records, yearsInData, issues } = validateAndBuildRecords(
+        table,
+        schema,
+        headers,
+        dataRows
       );
 
-      if (missingRequired.length > 0) {
-        setError(
-          `CSV is missing required column(s) for ${table}: ${missingRequired.join(
-            ", "
-          )}.`
-        );
-        setLoading(false);
-        return;
-      }
-
-      // Build rows + coerce numeric fields
-      const records = dataRows.map((cols) => {
-        const obj: Record<string, any> = {};
-        headers.forEach((h, i) => {
-          let raw = cols[i] ?? "";
-          let val = raw.trim();
-
-          // Treat empty string as null
-          if (val === "") {
-            obj[h] = null;
-            return;
-          }
-
-          // Coerce numeric columns
-          if (schema.numeric.includes(h)) {
-            const num = Number(val);
-            if (Number.isNaN(num)) {
-              obj[h] = null;
-            } else {
-              obj[h] = num;
-            }
-          } else {
-            obj[h] = val;
-          }
+      if (issues.length > 0) {
+        const sample = issues.slice(0, 8);
+        const formatted = sample.map((issue) => {
+          const rowPart =
+            issue.row !== null ? `Row ${issue.row}: ` : "";
+          const fieldPart = issue.field
+            ? `[${issue.field}] `
+            : "";
+          return `${rowPart}${fieldPart}${issue.message}`;
         });
-        return obj;
-      });
-
-      // 🔍 ROW-LEVEL REQUIRED VALUE VALIDATION
-      const rowsWithMissingRequired = records
-        .map((rec, idx) => {
-          const missing = schema.required.filter(
-            (col) => rec[col] === null || rec[col] === undefined
-          );
-          return { idx, missing };
-        })
-        .filter((r) => r.missing.length > 0);
-
-      if (rowsWithMissingRequired.length > 0) {
-        const example = rowsWithMissingRequired[0];
-        const csvRowNumber = example.idx + 2; // +1 for 0-index, +1 for header row
-        const cols = Array.from(
-          new Set(rowsWithMissingRequired.flatMap((r) => r.missing))
-        );
+        const extra =
+          issues.length > sample.length
+            ? `\n...and ${issues.length - sample.length} more issue(s).`
+            : "";
 
         setError(
-          `Validation failed: ${rowsWithMissingRequired.length} row(s) are missing required values in column(s): ${cols.join(
-            ", "
-          )}. Example: CSV row ${csvRowNumber} is missing [${example.missing.join(
-            ", "
-          )}].`
+          `CSV validation failed. Fix these issues and try again:\n\n${formatted.join(
+            "\n"
+          )}${extra}`
         );
         setLoading(false);
         return;
       }
-
-      // Collect fiscal years present in the data
-      const yearsInData = Array.from(
-        new Set(
-          records
-            .map((rec) => rec["fiscal_year"])
-            .filter((v) => typeof v === "number")
-        )
-      ) as number[];
 
       // 🔥 REPLACE-BY-YEAR MODE: delete only that fiscal year
       if (mode === "replace_year") {
@@ -224,7 +472,6 @@ export default function UploadClient() {
           return;
         }
 
-        // Ensure CSV only contains the target year
         const otherYears = yearsInData.filter((y) => y !== targetYear);
         if (otherYears.length > 0) {
           setError(
@@ -236,7 +483,6 @@ export default function UploadClient() {
           return;
         }
 
-        // Delete just that year
         const { error: deleteError } = await supabase
           .from(table)
           .delete()
@@ -255,7 +501,6 @@ export default function UploadClient() {
 
       // 🔥 REPLACE ENTIRE TABLE MODE
       if (mode === "replace_table") {
-        // All your fiscal_year values are positive; >= 0 wipes the table
         const { error: deleteError } = await supabase
           .from(table)
           .delete()
@@ -269,6 +514,7 @@ export default function UploadClient() {
         }
       }
 
+      // INSERT validated records
       const { error } = await supabase.from(table).insert(records);
 
       if (error) {
@@ -290,7 +536,6 @@ export default function UploadClient() {
 
         // 🔎 AUDIT LOG: write to data_uploads (non-blocking for user experience)
         try {
-          // Best-effort fiscal year for the log:
           let logFiscalYear: number | null = null;
           if (mode === "replace_year") {
             logFiscalYear = Number(replaceYear);
@@ -313,7 +558,10 @@ export default function UploadClient() {
             .insert([logPayload]);
 
           if (logError) {
-            console.error("Failed to log upload to data_uploads:", logError);
+            console.error(
+              "Failed to log upload to data_uploads:",
+              logError
+            );
           }
         } catch (logErr) {
           console.error("Unexpected error logging upload:", logErr);
@@ -325,6 +573,26 @@ export default function UploadClient() {
     }
 
     setLoading(false);
+  }
+
+  function handleDownloadTemplate() {
+    const csv = buildTemplateCsv(table);
+    if (!csv) {
+      setError(`No template available for table "${table}".`);
+      return;
+    }
+
+    const blob = new Blob([csv], {
+      type: "text/csv;charset=utf-8;",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${table}_template.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   }
 
   const requiredCols = TABLE_SCHEMAS[table]?.required ?? [];
@@ -351,7 +619,7 @@ export default function UploadClient() {
 
         <form onSubmit={handleAuthSubmit} className="space-y-3">
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
+            <label className="mb-1 block text-sm font-medium text-slate-700">
               Admin password
             </label>
             <input
@@ -368,7 +636,7 @@ export default function UploadClient() {
             Unlock
           </button>
           {authError && (
-            <p className="text-xs text-red-700 mt-2">{authError}</p>
+            <p className="mt-2 text-xs text-red-700">{authError}</p>
           )}
         </form>
       </div>
@@ -382,9 +650,9 @@ export default function UploadClient() {
         Admin CSV Upload
       </h1>
       <p className="mb-1 text-sm text-slate-500">
-        Upload new data for <strong>budgets</strong>, <strong>actuals</strong>, or{" "}
-        <strong>transactions</strong>. CSV column headers must match the expected
-        schema, and all required fields must have values.
+        Upload new data for <strong>budgets</strong>, <strong>actuals</strong>,
+        or <strong>transactions</strong>. CSV column headers must match the
+        expected schema, and all required fields must have values.
       </p>
       <p className="mb-4 text-xs text-slate-500">
         You can review recent uploads in the{" "}
@@ -399,7 +667,7 @@ export default function UploadClient() {
 
       {/* Table selector */}
       <div className="mb-4">
-        <label className="block text-sm font-medium text-slate-700 mb-1">
+        <label className="mb-1 block text-sm font-medium text-slate-700">
           Target table
         </label>
         <select
@@ -411,15 +679,24 @@ export default function UploadClient() {
           <option value="actuals">actuals</option>
           <option value="transactions">transactions</option>
         </select>
-        <p className="mt-1 text-xs text-slate-500">
-          Required columns for <span className="font-mono">{table}</span>:{" "}
-          <span className="font-mono">{requiredCols.join(", ")}</span>
-        </p>
+        <div className="mt-1 flex items-center justify-between gap-2">
+          <p className="text-xs text-slate-500">
+            Required columns for <span className="font-mono">{table}</span>:{" "}
+            <span className="font-mono">{requiredCols.join(", ")}</span>
+          </p>
+          <button
+            type="button"
+            onClick={handleDownloadTemplate}
+            className="shrink-0 rounded-md border border-slate-300 bg-white px-2 py-1 text-[11px] font-medium text-slate-700 hover:bg-slate-50"
+          >
+            Download {table} template
+          </button>
+        </div>
       </div>
 
       {/* Mode selector */}
       <div className="mb-4">
-        <label className="block text-sm font-medium text-slate-700 mb-1">
+        <label className="mb-1 block text-sm font-medium text-slate-700">
           Upload mode
         </label>
         <div className="flex flex-col gap-1 text-sm">
@@ -462,18 +739,43 @@ export default function UploadClient() {
           </label>
 
           {mode === "replace_year" && (
-            <div className="ml-6 mt-1 flex items-center gap-2">
-              <span className="text-xs text-slate-600">
-                Fiscal year to replace:
-              </span>
-              <input
-                type="number"
-                value={replaceYear}
-                onChange={(e) => setReplaceYear(e.target.value)}
-                className="w-24 rounded-md border border-slate-300 px-2 py-1 text-xs"
-                placeholder="2024"
-              />
-            </div>
+            <>
+              <div className="ml-6 mt-1 flex items-center gap-2">
+                <span className="text-xs text-slate-600">
+                  Fiscal year to replace:
+                </span>
+                <input
+                  type="number"
+                  value={replaceYear}
+                  onChange={(e) => setReplaceYear(e.target.value)}
+                  className="w-24 rounded-md border border-slate-300 px-2 py-1 text-xs"
+                  placeholder="2024"
+                />
+              </div>
+              <div className="ml-6 mt-2 space-y-1">
+                <p className="text-[11px] text-amber-800">
+                  This will delete existing rows for that fiscal year in "{table}
+                  " and then upload rows from this CSV.
+                </p>
+                <label className="flex items-center gap-2 text-[11px] text-slate-700">
+                  <span>
+                    Type{" "}
+                    <span className="font-mono font-semibold">
+                      {replaceYear || "YEAR"}
+                    </span>{" "}
+                    to confirm:
+                  </span>
+                  <input
+                    type="text"
+                    value={replaceYearConfirm}
+                    onChange={(e) =>
+                      setReplaceYearConfirm(e.target.value)
+                    }
+                    className="w-24 rounded-md border border-slate-300 px-2 py-1 text-[11px]"
+                  />
+                </label>
+              </div>
+            </>
           )}
 
           <label className="mt-1 flex flex-col gap-1">
@@ -524,7 +826,7 @@ export default function UploadClient() {
 
       {/* File picker + preview */}
       <div className="mb-4">
-        <label className="block text-sm font-medium text-slate-700 mb-1">
+        <label className="mb-1 block text-sm font-medium text-slate-700">
           CSV file
         </label>
 
@@ -617,7 +919,7 @@ export default function UploadClient() {
                 {previewHeaders.map((h) => (
                   <th
                     key={h}
-                    className="px-2 py-1 text-left font-semibold text-slate-700 whitespace-nowrap"
+                    className="whitespace-nowrap px-2 py-1 text-left font-semibold text-slate-700"
                   >
                     {h}
                   </th>
@@ -633,7 +935,7 @@ export default function UploadClient() {
                   {previewHeaders.map((h, colIdx) => (
                     <td
                       key={colIdx}
-                      className="px-2 py-1 text-slate-800 align-top whitespace-nowrap"
+                      className="whitespace-nowrap px-2 py-1 align-top text-slate-800"
                     >
                       {(row[colIdx] ?? "").trim().slice(0, 80)}
                     </td>
@@ -646,7 +948,9 @@ export default function UploadClient() {
       )}
 
       {previewMessage && (
-        <p className="mb-4 text-[11px] text-slate-500">{previewMessage}</p>
+        <p className="mb-4 text-[11px] text-slate-500">
+          {previewMessage}
+        </p>
       )}
 
       {/* Upload button */}

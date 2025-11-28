@@ -1,3 +1,4 @@
+// app/paradise/analytics/page.tsx
 import CitywideDashboardClient from "@/components/City/CitywideDashboardClient";
 import {
   getAllBudgets,
@@ -10,10 +11,10 @@ import type {
   TransactionRow,
 } from "../../../lib/types";
 
-export const revalidate = 0; // optional: always fetch fresh data
+export const revalidate = 0; // always hit Supabase; change if you want caching
 
 export default async function AnalyticsPage() {
-  // Fetch all data in parallel
+  // Fetch everything in parallel to keep this fast
   const [budgetsRaw, actualsRaw, transactionsRaw] = await Promise.all([
     getAllBudgets(),
     getAllActuals(),

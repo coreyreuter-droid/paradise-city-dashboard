@@ -1,23 +1,34 @@
-import SectionHeader from "../../../components/SectionHeader";
-import CardContainer from "../../../components/CardContainer";
+// app/paradise/departments/page.tsx
+import DepartmentsDashboardClient from "@/components/City/DepartmentsDashboardClient";
+import {
+  getAllBudgets,
+  getAllActuals,
+  getAllTransactions,
+} from "../../../lib/queries";
+import type {
+  BudgetRow,
+  ActualRow,
+  TransactionRow,
+} from "../../../lib/types";
 
-export default function DepartmentsPage() {
+export const revalidate = 0;
+
+export default async function DepartmentsPage() {
+  const [budgetsRaw, actualsRaw, transactionsRaw] = await Promise.all([
+    getAllBudgets(),
+    getAllActuals(),
+    getAllTransactions(),
+  ]);
+
+  const budgets: BudgetRow[] = budgetsRaw ?? [];
+  const actuals: ActualRow[] = actualsRaw ?? [];
+  const transactions: TransactionRow[] = transactionsRaw ?? [];
+
   return (
-    <main className="min-h-screen bg-slate-50">
-      <div className="mx-auto max-w-5xl px-4 py-10">
-
-        <SectionHeader
-          title="Departments"
-          description="Explore spending, budgets, and trends by department."
-        />
-
-        <CardContainer>
-          <p className="text-slate-500">
-            [Department list and detail section placeholder]
-          </p>
-        </CardContainer>
-
-      </div>
-    </main>
+    <DepartmentsDashboardClient
+      budgets={budgets}
+      actuals={actuals}
+      transactions={transactions}
+    />
   );
 }
