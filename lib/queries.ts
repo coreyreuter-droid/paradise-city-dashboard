@@ -142,18 +142,33 @@ export type TransactionsPageResult = {
 };
 
 export async function getTransactionYears(): Promise<number[]> {
-  const { data, error } = await supabase
-    .from("transactions")
-    .select("fiscal_year")
-    .order("fiscal_year", { ascending: false });
+  // Collect distinct fiscal_year values from budgets, actuals, and transactions
+  const [budgetsRes, actualsRes, txRes] = await Promise.all([
+    supabase.from("budgets").select("fiscal_year"),
+    supabase.from("actuals").select("fiscal_year"),
+    supabase.from("transactions").select("fiscal_year"),
+  ]);
 
-  if (error) {
-    console.error("Error fetching transaction years", error);
-    return [];
+  const allErrors = [budgetsRes.error, actualsRes.error, txRes.error].filter(
+    Boolean
+  );
+  if (allErrors.length > 0) {
+    console.error("Error fetching transaction years", allErrors);
   }
 
   const set = new Set<number>();
-  (data ?? []).forEach((row: any) => {
+
+  (budgetsRes.data ?? []).forEach((row: any) => {
+    const year = Number(row.fiscal_year);
+    if (Number.isFinite(year)) set.add(year);
+  });
+
+  (actualsRes.data ?? []).forEach((row: any) => {
+    const year = Number(row.fiscal_year);
+    if (Number.isFinite(year)) set.add(year);
+  });
+
+  (txRes.data ?? []).forEach((row: any) => {
     const year = Number(row.fiscal_year);
     if (Number.isFinite(year)) set.add(year);
   });

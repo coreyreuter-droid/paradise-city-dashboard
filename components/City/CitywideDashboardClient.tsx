@@ -14,6 +14,7 @@ import {
   CartesianGrid,
 } from "recharts";
 import type { BudgetRow, ActualRow, TransactionRow } from "@/lib/types";
+import { CITY_CONFIG } from "@/lib/cityConfig";
 import CardContainer from "../CardContainer";
 import SectionHeader from "../SectionHeader";
 import FiscalYearSelect from "../FiscalYearSelect";
@@ -264,8 +265,8 @@ export default function CitywideDashboardClient({
                             : value
                         }
                       />
-                      <Bar dataKey="Budget" />
-                      <Bar dataKey="Actuals" />
+                      <Bar dataKey="Budget" fill={CITY_CONFIG.primaryColor} />
+                      <Bar dataKey="Actuals" fill={CITY_CONFIG.accentColor} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
