@@ -11,41 +11,47 @@ export const revalidate = 0;
 
 const PAGE_SIZE = 50;
 
-type PageProps = {
-  searchParams: {
-    year?: string;
-    department?: string;
-    q?: string;
-    page?: string;
-  };
+// Next 16 can pass searchParams as a Promise, so allow both.
+type SearchParamsShape = {
+  year?: string;
+  department?: string;
+  q?: string;
+  page?: string;
 };
 
-export default async function TransactionsPage({
-  searchParams,
-}: PageProps) {
-  // Years available
+type PageProps = {
+  searchParams: SearchParamsShape | Promise<SearchParamsShape>;
+};
+
+export default async function TransactionsPage(props: PageProps) {
+  // Support both direct object and Promise
+  const searchParams = await props.searchParams;
+
+  // 1) Years available in data
   const years = await getTransactionYears();
   const defaultYear = years[0];
 
-  // Parse year
+  // 2) Selected year from URL or fall back to latest
   const yearParam = searchParams.year
     ? Number(searchParams.year)
     : undefined;
+
   const selectedYear =
     yearParam && years.includes(yearParam)
       ? yearParam
       : defaultYear;
 
-  // Parse department filter
+  // 3) Department filter - "all" or specific value
+  const departmentParam = searchParams.department ?? "all";
   const department =
-    searchParams.department && searchParams.department !== "all"
-      ? searchParams.department
+    departmentParam && departmentParam !== "all"
+      ? departmentParam
       : "all";
 
-  // Vendor / description query
+  // 4) Vendor/description query
   const vendorQuery = searchParams.q ?? "";
 
-  // Page (1-based)
+  // 5) Page (1-based)
   const pageParam = searchParams.page
     ? Number(searchParams.page)
     : 1;
@@ -54,17 +60,16 @@ export default async function TransactionsPage({
       ? pageParam
       : 1;
 
-  // Departments list for the dropdown (for the selected year)
+  // 6) Departments list for selected year
   const departments =
     selectedYear != null
       ? await getTransactionDepartmentsForYear(selectedYear)
       : [];
 
-  // Paged transactions
+  // 7) Paged transactions from Supabase
   const { rows, totalCount } = await getTransactionsPage({
     fiscalYear: selectedYear,
-    department:
-      department === "all" ? undefined : department,
+    department: department === "all" ? undefined : department,
     vendorQuery,
     page,
     pageSize: PAGE_SIZE,

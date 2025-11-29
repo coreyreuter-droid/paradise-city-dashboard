@@ -30,7 +30,7 @@ type Props = {
 export default function TransactionsDashboardClient({
   transactions,
   years,
-  selectedYear, // currently not used directly; year is driven off searchParams + FiscalYearSelect
+  selectedYear,
   totalCount,
   page,
   pageSize,
@@ -48,8 +48,12 @@ export default function TransactionsDashboardClient({
   const totalPages =
     totalCount === 0
       ? 1
-      : Math.ceil(totalCount / pageSize);
+      : Math.max(1, Math.ceil(totalCount / pageSize));
 
+  const currentYearLabel =
+    selectedYear ?? (years.length > 0 ? years[0] : "–");
+
+  // Helper to push updated query params
   const updateQuery = (patch: {
     [key: string]: string | undefined;
   }) => {
@@ -69,7 +73,7 @@ export default function TransactionsDashboardClient({
       }
     });
 
-    // Reset page when filters change unless explicitly set
+    // If caller didn’t explicitly set page, reset it
     if (!("page" in patch)) {
       params.delete("page");
     }
@@ -78,9 +82,7 @@ export default function TransactionsDashboardClient({
     router.push(qs ? `${pathname}?${qs}` : pathname);
   };
 
-  const handleDepartmentChange = (
-    deptValue: string
-  ) => {
+  const handleDepartmentChange = (deptValue: string) => {
     updateQuery({
       department: deptValue,
       page: "1",
@@ -110,73 +112,60 @@ export default function TransactionsDashboardClient({
           key: "date",
           header: "Date",
           sortable: true,
-          sortAccessor: (row) => row.date,
-          cellClassName: "whitespace-nowrap",
-          cell: (row) => formatDate(row.date),
-        },
-        {
-          key: "fiscal_year",
-          header: "Fiscal year",
-          sortable: true,
-          sortAccessor: (row) => row.fiscal_year,
-          cellClassName: "whitespace-nowrap",
-          cell: (row) => row.fiscal_year,
+          sortAccessor: (row) =>
+            new Date(row.date).getTime(),
+          cell: (row) => (
+            <span className="whitespace-nowrap">
+              {formatDate(row.date)}
+            </span>
+          ),
         },
         {
           key: "department",
           header: "Department",
           sortable: true,
           sortAccessor: (row) =>
-            (row.department_name ||
-              "Unspecified"
-            ).trim(),
-          cellClassName: "whitespace-nowrap",
-          cell: (row) =>
-            row.department_name || "Unspecified",
+            row.department_name || "",
+          cell: (row) => (
+            <span>
+              {row.department_name || "Unspecified"}
+            </span>
+          ),
         },
         {
           key: "vendor",
           header: "Vendor",
           sortable: true,
-          sortAccessor: (row) =>
-            (row.vendor || "Unspecified").toLowerCase(),
-          cellClassName: "whitespace-nowrap",
-          cell: (row) =>
-            row.vendor || "Unspecified",
+          sortAccessor: (row) => row.vendor || "",
+          cell: (row) => (
+            <span className="whitespace-nowrap">
+              {row.vendor || "Unspecified"}
+            </span>
+          ),
         },
         {
           key: "description",
           header: "Description",
-          sortable: true,
-          sortAccessor: (row) =>
-            (row.description || "").toLowerCase(),
-          cell: (row) => row.description || "",
+          sortable: false,
+          cell: (row) => (
+            <span className="block max-w-xl truncate">
+              {row.description || ""}
+            </span>
+          ),
         },
         {
           key: "amount",
           header: "Amount",
           sortable: true,
-          sortAccessor: (row) =>
-            Number(row.amount || 0),
+          sortAccessor: (row) => row.amount,
           headerClassName: "text-right",
           cellClassName: "text-right font-mono",
           cell: (row) =>
-            formatCurrency(
-              Number(row.amount || 0)
-            ),
+            formatCurrency(Number(row.amount || 0)),
         },
       ],
       []
     );
-
-  const pageTotal = transactions.reduce(
-    (sum, t) => sum + Number(t.amount || 0),
-    0
-  );
-  const pageAvg =
-    transactions.length === 0
-      ? 0
-      : pageTotal / transactions.length;
 
   return (
     <main className="min-h-screen bg-slate-50">
@@ -206,11 +195,9 @@ export default function TransactionsDashboardClient({
             <select
               value={departmentFilter}
               onChange={(e) =>
-                handleDepartmentChange(
-                  e.target.value
-                )
+                handleDepartmentChange(e.target.value)
               }
-              className="w-full rounded-md border border-slate-300 px-2 py-1 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+              className="w-full rounded-md border border-slate-300 bg-white px-2 py-1 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
             >
               <option value="all">
                 All departments
@@ -238,65 +225,54 @@ export default function TransactionsDashboardClient({
                 onChange={(e) =>
                   setVendorInput(e.target.value)
                 }
-                placeholder="Search vendor or description…"
-                className="w-full rounded-md border border-slate-300 px-2 py-1 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                placeholder="Search text…"
+                className="flex-1 rounded-md border border-slate-300 bg-white px-2 py-1 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
               />
               <button
                 type="submit"
-                className="whitespace-nowrap rounded-md bg-sky-600 px-3 py-1 text-xs font-semibold text-white hover:bg-sky-700"
+                className="rounded-md bg-sky-600 px-3 py-1 text-xs font-semibold text-white hover:bg-sky-700"
               >
                 Search
               </button>
             </form>
-            {vendorQuery && (
-              <p className="mt-1 text-[11px] text-slate-500">
-                Active filter: “{vendorQuery}”
-              </p>
-            )}
           </div>
         </div>
 
-        {/* Metrics (this page) */}
-        <div className="mb-4 grid gap-4 md:grid-cols-3">
-          <CardContainer>
-            <div className="text-xs font-semibold uppercase text-slate-500">
-              Transactions (this page)
-            </div>
-            <div className="mt-1 text-2xl font-bold text-slate-900">
-              {transactions.length.toLocaleString(
-                "en-US"
-              )}
-            </div>
-            <div className="mt-1 text-xs text-slate-500">
-              Total in dataset:{" "}
-              {totalCount.toLocaleString("en-US")}
-            </div>
-          </CardContainer>
-
-          <CardContainer>
-            <div className="text-xs font-semibold uppercase text-slate-500">
-              Total amount (this page)
-            </div>
-            <div className="mt-1 text-2xl font-bold text-slate-900">
-              {formatCurrency(pageTotal)}
-            </div>
-          </CardContainer>
-
-          <CardContainer>
-            <div className="text-xs font-semibold uppercase text-slate-500">
-              Average transaction (this page)
-            </div>
-            <div className="mt-1 text-2xl font-bold text-slate-900">
-              {formatCurrency(pageAvg)}
-            </div>
-          </CardContainer>
+        {/* Summary */}
+        <div className="mb-4 text-xs text-slate-600">
+          <span className="font-semibold">
+            {totalCount.toLocaleString("en-US")}
+          </span>{" "}
+          transactions in{" "}
+          <span className="font-semibold">
+            {currentYearLabel}
+          </span>
+          {departmentFilter !== "all" && (
+            <>
+              {" "}
+              for{" "}
+              <span className="font-semibold">
+                {departmentFilter}
+              </span>
+            </>
+          )}
+          {vendorQuery && (
+            <>
+              {" "}
+              matching{" "}
+              <span className="font-semibold">
+                “{vendorQuery}”
+              </span>
+            </>
+          )}
         </div>
 
-        {/* Table */}
+        {/* Table + server-side pagination */}
         <CardContainer>
           {transactions.length === 0 ? (
             <p className="text-sm text-slate-500">
-              No transactions match the current filters.
+              No transactions found for the selected
+              filters.
             </p>
           ) : (
             <>
@@ -316,46 +292,38 @@ export default function TransactionsDashboardClient({
               <div className="mt-3 flex items-center justify-between text-xs text-slate-600">
                 <div>
                   Showing{" "}
-                  <span className="font-mono">
-                    {totalCount === 0
-                      ? 0
-                      : (page - 1) * pageSize + 1}
-                  </span>{" "}
-                  –{" "}
-                  <span className="font-mono">
-                    {Math.min(
-                      page * pageSize,
-                      totalCount
-                    )}
+                  <span className="font-semibold">
+                    {transactions.length}
                   </span>{" "}
                   of{" "}
-                  <span className="font-mono">
-                    {totalCount.toLocaleString(
-                      "en-US"
-                    )}
-                  </span>
+                  <span className="font-semibold">
+                    {totalCount.toLocaleString("en-US")}
+                  </span>{" "}
+                  transactions.
                 </div>
                 <div className="flex items-center gap-2">
                   <button
+                    type="button"
                     disabled={page <= 1}
                     onClick={() =>
                       handlePageChange(page - 1)
                     }
                     className="rounded-md border border-slate-300 px-2 py-1 text-xs disabled:opacity-40"
                   >
-                    Prev
+                    Previous
                   </button>
                   <span>
                     Page{" "}
-                    <span className="font-mono">
+                    <span className="font-semibold">
                       {page}
                     </span>{" "}
-                    /{" "}
-                    <span className="font-mono">
+                    of{" "}
+                    <span className="font-semibold">
                       {totalPages}
                     </span>
                   </span>
                   <button
+                    type="button"
                     disabled={page >= totalPages}
                     onClick={() =>
                       handlePageChange(page + 1)
