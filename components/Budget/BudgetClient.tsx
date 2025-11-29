@@ -1,13 +1,16 @@
+// components/Budget/BudgetClient.tsx
 "use client";
 
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import CardContainer from "../CardContainer";
 import SectionHeader from "../SectionHeader";
 import BudgetCharts from "./BudgetCharts";
 import type { BudgetRow, ActualRow } from "../../lib/types";
 import { formatCurrency, formatPercent } from "@/lib/format";
 import DataTable, { DataTableColumn } from "../DataTable";
+import FiscalYearSelect from "../FiscalYearSelect";
 
 export type DepartmentSummary = {
   department_name: string;
@@ -22,18 +25,32 @@ type Props = {
 };
 
 export default function BudgetClient({ budgets, actuals }: Props) {
-  const years = Array.from(
-    new Set(budgets.map((b) => b.fiscal_year))
-  ).sort((a, b) => b - a);
+  const searchParams = useSearchParams();
 
-  const [selectedYear, setSelectedYear] = useState<number>(
-    years[0] ?? new Date().getFullYear()
+  // All years present in budget data, newest first
+  const years = useMemo(
+    () =>
+      Array.from(new Set(budgets.map((b) => b.fiscal_year))).sort(
+        (a, b) => b - a
+      ),
+    [budgets]
   );
 
-  const handleYearChange = (yearString: string) => {
-    const y = Number(yearString);
-    if (!Number.isNaN(y)) setSelectedYear(y);
-  };
+  // Selected year comes from ?year=, falling back to latest year
+  const selectedYear = useMemo(() => {
+    if (years.length === 0) {
+      return new Date().getFullYear();
+    }
+
+    const param = searchParams.get("year");
+    const parsed = param ? Number(param) : NaN;
+
+    if (Number.isFinite(parsed) && years.includes(parsed)) {
+      return parsed;
+    }
+
+    return years[0];
+  }, [searchParams, years]);
 
   // Filter to selected year
   const budgetRows = budgets.filter(
@@ -138,28 +155,20 @@ export default function BudgetClient({ budgets, actuals }: Props) {
           description={`Summary by department for fiscal year ${selectedYear}.`}
         />
 
-        {/* Year selector */}
-        <div className="mb-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <label className="text-sm font-medium text-slate-700">
-              Fiscal year
-            </label>
-            <select
-              className="rounded-md border border-slate-300 bg-white px-2 py-1 text-sm"
-              value={selectedYear}
-              onChange={(e) => handleYearChange(e.target.value)}
-            >
-              {years.map((year) => (
-                <option key={year} value={year}>
-                  {year}
-                </option>
-              ))}
-            </select>
+        {/* Year selector hooked into ?year=, same UX as other pages */}
+        {years.length > 0 && (
+          <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="max-w-xs">
+              <FiscalYearSelect
+                options={years}
+                label="Fiscal year"
+              />
+            </div>
+            <span className="text-xs text-slate-500">
+              Currently viewing: <strong>{selectedYear}</strong>
+            </span>
           </div>
-          <span className="text-xs text-slate-500">
-            Currently viewing: <strong>{selectedYear}</strong>
-          </span>
-        </div>
+        )}
 
         {/* Charts block */}
         {departments.length > 0 && (

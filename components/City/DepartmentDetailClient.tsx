@@ -2,11 +2,7 @@
 "use client";
 
 import { useMemo } from "react";
-import {
-  useSearchParams,
-  useRouter,
-  usePathname,
-} from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import {
   LineChart,
   Line,
@@ -24,11 +20,6 @@ import type {
 import CardContainer from "../CardContainer";
 import SectionHeader from "../SectionHeader";
 import FiscalYearSelect from "../FiscalYearSelect";
-import {
-  formatCurrency,
-  formatPercent,
-  formatDate,
-} from "@/lib/format";
 import DataTable, {
   DataTableColumn,
 } from "../DataTable";
@@ -37,11 +28,18 @@ type Props = {
   departmentName?: string;
   budgets: BudgetRow[];
   actuals: ActualRow[];
-  transactions: TransactionRow[]; // current page
-  totalTxForYear: number; // total for selected year
-  page: number;
-  pageSize: number;
+  transactions: TransactionRow[];
 };
+
+const formatCurrency = (value: number) =>
+  value.toLocaleString("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  });
+
+const formatPercent = (value: number) =>
+  `${value.toFixed(1).replace(/-0\.0/, "0.0")}%`;
 
 const normalizeName = (name: string | null | undefined) =>
   (name ?? "").trim().toLowerCase();
@@ -51,14 +49,10 @@ export default function DepartmentDetailClient({
   budgets,
   actuals,
   transactions,
-  totalTxForYear,
-  page,
-  pageSize,
 }: Props) {
   const searchParams = useSearchParams();
-  const router = useRouter();
-  const pathname = usePathname();
 
+  // Robust display name: prop → query → first dept in data → fallback label
   const displayName = useMemo(() => {
     if (departmentName && departmentName.trim().length > 0) {
       return departmentName;
@@ -98,7 +92,7 @@ export default function DepartmentDetailClient({
     [displayName]
   );
 
-  // Filter all data by normalized department name (for totals + years)
+  // Filter all data by normalized department name
   const deptBudgets = useMemo(
     () =>
       budgets.filter(
@@ -119,21 +113,31 @@ export default function DepartmentDetailClient({
     [actuals, normalizedDisplay]
   );
 
+  // 🔑 NEW: all transactions for this department (across all years)
+  const deptTx = useMemo(
+    () =>
+      transactions.filter(
+        (t) =>
+          normalizeName(t.department_name) ===
+          normalizedDisplay
+      ),
+    [transactions, normalizedDisplay]
+  );
+
+  // 🔑 UPDATED: include transaction years in the year list
   const deptYears = useMemo(() => {
     const set = new Set<number>();
     deptBudgets.forEach((b) => set.add(b.fiscal_year));
     deptActuals.forEach((a) => set.add(a.fiscal_year));
+    deptTx.forEach((t) => set.add(t.fiscal_year));
     return Array.from(set).sort((a, b) => b - a);
-  }, [deptBudgets, deptActuals]);
+  }, [deptBudgets, deptActuals, deptTx]);
 
   const selectedYear = useMemo(() => {
     if (deptYears.length === 0) return undefined;
     const param = searchParams.get("year");
     const parsed = param ? Number(param) : NaN;
-    if (
-      Number.isFinite(parsed) &&
-      deptYears.includes(parsed)
-    )
+    if (Number.isFinite(parsed) && deptYears.includes(parsed))
       return parsed;
     return deptYears[0];
   }, [searchParams, deptYears]);
@@ -147,11 +151,7 @@ export default function DepartmentDetailClient({
     deptBudgets.forEach((b) => {
       const year = b.fiscal_year;
       const entry =
-        byYear.get(year) || {
-          year,
-          budget: 0,
-          actuals: 0,
-        };
+        byYear.get(year) || { year, budget: 0, actuals: 0 };
       entry.budget += Number(b.amount || 0);
       byYear.set(year, entry);
     });
@@ -159,11 +159,7 @@ export default function DepartmentDetailClient({
     deptActuals.forEach((a) => {
       const year = a.fiscal_year;
       const entry =
-        byYear.get(year) || {
-          year,
-          budget: 0,
-          actuals: 0,
-        };
+        byYear.get(year) || { year, budget: 0, actuals: 0 };
       entry.actuals += Number(a.amount || 0);
       byYear.set(year, entry);
     });
@@ -211,43 +207,22 @@ export default function DepartmentDetailClient({
     };
   }, [deptBudgets, deptActuals, selectedYear]);
 
-  const totalPages =
-    totalTxForYear === 0
-      ? 1
-      : Math.ceil(totalTxForYear / pageSize);
+  // 🔑 UPDATED: filter from deptTx, not entire transactions
+  const deptTxForYear = useMemo(
+    () =>
+      selectedYear
+        ? deptTx
+            .filter((t) => t.fiscal_year === selectedYear)
+            .sort(
+              (a, b) =>
+                new Date(b.date).getTime() -
+                new Date(a.date).getTime()
+            )
+        : [],
+    [deptTx, selectedYear]
+  );
 
-  const updateQuery = (patch: {
-    [key: string]: string | undefined;
-  }) => {
-    const params = new URLSearchParams(
-      searchParams.toString()
-    );
-
-    Object.entries(patch).forEach(([key, value]) => {
-      if (
-        value === undefined ||
-        value === "" ||
-        value === "all"
-      ) {
-        params.delete(key);
-      } else {
-        params.set(key, value);
-      }
-    });
-
-    const qs = params.toString();
-    router.push(qs ? `${pathname}?${qs}` : pathname);
-  };
-
-  const handlePageChange = (nextPage: number) => {
-    const safe = Math.min(
-      Math.max(1, nextPage),
-      totalPages
-    );
-    updateQuery({ page: String(safe) });
-  };
-
-  const txColumns: DataTableColumn<TransactionRow>[] =
+  const transactionColumns: DataTableColumn<TransactionRow>[] =
     useMemo(
       () => [
         {
@@ -256,7 +231,7 @@ export default function DepartmentDetailClient({
           sortable: true,
           sortAccessor: (row) => row.date,
           cellClassName: "whitespace-nowrap",
-          cell: (row) => formatDate(row.date),
+          cell: (row) => row.date, // keep raw string to avoid hydration issues
         },
         {
           key: "vendor",
@@ -265,8 +240,7 @@ export default function DepartmentDetailClient({
           sortAccessor: (row) =>
             (row.vendor || "Unspecified").toLowerCase(),
           cellClassName: "whitespace-nowrap",
-          cell: (row) =>
-            row.vendor || "Unspecified",
+          cell: (row) => row.vendor || "Unspecified",
         },
         {
           key: "description",
@@ -274,20 +248,19 @@ export default function DepartmentDetailClient({
           sortable: true,
           sortAccessor: (row) =>
             (row.description || "").toLowerCase(),
+          cellClassName: "",
           cell: (row) => row.description || "",
         },
         {
           key: "amount",
           header: "Amount",
           sortable: true,
-          sortAccessor: (row) =>
-            Number(row.amount || 0),
+          sortAccessor: (row) => Number(row.amount || 0),
           headerClassName: "text-right",
-          cellClassName: "text-right font-mono",
+          cellClassName:
+            "text-right font-mono whitespace-nowrap",
           cell: (row) =>
-            formatCurrency(
-              Number(row.amount || 0)
-            ),
+            formatCurrency(Number(row.amount || 0)),
         },
       ],
       []
@@ -365,15 +338,7 @@ export default function DepartmentDetailClient({
               Transactions ({selectedYear ?? "–"})
             </div>
             <div className="mt-1 text-2xl font-bold text-slate-900">
-              {totalTxForYear.toLocaleString(
-                "en-US"
-              )}
-            </div>
-            <div className="mt-1 text-xs text-slate-500">
-              This page:{" "}
-              {transactions.length.toLocaleString(
-                "en-US"
-              )}
+              {deptTxForYear.length.toLocaleString("en-US")}
             </div>
           </CardContainer>
         </div>
@@ -445,79 +410,26 @@ export default function DepartmentDetailClient({
           <h2 className="mb-2 text-sm font-semibold text-slate-700">
             Transactions ({selectedYear ?? "–"})
           </h2>
-          {transactions.length === 0 ? (
+          {deptTxForYear.length === 0 ? (
             <p className="text-sm text-slate-500">
               No transactions found for this year.
             </p>
           ) : (
-            <>
+            <div className="max-h-[480px] overflow-auto text-sm">
               <DataTable<TransactionRow>
-                data={transactions}
-                columns={txColumns}
-                pageSize={transactions.length}
+                data={deptTxForYear}
+                columns={transactionColumns}
+                pageSize={50}
                 initialSortKey="date"
                 initialSortDirection="desc"
                 getRowKey={(row, idx) =>
                   `${row.date}-${row.vendor}-${idx}`
                 }
-                showPagination={false}
+                showPagination={
+                  deptTxForYear.length > 50
+                }
               />
-
-              {/* Server-side pagination controls */}
-              <div className="mt-3 flex items-center justify-between text-xs text-slate-600">
-                <div>
-                  Showing{" "}
-                  <span className="font-mono">
-                    {totalTxForYear === 0
-                      ? 0
-                      : (page - 1) * pageSize + 1}
-                  </span>{" "}
-                  –{" "}
-                  <span className="font-mono">
-                    {Math.min(
-                      page * pageSize,
-                      totalTxForYear
-                    )}
-                  </span>{" "}
-                  of{" "}
-                  <span className="font-mono">
-                    {totalTxForYear.toLocaleString(
-                      "en-US"
-                    )}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    disabled={page <= 1}
-                    onClick={() =>
-                      handlePageChange(page - 1)
-                    }
-                    className="rounded-md border border-slate-300 px-2 py-1 text-xs disabled:opacity-40"
-                  >
-                    Prev
-                  </button>
-                  <span>
-                    Page{" "}
-                    <span className="font-mono">
-                      {page}
-                    </span>{" "}
-                    /{" "}
-                    <span className="font-mono">
-                      {totalPages}
-                    </span>
-                  </span>
-                  <button
-                    disabled={page >= totalPages}
-                    onClick={() =>
-                      handlePageChange(page + 1)
-                    }
-                    className="rounded-md border border-slate-300 px-2 py-1 text-xs disabled:opacity-40"
-                  >
-                    Next
-                  </button>
-                </div>
-              </div>
-            </>
+            </div>
           )}
         </CardContainer>
       </div>
