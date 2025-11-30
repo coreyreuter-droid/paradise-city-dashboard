@@ -62,7 +62,7 @@ function buildTemplateCsv(table: string): string | null {
 
   const exampleRow = headers.map((h) => {
     if (h === "fiscal_year") return "2024";
-    if (h === "period") return "2024-01"; // matches your year-period format
+    if (h === "period") return "2024-01"; // year-period format
     if (h === "date") return "2024-07-01"; // strict YYYY-MM-DD
     if (h === "amount") return "12345.67";
     if (h === "fund_code") return "100";
@@ -110,6 +110,19 @@ function isValidISODate(value: unknown): boolean {
   );
 }
 
+// period as "YYYY-PP" where PP is 01–12
+function isValidPeriod(value: unknown): boolean {
+  if (typeof value !== "string") return false;
+  const trimmed = value.trim();
+  if (!/^\d{4}-\d{1,2}$/.test(trimmed)) return false;
+  const [yearStr, periodStr] = trimmed.split("-");
+  const year = Number(yearStr);
+  const period = Number(periodStr);
+  if (!isReasonableYear(year)) return false;
+  if (!Number.isInteger(period)) return false;
+  return period >= 1 && period <= 12;
+}
+
 function isBadDeptName(value: unknown): boolean {
   if (value === null || value === undefined) return true;
   const s = String(value).trim().toLowerCase();
@@ -133,7 +146,7 @@ function validateAndBuildRecords(
 } {
   const issues: ValidationIssue[] = [];
 
-  // 1) Header checks: duplicates + missing required
+  // 1) Header checks: duplicates + missing required + unexpected
   const headerCounts = new Map<string, number>();
   headers.forEach((h) => {
     const key = h.trim();
@@ -150,13 +163,26 @@ function validateAndBuildRecords(
     }
   }
 
-  const missingRequired = schema.required.filter((col) => !headers.includes(col));
+  const missingRequired = schema.required.filter(
+    (col) => !headers.includes(col)
+  );
   if (missingRequired.length > 0) {
     issues.push({
       row: null,
       message: `CSV is missing required column(s) for ${table}: ${missingRequired.join(
         ", "
       )}.`,
+    });
+  }
+
+  // STRICT: no extra/unexpected columns beyond schema.required
+  const unexpected = headers.filter((h) => !schema.required.includes(h));
+  if (unexpected.length > 0) {
+    issues.push({
+      row: null,
+      message: `CSV contains unexpected column(s) for ${table}: ${unexpected.join(
+        ", "
+      )}. Headers must match exactly: ${schema.required.join(", ")}.`,
     });
   }
 
@@ -305,6 +331,18 @@ function validateAndBuildRecords(
           message: `Negative amount "${amt}" is not allowed for ${table}.`,
         });
       }
+
+      // period format for actuals
+      if (table === "actuals") {
+        if (!isValidPeriod(rec["period"])) {
+          issues.push({
+            row: rowNum,
+            field: "period",
+            message:
+              'Invalid period value. Expected format "YYYY-PP" where PP is 01–12 (e.g. "2024-01").',
+          });
+        }
+      }
     }
 
     records.push(rec);
@@ -315,35 +353,25 @@ function validateAndBuildRecords(
 
 type Mode = "append" | "replace_year" | "replace_table";
 
-// Simple shared-secret admin password (demo-level)
-// Set NEXT_PUBLIC_ADMIN_PASSWORD in .env.local to override.
-const ADMIN_PASSWORD =
-  process.env.NEXT_PUBLIC_ADMIN_PASSWORD ?? "paradise-admin";
-
 export default function UploadClient() {
-  // --- Admin access gate ---
-  const [authorized, setAuthorized] = useState(false);
-  const [passwordInput, setPasswordInput] = useState("");
-  const [authError, setAuthError] = useState<string | null>(null);
-
-  // --- Upload state ---
+  // --- Upload state (unchanged) ---
   const [file, setFile] = useState<File | null>(null);
   const [table, setTable] = useState<string>("budgets");
   const [mode, setMode] = useState<Mode>("append");
   const [replaceYear, setReplaceYear] = useState<string>("");
-  const [replaceYearConfirm, setReplaceYearConfirm] =
-    useState<string>("");
-  const [replaceTableConfirmed, setReplaceTableConfirmed] =
-    useState(false);
+  const [replaceYearConfirm, setReplaceYearConfirm] = useState<string>("");
+  const [replaceTableConfirmed, setReplaceTableConfirmed] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [messageIsError, setMessageIsError] = useState(false);
 
-  // --- CSV preview state ---
+  // --- CSV preview state (unchanged) ---
   const [previewHeaders, setPreviewHeaders] = useState<string[] | null>(
     null
   );
-  const [previewRows, setPreviewRows] = useState<string[][] | null>(null);
+  const [previewRows, setPreviewRows] = useState<string[][] | null>(
+    null
+  );
   const [previewMessage, setPreviewMessage] = useState<string | null>(
     null
   );
@@ -356,17 +384,6 @@ export default function UploadClient() {
   function setInfo(msg: string) {
     setMessage(msg);
     setMessageIsError(false);
-  }
-
-  function handleAuthSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    if (passwordInput === ADMIN_PASSWORD) {
-      setAuthorized(true);
-      setAuthError(null);
-    } else {
-      setAuthorized(false);
-      setAuthError("Incorrect admin password.");
-    }
   }
 
   async function handleUpload() {
@@ -434,11 +451,8 @@ export default function UploadClient() {
       if (issues.length > 0) {
         const sample = issues.slice(0, 8);
         const formatted = sample.map((issue) => {
-          const rowPart =
-            issue.row !== null ? `Row ${issue.row}: ` : "";
-          const fieldPart = issue.field
-            ? `[${issue.field}] `
-            : "";
+          const rowPart = issue.row !== null ? `Row ${issue.row}: ` : "";
+          const fieldPart = issue.field ? `[${issue.field}] ` : "";
           return `${rowPart}${fieldPart}${issue.message}`;
         });
         const extra =
@@ -534,38 +548,9 @@ export default function UploadClient() {
           `Successfully ${action} "${table}" with ${records.length} records.`
         );
 
-        // 🔎 AUDIT LOG: write to data_uploads (non-blocking for user experience)
-        try {
-          let logFiscalYear: number | null = null;
-          if (mode === "replace_year") {
-            logFiscalYear = Number(replaceYear);
-          } else if (yearsInData.length === 1) {
-            logFiscalYear = yearsInData[0];
-          }
-
-          const logPayload = {
-            table_name: table,
-            mode,
-            row_count: records.length,
-            fiscal_year: Number.isFinite(logFiscalYear as number)
-              ? (logFiscalYear as number)
-              : null,
-            filename: file?.name ?? null,
-          };
-
-          const { error: logError } = await supabase
-            .from("data_uploads")
-            .insert([logPayload]);
-
-          if (logError) {
-            console.error(
-              "Failed to log upload to data_uploads:",
-              logError
-            );
-          }
-        } catch (logErr) {
-          console.error("Unexpected error logging upload:", logErr);
-        }
+        // Audit log disabled for now – optional feature.
+        // If we want it later, we’ll explicitly create a data_uploads table
+        // and wire this back up with proper error handling.
       }
     } catch (err: any) {
       console.error(err);
@@ -605,54 +590,17 @@ export default function UploadClient() {
         )
       : [];
 
-  // --- If not authorized, show admin password gate ---
-  if (!authorized) {
-    return (
-      <div className="max-w-md rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h1 className="mb-2 text-xl font-semibold text-slate-900">
-          Admin Access
-        </h1>
-        <p className="mb-4 text-sm text-slate-500">
-          This area is restricted. Enter the admin password to manage data
-          uploads.
-        </p>
-
-        <form onSubmit={handleAuthSubmit} className="space-y-3">
-          <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700">
-              Admin password
-            </label>
-            <input
-              type="password"
-              value={passwordInput}
-              onChange={(e) => setPasswordInput(e.target.value)}
-              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
-            />
-          </div>
-          <button
-            type="submit"
-            className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700"
-          >
-            Unlock
-          </button>
-          {authError && (
-            <p className="mt-2 text-xs text-red-700">{authError}</p>
-          )}
-        </form>
-      </div>
-    );
-  }
-
-  // --- Main upload UI once authorized ---
+  // --- Main upload UI (no password gate) ---
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
       <h1 className="mb-2 text-xl font-semibold text-slate-900">
         Admin CSV Upload
       </h1>
       <p className="mb-1 text-sm text-slate-500">
-        Upload new data for <strong>budgets</strong>, <strong>actuals</strong>,
-        or <strong>transactions</strong>. CSV column headers must match the
-        expected schema, and all required fields must have values.
+        Upload new data for <strong>budgets</strong>,{" "}
+        <strong>actuals</strong>, or <strong>transactions</strong>. CSV column
+        headers must match the expected schema exactly, and all required fields
+        must have values.
       </p>
       <p className="mb-4 text-xs text-slate-500">
         You can review recent uploads in the{" "}
@@ -754,8 +702,8 @@ export default function UploadClient() {
               </div>
               <div className="ml-6 mt-2 space-y-1">
                 <p className="text-[11px] text-amber-800">
-                  This will delete existing rows for that fiscal year in "{table}
-                  " and then upload rows from this CSV.
+                  This will delete existing rows for that fiscal year in "
+                  {table}" and then upload rows from this CSV.
                 </p>
                 <label className="flex items-center gap-2 text-[11px] text-slate-700">
                   <span>
@@ -768,9 +716,7 @@ export default function UploadClient() {
                   <input
                     type="text"
                     value={replaceYearConfirm}
-                    onChange={(e) =>
-                      setReplaceYearConfirm(e.target.value)
-                    }
+                    onChange={(e) => setReplaceYearConfirm(e.target.value)}
                     className="w-24 rounded-md border border-slate-300 px-2 py-1 text-[11px]"
                   />
                 </label>
@@ -803,8 +749,8 @@ export default function UploadClient() {
             {mode === "replace_table" && (
               <div className="ml-6 mt-1 rounded-md border border-red-200 bg-red-50 px-3 py-2">
                 <p className="text-[11px] font-bold text-red-800">
-                  WARNING: THIS WILL DELETE ALL EXISTING ROWS IN THE "
-                  {table}" TABLE FOR ALL YEARS. THIS CANNOT BE UNDONE.
+                  WARNING: THIS WILL DELETE ALL EXISTING ROWS IN THE "{table}"
+                  TABLE FOR ALL YEARS. THIS CANNOT BE UNDONE.
                 </p>
                 <label className="mt-2 flex items-center gap-2 text-[11px] text-red-800">
                   <input
