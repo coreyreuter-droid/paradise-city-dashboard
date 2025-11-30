@@ -19,14 +19,14 @@ export type DataTableColumn<T> = {
   cellClassName?: string;
 };
 
-type DataTableProps<T> = {
+export type DataTableProps<T> = {
   data: T[];
   columns: DataTableColumn<T>[];
   getRowKey?: (row: T, index: number) => string;
   pageSize?: number;
   initialSortKey?: string;
   initialSortDirection?: SortDirection;
-  showPagination?: boolean; // allow hiding footer when using server-side pagination
+  showPagination?: boolean; // hide when using server-side pagination upstream
 };
 
 export default function DataTable<T>({
@@ -45,7 +45,7 @@ export default function DataTable<T>({
     useState<SortDirection>(initialSortDirection);
   const [page, setPage] = useState(1);
 
-  // Reset page when data changes (filters changed upstream)
+  // Reset page when upstream filters change
   useEffect(() => {
     setPage(1);
   }, [data]);
@@ -115,7 +115,7 @@ export default function DataTable<T>({
     if (!sortKey || sortKey !== key) {
       return (
         <span className="ml-1 text-[10px] text-slate-400">
-          ⇅
+          ↕
         </span>
       );
     }
@@ -129,10 +129,10 @@ export default function DataTable<T>({
 
   return (
     <>
-      <div className="overflow-x-auto text-sm">
-        <div className="max-h-[520px] overflow-auto">
-          <table className="min-w-full text-left">
-            <thead className="sticky top-0 z-10 border-b bg-slate-100 text-xs uppercase text-slate-600">
+      <div className="overflow-x-auto">
+        <div className="max-h-[70vh] overflow-auto">
+          <table className="min-w-full border-collapse text-left text-sm">
+            <thead className="sticky top-0 z-10 border-b border-slate-200 bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
               <tr>
                 {columns.map((col) => (
                   <th
@@ -164,10 +164,7 @@ export default function DataTable<T>({
                       ? getRowKey(row, idx)
                       : String(idx)
                   }
-                  className={[
-                    "hover:bg-slate-50",
-                    idx % 2 === 0 ? "bg-white" : "bg-slate-50/60",
-                  ].join(" ")}
+                  className="odd:bg-slate-50/40 hover:bg-sky-50"
                 >
                   {columns.map((col) => (
                     <td
@@ -184,12 +181,22 @@ export default function DataTable<T>({
                   ))}
                 </tr>
               ))}
+              {total === 0 && (
+                <tr>
+                  <td
+                    colSpan={columns.length}
+                    className="px-3 py-8 text-center text-sm text-slate-500"
+                  >
+                    No records to display.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
       </div>
 
-      {showPagination && (
+      {showPagination && total > 0 && (
         <div className="mt-3 flex items-center justify-between text-xs text-slate-600">
           <div>
             Showing{" "}
@@ -205,29 +212,32 @@ export default function DataTable<T>({
             of{" "}
             <span className="font-mono">
               {total.toLocaleString("en-US")}
-            </span>
+            </span>{" "}
+            rows
           </div>
           <div className="flex items-center gap-2">
             <button
+              type="button"
               disabled={currentPage <= 1}
               onClick={() =>
                 setPage((p) => Math.max(1, p - 1))
               }
               className="rounded-md border border-slate-300 px-2 py-1 text-xs disabled:opacity-40"
             >
-              Prev
+              Previous
             </button>
             <span>
               Page{" "}
-              <span className="font-mono">
+              <span className="font-semibold">
                 {currentPage}
               </span>{" "}
-              /{" "}
-              <span className="font-mono">
+              of{" "}
+              <span className="font-semibold">
                 {totalPages}
               </span>
             </span>
             <button
+              type="button"
               disabled={currentPage >= totalPages}
               onClick={() =>
                 setPage((p) =>

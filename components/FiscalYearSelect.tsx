@@ -1,48 +1,68 @@
 "use client";
 
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useMemo } from "react";
+import {
+  usePathname,
+  useRouter,
+  useSearchParams,
+} from "next/navigation";
 
 type Props = {
   options: number[];
   label?: string;
 };
 
-export default function FiscalYearSelect({ options, label = "Fiscal year" }: Props) {
+export default function FiscalYearSelect({
+  options,
+  label = "Fiscal year",
+}: Props) {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
 
-  const currentYear = searchParams.get("year") ?? "";
+  const currentYearParam = searchParams.get("year");
+  const currentValue = currentYearParam ?? "latest";
 
-  function handleChange(e: React.ChangeEvent<HTMLSelectElement>) {
+  const sortedYears = useMemo(
+    () => [...options].sort((a, b) => b - a),
+    [options]
+  );
+
+  const handleChange = (
+    e: React.ChangeEvent<HTMLSelectElement>
+  ) => {
     const value = e.target.value;
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams(
+      searchParams.toString()
+    );
 
-    if (value) {
-      params.set("year", value);
-    } else {
+    // Reset pagination whenever year changes
+    params.delete("page");
+
+    if (value === "latest") {
+      // Use "latest" as the default = no explicit year param
       params.delete("year");
+    } else {
+      params.set("year", value);
     }
 
-    router.push(`${pathname}?${params.toString()}`);
-  }
-
-  if (!options.length) return null;
+    const qs = params.toString();
+    router.push(qs ? `${pathname}?${qs}` : pathname);
+  };
 
   return (
-    <div className="mb-4 flex items-center gap-2">
-      <label className="text-sm font-medium text-slate-700">
+    <div className="inline-block w-full max-w-xs">
+      <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
         {label}
       </label>
       <select
-        className="rounded-md border border-slate-300 bg-white px-2 py-1 text-sm"
-        value={currentYear}
+        value={currentValue}
         onChange={handleChange}
+        className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
       >
-        {/* Optional “All” / default option – you can keep or remove */}
-        {!currentYear && <option value="">Latest</option>}
-        {options.map((year) => (
-          <option key={year} value={year}>
+        <option value="latest">Latest</option>
+        {sortedYears.map((year) => (
+          <option key={year} value={year.toString()}>
             {year}
           </option>
         ))}

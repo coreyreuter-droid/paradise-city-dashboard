@@ -4,20 +4,11 @@
 import { useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  CartesianGrid,
-} from "recharts";
 import type { BudgetRow, ActualRow, TransactionRow } from "@/lib/types";
-import { CITY_CONFIG } from "@/lib/cityConfig";
 import CardContainer from "../CardContainer";
 import SectionHeader from "../SectionHeader";
 import FiscalYearSelect from "../FiscalYearSelect";
+import BudgetByDepartmentChart from "@/components/Analytics/BudgetByDepartmentChart";
 
 type Props = {
   budgets: BudgetRow[];
@@ -68,6 +59,9 @@ export default function CitywideDashboardClient({
     return years[0];
   }, [searchParams, years]);
 
+  const yearLabel =
+    selectedYear ?? (years.length > 0 ? years[0] : new Date().getFullYear());
+
   // Aggregate budgets + actuals by department for selected year
   const { deptSummaries, totalBudget, totalActuals } = useMemo(() => {
     if (!selectedYear) {
@@ -107,8 +101,7 @@ export default function CitywideDashboardClient({
     const summaries: DepartmentSummary[] = allDepts.map((dept) => {
       const budget = budgetByDept.get(dept) || 0;
       const actuals = actualsByDept.get(dept) || 0;
-      const percentSpent =
-        budget === 0 ? 0 : (actuals / budget) * 100;
+      const percentSpent = budget === 0 ? 0 : (actuals / budget) * 100;
 
       return {
         department_name: dept,
@@ -118,14 +111,8 @@ export default function CitywideDashboardClient({
       };
     });
 
-    const totalBudget = summaries.reduce(
-      (sum, d) => sum + d.budget,
-      0
-    );
-    const totalActuals = summaries.reduce(
-      (sum, d) => sum + d.actuals,
-      0
-    );
+    const totalBudget = summaries.reduce((sum, d) => sum + d.budget, 0);
+    const totalActuals = summaries.reduce((sum, d) => sum + d.actuals, 0);
 
     // Sort by largest budgets first
     summaries.sort((a, b) => b.budget - a.budget);
@@ -231,45 +218,36 @@ export default function CitywideDashboardClient({
           {/* Department chart */}
           <div className="lg:col-span-2">
             <CardContainer>
-              <h2 className="mb-2 text-sm font-semibold text-slate-700">
-                Budget vs actuals by department
-              </h2>
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h2 className="text-sm font-semibold text-slate-700">
+                    Budget vs actuals by department
+                  </h2>
+                  <p className="mt-1 text-xs text-slate-500">
+                    Fiscal year {yearLabel}. Departments sorted by
+                    largest budget.
+                  </p>
+                </div>
+                {deptSummaries.length > 0 && (
+                  <div className="text-xs text-slate-500">
+                    Showing{" "}
+                    <span className="font-semibold">
+                      {deptSummaries.length}
+                    </span>{" "}
+                    departments.
+                  </div>
+                )}
+              </div>
+
               {deptSummaries.length === 0 ? (
-                <p className="text-sm text-slate-500">
+                <p className="mt-3 text-sm text-slate-500">
                   No budget/actuals data available for this year.
                 </p>
               ) : (
-                <div className="h-80">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={deptSummaries.map((d) => ({
-                        name: d.department_name,
-                        Budget: d.budget,
-                        Actuals: d.actuals,
-                      }))}
-                      margin={{ top: 10, right: 10, left: 0, bottom: 60 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                      <XAxis
-                        dataKey="name"
-                        interval={0}
-                        angle={-45}
-                        textAnchor="end"
-                        height={60}
-                      />
-                      <YAxis tickFormatter={formatCurrency} />
-                      <Tooltip
-                        formatter={(value: any) =>
-                          typeof value === "number"
-                            ? formatCurrency(value)
-                            : value
-                        }
-                      />
-                      <Bar dataKey="Budget" fill={CITY_CONFIG.primaryColor} />
-                      <Bar dataKey="Actuals" fill={CITY_CONFIG.accentColor} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
+                <BudgetByDepartmentChart
+                  year={yearLabel}
+                  departments={deptSummaries}
+                />
               )}
             </CardContainer>
           </div>
@@ -295,7 +273,9 @@ export default function CitywideDashboardClient({
                       key={vendor.name}
                       className="flex items-center justify-between"
                     >
-                      <span className="truncate pr-2">{vendor.name}</span>
+                      <span className="truncate pr-2">
+                        {vendor.name}
+                      </span>
                       <span className="font-mono">
                         {formatCurrency(vendor.total)}
                       </span>

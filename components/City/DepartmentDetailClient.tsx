@@ -38,6 +38,16 @@ const formatCurrency = (value: number) =>
     maximumFractionDigits: 0,
   });
 
+  const formatAxisCurrency = (value: number) => {
+  if (value === 0) return "$0";
+  const abs = Math.abs(value);
+  if (abs >= 1_000_000) return `$${(value / 1_000_000).toFixed(1)}M`;
+  if (abs >= 1_000) return `$${(value / 1_000).toFixed(0)}k`;
+  return `$${value.toLocaleString("en-US", {
+    maximumFractionDigits: 0,
+  })}`;
+};
+
 const formatPercent = (value: number) =>
   `${value.toFixed(1).replace(/-0\.0/, "0.0")}%`;
 
@@ -379,7 +389,9 @@ export default function DepartmentDetailClient({
                     />
                     <XAxis dataKey="year" />
                     <YAxis
-                      tickFormatter={formatCurrency}
+                      tickFormatter={formatAxisCurrency}
+                      tick={{ fontSize: 12 }}
+                      width={90}
                     />
                     <Tooltip
                       formatter={(value: any) =>

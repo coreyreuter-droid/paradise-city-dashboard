@@ -218,18 +218,21 @@ export default function DepartmentsDashboardClient({
           sortable: true,
           sortAccessor: (row) => row.variance,
           headerClassName: "text-right",
-          cellClassName: ({
-            variance,
-          }: DepartmentSummary) =>
-            [
-              "text-right font-mono",
-              variance > 0
-                ? "text-emerald-700"
-                : variance < 0
-                ? "text-red-700"
-                : "text-slate-700",
-            ].join(" "),
-          cell: (dept) => formatCurrency(dept.variance),
+          cellClassName: "text-right font-mono",
+          cell: (dept) => {
+            const base = "text-right font-mono";
+            const color =
+              dept.variance > 0
+                ? " text-emerald-700"
+                : dept.variance < 0
+                ? " text-red-700"
+                : " text-slate-700";
+            return (
+              <span className={base + color}>
+                {formatCurrency(dept.variance)}
+              </span>
+            );
+          },
         },
         {
           key: "txCount",
@@ -245,6 +248,10 @@ export default function DepartmentsDashboardClient({
       [yearParam]
     );
 
+  const yearLabel =
+    selectedYear ??
+    (years.length > 0 ? years[0] : undefined);
+
   return (
     <main className="min-h-screen bg-slate-50">
       <div className="mx-auto max-w-6xl px-4 py-8">
@@ -253,75 +260,103 @@ export default function DepartmentsDashboardClient({
           description="Compare budgets, spending, and activity across all departments. Click a department to drill into multi-year trends and transactions."
         />
 
-        {years.length > 0 && (
-          <div className="mb-4">
-            <FiscalYearSelect
-              options={years}
-              label="Fiscal year"
-            />
+        {/* Filters + KPIs card */}
+        <CardContainer>
+          <div className="space-y-5">
+            <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+              <div className="max-w-xs">
+                {years.length > 0 && (
+                  <FiscalYearSelect
+                    options={years}
+                    label="Fiscal year"
+                  />
+                )}
+              </div>
+              {yearLabel && (
+                <div className="text-xs text-slate-500 md:text-right">
+                  Showing{" "}
+                  <span className="font-semibold">
+                    {deptCount}
+                  </span>{" "}
+                  departments and{" "}
+                  <span className="font-semibold">
+                    {totalTx.toLocaleString("en-US")}
+                  </span>{" "}
+                  transactions for fiscal year{" "}
+                  <span className="font-semibold">
+                    {yearLabel}
+                  </span>
+                  .
+                </div>
+              )}
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
+              <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
+                <div className="text-xs font-semibold uppercase text-slate-500">
+                  Departments
+                </div>
+                <div className="mt-1 text-2xl font-bold text-slate-900">
+                  {deptCount}
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
+                <div className="text-xs font-semibold uppercase text-slate-500">
+                  Total Budget
+                </div>
+                <div className="mt-1 text-2xl font-bold text-slate-900">
+                  {formatCurrency(totalBudget)}
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
+                <div className="text-xs font-semibold uppercase text-slate-500">
+                  Total Actuals
+                </div>
+                <div className="mt-1 text-2xl font-bold text-slate-900">
+                  {formatCurrency(totalActuals)}
+                </div>
+                <div className="mt-1 text-xs text-slate-500">
+                  {formatPercent(execPct)} of budget spent
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
+                <div className="text-xs font-semibold uppercase text-slate-500">
+                  Variance &amp; Transactions
+                </div>
+                <div className="mt-1 text-lg font-semibold text-slate-900">
+                  {formatCurrency(variance)}
+                </div>
+                <div className="mt-1 text-xs text-slate-500">
+                  {totalTx.toLocaleString("en-US")} transactions
+                </div>
+              </div>
+            </div>
           </div>
-        )}
+        </CardContainer>
 
-        {/* Top metrics */}
-        <div className="mb-6 grid gap-4 md:grid-cols-4">
+        {/* Table card */}
+        <div className="mt-6">
           <CardContainer>
-            <div className="text-xs font-semibold uppercase text-slate-500">
-              Departments
-            </div>
-            <div className="mt-1 text-2xl font-bold text-slate-900">
-              {deptCount}
-            </div>
-          </CardContainer>
-
-          <CardContainer>
-            <div className="text-xs font-semibold uppercase text-slate-500">
-              Total Budget
-            </div>
-            <div className="mt-1 text-2xl font-bold text-slate-900">
-              {formatCurrency(totalBudget)}
-            </div>
-          </CardContainer>
-
-          <CardContainer>
-            <div className="text-xs font-semibold uppercase text-slate-500">
-              Total Actuals
-            </div>
-            <div className="mt-1 text-2xl font-bold text-slate-900">
-              {formatCurrency(totalActuals)}
-            </div>
-            <div className="mt-1 text-xs text-slate-500">
-              {formatPercent(execPct)} of budget spent
-            </div>
-          </CardContainer>
-
-          <CardContainer>
-            <div className="text-xs font-semibold uppercase text-slate-500">
-              Transactions
-            </div>
-            <div className="mt-1 text-2xl font-bold text-slate-900">
-              {totalTx.toLocaleString("en-US")}
-            </div>
+            {summaries.length === 0 ? (
+              <p className="text-sm text-slate-500">
+                No department data available for this year.
+              </p>
+            ) : (
+              <DataTable<DepartmentSummary>
+                data={summaries}
+                columns={columns}
+                initialSortKey="budget"
+                initialSortDirection="desc"
+                getRowKey={(row) =>
+                  row.department_name || "Unspecified"
+                }
+              />
+            )}
           </CardContainer>
         </div>
-
-        {/* Table */}
-        <CardContainer>
-          {summaries.length === 0 ? (
-            <p className="text-sm text-slate-500">
-              No department data available for this year.
-            </p>
-          ) : (
-            <DataTable<DepartmentSummary>
-              data={summaries}
-              columns={columns}
-              initialSortKey="budget"
-              initialSortDirection="desc"
-              getRowKey={(row) =>
-                row.department_name || "Unspecified"
-              }
-            />
-          )}
-        </CardContainer>
       </div>
     </main>
   );
