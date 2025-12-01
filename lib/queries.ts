@@ -6,6 +6,37 @@
 import { supabase } from "./supabase";
 import type { ActualRow, BudgetRow, TransactionRow } from "./schema";
 
+// ---- Portal settings ----
+
+export type PortalSettings = {
+  id: number;
+  city_name: string;
+  tagline: string | null;
+  primary_color: string | null;
+  accent_color: string | null;
+  background_color: string | null;
+  logo_url: string | null;
+  hero_message: string | null;
+  hero_image_url: string | null; // ← add this line
+};
+
+
+export async function getPortalSettings(): Promise<PortalSettings | null> {
+  const { data, error } = await supabase
+    .from("portal_settings")
+    .select("*")
+    .eq("id", 1)
+    .limit(1);
+
+  if (error) {
+    console.error("getPortalSettings error:", error);
+    return null;
+  }
+
+  if (!data || data.length === 0) return null;
+  return data[0] as PortalSettings;
+}
+
 // ---- Internal pagination helper ----
 
 const PAGE_SIZE = 1000;
@@ -120,6 +151,17 @@ export async function getActualsForYear(
 }
 
 /**
+ * Raw transactions for a fiscal year.
+ */
+export async function getTransactionsForYear(
+  fiscalYear: number
+): Promise<TransactionRow[]> {
+  return fetchAllRows<TransactionRow>("transactions", (q) =>
+    q.eq("fiscal_year", fiscalYear)
+  );
+}
+
+/**
  * BvA summarized by department for a given fiscal year.
  * This is what the citywide BvA chart/table should be using.
  */
@@ -227,6 +269,35 @@ export async function getBudgetPageDepartmentSummaries(
   result.sort((a, b) => b.budget - a.budget);
 
   return result;
+}
+
+/**
+ * Department-scoped helpers: fetch all years, but only for one department.
+ * Used by /paradise/departments/[departmentName].
+ */
+
+export async function getBudgetsForDepartment(
+  departmentName: string
+): Promise<BudgetRow[]> {
+  return fetchAllRows<BudgetRow>("budgets", (q) =>
+    q.eq("department_name", departmentName)
+  );
+}
+
+export async function getActualsForDepartment(
+  departmentName: string
+): Promise<ActualRow[]> {
+  return fetchAllRows<ActualRow>("actuals", (q) =>
+    q.eq("department_name", departmentName)
+  );
+}
+
+export async function getTransactionsForDepartment(
+  departmentName: string
+): Promise<TransactionRow[]> {
+  return fetchAllRows<TransactionRow>("transactions", (q) =>
+    q.eq("department_name", departmentName)
+  );
 }
 
 /**
@@ -470,33 +541,4 @@ export async function getDataUploadLogs(): Promise<DataUploadLogRow[]> {
   }
 
   return (data ?? []) as DataUploadLogRow[];
-}
-
-// lib/queries.ts (top, after imports)
-
-export type PortalSettings = {
-  id: number;
-  city_name: string;
-  tagline: string | null;
-  primary_color: string | null;
-  accent_color: string | null;
-  background_color: string | null;
-  logo_url: string | null;
-  hero_message: string | null;
-};
-
-export async function getPortalSettings(): Promise<PortalSettings | null> {
-  const { data, error } = await supabase
-    .from("portal_settings")
-    .select("*")
-    .eq("id", 1)
-    .limit(1);
-
-  if (error) {
-    console.error("getPortalSettings error:", error);
-    return null;
-  }
-
-  if (!data || data.length === 0) return null;
-  return data[0] as PortalSettings;
 }

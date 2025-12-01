@@ -1,6 +1,11 @@
 "use client";
 
-import { useEffect, useState, FormEvent } from "react";
+import {
+  useEffect,
+  useState,
+  FormEvent,
+  ChangeEvent,
+} from "react";
 import { supabase } from "@/lib/supabase";
 
 type PortalSettings = {
@@ -11,6 +16,7 @@ type PortalSettings = {
   accent_color: string | null;
   logo_url: string | null;
   hero_image_url: string | null;
+  hero_message: string | null;
 };
 
 type LoadState = "loading" | "ready" | "error";
@@ -22,6 +28,10 @@ export default function BrandingSettingsClient() {
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [message, setMessage] = useState<string | null>(null);
 
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [heroFile, setHeroFile] = useState<File | null>(null);
+  const [imageError, setImageError] = useState<string | null>(null);
+
   useEffect(() => {
     let cancelled = false;
 
@@ -30,11 +40,10 @@ export default function BrandingSettingsClient() {
       setMessage(null);
 
       try {
-        // Try to load existing portal_settings row
         const { data, error } = await supabase
           .from("portal_settings")
           .select(
-            "id, city_name, tagline, primary_color, accent_color, logo_url, hero_image_url"
+            "id, city_name, tagline, primary_color, accent_color, logo_url, hero_image_url, hero_message"
           )
           .maybeSingle();
 
@@ -48,21 +57,22 @@ export default function BrandingSettingsClient() {
         }
 
         if (!data) {
-          // No row yet – create a default one
-          const { data: inserted, error: insertError } = await supabase
-            .from("portal_settings")
-            .insert({
-              city_name: null,
-              tagline: null,
-              primary_color: null,
-              accent_color: null,
-              logo_url: null,
-              hero_image_url: null,
-            })
-            .select(
-              "id, city_name, tagline, primary_color, accent_color, logo_url, hero_image_url"
-            )
-            .single();
+          const { data: inserted, error: insertError } =
+            await supabase
+              .from("portal_settings")
+              .insert({
+                city_name: null,
+                tagline: null,
+                primary_color: null,
+                accent_color: null,
+                logo_url: null,
+                hero_image_url: null,
+                hero_message: null,
+              })
+              .select(
+                "id, city_name, tagline, primary_color, accent_color, logo_url, hero_image_url, hero_message"
+              )
+              .single();
 
           if (insertError || !inserted) {
             console.error(
@@ -112,21 +122,104 @@ export default function BrandingSettingsClient() {
     setMessage(null);
   }
 
+  function handleLogoFileChange(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0] ?? null;
+    setLogoFile(file);
+    setImageError(null);
+  }
+
+  function handleHeroFileChange(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0] ?? null;
+    setHeroFile(file);
+    setImageError(null);
+  }
+
+  async function uploadImage(
+    file: File,
+    kind: "logo" | "hero",
+    token: string
+  ): Promise<string> {
+    if (!file.type.startsWith("image/")) {
+      throw new Error(
+        `${kind === "logo" ? "Logo" : "Hero"} image must be an image file.`
+      );
+    }
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("filename", file.name);
+    formData.append("kind", kind);
+
+    const res = await fetch("/api/paradise/admin/hero-image", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: formData,
+    });
+
+    const json = await res.json();
+
+    if (!res.ok) {
+      throw new Error(json?.error || "Image upload failed.");
+    }
+
+    const url = json.url as string | undefined;
+    if (!url) {
+      throw new Error("Upload succeeded but no URL returned.");
+    }
+
+    return url;
+  }
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (!settings) return;
 
     setSaveState("saving");
     setMessage(null);
+    setImageError(null);
 
     try {
+      let logoUrl = settings.logo_url ?? null;
+      let heroUrl = settings.hero_image_url ?? null;
+
+      const needUpload = !!logoFile || !!heroFile;
+
+      let token: string | null = null;
+
+      if (needUpload) {
+        const {
+          data: { session },
+          error: sessionError,
+        } = await supabase.auth.getSession();
+
+        if (sessionError || !session?.access_token) {
+          console.error("BrandingSettings: no session", sessionError);
+          throw new Error(
+            "You must be signed in as an admin to upload images."
+          );
+        }
+
+        token = session.access_token;
+      }
+
+      if (logoFile && token) {
+        logoUrl = await uploadImage(logoFile, "logo", token);
+      }
+
+      if (heroFile && token) {
+        heroUrl = await uploadImage(heroFile, "hero", token);
+      }
+
       const payload = {
         city_name: settings.city_name,
         tagline: settings.tagline,
         primary_color: settings.primary_color,
         accent_color: settings.accent_color,
-        logo_url: settings.logo_url,
-        hero_image_url: settings.hero_image_url,
+        logo_url: logoUrl,
+        hero_image_url: heroUrl,
+        hero_message: settings.hero_message,
       };
 
       const { data, error } = await supabase
@@ -134,7 +227,7 @@ export default function BrandingSettingsClient() {
         .update(payload)
         .eq("id", settings.id)
         .select(
-          "id, city_name, tagline, primary_color, accent_color, logo_url, hero_image_url"
+          "id, city_name, tagline, primary_color, accent_color, logo_url, hero_image_url, hero_message"
         )
         .maybeSingle();
 
@@ -148,10 +241,17 @@ export default function BrandingSettingsClient() {
       setSettings(data);
       setSaveState("saved");
       setMessage("Branding settings saved.");
+
+      // clear selected files on success
+      setLogoFile(null);
+      setHeroFile(null);
     } catch (err: any) {
       console.error("BrandingSettings: unexpected save error", err);
       setSaveState("error");
       setMessage("Unexpected error saving branding settings.");
+      if (err?.message) {
+        setImageError(err.message);
+      }
     }
   }
 
@@ -159,7 +259,9 @@ export default function BrandingSettingsClient() {
     return (
       <div className="min-h-screen bg-slate-50 px-4 py-10">
         <div className="mx-auto max-w-xl rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <p className="text-sm text-slate-600">Loading branding settings…</p>
+          <p className="text-sm text-slate-600">
+            Loading branding settings…
+          </p>
         </div>
       </div>
     );
@@ -183,8 +285,10 @@ export default function BrandingSettingsClient() {
 
   const previewName = settings.city_name || "Your City Name";
   const previewTagline =
-    settings.tagline || "Transparent Budget. Empowered Citizens.";
-  const previewPrimary = settings.primary_color || "#0F172A"; // slate-900
+    settings.tagline ||
+    "Transparent Budget. Empowered Citizens.";
+  const previewPrimary =
+    settings.primary_color || "#0F172A"; // slate-900
   const previewAccent = settings.accent_color || "#0369A1"; // sky-ish
 
   return (
@@ -196,7 +300,8 @@ export default function BrandingSettingsClient() {
             Branding &amp; Portal Settings
           </h1>
           <p className="mb-4 text-sm text-slate-600">
-            Configure how this CiviPortal deployment appears to residents.
+            Configure how this CiviPortal deployment appears to
+            residents.
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -227,12 +332,34 @@ export default function BrandingSettingsClient() {
               <input
                 type="text"
                 value={settings.tagline ?? ""}
-                onChange={(e) => handleFieldChange("tagline", e.target.value)}
+                onChange={(e) =>
+                  handleFieldChange("tagline", e.target.value)
+                }
                 className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
                 placeholder="e.g. Transparent Budget. Empowered Citizens."
               />
               <p className="mt-1 text-xs text-slate-500">
                 Short message shown under the city name.
+              </p>
+            </div>
+
+            {/* Hero message */}
+            <div>
+              <label className="mb-1 block text-sm font-medium text-slate-700">
+                Hero message (landing page)
+              </label>
+              <textarea
+                value={settings.hero_message ?? ""}
+                onChange={(e) =>
+                  handleFieldChange("hero_message", e.target.value)
+                }
+                rows={3}
+                className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
+                placeholder="Short description shown on the public landing page."
+              />
+              <p className="mt-1 text-xs text-slate-500">
+                A brief description that appears in the hero section
+                on /paradise.
               </p>
             </div>
 
@@ -246,7 +373,10 @@ export default function BrandingSettingsClient() {
                   type="text"
                   value={settings.primary_color ?? ""}
                   onChange={(e) =>
-                    handleFieldChange("primary_color", e.target.value)
+                    handleFieldChange(
+                      "primary_color",
+                      e.target.value
+                    )
                   }
                   className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
                   placeholder="#0F172A"
@@ -263,7 +393,10 @@ export default function BrandingSettingsClient() {
                   type="text"
                   value={settings.accent_color ?? ""}
                   onChange={(e) =>
-                    handleFieldChange("accent_color", e.target.value)
+                    handleFieldChange(
+                      "accent_color",
+                      e.target.value
+                    )
                   }
                   className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
                   placeholder="#0369A1"
@@ -274,44 +407,93 @@ export default function BrandingSettingsClient() {
               </div>
             </div>
 
-            {/* Logo URL */}
-            <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700">
-                Logo URL
-              </label>
-              <input
-                type="text"
-                value={settings.logo_url ?? ""}
-                onChange={(e) =>
-                  handleFieldChange("logo_url", e.target.value)
-                }
-                className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
-                placeholder="https://example.com/logo.png"
-              />
-              <p className="mt-1 text-xs text-slate-500">
-                Public URL to your city or county logo. You can use Supabase
-                Storage or an external host.
-              </p>
+            {/* Logo URL + upload */}
+            <div className="space-y-2">
+              <div>
+                <label className="mb-1 block text-sm font-medium text-slate-700">
+                  Logo URL
+                </label>
+                <input
+                  type="text"
+                  value={settings.logo_url ?? ""}
+                  onChange={(e) =>
+                    handleFieldChange("logo_url", e.target.value)
+                  }
+                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
+                  placeholder="https://example.com/logo.png"
+                />
+                <p className="mt-1 text-xs text-slate-500">
+                  Public URL to your city or county logo. Uploading a
+                  file below will overwrite this URL when you save.
+                </p>
+              </div>
+
+              <div className="space-y-1 rounded-md bg-slate-50 p-3 text-xs text-slate-600">
+                <p className="font-semibold">
+                  Upload logo image (PNG/JPG/WEBP)
+                </p>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleLogoFileChange}
+                  className="mt-1 text-xs"
+                />
+                {logoFile && (
+                  <p className="mt-1 text-[11px] text-slate-500">
+                    Selected: {logoFile.name} (will be uploaded when
+                    you click <span className="font-semibold">Save settings</span>)
+                  </p>
+                )}
+              </div>
             </div>
 
-            {/* Hero image URL */}
-            <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700">
-                Hero image URL (optional)
-              </label>
-              <input
-                type="text"
-                value={settings.hero_image_url ?? ""}
-                onChange={(e) =>
-                  handleFieldChange("hero_image_url", e.target.value)
-                }
-                className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
-                placeholder="https://example.com/city-skyline.jpg"
-              />
-              <p className="mt-1 text-xs text-slate-500">
-                Optional banner image for the public portal landing page.
-              </p>
+            {/* Hero image URL + upload */}
+            <div className="space-y-2">
+              <div>
+                <label className="mb-1 block text-sm font-medium text-slate-700">
+                  Hero image URL (optional)
+                </label>
+                <input
+                  type="text"
+                  value={settings.hero_image_url ?? ""}
+                  onChange={(e) =>
+                    handleFieldChange(
+                      "hero_image_url",
+                      e.target.value
+                    )
+                  }
+                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
+                  placeholder="https://example.com/city-skyline.jpg"
+                />
+                <p className="mt-1 text-xs text-slate-500">
+                  Optional banner image for the public portal landing
+                  page. Uploading a file below will overwrite this
+                  URL when you save.
+                </p>
+              </div>
+
+              <div className="space-y-1 rounded-md bg-slate-50 p-3 text-xs text-slate-600">
+                <p className="font-semibold">
+                  Upload hero image (PNG/JPG/WEBP)
+                </p>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleHeroFileChange}
+                  className="mt-1 text-xs"
+                />
+                {heroFile && (
+                  <p className="mt-1 text-[11px] text-slate-500">
+                    Selected: {heroFile.name} (will be uploaded when
+                    you click <span className="font-semibold">Save settings</span>)
+                  </p>
+                )}
+              </div>
             </div>
+
+            {imageError && (
+              <p className="text-xs text-red-600">{imageError}</p>
+            )}
 
             <div className="pt-2">
               <button
@@ -348,7 +530,10 @@ export default function BrandingSettingsClient() {
           >
             <div
               className="flex items-center gap-3 rounded-t-xl px-4 py-3"
-              style={{ backgroundColor: previewPrimary, color: "#FFFFFF" }}
+              style={{
+                backgroundColor: previewPrimary,
+                color: "#FFFFFF",
+              }}
             >
               <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-xs font-bold uppercase">
                 {previewName
@@ -375,7 +560,18 @@ export default function BrandingSettingsClient() {
               </p>
               {settings.logo_url && (
                 <p className="truncate text-[11px] text-slate-500">
-                  Logo: <span className="font-mono">{settings.logo_url}</span>
+                  Logo:{" "}
+                  <span className="font-mono">
+                    {settings.logo_url}
+                  </span>
+                </p>
+              )}
+              {settings.hero_image_url && (
+                <p className="truncate text-[11px] text-slate-500">
+                  Hero image:{" "}
+                  <span className="font-mono">
+                    {settings.hero_image_url}
+                  </span>
                 </p>
               )}
             </div>

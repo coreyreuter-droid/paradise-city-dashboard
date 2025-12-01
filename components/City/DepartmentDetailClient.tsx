@@ -55,6 +55,19 @@ const formatPercent = (value: number) =>
 const normalizeName = (name: string | null | undefined) =>
   (name ?? "").trim().toLowerCase();
 
+type DeptVendorSummary = {
+  name: string;
+  total: number;
+  txCount: number;
+  percent: number;
+};
+
+type DeptCategorySummary = {
+  category: string;
+  total: number;
+  percent: number;
+};
+
 export default function DepartmentDetailClient({
   departmentName,
   budgets,
@@ -213,6 +226,76 @@ export default function DepartmentDetailClient({
         : [],
     [deptTx, selectedYear]
   );
+
+  // Aggregated vendor rollup for this department + year (from transactions)
+  const deptVendorSummaries: DeptVendorSummary[] = useMemo(() => {
+    if (deptTxForYear.length === 0) return [];
+
+    const byVendor = new Map<string, { total: number; count: number }>();
+
+    deptTxForYear.forEach((tx) => {
+      const name =
+        tx.vendor && tx.vendor.trim().length > 0
+          ? tx.vendor
+          : "Unspecified";
+      const amt = Number(tx.amount || 0);
+      const existing = byVendor.get(name) || { total: 0, count: 0 };
+      existing.total += amt;
+      existing.count += 1;
+      byVendor.set(name, existing);
+    });
+
+    const totalDeptSpend = Array.from(byVendor.values()).reduce(
+      (sum, v) => sum + v.total,
+      0
+    );
+
+    return Array.from(byVendor.entries())
+      .map(([name, agg]) => ({
+        name,
+        total: agg.total,
+        txCount: agg.count,
+        percent:
+          totalDeptSpend > 0 ? (agg.total / totalDeptSpend) * 100 : 0,
+      }))
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 10);
+  }, [deptTxForYear]);
+
+  // Aggregated category rollup for this department + year (from actuals.category)
+  const deptCategorySummaries: DeptCategorySummary[] = useMemo(() => {
+    if (!selectedYear) return [];
+
+    const actualsForYear = deptActuals.filter(
+      (a) => a.fiscal_year === selectedYear
+    );
+    if (actualsForYear.length === 0) return [];
+
+    const byCategory = new Map<string, number>();
+
+    actualsForYear.forEach((row) => {
+      const cat =
+        row.category && row.category.trim().length > 0
+          ? row.category
+          : "Unspecified";
+      const amt = Number(row.amount || 0);
+      byCategory.set(cat, (byCategory.get(cat) || 0) + amt);
+    });
+
+    const total = Array.from(byCategory.values()).reduce(
+      (sum, v) => sum + v,
+      0
+    );
+
+    return Array.from(byCategory.entries())
+      .map(([category, totalAmt]) => ({
+        category,
+        total: totalAmt,
+        percent: total > 0 ? (totalAmt / total) * 100 : 0,
+      }))
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 10);
+  }, [deptActuals, selectedYear]);
 
   // Active vendor transactions (for slideout)
   const activeVendorTx = useMemo(() => {
@@ -448,7 +531,7 @@ export default function DepartmentDetailClient({
           </CardContainer>
         </div>
 
-        {/* Transactions table */}
+        {/* Transactions + Category + Vendor rollup */}
         <CardContainer>
           <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
             <div>
@@ -456,11 +539,95 @@ export default function DepartmentDetailClient({
                 Transactions ({selectedYear ?? "–"})
               </h2>
               <p className="text-xs text-slate-500">
-                Click a vendor name to see a breakdown of their
-                transactions for this department and year.
+                Category and vendor breakdowns, plus detailed transactions
+                for this department in the selected fiscal year.
               </p>
             </div>
           </div>
+
+          {/* Top categories for this department & year (from actuals) */}
+          {deptCategorySummaries.length > 0 && (
+            <div className="mb-4">
+              <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                Top spending categories (actuals) — {selectedYear ?? "–"}
+              </p>
+              <ul className="space-y-1.5 text-xs sm:text-sm">
+                {deptCategorySummaries.map((c) => (
+                  <li key={c.category}>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="truncate pr-2">{c.category}</span>
+                      <span className="whitespace-nowrap font-mono">
+                        {formatCurrency(c.total)}
+                      </span>
+                    </div>
+                    <div className="mt-1 flex items-center gap-2">
+                      <div className="h-1.5 flex-1 rounded-full bg-slate-100">
+                        <div
+                          className="h-1.5 rounded-full bg-slate-700"
+                          style={{
+                            width: `${Math.max(
+                              2,
+                              Math.min(c.percent, 100)
+                            )}%`,
+                          }}
+                        />
+                      </div>
+                      <span className="w-12 text-right text-[11px] text-slate-500">
+                        {formatPercent(c.percent)}
+                      </span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Top vendors for this department & year */}
+          {deptVendorSummaries.length > 0 && (
+            <div className="mb-4">
+              <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                Top vendors for this department ({selectedYear ?? "–"})
+              </p>
+              <ul className="space-y-1.5 text-xs sm:text-sm">
+                {deptVendorSummaries.map((v) => (
+                  <li key={v.name}>
+                    <div className="flex items-center justify-between gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setActiveVendor(v.name)}
+                        className="truncate pr-2 text-left text-sky-700 hover:underline"
+                      >
+                        {v.name}
+                      </button>
+                      <span className="whitespace-nowrap font-mono">
+                        {formatCurrency(v.total)}
+                      </span>
+                    </div>
+                    <div className="mt-1 flex items-center gap-2">
+                      <div className="h-1.5 flex-1 rounded-full bg-slate-100">
+                        <div
+                          className="h-1.5 rounded-full bg-sky-500"
+                          style={{
+                            width: `${Math.max(
+                              2,
+                              Math.min(v.percent, 100)
+                            )}%`,
+                          }}
+                        />
+                      </div>
+                      <span className="w-12 text-right text-[11px] text-slate-500">
+                        {formatPercent(v.percent)}
+                      </span>
+                    </div>
+                    <p className="mt-0.5 text-[11px] text-slate-500">
+                      {v.txCount.toLocaleString("en-US")} transaction
+                      {v.txCount === 1 ? "" : "s"}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           {deptTxForYear.length === 0 ? (
             <p className="text-sm text-slate-500">
@@ -485,93 +652,101 @@ export default function DepartmentDetailClient({
       </div>
 
       {/* Vendor slideout */}
-  {activeVendor && (
-    <div className="fixed inset-0 z-[9999] flex justify-end bg-black/40 backdrop-blur-sm">
-      <div className="h-full w-full max-w-md bg-white shadow-2xl flex flex-col">
-        {/* Header */}
-        <div className="border-b border-slate-200 px-4 py-3 flex items-center justify-between">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
-              Vendor detail
-            </p>
-            <h2 className="text-sm font-semibold text-slate-900">
-              {activeVendor}
-            </h2>
-            <p className="mt-0.5 text-[11px] text-slate-500">
-              {displayName} • Fiscal year {selectedYear ?? "–"}
-            </p>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => setActiveVendor(null)}
-            className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-800"
-          >
-            Close
-          </button>
-        </div>
-
-        {/* Body */}
-        <div className="flex-1 overflow-auto px-4 py-3 space-y-3">
-          <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
-              Total spent with this vendor
-            </div>
-            <div className="mt-1 text-lg font-semibold text-slate-900">
-              {formatCurrency(vendorTotal)}
-            </div>
-            <div className="mt-1 text-[11px] text-slate-500">
-              {activeVendorTx.length.toLocaleString("en-US")}{" "}
-              transaction{activeVendorTx.length === 1 ? "" : "s"} for this
-              department in {selectedYear ?? "–"}.
-            </div>
-          </div>
-
-          {activeVendorTx.length === 0 ? (
-            <p className="text-sm text-slate-500">
-              No transactions found for this vendor in the selected year.
-            </p>
-          ) : (
-            <div className="space-y-2">
-              <p className="text-xs font-semibold text-slate-700">
-                Transactions with {activeVendor}
-              </p>
-              <div className="max-h-[360px] overflow-auto">
-                <table className="min-w-full text-left text-xs">
-                  <thead className="border-b border-slate-200 bg-slate-50">
-                    <tr>
-                      <th className="px-2 py-2 font-semibold text-slate-700">Date</th>
-                      <th className="px-2 py-2 font-semibold text-slate-700">Description</th>
-                      <th className="px-2 py-2 text-right font-semibold text-slate-700">Amount</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {activeVendorTx.map((tx, idx) => (
-                      <tr
-                        key={`${tx.date}-${tx.amount}-${idx}`}
-                        className="border-b border-slate-100 align-top"
-                      >
-                        <td className="whitespace-nowrap px-2 py-2 font-mono">
-                          {tx.date}
-                        </td>
-                        <td className="px-2 py-2">
-                          {tx.description || "—"}
-                        </td>
-                        <td className="px-2 py-2 text-right font-mono">
-                          {formatCurrency(Number(tx.amount || 0))}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+      {activeVendor && (
+        <div className="fixed inset-0 z-[9999] flex justify-end bg-black/40 backdrop-blur-sm">
+          <div className="flex h-full w-full max-w-md flex-col bg-white shadow-2xl">
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                  Vendor detail
+                </p>
+                <h2 className="text-sm font-semibold text-slate-900">
+                  {activeVendor}
+                </h2>
+                <p className="mt-0.5 text-[11px] text-slate-500">
+                  {displayName} • Fiscal year {selectedYear ?? "–"}
+                </p>
               </div>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  )}
 
+              <button
+                type="button"
+                onClick={() => setActiveVendor(null)}
+                className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-800"
+              >
+                Close
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="flex-1 space-y-3 overflow-auto px-4 py-3">
+              <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                  Total spent with this vendor
+                </div>
+                <div className="mt-1 text-lg font-semibold text-slate-900">
+                  {formatCurrency(vendorTotal)}
+                </div>
+                <div className="mt-1 text-[11px] text-slate-500">
+                  {activeVendorTx.length.toLocaleString("en-US")}{" "}
+                  transaction{activeVendorTx.length === 1 ? "" : "s"} for
+                  this department in {selectedYear ?? "–"}.
+                </div>
+              </div>
+
+              {activeVendorTx.length === 0 ? (
+                <p className="text-sm text-slate-500">
+                  No transactions found for this vendor in the selected
+                  year.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold text-slate-700">
+                    Transactions with {activeVendor}
+                  </p>
+                  <div className="max-h-[360px] overflow-auto">
+                    <table className="min-w-full text-left text-xs">
+                      <thead className="border-b border-slate-200 bg-slate-50">
+                        <tr>
+                          <th className="px-2 py-2 font-semibold text-slate-700">
+                            Date
+                          </th>
+                          <th className="px-2 py-2 font-semibold text-slate-700">
+                            Description
+                          </th>
+                          <th className="px-2 py-2 text-right font-semibold text-slate-700">
+                            Amount
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {activeVendorTx.map((tx, idx) => (
+                          <tr
+                            key={`${tx.date}-${tx.amount}-${idx}`}
+                            className="border-b border-slate-100 align-top"
+                          >
+                            <td className="whitespace-nowrap px-2 py-2 font-mono">
+                              {tx.date}
+                            </td>
+                            <td className="px-2 py-2">
+                              {tx.description || "—"}
+                            </td>
+                            <td className="px-2 py-2 text-right font-mono">
+                              {formatCurrency(
+                                Number(tx.amount || 0)
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

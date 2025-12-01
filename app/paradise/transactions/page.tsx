@@ -60,13 +60,7 @@ export default async function TransactionsPage(props: PageProps) {
       ? pageParam
       : 1;
 
-  // 6) Departments list for selected year
-  const departments =
-    selectedYear != null
-      ? await getTransactionDepartmentsForYear(selectedYear)
-      : [];
-
-  // 7) Paged transactions from Supabase
+  // 6) Paged transactions from Supabase
   const { rows, totalCount } = await getTransactionsPage({
     fiscalYear: selectedYear,
     department: department === "all" ? undefined : department,
@@ -76,6 +70,28 @@ export default async function TransactionsPage(props: PageProps) {
   });
 
   const transactions: TransactionRow[] = rows ?? [];
+
+  // 7) Departments list for selected year (base from Supabase)
+  const baseDepartments =
+    selectedYear != null
+      ? await getTransactionDepartmentsForYear(selectedYear)
+      : [];
+
+  // 8) Ensure every department in the current page is present in the dropdown
+  const deptSet = new Set<string>(baseDepartments);
+
+  transactions.forEach((t) => {
+    const raw = t.department_name as string | null;
+    const name =
+      raw && raw.trim().length > 0 ? raw : "Unspecified";
+    if (!deptSet.has(name)) {
+      deptSet.add(name);
+    }
+  });
+
+  const departments = Array.from(deptSet).sort((a, b) =>
+    a.localeCompare(b)
+  );
 
   return (
     <TransactionsDashboardClient

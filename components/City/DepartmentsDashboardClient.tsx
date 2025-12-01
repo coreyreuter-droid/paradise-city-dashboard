@@ -20,6 +20,7 @@ type Props = {
   budgets: BudgetRow[];
   actuals: ActualRow[];
   transactions: TransactionRow[];
+  years: number[]; // provided by server
 };
 
 type DepartmentSummary = {
@@ -45,22 +46,15 @@ export default function DepartmentsDashboardClient({
   budgets,
   actuals,
   transactions,
+  years,
 }: Props) {
   const searchParams = useSearchParams();
-
-  const years = useMemo(() => {
-    const set = new Set<number>();
-    budgets.forEach((b) => set.add(b.fiscal_year));
-    actuals.forEach((a) => set.add(a.fiscal_year));
-    return Array.from(set).sort((a, b) => b - a);
-  }, [budgets, actuals]);
 
   const selectedYear = useMemo(() => {
     if (years.length === 0) return undefined;
     const param = searchParams.get("year");
     const parsed = param ? Number(param) : NaN;
-    if (Number.isFinite(parsed) && years.includes(parsed))
-      return parsed;
+    if (Number.isFinite(parsed) && years.includes(parsed)) return parsed;
     return years[0];
   }, [searchParams, years]);
 

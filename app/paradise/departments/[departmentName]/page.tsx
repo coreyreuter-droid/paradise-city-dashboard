@@ -1,8 +1,8 @@
 // app/paradise/departments/[departmentName]/page.tsx
 import {
-  getAllBudgets,
-  getAllActuals,
-  getAllTransactions,
+  getBudgetsForDepartment,
+  getActualsForDepartment,
+  getTransactionsForDepartment,
 } from "../../../../lib/queries";
 import type {
   BudgetRow,
@@ -22,18 +22,16 @@ type PageProps = {
 
 export const revalidate = 0;
 
-export default async function DepartmentDetailPage(
-  props: PageProps
-) {
+export default async function DepartmentDetailPage(props: PageProps) {
   const { departmentName } = await props.params;
   const decodedName = decodeURIComponent(departmentName);
 
-  const [budgetsRaw, actualsRaw, transactionsRaw] =
-    await Promise.all([
-      getAllBudgets(),
-      getAllActuals(),
-      getAllTransactions(),
-    ]);
+  // Fetch ONLY this department's data across all years
+  const [budgetsRaw, actualsRaw, transactionsRaw] = await Promise.all([
+    getBudgetsForDepartment(decodedName),
+    getActualsForDepartment(decodedName),
+    getTransactionsForDepartment(decodedName),
+  ]);
 
   const budgets: BudgetRow[] = budgetsRaw ?? [];
   const actuals: ActualRow[] = actualsRaw ?? [];
