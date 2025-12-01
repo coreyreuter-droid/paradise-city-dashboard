@@ -354,7 +354,7 @@ function validateAndBuildRecords(
 type Mode = "append" | "replace_year" | "replace_table";
 
 export default function UploadClient() {
-  // --- Upload state (unchanged) ---
+  // --- Upload state ---
   const [file, setFile] = useState<File | null>(null);
   const [table, setTable] = useState<string>("budgets");
   const [mode, setMode] = useState<Mode>("append");
@@ -365,7 +365,7 @@ export default function UploadClient() {
   const [message, setMessage] = useState<string | null>(null);
   const [messageIsError, setMessageIsError] = useState(false);
 
-  // --- CSV preview state (unchanged) ---
+  // --- CSV preview state ---
   const [previewHeaders, setPreviewHeaders] = useState<string[] | null>(
     null
   );
@@ -398,7 +398,7 @@ export default function UploadClient() {
       return;
     }
 
-    // Mode-level guards
+    // Mode-level guards (same as before)
     if (mode === "replace_year") {
       if (!replaceYear.trim()) {
         setError("Please enter a fiscal year to replace.");
@@ -440,7 +440,7 @@ export default function UploadClient() {
       const headers = rows[0].map((h) => h.trim());
       const dataRows = rows.slice(1);
 
-      // ✅ CENTRALIZED VALIDATION + RECORD BUILD
+      // Validation + record building (same helper as before)
       const { records, yearsInData, issues } = validateAndBuildRecords(
         table,
         schema,
@@ -469,9 +469,10 @@ export default function UploadClient() {
         return;
       }
 
-      // 🔥 REPLACE-BY-YEAR MODE: delete only that fiscal year
+      // Compute targetYear for replace_year mode; server will enforce
+      let targetYear: number | null = null;
       if (mode === "replace_year") {
-        const targetYear = Number(replaceYear);
+        targetYear = Number(replaceYear);
         if (!Number.isFinite(targetYear)) {
           setError("Fiscal year must be a valid number.");
           setLoading(false);
@@ -496,62 +497,52 @@ export default function UploadClient() {
           setLoading(false);
           return;
         }
-
-        const { error: deleteError } = await supabase
-          .from(table)
-          .delete()
-          .eq("fiscal_year", targetYear);
-
-        if (deleteError) {
-          console.error("Supabase delete error:", deleteError);
-          setError(
-            "Failed to clear existing data for that year: " +
-              deleteError.message
-          );
-          setLoading(false);
-          return;
-        }
       }
 
-      // 🔥 REPLACE ENTIRE TABLE MODE
-      if (mode === "replace_table") {
-        const { error: deleteError } = await supabase
-          .from(table)
-          .delete()
-          .gte("fiscal_year", 0);
+      // 🔐 NEW: use Supabase session token + server API (service role)
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession();
 
-        if (deleteError) {
-          console.error("Supabase delete error:", deleteError);
-          setError("Failed to clear existing data: " + deleteError.message);
-          setLoading(false);
-          return;
-        }
-      }
-
-      // INSERT validated records
-      const { error } = await supabase.from(table).insert(records);
-
-      if (error) {
-        console.error("Supabase insert error:", error);
-        setError("Error inserting data: " + error.message);
-      } else {
-        let action: string;
-        if (mode === "append") {
-          action = "appended to";
-        } else if (mode === "replace_year") {
-          action = `replaced fiscal year ${replaceYear} in`;
-        } else {
-          action = "replaced all rows in";
-        }
-
-        setInfo(
-          `Successfully ${action} "${table}" with ${records.length} records.`
+      if (sessionError || !session?.access_token) {
+        console.error("UploadClient: no valid session", sessionError);
+        setError(
+          "You must be signed in as an admin to upload data. Please log in again."
         );
-
-        // Audit log disabled for now – optional feature.
-        // If we want it later, we’ll explicitly create a data_uploads table
-        // and wire this back up with proper error handling.
+        setLoading(false);
+        return;
       }
+
+      const resp = await fetch("/api/paradise/admin/upload", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          table,
+          mode,
+          replaceYear: targetYear,
+          records,
+          filename: file.name,
+          yearsInData,
+        }),
+      });
+
+      const result = await resp.json();
+
+      if (!resp.ok) {
+        console.error("Upload API error:", resp.status, result);
+        setError(
+          result?.error ||
+            "Upload failed on the server. Please try again or contact support."
+        );
+        setLoading(false);
+        return;
+      }
+
+      setInfo(result?.message || "Upload completed successfully.");
     } catch (err: any) {
       console.error(err);
       setError("Upload failed: " + (err?.message || "Unknown error"));
@@ -590,7 +581,7 @@ export default function UploadClient() {
         )
       : [];
 
-  // --- Main upload UI (no password gate) ---
+  // --- Main upload UI ---
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
       <h1 className="mb-2 text-xl font-semibold text-slate-900">

@@ -1,4 +1,3 @@
-// components/City/TransactionsDashboardClient.tsx
 "use client";
 
 import { useState, FormEvent } from "react";
@@ -239,6 +238,17 @@ export default function TransactionsDashboardClient({
     URL.revokeObjectURL(url);
   };
 
+  // CSV export for ALL results matching filters (server-side)
+  const handleExportAllCsv = () => {
+    const params = new URLSearchParams(searchParams.toString());
+    const qs = params.toString();
+    const url = qs
+      ? `/api/paradise/transactions/export?${qs}`
+      : "/api/paradise/transactions/export";
+    // Trigger file download
+    window.location.href = url;
+  };
+
   return (
     <main className="min-h-screen bg-slate-50">
       <div className="mx-auto max-w-6xl px-4 py-8">
@@ -359,7 +369,7 @@ export default function TransactionsDashboardClient({
                 </div>
               </div>
 
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
                   onClick={handleExportCsv}
@@ -367,6 +377,15 @@ export default function TransactionsDashboardClient({
                   className="rounded-md border border-slate-300 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-wide text-slate-700 shadow-sm hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   Download CSV (this page)
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleExportAllCsv}
+                  disabled={totalCount === 0}
+                  className="rounded-md border border-slate-300 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-wide text-slate-700 shadow-sm hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  Download CSV (all results)
                 </button>
               </div>
             </div>

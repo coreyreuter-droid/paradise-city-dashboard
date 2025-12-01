@@ -2,9 +2,41 @@
 import type { ReactNode } from "react";
 import ParadiseSidebar from "@/components/ParadiseSidebar";
 import { CITY_CONFIG } from "@/lib/cityConfig";
+import { createClient } from "@supabase/supabase-js";
 
-export default function ParadiseLayout({ children }: { children: ReactNode }) {
-  const accent = CITY_CONFIG.primaryColor ?? "#2563eb";
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+
+export default async function ParadiseLayout({
+  children,
+}: {
+  children: ReactNode;
+}) {
+  // Default accent from static config
+  let accentFromSettings: string | null = null;
+
+  try {
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // Read branding colors from portal_settings (singleton row)
+    const { data, error } = await supabase
+      .from("portal_settings")
+      .select("primary_color, accent_color")
+      .maybeSingle();
+
+    if (!error && data) {
+      // Prefer primary_color, fall back to accent_color
+      accentFromSettings =
+        (data.primary_color as string | null) ??
+        (data.accent_color as string | null) ??
+        null;
+    }
+  } catch (err) {
+    console.error("ParadiseLayout: failed to load portal_settings", err);
+  }
+
+  const accent =
+    accentFromSettings ?? CITY_CONFIG.primaryColor ?? "#2563eb";
 
   return (
     <div className="flex min-h-screen bg-slate-50">
@@ -15,7 +47,8 @@ export default function ParadiseLayout({ children }: { children: ReactNode }) {
         <div
           className="h-28 w-full"
           style={{
-            backgroundImage: `linear-gradient(135deg, ${accent}1F, transparent)`,
+            // Use the accent color directly so changes are obvious
+            backgroundImage: `linear-gradient(135deg, ${accent}, transparent)`,
           }}
         />
 

@@ -3,7 +3,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import { CITY_CONFIG } from "@/lib/cityConfig";
+import { supabase } from "@/lib/supabase";
 
 const navItems = [
   { href: "/paradise", label: "Overview" },
@@ -17,11 +19,47 @@ const adminItems = [
   { href: "/paradise/admin", label: "Admin home" },
   { href: "/paradise/admin/upload", label: "Data upload" },
   { href: "/paradise/admin/settings", label: "Branding & settings" },
+  { href: "/paradise/admin/onboarding", label: "Onboarding checklist" },
+  { href: "/paradise/admin/publish", label: "Publish portal" },
 ];
+
+type PortalBranding = {
+  city_name: string | null;
+  tagline: string | null;
+  primary_color: string | null;
+  accent_color: string | null;
+  logo_url: string | null;
+};
 
 export default function ParadiseSidebar() {
   const pathname = usePathname();
-  const accent = CITY_CONFIG.primaryColor ?? "#2563eb";
+
+  const [branding, setBranding] = useState<PortalBranding | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadBranding() {
+      const { data, error } = await supabase
+        .from("portal_settings")
+        .select(
+          "city_name, tagline, primary_color, accent_color, logo_url"
+        )
+        .maybeSingle();
+
+      if (cancelled) return;
+
+      if (!error && data) {
+        setBranding(data as PortalBranding);
+      }
+    }
+
+    loadBranding();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const isActive = (href: string) => {
     // Overview: only active on exact /paradise
@@ -48,18 +86,47 @@ export default function ParadiseSidebar() {
     }
   }
 
-  const portalTitle = "Civic Transparency";
-  const portalTagline = "Public-facing financial transparency portal";
+  const portalTitle =
+    branding?.city_name || CITY_CONFIG.displayName || "Civic Transparency";
+
+  const portalTagline =
+    branding?.tagline || "Public-facing financial transparency portal";
+
+  const accent =
+    branding?.primary_color ||
+    branding?.accent_color ||
+    CITY_CONFIG.primaryColor ||
+    "#2563eb";
+
+  const initials = portalTitle
+    .split(" ")
+    .map((w) => w[0] || "")
+    .join("")
+    .slice(0, 3)
+    .toUpperCase();
 
   return (
     <aside className="hidden w-64 flex-none border-r border-slate-200 bg-white/95 px-3 py-4 shadow-sm sm:flex sm:flex-col lg:w-72">
       {/* Brand */}
       <div className="mb-5 flex items-center gap-3 px-2">
-        <div
-          className="flex h-9 w-9 items-center justify-center rounded-xl text-sm font-semibold text-white shadow-sm"
-          style={{ background: accent }}
-        >
-          {portalTitle.charAt(0) || "C"}
+        <div>
+          {branding?.logo_url ? (
+            <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-white">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={branding.logo_url}
+                alt={portalTitle}
+                className="h-full w-full object-contain"
+              />
+            </div>
+          ) : (
+            <div
+              className="flex h-9 w-9 items-center justify-center rounded-xl text-sm font-semibold text-white shadow-sm"
+              style={{ background: accent }}
+            >
+              {initials || "C"}
+            </div>
+          )}
         </div>
         <div className="min-w-0">
           <div className="truncate text-sm font-semibold text-slate-900">
@@ -94,7 +161,9 @@ export default function ParadiseSidebar() {
                   >
                     <span
                       className={`inline-block h-1.5 w-1.5 rounded-full transition ${
-                        active ? "bg-white" : "bg-slate-300 group-hover:bg-slate-500"
+                        active
+                          ? "bg-white"
+                          : "bg-slate-300 group-hover:bg-slate-500"
                       }`}
                     />
                     <span className="truncate">{item.label}</span>
