@@ -81,8 +81,12 @@ export default function BudgetClient({ budgets, actuals }: Props) {
   const departments = useMemo<DepartmentSummary[]>(() => {
     if (!selectedYear) return [];
 
-    const budgetRows = budgets.filter((b) => fy(b.fiscal_year) === selectedYear);
-    const actualRows = actuals.filter((a) => fy(a.fiscal_year) === selectedYear);
+    const budgetRows = budgets.filter(
+      (b) => fy(b.fiscal_year) === selectedYear
+    );
+    const actualRows = actuals.filter(
+      (a) => fy(a.fiscal_year) === selectedYear
+    );
 
     // Aggregate budgets
     const budgetByDept = new Map<string, number>();
@@ -212,36 +216,41 @@ export default function BudgetClient({ budgets, actuals }: Props) {
     <main className="min-h-screen bg-slate-50">
       <div className="mx-auto max-w-6xl px-4 py-8">
         <SectionHeader
+          eyebrow="City budget overview"
           title="Budget vs Actuals"
           description="See how each department’s spending compares to its approved budget."
+          rightSlot={
+            years.length > 0 ? (
+              <FiscalYearSelect options={years} label="Fiscal year" />
+            ) : null
+          }
         />
 
         {/* Filters + KPIs + charts */}
         <CardContainer>
           <div className="space-y-6">
-            {/* Filters + summary line */}
-            <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-              <div className="max-w-xs">
-                {years.length > 0 && (
-                  <FiscalYearSelect options={years} label="Fiscal year" />
+            {/* Summary line */}
+            <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+              <div className="text-xs text-slate-500">
+                {yearLabel ? (
+                  <>
+                    Showing{" "}
+                    <span className="font-semibold">{deptCount}</span>{" "}
+                    departments for fiscal year{" "}
+                    <span className="font-semibold">{yearLabel}</span>.
+                    {!hasAnyActualsForSelectedYear &&
+                      " Actuals have not been uploaded for this year yet."}
+                  </>
+                ) : (
+                  "No fiscal year selected."
                 )}
               </div>
-              {yearLabel && (
-                <div className="text-xs text-slate-500 md:text-right">
-                  Showing{" "}
-                  <span className="font-semibold">{deptCount}</span>{" "}
-                  departments for fiscal year{" "}
-                  <span className="font-semibold">{yearLabel}</span>
-                  {!hasAnyActualsForSelectedYear &&
-                    " (no actuals uploaded for this year yet)"}
-                </div>
-              )}
             </div>
 
             {/* KPI tiles */}
             <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
-              <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
-                <div className="text-xs font-semibold uppercase text-slate-500">
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
                   Departments
                 </div>
                 <div className="mt-1 text-2xl font-bold text-slate-900">
@@ -249,8 +258,8 @@ export default function BudgetClient({ budgets, actuals }: Props) {
                 </div>
               </div>
 
-              <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
-                <div className="text-xs font-semibold uppercase text-slate-500">
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
                   Total Budget
                 </div>
                 <div className="mt-1 text-2xl font-bold text-slate-900">
@@ -258,8 +267,8 @@ export default function BudgetClient({ budgets, actuals }: Props) {
                 </div>
               </div>
 
-              <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
-                <div className="text-xs font-semibold uppercase text-slate-500">
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
                   Total Actuals
                 </div>
                 <div className="mt-1 text-2xl font-bold text-slate-900">
@@ -270,8 +279,8 @@ export default function BudgetClient({ budgets, actuals }: Props) {
                 </div>
               </div>
 
-              <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
-                <div className="text-xs font-semibold uppercase text-slate-500">
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
                   Variance
                 </div>
                 <div

@@ -19,7 +19,6 @@ import RecentTransactionsCard from "@/components/City/ParadiseHomeRecentTransact
 import DepartmentsGrid from "@/components/City/ParadiseHomeDepartmentsGrid";
 import MultiYearBudgetActualsChart from "@/components/City/ParadiseHomeMultiYearChart";
 import FiscalYearSelect from "@/components/FiscalYearSelect";
-import ParadiseSettingsMenu from "@/components/City/ParadiseSettingsMenu";
 
 type Props = {
   budgets: BudgetRow[];
@@ -154,7 +153,7 @@ export default function ParadiseHomeClient({
     (sum, d) => sum + d.actuals,
     0
   );
-  const variance = totalActuals - totalBudget;
+  const variance = totalBudget - totalActuals;
   const execPct =
     totalBudget === 0 ? 0 : (totalActuals / totalBudget) * 100;
   const deptCount = departments.length;
@@ -176,64 +175,42 @@ export default function ParadiseHomeClient({
     portalSettings?.hero_message ??
     "High-level view of Paradise’s budget, spending, and activity. Use this page to quickly understand where money comes from and where it goes.";
 
-  // Colors available for future theming:
-  const primaryColor =
-    portalSettings?.primary_color ?? "#0f172a";
   const accentColor =
     portalSettings?.accent_color ?? "#0ea5e9";
-  // background_color etc. also available on portalSettings
 
   return (
     <main className="min-h-screen bg-slate-50">
       <div className="mx-auto max-w-6xl px-4 py-8 space-y-6">
-        {/* Header with branding + gear icon */}
-        <div className="flex items-start justify-between gap-4">
-          <div
-            className="flex-1 border-b pb-4"
-            style={{ borderBottom: `2px solid ${accentColor}` }}
-          >
-            <SectionHeader
-              title={`${cityName} – Financial Overview`}
-              description={heroMessage}
-            />
-          </div>
-          <div className="flex items-center gap-3">
-            {portalSettings?.logo_url && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={portalSettings.logo_url}
-                alt={`${cityName} logo`}
-                className="h-12 w-auto rounded bg-white p-1 shadow-sm"
-              />
-            )}
-            <ParadiseSettingsMenu />
-          </div>
-        </div>
-
-
-        {/* Filters + KPIs */}
-        <CardContainer>
-          <div className="space-y-4">
-            <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-              <div className="max-w-xs">
-                {years.length > 0 && (
-                  <FiscalYearSelect
-                    options={years}
-                    label="Fiscal year"
+        {/* Header with branding + logo badge + year select */}
+        <SectionHeader
+          eyebrow="City snapshot"
+          title={`${cityName} – Financial Overview`}
+          description={heroMessage}
+          rightSlot={
+            <div className="flex items-center gap-3">
+              {portalSettings?.logo_url && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <div className="flex h-20 w-40 items-center justify-center rounded-lg border border-slate-200 bg-white px-4 shadow-sm">
+                  <img
+                    src={portalSettings.logo_url}
+                    alt={`${cityName} logo`}
+                    className="max-h-16 max-w-full object-contain"
                   />
-                )}
-              </div>
-              {yearLabel && (
-                <div className="text-xs text-slate-500 md:text-right">
-                  Showing citywide data for fiscal year{" "}
-                  <span className="font-semibold">
-                    {yearLabel}
-                  </span>
-                  .
                 </div>
               )}
+              {years.length > 0 && (
+                <FiscalYearSelect
+                  options={years}
+                  label="Fiscal year"
+                />
+              )}
             </div>
+          }
+        />
 
+        {/* KPIs */}
+        <CardContainer>
+          <div className="space-y-3">
             <KpiStrip
               totalBudget={totalBudget}
               totalActuals={totalActuals}
@@ -243,8 +220,17 @@ export default function ParadiseHomeClient({
               txCount={txCount}
               topDepartment={topDepartment}
               accentColor={accentColor}
+              yearLabel={yearLabel}
             />
-
+            {yearLabel && (
+              <p className="text-xs text-slate-500">
+                Citywide totals for fiscal year{" "}
+                <span className="font-semibold">
+                  {yearLabel}
+                </span>
+                .
+              </p>
+            )}
           </div>
         </CardContainer>
 
@@ -256,8 +242,9 @@ export default function ParadiseHomeClient({
                 Budget vs Actuals by Department
               </h2>
               <p className="text-xs text-slate-500">
-                Top departments by budget and their corresponding
-                actual spending for the selected fiscal year.
+                Top departments by budget and their
+                corresponding actual spending for the selected
+                fiscal year.
               </p>
               <BudgetCharts
                 year={yearLabel ?? new Date().getFullYear()}
@@ -272,8 +259,8 @@ export default function ParadiseHomeClient({
                 Multi-Year Budget vs Actuals
               </h2>
               <p className="text-xs text-slate-500">
-                Total citywide budget and actuals across recent
-                fiscal years.
+                Total citywide budget and actuals across
+                recent fiscal years.
               </p>
               <MultiYearBudgetActualsChart
                 years={years}
@@ -310,6 +297,50 @@ export default function ParadiseHomeClient({
             </CardContainer>
           </div>
         </div>
+
+        {/* City / portal info card */}
+        <CardContainer>
+          <div className="space-y-2">
+            <h2 className="text-sm font-semibold text-slate-900">
+              About this financial transparency portal
+            </h2>
+            <p className="text-xs text-slate-500">
+              This site provides a public view into the city’s
+              adopted budget, actual spending, and transaction-level
+              detail. Use the tabs in the left navigation to drill
+              into analytics, department-level budgets, and individual
+              transactions.
+            </p>
+            <ul className="mt-2 space-y-1 text-xs text-slate-600">
+              <li>
+                • <span className="font-semibold">Budget</span>{" "}
+                shows the adopted amounts by department and how they
+                compare to actual spending.
+              </li>
+              <li>
+                • <span className="font-semibold">Analytics</span>{" "}
+                provides citywide charts, trends, and breakdowns by
+                department, category, and vendor.
+              </li>
+              <li>
+                • <span className="font-semibold">Departments</span>{" "}
+                lets you see multi-year trends and detailed
+                transactions for a single department.
+              </li>
+              <li>
+                • <span className="font-semibold">Transactions</span>{" "}
+                is a searchable list of individual expenses filtered
+                by year, department, and vendor.
+              </li>
+            </ul>
+            <p className="mt-2 text-[11px] text-slate-500">
+              Dollar amounts are rounded for display. Some values may
+              not include pending or future-dated transactions. For
+              questions about the data, please contact the city’s
+              finance office.
+            </p>
+          </div>
+        </CardContainer>
       </div>
     </main>
   );

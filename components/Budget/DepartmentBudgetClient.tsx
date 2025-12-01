@@ -1,3 +1,4 @@
+// components/Budget/DepartmentBudgetClient.tsx
 "use client";
 
 import { useMemo, useState } from "react";
@@ -73,14 +74,8 @@ const formatAxisCurrency = (value: number) => {
 };
 
 export default function DepartmentBudgetClient(props: Props) {
-  const {
-    departmentName,
-    budgets,
-    actuals,
-    selectedYear,
-    years,
-    transactions,
-  } = props;
+  const { departmentName, budgets, actuals, selectedYear, years, transactions } =
+    props;
 
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -136,8 +131,7 @@ export default function DepartmentBudgetClient(props: Props) {
   const totalBudget = selectedSummary?.budget ?? 0;
   const totalActuals = selectedSummary?.actuals ?? 0;
   const variance = totalActuals - totalBudget;
-  const variancePct =
-    totalBudget === 0 ? 0 : (variance / totalBudget) * 100;
+  const variancePct = totalBudget === 0 ? 0 : (variance / totalBudget) * 100;
   const execPctRaw =
     totalBudget === 0 ? 0 : (totalActuals / totalBudget) * 100;
   const execPct = Math.max(0, Math.min(100, execPctRaw));
@@ -162,9 +156,7 @@ export default function DepartmentBudgetClient(props: Props) {
 
     yearTransactions.forEach((tx) => {
       const vendor =
-        tx.vendor && tx.vendor.trim().length > 0
-          ? tx.vendor
-          : "Unspecified";
+        tx.vendor && tx.vendor.trim().length > 0 ? tx.vendor : "Unspecified";
       const amt = Number(tx.amount) || 0;
       const existing = map.get(vendor) || { total: 0, count: 0 };
       existing.total += amt;
@@ -201,82 +193,106 @@ export default function DepartmentBudgetClient(props: Props) {
         </div>
 
         <SectionHeader
+          eyebrow="Department budget overview"
           title={departmentName}
-          description="Multi-year budget vs actuals for this department."
+          description="Multi-year budget vs actuals and vendor spending for this department."
+          rightSlot={
+            <div className="flex items-center gap-2">
+              <label className="text-xs font-medium text-slate-700">
+                Fiscal year
+              </label>
+              <select
+                className="rounded-md border border-slate-300 bg-white px-2 py-1 text-xs"
+                value={year}
+                onChange={(e) => handleYearChange(Number(e.target.value))}
+              >
+                {years.map((y) => (
+                  <option key={y} value={y}>
+                    {y}
+                  </option>
+                ))}
+              </select>
+            </div>
+          }
         />
 
-        {/* Year selector */}
-        <div className="mb-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <label className="text-sm font-medium text-slate-700">
-              Fiscal year
-            </label>
-            <select
-              className="rounded-md border border-slate-300 bg-white px-2 py-1 text-sm"
-              value={year}
-              onChange={(e) => handleYearChange(Number(e.target.value))}
-            >
-              {years.map((y) => (
-                <option key={y} value={y}>
-                  {y}
-                </option>
-              ))}
-            </select>
-          </div>
-          <span className="text-xs text-slate-500">
-            Currently viewing: <strong>{year}</strong>
-          </span>
-        </div>
-
-        {/* KPI card */}
-        <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="mb-3 flex items-baseline justify-between gap-4">
-            <p className="text-sm font-semibold text-slate-900">
-              {departmentName} – Budget vs Actuals ({year})
-            </p>
-            <div className="text-right text-xs text-slate-500">
-              <p>Total Budget: {formatCurrency(totalBudget)}</p>
-              <p>Total Actuals: {formatCurrency(totalActuals)}</p>
+        {/* KPI cards */}
+        <div className="mb-6 grid gap-4 md:grid-cols-4">
+          <CardContainer>
+            <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+              Total Budget ({year})
             </div>
-          </div>
+            <div className="mt-1 text-2xl font-bold text-slate-900">
+              {formatCurrency(totalBudget)}
+            </div>
+          </CardContainer>
 
-          <div className="mb-2 flex items-center justify-between text-xs text-slate-600">
-            <span>Execution</span>
-            <span>{execPct.toFixed(1)}%</span>
-          </div>
-          <div className="h-3 w-full overflow-hidden rounded-full bg-slate-100">
+          <CardContainer>
+            <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+              Total Actuals ({year})
+            </div>
+            <div className="mt-1 text-2xl font-bold text-slate-900">
+              {formatCurrency(totalActuals)}
+            </div>
+            <div className="mt-1 text-xs text-slate-500">
+              {formatCurrency(totalActuals)} spent out of{" "}
+              {formatCurrency(totalBudget)}.
+            </div>
+          </CardContainer>
+
+          <CardContainer>
+            <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+              Variance ({year})
+            </div>
             <div
-              className="h-full rounded-full bg-emerald-500 transition-all"
-              style={{ width: `${execPct}%` }}
-            />
-          </div>
-
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-600">
-            <div>
-              <span className="font-medium text-slate-800">
-                {variance >= 0 ? "Over Budget" : "Under Budget"}:
-              </span>{" "}
-              <span
-                className={
-                  variance >= 0 ? "text-red-600" : "text-emerald-600"
-                }
-              >
-                {formatCurrency(Math.abs(variance))} (
-                {variancePct.toFixed(1)}%)
-              </span>
+              className={`mt-1 text-2xl font-bold ${
+                variance > 0
+                  ? "text-red-700"
+                  : variance < 0
+                  ? "text-emerald-700"
+                  : "text-slate-900"
+              }`}
+            >
+              {formatCurrency(Math.abs(variance))}
             </div>
-          </div>
+            <div className="mt-1 text-xs text-slate-500">
+              {variance >= 0 ? "Over" : "Under"} budget by{" "}
+              {variancePct.toFixed(1)}%.
+            </div>
+          </CardContainer>
+
+          <CardContainer>
+            <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+              Budget execution ({year})
+            </div>
+            <div className="mt-1 text-2xl font-bold text-slate-900">
+              {execPctRaw.toFixed(1)}%
+            </div>
+            <div className="mt-3 h-2 w-full rounded-full bg-slate-100">
+              <div
+                className={`h-2 rounded-full ${
+                  execPctRaw <= 100 ? "bg-sky-500" : "bg-red-500"
+                }`}
+                style={{ width: `${Math.max(0, Math.min(execPctRaw, 150))}%` }}
+              />
+            </div>
+          </CardContainer>
         </div>
 
         {/* Multi-year chart */}
         <CardContainer>
           <div className="p-4">
-            <h2 className="mb-2 text-sm font-semibold text-slate-900">
-              Multi-year trend
-            </h2>
-            <p className="mb-4 text-xs text-slate-500">
-              Total annual budget vs actuals for {departmentName}.
-            </p>
+            <div className="mb-2 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <h2 className="text-sm font-semibold text-slate-900">
+                  Multi-year budget vs actuals
+                </h2>
+                <p className="text-xs text-slate-500">
+                  Total annual budget compared to actual spending for{" "}
+                  {departmentName}.
+                </p>
+              </div>
+            </div>
 
             <div className="h-[320px] w-full">
               <ResponsiveContainer width="100%" height="100%">
@@ -289,7 +305,7 @@ export default function DepartmentBudgetClient(props: Props) {
                   <YAxis
                     tickFormatter={formatAxisCurrency}
                     tick={{ fontSize: 12 }}
-                    width={90} // <- ensures "$X,XXX,XXX" is fully visible
+                    width={90}
                   />
                   <Tooltip
                     formatter={(value: number) => formatCurrency(value)}
@@ -306,9 +322,7 @@ export default function DepartmentBudgetClient(props: Props) {
                       <Cell
                         key={index}
                         fill={
-                          entry.Actual <= entry.Budget
-                            ? "#10b981"
-                            : "#FF746C"
+                          entry.Actual <= entry.Budget ? "#10b981" : "#FF746C"
                         }
                       />
                     ))}
@@ -343,43 +357,45 @@ export default function DepartmentBudgetClient(props: Props) {
             {vendorSummaries.length === 0 ? (
               <p className="text-xs text-slate-500">No transactions found.</p>
             ) : (
-              <table className="min-w-full text-left text-xs">
-                <thead className="border-b border-slate-200 bg-slate-50">
-                  <tr>
-                    <th className="px-3 py-2 font-semibold text-slate-700">
-                      Vendor
-                    </th>
-                    <th className="px-3 py-2 font-semibold text-slate-700">
-                      Total spent
-                    </th>
-                    <th className="px-3 py-2 font-semibold text-slate-700">
-                      # Transactions
-                    </th>
-                    <th className="px-3 py-2 font-semibold text-slate-700">
-                      % of actuals
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {vendorSummaries.map((v) => (
-                    <tr
-                      key={v.vendor_name}
-                      className="border-b border-slate-100"
-                    >
-                      <td className="px-3 py-2">{v.vendor_name}</td>
-                      <td className="px-3 py-2 text-right font-mono">
-                        {formatCurrency(v.totalAmount)}
-                      </td>
-                      <td className="px-3 py-2 text-right font-mono">
-                        {v.txCount}
-                      </td>
-                      <td className="px-3 py-2 text-right font-mono">
-                        {v.shareOfActuals.toFixed(1)}%
-                      </td>
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-left text-xs">
+                  <thead className="border-b border-slate-200 bg-slate-50">
+                    <tr>
+                      <th className="px-3 py-2 font-semibold text-slate-700">
+                        Vendor
+                      </th>
+                      <th className="px-3 py-2 font-semibold text-slate-700">
+                        Total spent
+                      </th>
+                      <th className="px-3 py-2 font-semibold text-slate-700">
+                        # Transactions
+                      </th>
+                      <th className="px-3 py-2 font-semibold text-slate-700">
+                        % of actuals
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {vendorSummaries.map((v) => (
+                      <tr
+                        key={v.vendor_name}
+                        className="border-b border-slate-100"
+                      >
+                        <td className="px-3 py-2">{v.vendor_name}</td>
+                        <td className="px-3 py-2 text-right font-mono">
+                          {formatCurrency(v.totalAmount)}
+                        </td>
+                        <td className="px-3 py-2 text-right font-mono">
+                          {v.txCount}
+                        </td>
+                        <td className="px-3 py-2 text-right font-mono">
+                          {v.shareOfActuals.toFixed(1)}%
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
         </CardContainer>
@@ -394,47 +410,49 @@ export default function DepartmentBudgetClient(props: Props) {
             {yearTransactions.length === 0 ? (
               <p className="text-xs text-slate-500">No transactions found.</p>
             ) : (
-              <table className="min-w-full text-left text-xs">
-                <thead className="border-b border-slate-200 bg-slate-50">
-                  <tr>
-                    <th className="px-3 py-2 font-semibold text-slate-700">
-                      Date
-                    </th>
-                    <th className="px-3 py-2 font-semibold text-slate-700">
-                      Description
-                    </th>
-                    <th className="px-3 py-2 font-semibold text-slate-700">
-                      Vendor
-                    </th>
-                    <th className="px-3 py-2 font-semibold text-slate-700">
-                      Amount
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {yearTransactions.map((tx) => (
-                    <tr
-                      key={tx.id}
-                      className="border-b border-slate-100 align-top"
-                    >
-                      <td className="whitespace-nowrap px-3 py-2 font-mono">
-                        {new Date(tx.date).toLocaleDateString("en-US", {
-                          year: "numeric",
-                          month: "short",
-                          day: "numeric",
-                        })}
-                      </td>
-                      <td className="px-3 py-2">
-                        {tx.description || "—"}
-                      </td>
-                      <td className="px-3 py-2">{tx.vendor || "—"}</td>
-                      <td className="px-3 py-2 text-right font-mono">
-                        {formatCurrency(Number(tx.amount || 0))}
-                      </td>
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-left text-xs">
+                  <thead className="border-b border-slate-200 bg-slate-50">
+                    <tr>
+                      <th className="px-3 py-2 font-semibold text-slate-700">
+                        Date
+                      </th>
+                      <th className="px-3 py-2 font-semibold text-slate-700">
+                        Description
+                      </th>
+                      <th className="px-3 py-2 font-semibold text-slate-700">
+                        Vendor
+                      </th>
+                      <th className="px-3 py-2 font-semibold text-slate-700">
+                        Amount
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {yearTransactions.map((tx) => (
+                      <tr
+                        key={tx.id}
+                        className="border-b border-slate-100 align-top"
+                      >
+                        <td className="whitespace-nowrap px-3 py-2 font-mono">
+                          {new Date(tx.date).toLocaleDateString("en-US", {
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                          })}
+                        </td>
+                        <td className="px-3 py-2">
+                          {tx.description || "—"}
+                        </td>
+                        <td className="px-3 py-2">{tx.vendor || "—"}</td>
+                        <td className="px-3 py-2 text-right font-mono">
+                          {formatCurrency(Number(tx.amount || 0))}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
         </CardContainer>

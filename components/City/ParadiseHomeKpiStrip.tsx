@@ -13,6 +13,7 @@ type Props = {
   txCount: number;
   topDepartment: string | null;
   accentColor?: string;
+  yearLabel?: number | string; // ✅ NEW
 };
 
 export default function KpiStrip({
@@ -24,13 +25,19 @@ export default function KpiStrip({
   txCount,
   topDepartment,
   accentColor,
+  yearLabel,
 }: Props) {
-  const accent = accentColor || "#2563eb"; // simple fallback
+  const accent = accentColor || "#2563eb";
 
   const varianceLabel = variance >= 0 ? "Under budget" : "Over budget";
   const varianceDisplay = `${variance >= 0 ? "" : "-"}${formatCurrency(
     Math.abs(variance)
   )}`;
+
+  const yearText =
+    yearLabel !== undefined && yearLabel !== null
+      ? String(yearLabel)
+      : "—";
 
   return (
     <section className="space-y-3">
@@ -58,14 +65,14 @@ export default function KpiStrip({
         <MetricCard
           label="Total adopted budget"
           value={formatCurrency(totalBudget)}
-          sublabel="All departments • current fiscal year"
+          sublabel={`All departments • fiscal year ${yearText}`}
           accentColor={accent}
         />
 
         <MetricCard
           label="Actual spending to date"
           value={formatCurrency(totalActuals)}
-          sublabel={formatPercent(execPct) + " of budget spent"}
+          sublabel={`${formatPercent(execPct)} of budget spent`}
           accentColor={accent}
         />
 
@@ -90,7 +97,7 @@ export default function KpiStrip({
         <MetricCard
           label="Transactions"
           value={txCount.toLocaleString()}
-          sublabel="Posted expenses in this fiscal year"
+          sublabel={`Posted expenses in fiscal year ${yearText}`}
           accentColor={accent}
         />
 

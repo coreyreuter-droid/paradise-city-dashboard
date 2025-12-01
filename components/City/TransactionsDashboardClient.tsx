@@ -1,6 +1,7 @@
+// components/City/TransactionsDashboardClient.tsx
 "use client";
 
-import { useMemo, useState, FormEvent } from "react";
+import { useState, FormEvent } from "react";
 import {
   usePathname,
   useRouter,
@@ -52,6 +53,8 @@ export default function TransactionsDashboardClient({
 
   const currentYearLabel =
     selectedYear ?? (years.length > 0 ? years[0] : undefined);
+
+  const pageTxCount = transactions.length;
 
   // Helper to push updated query params
   const updateQuery = (patch: {
@@ -110,71 +113,65 @@ export default function TransactionsDashboardClient({
     setVendorInput("");
   };
 
-  const columns: DataTableColumn<TransactionRow>[] =
-    useMemo(
-      () => [
-        {
-          key: "date",
-          header: "Date",
-          sortable: true,
-          sortAccessor: (row) => row.date,
-          cell: (row) => (
-            <span className="whitespace-nowrap font-mono text-xs text-slate-700">
-              {formatDate(row.date)}
-            </span>
-          ),
-          headerClassName: "w-32",
-        },
-        {
-          key: "department_name",
-          header: "Department",
-          sortable: true,
-          sortAccessor: (row) => row.department_name || "",
-          cell: (row) => (
-            <span>
-              {row.department_name || "Unspecified"}
-            </span>
-          ),
-        },
-        {
-          key: "vendor",
-          header: "Vendor",
-          sortable: true,
-          sortAccessor: (row) => row.vendor || "",
-          cell: (row) => (
-            <span className="whitespace-nowrap">
-              {row.vendor || "Unspecified"}
-            </span>
-          ),
-        },
-        {
-          key: "description",
-          header: "Description",
-          sortable: true,
-          sortAccessor: (row) => row.description || "",
-          cell: (row) => (
-            <span className="block max-w-xl text-slate-700">
-              {row.description || "—"}
-            </span>
-          ),
-          headerClassName: "min-w-[240px]",
-        },
-        {
-          key: "amount",
-          header: "Amount",
-          sortable: true,
-          sortAccessor: (row) => row.amount,
-          cell: (row) => (
-            <div className="text-right font-mono">
-              {formatCurrency(row.amount)}
-            </div>
-          ),
-          headerClassName: "w-32 text-right",
-          cellClassName: "text-right",
-        },
-      ],
-      []
-    );
+  const columns: DataTableColumn<TransactionRow>[] = [
+    {
+      key: "date",
+      header: "Date",
+      sortable: true,
+      sortAccessor: (row) => row.date,
+      cell: (row) => (
+        <span className="whitespace-nowrap font-mono text-xs text-slate-700">
+          {formatDate(row.date)}
+        </span>
+      ),
+      headerClassName: "w-32",
+    },
+    {
+      key: "department_name",
+      header: "Department",
+      sortable: true,
+      sortAccessor: (row) => row.department_name || "",
+      cell: (row) => (
+        <span>{row.department_name || "Unspecified"}</span>
+      ),
+    },
+    {
+      key: "vendor",
+      header: "Vendor",
+      sortable: true,
+      sortAccessor: (row) => row.vendor || "",
+      cell: (row) => (
+        <span className="whitespace-nowrap">
+          {row.vendor || "Unspecified"}
+        </span>
+      ),
+    },
+    {
+      key: "description",
+      header: "Description",
+      sortable: true,
+      sortAccessor: (row) => row.description || "",
+      cell: (row) => (
+        <span className="block max-w-xl text-slate-700">
+          {row.description || "—"}
+        </span>
+      ),
+      headerClassName: "min-w-[240px]",
+    },
+    {
+      key: "amount",
+      header: "Amount",
+      sortable: true,
+      sortAccessor: (row) => row.amount,
+      cell: (row) => (
+        <div className="text-right font-mono">
+          {formatCurrency(row.amount)}
+        </div>
+      ),
+      headerClassName: "w-32 text-right",
+      cellClassName: "text-right",
+    },
+  ];
 
   const hasYearFilter = !!selectedYear;
   const hasDepartmentFilter =
@@ -184,28 +181,82 @@ export default function TransactionsDashboardClient({
   const hasAnyFilter =
     hasYearFilter || hasDepartmentFilter || hasVendorFilter;
 
+  // CSV export for current page + filters
+  const handleExportCsv = () => {
+    if (!transactions.length) return;
+
+    const safe = (value: unknown) => {
+      if (value === null || value === undefined) return "";
+      const s = String(value);
+      // Escape quotes for CSV: " -> ""
+      return `"${s.replace(/"/g, '""')}"`;
+    };
+
+    const header = [
+      "date",
+      "fiscal_year",
+      "department_name",
+      "vendor",
+      "description",
+      "amount",
+    ];
+
+    const rows = transactions.map((t) => [
+      safe(t.date),
+      safe(t.fiscal_year),
+      safe(t.department_name || "Unspecified"),
+      safe(t.vendor || "Unspecified"),
+      safe(t.description || ""),
+      safe(t.amount),
+    ]);
+
+    const csv = [
+      header.join(","),
+      ...rows.map((r) => r.join(",")),
+    ].join("\n");
+
+    const blob = new Blob([csv], {
+      type: "text/csv;charset=utf-8;",
+    });
+
+    const yearPart = selectedYear
+      ? `year-${selectedYear}`
+      : "all-years";
+    const deptPart =
+      departmentFilter && departmentFilter !== "all"
+        ? departmentFilter.replace(/\s+/g, "-")
+        : "all-departments";
+
+    const filename = `transactions_${yearPart}_${deptPart}_page-${page}.csv`;
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <main className="min-h-screen bg-slate-50">
       <div className="mx-auto max-w-6xl px-4 py-8">
         <SectionHeader
+          eyebrow="Spending explorer"
           title="Transactions"
           description="Explore individual transactions with filters by year, department, and vendor."
+          rightSlot={
+            years.length > 0 ? (
+              <FiscalYearSelect options={years} label="Fiscal year" />
+            ) : null
+          }
         />
 
         <CardContainer>
           {/* Filters */}
           <div className="space-y-4">
-            <div className="grid gap-3 md:grid-cols-3">
-              {/* Year */}
-              <div>
-                {years.length > 0 && (
-                  <FiscalYearSelect
-                    options={years}
-                    label="Fiscal year"
-                  />
-                )}
-              </div>
-
+            <div className="grid gap-3 md:grid-cols-2">
               {/* Department */}
               <div>
                 <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -289,12 +340,43 @@ export default function TransactionsDashboardClient({
             )}
           </div>
 
+          {/* Single KPI + Export */}
+          <div className="mt-6">
+            <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                  Total transactions (all filters)
+                </div>
+                <div className="mt-1 text-2xl font-bold text-slate-900">
+                  {totalCount.toLocaleString("en-US")}
+                </div>
+                <div className="mt-1 text-xs text-slate-500">
+                  Showing{" "}
+                  <span className="font-semibold">
+                    {pageTxCount.toLocaleString("en-US")}
+                  </span>{" "}
+                  on this page (page {page} of {totalPages}).
+                </div>
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={handleExportCsv}
+                  disabled={transactions.length === 0}
+                  className="rounded-md border border-slate-300 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-wide text-slate-700 shadow-sm hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  Download CSV (this page)
+                </button>
+              </div>
+            </div>
+          </div>
+
           {/* Table + pagination */}
           <div className="mt-6">
             {transactions.length === 0 ? (
               <p className="text-sm text-slate-500">
-                No transactions found for the selected
-                filters.
+                No transactions found for the selected filters.
               </p>
             ) : (
               <>
