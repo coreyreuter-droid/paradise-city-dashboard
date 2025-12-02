@@ -1,3 +1,4 @@
+// app/paradise/admin/onboarding/page.tsx
 "use client";
 
 import Link from "next/link";
@@ -80,7 +81,9 @@ export default function OnboardingPage() {
 
   const statusCircle = (status: HealthStatus) => {
     if (status === "loading")
-      return <div className="h-3 w-3 rounded-full bg-slate-400 animate-pulse" />;
+      return (
+        <div className="h-3 w-3 rounded-full bg-slate-400 animate-pulse" />
+      );
     if (status === "pass")
       return <div className="h-3 w-3 rounded-full bg-emerald-500" />;
     if (status === "fail")
@@ -92,23 +95,36 @@ export default function OnboardingPage() {
     <AdminGuard>
       <div className="min-h-screen bg-slate-50 px-4 py-10">
         <div className="mx-auto max-w-3xl">
+          <div className="mb-4">
+            <Link
+              href="/paradise/admin"
+              className="inline-flex items-center text-xs font-medium text-slate-500 hover:text-slate-800"
+            >
+              <span className="mr-1">←</span>
+              Back to admin home
+            </Link>
+          </div>
+
           <h1 className="mb-1 text-2xl font-bold text-slate-900">
             Onboarding Checklist
           </h1>
           <p className="mb-6 text-sm text-slate-600">
-            Complete each step below to prepare your city’s CiviPortal for public
-            launch.
+            Complete each step below to prepare your city’s CiviPortal for
+            public launch.
           </p>
 
           <div className="space-y-4">
-
             {/* STEP 1 — Budgets */}
             <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
               <div className="flex items-center gap-3">
                 {statusCircle(checks.budgets)}
                 <div>
-                  <p className="font-semibold text-slate-900">Upload Budgets</p>
-                  <p className="text-xs text-slate-500">Fiscal year budgets data</p>
+                  <p className="font-semibold text-slate-900">
+                    Upload Budgets
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    Fiscal year budgets data
+                  </p>
                 </div>
               </div>
               <Link
@@ -124,8 +140,12 @@ export default function OnboardingPage() {
               <div className="flex items-center gap-3">
                 {statusCircle(checks.actuals)}
                 <div>
-                  <p className="font-semibold text-slate-900">Upload Actuals</p>
-                  <p className="text-xs text-slate-500">YTD or monthly actuals</p>
+                  <p className="font-semibold text-slate-900">
+                    Upload Actuals
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    YTD or monthly actuals
+                  </p>
                 </div>
               </div>
               <Link
@@ -141,8 +161,12 @@ export default function OnboardingPage() {
               <div className="flex items-center gap-3">
                 {statusCircle(checks.transactions)}
                 <div>
-                  <p className="font-semibold text-slate-900">Upload Transactions</p>
-                  <p className="text-xs text-slate-500">Vendor-level spending</p>
+                  <p className="font-semibold text-slate-900">
+                    Upload Transactions
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    Vendor-level spending
+                  </p>
                 </div>
               </div>
               <Link
@@ -158,8 +182,12 @@ export default function OnboardingPage() {
               <div className="flex items-center gap-3">
                 {statusCircle(checks.portalSettings)}
                 <div>
-                  <p className="font-semibold text-slate-900">Branding & Settings</p>
-                  <p className="text-xs text-slate-500">Logo, colors & tagline</p>
+                  <p className="font-semibold text-slate-900">
+                    Branding & Settings
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    Logo, colors & tagline
+                  </p>
                 </div>
               </div>
               <Link
@@ -175,7 +203,9 @@ export default function OnboardingPage() {
               <div className="flex items-center gap-3">
                 {statusCircle(checks.publish)}
                 <div>
-                  <p className="font-semibold text-slate-900">Publish Portal</p>
+                  <p className="font-semibold text-slate-900">
+                    Publish Portal
+                  </p>
                   <p className="text-xs text-slate-500">
                     Make portal visible to the public
                   </p>

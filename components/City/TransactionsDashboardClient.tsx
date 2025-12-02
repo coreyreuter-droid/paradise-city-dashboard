@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, FormEvent } from "react";
+import Link from "next/link";
 import {
   usePathname,
   useRouter,
@@ -23,7 +24,7 @@ type Props = {
   page: number;
   pageSize: number;
   departments: string[];
-  departmentFilter: string; // "all" or dept name
+  departmentFilter: string;
   vendorQuery: string;
 };
 
@@ -55,7 +56,6 @@ export default function TransactionsDashboardClient({
 
   const pageTxCount = transactions.length;
 
-  // Helper to push updated query params
   const updateQuery = (patch: {
     [key: string]: string | undefined;
   }) => {
@@ -180,14 +180,12 @@ export default function TransactionsDashboardClient({
   const hasAnyFilter =
     hasYearFilter || hasDepartmentFilter || hasVendorFilter;
 
-  // CSV export for current page + filters
   const handleExportCsv = () => {
     if (!transactions.length) return;
 
     const safe = (value: unknown) => {
       if (value === null || value === undefined) return "";
       const s = String(value);
-      // Escape quotes for CSV: " -> ""
       return `"${s.replace(/"/g, '""')}"`;
     };
 
@@ -238,14 +236,12 @@ export default function TransactionsDashboardClient({
     URL.revokeObjectURL(url);
   };
 
-  // CSV export for ALL results matching filters (server-side)
   const handleExportAllCsv = () => {
     const params = new URLSearchParams(searchParams.toString());
     const qs = params.toString();
     const url = qs
       ? `/api/paradise/transactions/export?${qs}`
       : "/api/paradise/transactions/export";
-    // Trigger file download
     window.location.href = url;
   };
 
@@ -262,6 +258,20 @@ export default function TransactionsDashboardClient({
             ) : null
           }
         />
+
+        {/* BREADCRUMB: Overview › Transactions */}
+        <div className="mb-4 flex items-center gap-1 text-[11px] text-slate-500 px-1">
+          <Link
+            href="/paradise"
+            className="hover:text-slate-800"
+          >
+            Overview
+          </Link>
+          <span className="text-slate-400">›</span>
+          <span className="font-medium text-slate-700">
+            Transactions
+          </span>
+        </div>
 
         <CardContainer>
           {/* Filters */}
@@ -350,7 +360,7 @@ export default function TransactionsDashboardClient({
             )}
           </div>
 
-          {/* Single KPI + Export */}
+          {/* KPI + Export */}
           <div className="mt-6">
             <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
@@ -411,7 +421,6 @@ export default function TransactionsDashboardClient({
                   showPagination={false}
                 />
 
-                {/* Server-side pagination controls */}
                 <div className="mt-4 flex items-center justify-between text-xs text-slate-600">
                   <div>
                     Showing{" "}

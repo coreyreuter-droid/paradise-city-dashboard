@@ -253,7 +253,15 @@ export default function DepartmentsDashboardClient({
           title="Departments"
           description="Compare budgets, spending, and activity across all departments. Click a department to drill into multi-year trends and transactions."
         />
-
+<div className="mb-4 flex items-center gap-1 text-[11px] text-slate-500 px-1">
+  <Link href="/paradise" className="hover:text-slate-800">
+    Overview
+  </Link>
+  <span className="text-slate-400">›</span>
+  <span className="font-medium text-slate-700">
+    Departments
+  </span>
+</div>
         {/* Filters + KPIs card */}
         <CardContainer>
           <div className="space-y-5">

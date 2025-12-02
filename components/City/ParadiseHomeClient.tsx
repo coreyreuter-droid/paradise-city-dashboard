@@ -65,7 +65,7 @@ export default function ParadiseHomeClient({
     if (Number.isFinite(parsed) && years.includes(parsed)) {
       return parsed;
     }
-    return years[0]; // latest year by default
+    return years[0];
   }, [searchParams, years]);
 
   const budgetsForYear = useMemo(
@@ -98,7 +98,6 @@ export default function ParadiseHomeClient({
     [transactions, selectedYear]
   );
 
-  // Department-level summary (same idea as BudgetClient)
   const departments: DepartmentSummary[] = useMemo(() => {
     if (!selectedYear) return [];
 
@@ -106,27 +105,18 @@ export default function ParadiseHomeClient({
     budgetsForYear.forEach((row) => {
       const dept = row.department_name || "Unspecified";
       const amt = Number(row.amount || 0);
-      budgetByDept.set(
-        dept,
-        (budgetByDept.get(dept) || 0) + amt
-      );
+      budgetByDept.set(dept, (budgetByDept.get(dept) || 0) + amt);
     });
 
     const actualsByDept = new Map<string, number>();
     actualsForYear.forEach((row) => {
       const dept = row.department_name || "Unspecified";
       const amt = Number(row.amount || 0);
-      actualsByDept.set(
-        dept,
-        (actualsByDept.get(dept) || 0) + amt
-      );
+      actualsByDept.set(dept, (actualsByDept.get(dept) || 0) + amt);
     });
 
     const rows: DepartmentSummary[] = Array.from(
-      new Set([
-        ...budgetByDept.keys(),
-        ...actualsByDept.keys(),
-      ])
+      new Set([...budgetByDept.keys(), ...actualsByDept.keys()])
     ).map((dept) => {
       const budget = budgetByDept.get(dept) || 0;
       const actual = actualsByDept.get(dept) || 0;
@@ -156,8 +146,6 @@ export default function ParadiseHomeClient({
   const variance = totalBudget - totalActuals;
   const execPct =
     totalBudget === 0 ? 0 : (totalActuals / totalBudget) * 100;
-  const deptCount = departments.length;
-  const txCount = transactionsForYear.length;
 
   const topDepartment =
     departments.length > 0
@@ -170,116 +158,131 @@ export default function ParadiseHomeClient({
 
   // Branding
   const cityName =
-    portalSettings?.city_name ?? "Paradise City";
+    portalSettings?.city_name ?? "Your City";
   const tagline =
     portalSettings?.tagline ??
-    "Financial transparency portal";
+    "Financial Transparency Portal";
   const heroMessage =
     portalSettings?.hero_message ??
-    "Explore how public dollars are budgeted and spent across departments, vendors, and programs.";
-
-  const primaryColor =
-    portalSettings?.primary_color ?? "#0f172a"; // slate-900
+    "Explore how public dollars are budgeted and spent.";
   const accentColor =
-    portalSettings?.accent_color ?? "#0ea5e9"; // sky-500
-  const backgroundColor =
-    portalSettings?.background_color ?? "#020617"; // slate-950
-  const heroImageUrl = portalSettings?.hero_image_url ?? null;
+    portalSettings?.accent_color ?? "#0ea5e9";
 
-  const heroGradient = {
-    backgroundImage: `linear-gradient(135deg, ${backgroundColor} 0%, ${primaryColor} 45%, ${accentColor} 100%)`,
-  };
+  const logoUrl = portalSettings?.logo_url ?? null;
+  const heroImageUrl = portalSettings?.hero_image_url ?? null;
+  const sealUrl = portalSettings?.seal_url ?? null;
+
+  const heroBackground = "#f8fafc";
+  const heroOverlay = "rgba(0,0,0,0.08)";
+  const textColor = "#0f172a";
 
   return (
     <main className="min-h-screen bg-slate-50">
       <div className="mx-auto max-w-6xl px-4 py-8 space-y-6">
-        {/* Hero / branding section */}
+
+        {/* HERO */}
         <section
-          className="relative overflow-hidden rounded-2xl border border-slate-200 text-slate-50 shadow-sm px-6 py-8 sm:px-8 sm:py-10"
-          style={heroGradient}
+          className="relative overflow-hidden rounded-2xl border border-slate-200 shadow-sm px-6 py-8 sm:px-8 sm:py-10"
+          style={{ backgroundColor: heroBackground, color: textColor }}
         >
           {heroImageUrl && (
-            <div className="pointer-events-none absolute inset-0 opacity-35">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
+            <div className="absolute inset-0 pointer-events-none opacity-20">
               <img
                 src={heroImageUrl}
                 alt=""
-                className="h-full w-full object-cover mix-blend-soft-light"
+                className="h-full w-full object-cover"
               />
             </div>
           )}
 
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{ backgroundColor: heroOverlay }}
+          />
+
           <div className="relative z-10 flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-            {/* Left: text + CTAs */}
+            {/* Left */}
             <div className="max-w-xl space-y-3">
-              <div className="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.15em] text-white backdrop-blur-sm">
-                <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400" />
+              <div className="inline-flex items-center gap-2 rounded-full bg-white/70 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.15em] text-slate-700 border border-slate-300">
+                <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500" />
                 {tagline}
               </div>
-              <h1 className="text-3xl sm:text-4xl font-bold leading-tight drop-shadow-sm">
+
+              <h1 className="text-3xl sm:text-4xl font-bold leading-tight">
                 {cityName}{" "}
-                <span className="font-normal text-slate-200">
+                <span className="font-normal text-slate-600">
                   Financial Transparency
                 </span>
               </h1>
-              <p className="text-sm text-slate-100/80">
+
+              <p className="text-sm text-slate-700">
                 {heroMessage}
               </p>
+
               {yearLabel && (
-                <p className="text-xs text-slate-200/80">
+                <p className="text-xs text-slate-600">
                   Showing data for fiscal year{" "}
                   <span className="font-semibold">
                     {yearLabel}
                   </span>
-                  . Use the tools below to explore the city’s
-                  budget, spending, and transactions.
+                  .
                 </p>
               )}
 
               <div className="mt-3 flex flex-wrap gap-2">
                 <Link
                   href="/paradise/analytics"
-                  className="inline-flex items-center justify-center rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-900 shadow-sm hover:opacity-90 transition"
-                  style={{ backgroundColor: accentColor }}
+                  className="inline-flex items-center justify-center rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-wide shadow-sm hover:opacity-90 transition"
+                  style={{ backgroundColor: accentColor, color: "#ffffff" }}
                 >
                   View analytics
                 </Link>
                 <Link
                   href="/paradise/budget"
-                  className="inline-flex items-center justify-center rounded-full border border-slate-200/70 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-100 backdrop-blur hover:bg-white/15"
+                  className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-700 hover:bg-slate-100"
                 >
                   View budget
                 </Link>
                 <Link
                   href="/paradise/departments"
-                  className="inline-flex items-center justify-center rounded-full border border-slate-200/70 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-100 backdrop-blur hover:bg-white/15"
+                  className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-700 hover:bg-slate-100"
                 >
                   Departments
                 </Link>
                 <Link
                   href="/paradise/transactions"
-                  className="inline-flex items-center justify-center rounded-full border border-slate-200/70 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-100 backdrop-blur hover:bg-white/15"
+                  className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-700 hover:bg-slate-100"
                 >
                   Transactions
                 </Link>
               </div>
             </div>
 
-            {/* Right: logo + year selector */}
-            <div className="flex w-full max-w-xs flex-col items-end gap-4 md:w-auto">
-              {portalSettings?.logo_url && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <div className="flex h-20 w-36 items-center justify-center rounded-xl border border-white/30 bg-white/90 px-4 shadow-sm backdrop-blur">
-                  <img
-                    src={portalSettings.logo_url}
-                    alt={`${cityName} logo`}
-                    className="max-h-16 max-w-full object-contain"
-                  />
-                </div>
-              )}
+            {/* Right: logo + seal + year */}
+            <div className="flex w-full max-w-xs flex-col items-end gap-3 md:w-auto">
+              <div className="flex items-center gap-3">
+                {logoUrl && (
+                  <div className="flex h-16 w-28 items-center justify-center rounded-xl border border-slate-300 bg-white px-3 shadow-sm">
+                    <img
+                      src={logoUrl}
+                      alt={`${cityName} logo`}
+                      className="max-h-12 max-w-full object-contain"
+                    />
+                  </div>
+                )}
+                {sealUrl && (
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full border border-slate-300 bg-white shadow-sm">
+                    <img
+                      src={sealUrl}
+                      alt={`${cityName} seal`}
+                      className="max-h-10 max-w-10 object-contain rounded-full"
+                    />
+                  </div>
+                )}
+              </div>
 
               {years.length > 0 && (
-                <div className="w-36">
+                <div className="w-40">
                   <FiscalYearSelect
                     options={years}
                     label="Fiscal year"
@@ -290,7 +293,14 @@ export default function ParadiseHomeClient({
           </div>
         </section>
 
-        {/* KPIs */}
+        {/* BREADCRUMBS – Overview is root */}
+        <div className="flex items-center gap-1 text-[11px] text-slate-500 px-1">
+          <span className="font-medium text-slate-700">
+            Overview
+          </span>
+        </div>
+
+        {/* KPI STRIP */}
         <CardContainer>
           <div className="space-y-3">
             <KpiStrip
@@ -298,8 +308,8 @@ export default function ParadiseHomeClient({
               totalActuals={totalActuals}
               variance={variance}
               execPct={execPct}
-              deptCount={deptCount}
-              txCount={txCount}
+              deptCount={departments.length}
+              txCount={transactionsForYear.length}
               topDepartment={topDepartment}
               accentColor={accentColor}
               yearLabel={yearLabel}
@@ -316,7 +326,7 @@ export default function ParadiseHomeClient({
           </div>
         </CardContainer>
 
-        {/* Hero charts */}
+        {/* Charts */}
         <div className="grid gap-6 lg:grid-cols-2">
           <CardContainer>
             <div className="space-y-3">
@@ -325,7 +335,7 @@ export default function ParadiseHomeClient({
               </h2>
               <p className="text-xs text-slate-500">
                 Top departments by budget and their corresponding
-                actual spending for the selected fiscal year.
+                spending.
               </p>
               <BudgetCharts
                 year={yearLabel ?? new Date().getFullYear()}
@@ -340,8 +350,7 @@ export default function ParadiseHomeClient({
                 Multi-year budget vs actuals
               </h2>
               <p className="text-xs text-slate-500">
-                Total citywide budget and actuals across recent
-                fiscal years.
+                Citywide budget and actuals across recent years.
               </p>
               <MultiYearBudgetActualsChart
                 years={years}
@@ -352,7 +361,7 @@ export default function ParadiseHomeClient({
           </CardContainer>
         </div>
 
-        {/* Departments grid + Vendors + Recent transactions */}
+        {/* Departments / Vendors */}
         <div className="grid gap-6 xl:grid-cols-3">
           <div className="space-y-4 xl:col-span-2">
             <CardContainer>
@@ -379,55 +388,25 @@ export default function ParadiseHomeClient({
           </div>
         </div>
 
-        {/* City / portal info card */}
+        {/* Info + footer */}
         <CardContainer>
           <div className="space-y-2">
             <h2 className="text-sm font-semibold text-slate-900">
               About this financial transparency portal
             </h2>
             <p className="text-xs text-slate-500">
-              This site provides a public view into the city’s
-              adopted budget, actual spending, and
-              transaction-level detail. Use the navigation links
-              above to drill into analytics, department-level
-              budgets, and individual transactions.
-            </p>
-            <ul className="mt-2 space-y-1 text-xs text-slate-600">
-              <li>
-                • <span className="font-semibold">Budget</span>{" "}
-                shows adopted amounts by department and how they
-                compare to actual spending.
-              </li>
-              <li>
-                • <span className="font-semibold">Analytics</span>{" "}
-                provides citywide charts, trends, and breakdowns by
-                department, category, and vendor.
-              </li>
-              <li>
-                •{" "}
-                <span className="font-semibold">
-                  Departments
-                </span>{" "}
-                lets you see multi-year trends and detailed
-                transactions for a single department.
-              </li>
-              <li>
-                •{" "}
-                <span className="font-semibold">
-                  Transactions
-                </span>{" "}
-                is a searchable list of individual expenses
-                filtered by year, department, and vendor.
-              </li>
-            </ul>
-            <p className="mt-2 text-[11px] text-slate-500">
-              Dollar amounts are rounded for display. Some values
-              may not include pending or future-dated
-              transactions. For questions about the data, please
-              contact the city’s finance office.
+              This site provides a public view into the city’s adopted
+              budget, actual spending, and transaction-level detail.
             </p>
           </div>
         </CardContainer>
+
+        <div className="pb-4 pt-1 text-center text-[11px] text-slate-400">
+          Powered by{" "}
+          <span className="font-semibold text-slate-600">
+            CiviPortal
+          </span>
+        </div>
       </div>
     </main>
   );

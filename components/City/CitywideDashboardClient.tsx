@@ -441,7 +441,19 @@ export default function CitywideDashboardClient({
             ) : null
           }
         />
-
+        <div className="mb-4 flex items-center gap-1 text-[11px] text-slate-500 px-1">
+          <Link
+            href="/paradise"
+            className="hover:text-slate-800"
+          >
+            Overview
+          </Link>
+          <span className="text-slate-400">›</span>
+          <span className="font-medium text-slate-700">
+            Analytics
+          </span>
+        </div>
+        
         {/* Top-level metrics */}
         <div className="mb-6 grid gap-4 md:grid-cols-4">
           <CardContainer>

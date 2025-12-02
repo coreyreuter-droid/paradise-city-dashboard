@@ -17,9 +17,9 @@ export type PortalSettings = {
   background_color: string | null;
   logo_url: string | null;
   hero_message: string | null;
-  hero_image_url: string | null; // ← add this line
+  hero_image_url: string | null;
+  seal_url: string | null; // NEW
 };
-
 
 export async function getPortalSettings(): Promise<PortalSettings | null> {
   const { data, error } = await supabase
@@ -36,6 +36,7 @@ export async function getPortalSettings(): Promise<PortalSettings | null> {
   if (!data || data.length === 0) return null;
   return data[0] as PortalSettings;
 }
+
 
 // ---- Internal pagination helper ----
 

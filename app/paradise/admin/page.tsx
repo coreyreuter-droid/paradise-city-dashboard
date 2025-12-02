@@ -17,8 +17,8 @@ export default function AdminHomePage() {
               CiviPortal admin tools
             </h1>
             <p className="text-sm text-slate-600">
-              Upload budget data and manage basic branding settings for
-              this deployment.
+              Upload budget data, manage branding, and complete onboarding
+              tasks for this deployment.
             </p>
           </div>
 
@@ -35,6 +35,20 @@ export default function AdminHomePage() {
               className="block rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50"
             >
               Branding settings
+            </Link>
+
+            <Link
+              href="/paradise/admin/users"
+              className="block rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50"
+            >
+              Admin users
+            </Link>
+
+            <Link
+              href="/paradise/admin/onboarding"
+              className="block rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50"
+            >
+              Onboarding checklist
             </Link>
           </div>
         </div>

@@ -44,14 +44,14 @@ export async function POST(req: NextRequest) {
     } = await supabaseAuthed.auth.getUser();
 
     if (userError || !user) {
-      console.error("Hero upload: getUser error", userError);
+      console.error("Branding upload: getUser error", userError);
       return NextResponse.json(
         { error: "Invalid or expired session" },
         { status: 401 }
       );
     }
 
-    // Check admin role
+    // Check admin or super_admin role
     const { data: profile, error: profileError } = await supabaseAuthed
       .from("profiles")
       .select("role")
@@ -59,10 +59,14 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (profileError) {
-      console.error("Hero upload: profile error", profileError);
+      console.error("Branding upload: profile error", profileError);
     }
 
-    if (!profile || profile.role !== "admin") {
+    const role = profile?.role as string | null;
+    const isAdmin =
+      role === "admin" || role === "super_admin";
+
+    if (!isAdmin) {
       return NextResponse.json(
         { error: "Admin privileges required" },
         { status: 403 }
@@ -82,14 +86,18 @@ export async function POST(req: NextRequest) {
 
     if (!file.type.startsWith("image/")) {
       return NextResponse.json(
-        { error: "Hero image must be an image file (PNG/JPG/WEBP/etc.)" },
+        { error: "Uploaded file must be an image (PNG/JPG/WEBP/etc.)" },
         { status: 400 }
       );
     }
 
     const originalName = formData.get("filename") as string | null;
     const kindRaw = (formData.get("kind") as string | null) ?? "hero";
-    const kind = kindRaw === "logo" ? "logo" : "hero";
+
+    let kind: "logo" | "hero" | "seal";
+    if (kindRaw === "logo") kind = "logo";
+    else if (kindRaw === "seal") kind = "seal";
+    else kind = "hero";
 
     const ext =
       (originalName &&
@@ -97,7 +105,8 @@ export async function POST(req: NextRequest) {
         originalName.split(".").pop()) ||
       "png";
 
-    const safeExt = String(ext).toLowerCase().replace(/[^a-z0-9]/g, "") || "png";
+    const safeExt =
+      String(ext).toLowerCase().replace(/[^a-z0-9]/g, "") || "png";
     const path = `${kind}/${user.id}-${Date.now()}.${safeExt}`;
 
     // 3) Upload to Storage using service role
@@ -112,9 +121,9 @@ export async function POST(req: NextRequest) {
       });
 
     if (uploadError || !uploadData) {
-      console.error("Hero upload: storage error", uploadError);
+      console.error("Branding upload: storage error", uploadError);
       return NextResponse.json(
-        { error: "Failed to upload hero image" },
+        { error: "Failed to upload image" },
         { status: 500 }
       );
     }
@@ -125,7 +134,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ url: publicUrl });
   } catch (err: any) {
-    console.error("Hero upload route error", err);
+    console.error("Branding upload route error", err);
     return NextResponse.json(
       { error: err?.message ?? "Unexpected server error" },
       { status: 500 }

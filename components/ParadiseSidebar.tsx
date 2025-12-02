@@ -15,14 +15,6 @@ const navItems = [
   { href: "/paradise/transactions", label: "Transactions" },
 ];
 
-const adminItems = [
-  { href: "/paradise/admin", label: "Admin home" },
-  { href: "/paradise/admin/upload", label: "Data upload" },
-  { href: "/paradise/admin/settings", label: "Branding & settings" },
-  { href: "/paradise/admin/onboarding", label: "Onboarding checklist" },
-  { href: "/paradise/admin/publish", label: "Publish portal" },
-];
-
 type PortalBranding = {
   city_name: string | null;
   tagline: string | null;
@@ -70,8 +62,6 @@ export default function ParadiseSidebar() {
     return pathname === href || pathname.startsWith(href + "/");
   };
 
-  const inAdmin = pathname.startsWith("/paradise/admin");
-
   // If we're on /paradise/departments/<Department Name>...
   let currentDepartmentLabel: string | null = null;
   if (pathname.startsWith("/paradise/departments/")) {
@@ -104,6 +94,11 @@ export default function ParadiseSidebar() {
     .join("")
     .slice(0, 3)
     .toUpperCase();
+
+  const adminHomeHref = "/paradise/admin";
+  const adminActive =
+    pathname === adminHomeHref ||
+    pathname.startsWith(adminHomeHref + "/");
 
   return (
     <aside className="hidden w-64 flex-none border-r border-slate-200 bg-white/95 px-3 py-4 shadow-sm sm:flex sm:flex-col lg:w-72">
@@ -184,54 +179,32 @@ export default function ParadiseSidebar() {
           </ul>
         </div>
 
-        {/* Admin nav */}
+        {/* Admin nav – single entry point to Admin home */}
         <div>
           <p className="px-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
             Admin
           </p>
-
-          {inAdmin ? (
-            // Inside admin: show full admin menu
-            <ul className="mt-2 space-y-1">
-              {adminItems.map((item) => {
-                const active = isActive(item.href);
-                return (
-                  <li key={item.href}>
-                    <Link
-                      href={item.href}
-                      className={`group flex items-center gap-2 rounded-xl px-3 py-2 text-xs transition ${
-                        active
-                          ? "bg-slate-900 text-white shadow-sm"
-                          : "text-slate-500 hover:bg-slate-100 hover:text-slate-900"
-                      }`}
-                    >
-                      <span
-                        className={`inline-block h-1 w-1 rounded-full transition ${
-                          active
-                            ? "bg-white"
-                            : "bg-slate-300 group-hover:bg-slate-500"
-                        }`}
-                      />
-                      <span className="truncate">{item.label}</span>
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-          ) : (
-            // Outside admin: single Admin link
-            <ul className="mt-2 space-y-1">
-              <li>
-                <Link
-                  href="/paradise/admin"
-                  className="group flex items-center gap-2 rounded-xl px-3 py-2 text-xs text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
-                >
-                  <span className="inline-block h-1 w-1 rounded-full bg-slate-300 group-hover:bg-slate-500" />
-                  <span className="truncate">Admin</span>
-                </Link>
-              </li>
-            </ul>
-          )}
+          <ul className="mt-2 space-y-1">
+            <li>
+              <Link
+                href={adminHomeHref}
+                className={`group flex items-center gap-2 rounded-xl px-3 py-2 text-xs transition ${
+                  adminActive
+                    ? "bg-slate-900 text-white shadow-sm"
+                    : "text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+                }`}
+              >
+                <span
+                  className={`inline-block h-1 w-1 rounded-full transition ${
+                    adminActive
+                      ? "bg-white"
+                      : "bg-slate-300 group-hover:bg-slate-500"
+                  }`}
+                />
+                <span className="truncate">Admin home</span>
+              </Link>
+            </li>
+          </ul>
         </div>
       </nav>
 

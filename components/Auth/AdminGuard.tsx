@@ -2,10 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  usePathname,
-  useRouter,
-} from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
 type Props = {
@@ -55,7 +52,11 @@ export default function AdminGuard({ children }: Props) {
         return;
       }
 
-      if (!data || data.role !== "admin") {
+      const role = data?.role as string | null;
+      const isAdmin =
+        role === "admin" || role === "super_admin";
+
+      if (!isAdmin) {
         // Logged in but not admin → kick back to public portal
         router.replace("/paradise");
         return;
@@ -85,7 +86,8 @@ export default function AdminGuard({ children }: Props) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50">
         <div className="max-w-md rounded-lg border border-red-200 bg-white px-4 py-3 text-sm text-red-700 shadow-sm">
-          Unable to verify your admin permissions. Please contact the site administrator.
+          Unable to verify your admin permissions. Please contact the site
+          administrator.
         </div>
       </div>
     );

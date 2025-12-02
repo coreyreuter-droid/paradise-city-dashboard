@@ -2,6 +2,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
   LineChart,
@@ -316,7 +317,7 @@ export default function DepartmentDetailClient({
         sortable: true,
         sortAccessor: (row) => row.date,
         cellClassName: "whitespace-nowrap",
-        cell: (row) => row.date, // keep raw string to avoid hydration issues
+        cell: (row) => row.date,
       },
       {
         key: "vendor",
@@ -359,7 +360,7 @@ export default function DepartmentDetailClient({
           formatCurrency(Number(row.amount || 0)),
       },
     ],
-    [setActiveVendor]
+    []
   );
 
   const vendorTotal = useMemo(
@@ -387,6 +388,27 @@ export default function DepartmentDetailClient({
             ) : null
           }
         />
+
+        {/* BREADCRUMB: Overview › Departments › [Department] */}
+        <div className="mb-4 flex items-center gap-1 text-[11px] text-slate-500 px-1">
+          <Link
+            href="/paradise"
+            className="hover:text-slate-800"
+          >
+            Overview
+          </Link>
+          <span className="text-slate-400">›</span>
+          <Link
+            href="/paradise/departments"
+            className="hover:text-slate-800"
+          >
+            Departments
+          </Link>
+          <span className="text-slate-400">›</span>
+          <span className="font-medium text-slate-700">
+            {displayName}
+          </span>
+        </div>
 
         {/* Metrics */}
         <div className="mb-6 grid gap-4 md:grid-cols-4">
