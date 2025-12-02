@@ -1,3 +1,4 @@
+// components/Analytics/BudgetByDepartmentChart.tsx
 "use client";
 
 import React, { useMemo } from "react";
@@ -21,11 +22,11 @@ export type DepartmentSummary = {
 };
 
 type Props = {
-  year: number;
+  year: number; // kept for future use / tooltips if needed
   departments: DepartmentSummary[];
 };
 
-const formatAxisCurrency = (v: number) => {
+const formatAxisCurrencyShort = (v: number) => {
   if (v === 0) return "$0";
   const abs = Math.abs(v);
   if (abs >= 1_000_000) return `$${Math.round(v / 1_000_000)}M`;
@@ -33,12 +34,21 @@ const formatAxisCurrency = (v: number) => {
   return `$${v.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
 };
 
+const shortenLabel = (name: string, max = 24) => {
+  if (name.length <= max) return name;
+  return name.slice(0, max - 1) + "…";
+};
+
 export default function BudgetByDepartmentChart({
-  year, // kept for future use
+  year, // unused for now
   departments,
 }: Props) {
   const { chartData, longestLabel } = useMemo(() => {
-    const sorted = [...departments].sort((a, b) => b.budget - a.budget);
+    // Sort by budget desc and limit to top N to keep chart readable
+    const TOP_N = 14;
+    const sorted = [...departments]
+      .sort((a, b) => b.budget - a.budget)
+      .slice(0, TOP_N);
 
     const data = sorted.map((d) => ({
       name: d.department_name || "Unspecified",
@@ -62,9 +72,12 @@ export default function BudgetByDepartmentChart({
     );
   }
 
-  const height = Math.max(260, chartData.length * 28);
+  // Height scales with number of rows, but capped so it doesn't get absurd
+  const rows = Math.max(chartData.length, 3);
+  const height = Math.min(440, Math.max(260, rows * 28));
+
   const yAxisWidth =
-    longestLabel > 22 ? 190 : longestLabel > 16 ? 160 : 130;
+    longestLabel > 24 ? 190 : longestLabel > 18 ? 160 : 130;
 
   return (
     <>
@@ -84,7 +97,7 @@ export default function BudgetByDepartmentChart({
 
             <XAxis
               type="number"
-              tickFormatter={formatAxisCurrency}
+              tickFormatter={formatAxisCurrencyShort}
               domain={[0, "auto"]}
             />
 
@@ -93,6 +106,7 @@ export default function BudgetByDepartmentChart({
               type="category"
               width={yAxisWidth}
               tick={{ fontSize: 11 }}
+              tickFormatter={(name: string) => shortenLabel(name)}
             />
 
             <Tooltip
@@ -102,9 +116,11 @@ export default function BudgetByDepartmentChart({
               ]}
             />
 
-            <Bar dataKey="budget" barSize={12} fill="#4b5563" />
+            {/* Budget: dark gray */}
+            <Bar dataKey="budget" barSize={10} fill="#4b5563" />
 
-            <Bar dataKey="actual" barSize={12}>
+            {/* Actual: green if ≤ budget, red if > budget */}
+            <Bar dataKey="actual" barSize={10}>
               {chartData.map((entry, index) => (
                 <Cell
                   key={index}

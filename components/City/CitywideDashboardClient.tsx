@@ -51,6 +51,21 @@ const formatAxisCurrency = (value: number) => {
   })}`;
 };
 
+const formatAxisCurrencyShort = (value: number) => {
+  if (value === 0) return "$0";
+  const abs = Math.abs(value);
+  if (abs >= 1_000_000) return `$${Math.round(value / 1_000_000)}M`;
+  if (abs >= 1_000) return `$${Math.round(value / 1_000)}k`;
+  return `$${value.toLocaleString("en-US", {
+    maximumFractionDigits: 0,
+  })}`;
+};
+
+const shortenLabel = (name: string, max = 26) => {
+  if (name.length <= max) return name;
+  return name.slice(0, max - 1) + "…";
+};
+
 type DepartmentSummary = {
   department_name: string;
   budget: number;
@@ -307,6 +322,21 @@ export default function CitywideDashboardClient({
       .slice(0, 10);
   }, [actualsForYear, selectedYear]);
 
+  // ---- X-axis helpers for Top spending categories ----
+  const maxCategoryTotal = useMemo(
+    () =>
+      categorySummaries.length > 0
+        ? Math.max(...categorySummaries.map((c) => Math.max(0, c.total)))
+        : 0,
+    [categorySummaries]
+  );
+
+  const categoryTicks = useMemo(() => {
+    if (!maxCategoryTotal) return [0];
+    const step = maxCategoryTotal / 4;
+    return [0, step, step * 2, step * 3, maxCategoryTotal];
+  }, [maxCategoryTotal]);
+
   // Multi-year trend line (total budget vs actuals)
   const multiYearTrend = useMemo(() => {
     const byYear = new Map<
@@ -335,7 +365,6 @@ export default function CitywideDashboardClient({
   const execPctDisplay = execPct < 0 ? 0 : execPct;
 
   // ---- Department P&L (per-department variance for selected year) ----
-  // variance = budget - actuals (positive = under budget, negative = over)
   const departmentPnl = useMemo(
     () =>
       deptSummaries.map((d) => ({
@@ -411,7 +440,6 @@ export default function CitywideDashboardClient({
       }
     );
 
-    // Sort rows by largest absolute variance in the latest year
     const latestYear = allYears[allYears.length - 1];
     rows.sort((a, b) => {
       const av = Math.abs(a.byYear[latestYear]?.variance ?? 0);
@@ -419,7 +447,6 @@ export default function CitywideDashboardClient({
       return bv - av;
     });
 
-    // Limit to keep UI readable
     const limitedRows = rows.slice(0, 12);
 
     return {
@@ -453,7 +480,7 @@ export default function CitywideDashboardClient({
             Analytics
           </span>
         </div>
-        
+
         {/* Top-level metrics */}
         <div className="mb-6 grid gap-4 md:grid-cols-4">
           <CardContainer>
@@ -708,7 +735,10 @@ export default function CitywideDashboardClient({
                   No budget/actuals data available for this year.
                 </p>
               ) : (
-                <BudgetByDepartmentChart year={yearLabel} departments={deptSummaries} />
+                <BudgetByDepartmentChart
+                  year={yearLabel}
+                  departments={deptSummaries}
+                />
               )}
             </CardContainer>
 
@@ -881,7 +911,7 @@ export default function CitywideDashboardClient({
               )}
             </CardContainer>
 
-            {/* Citywide YOY variance matrix (departments x years) */}
+            {/* Citywide YOY variance matrix */}
             <CardContainer>
               <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
                 <div>
@@ -993,22 +1023,37 @@ export default function CitywideDashboardClient({
                     <BarChart
                       data={categorySummaries}
                       layout="vertical"
-                      margin={{ top: 5, right: 16, left: 0, bottom: 5 }}
+                      margin={{ top: 8, right: 16, left: 0, bottom: 8 }}
+                      barCategoryGap={12}
                     >
                       <CartesianGrid
                         strokeDasharray="3 3"
-                        horizontal={false}
+                        horizontal
+                        vertical={false}
                       />
                       <XAxis
                         type="number"
-                        tickFormatter={formatAxisCurrency}
+                        domain={[
+                          0,
+                          maxCategoryTotal ? maxCategoryTotal : 1,
+                        ]}
+                        ticks={categoryTicks}
+                        tickFormatter={formatAxisCurrencyShort}
                         tick={{ fontSize: 11, fill: "#64748b" }}
+                        allowDecimals={false}
+                        tickLine={false}
+                        axisLine={false}
                       />
                       <YAxis
                         type="category"
                         dataKey="category"
-                        width={120}
+                        width={90}
                         tick={{ fontSize: 11, fill: "#64748b" }}
+                        tickFormatter={(name: string) =>
+                          shortenLabel(name)
+                        }
+                        tickLine={false}
+                        axisLine={false}
                       />
                       <Tooltip
                         formatter={(value: any) =>
@@ -1017,7 +1062,12 @@ export default function CitywideDashboardClient({
                             : value
                         }
                       />
-                      <Bar dataKey="total" strokeWidth={0} />
+                      <Bar
+                        dataKey="total"
+                        barSize={10}
+                        radius={[0, 4, 4, 0]}
+                        fill="#3b82f6"
+                      />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>

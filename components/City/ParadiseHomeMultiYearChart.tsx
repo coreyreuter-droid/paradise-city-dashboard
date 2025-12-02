@@ -25,6 +25,14 @@ function toYear(v: unknown): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+const formatAxisCurrencyShort = (v: number) => {
+  if (v === 0) return "$0";
+  const abs = Math.abs(v);
+  if (abs >= 1_000_000) return `$${Math.round(v / 1_000_000)}M`;
+  if (abs >= 1_000) return `$${Math.round(v / 1_000)}k`;
+  return `$${v.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
+};
+
 export default function MultiYearBudgetActualsChart({
   years,
   budgets,
@@ -57,23 +65,29 @@ export default function MultiYearBudgetActualsChart({
   }
 
   return (
-    <div className="h-64">
+    <div className="h-64 sm:h-72">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart
           data={data}
-          margin={{ top: 8, right: 16, left: 48, bottom: 8 }} // extra left for Y labels
+          margin={{ top: 8, right: 16, left: 40, bottom: 8 }}
           barCategoryGap={24}
         >
           <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="year" />
+          <XAxis
+            dataKey="year"
+            tickLine={false}
+            axisLine={false}
+          />
           <YAxis
-            tickFormatter={(v) => formatCurrency(v)} // e.g. $0, $100k
+            tickFormatter={formatAxisCurrencyShort}
             tickLine={false}
             axisLine={false}
             tickMargin={8}
           />
           <Tooltip
-            formatter={(value: any) => formatCurrency(Number(value))}
+            formatter={(value: any) =>
+              formatCurrency(Number(value))
+            }
           />
           <Legend />
           <Bar dataKey="actuals" name="Actuals" />

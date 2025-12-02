@@ -153,8 +153,7 @@ export default function ParadiseHomeClient({
       : null;
 
   const yearLabel =
-    selectedYear ??
-    (years.length > 0 ? years[0] : undefined);
+    selectedYear ?? (years.length > 0 ? years[0] : undefined);
 
   // Branding
   const cityName =
@@ -178,11 +177,11 @@ export default function ParadiseHomeClient({
 
   return (
     <main className="min-h-screen bg-slate-50">
-      <div className="mx-auto max-w-6xl px-4 py-8 space-y-6">
+      <div className="mx-auto max-w-6xl px-3 py-6 space-y-6 sm:px-4 sm:py-8">
 
         {/* HERO */}
         <section
-          className="relative overflow-hidden rounded-2xl border border-slate-200 shadow-sm px-6 py-8 sm:px-8 sm:py-10"
+          className="relative overflow-hidden rounded-2xl border border-slate-200 shadow-sm px-4 py-6 sm:px-6 sm:py-8 md:px-8 md:py-10"
           style={{ backgroundColor: heroBackground, color: textColor }}
         >
           {heroImageUrl && (
@@ -203,24 +202,24 @@ export default function ParadiseHomeClient({
           <div className="relative z-10 flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
             {/* Left */}
             <div className="max-w-xl space-y-3">
-              <div className="inline-flex items-center gap-2 rounded-full bg-white/70 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.15em] text-slate-700 border border-slate-300">
+              <div className="inline-flex items-center gap-2 rounded-full bg-white/70 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.15em] text-slate-700 border border-slate-300 sm:text-[11px]">
                 <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500" />
                 {tagline}
               </div>
 
-              <h1 className="text-3xl sm:text-4xl font-bold leading-tight">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold leading-tight">
                 {cityName}{" "}
                 <span className="font-normal text-slate-600">
                   Financial Transparency
                 </span>
               </h1>
 
-              <p className="text-sm text-slate-700">
+              <p className="text-sm md:text-base text-slate-700">
                 {heroMessage}
               </p>
 
               {yearLabel && (
-                <p className="text-xs text-slate-600">
+                <p className="text-[11px] sm:text-xs text-slate-600">
                   Showing data for fiscal year{" "}
                   <span className="font-semibold">
                     {yearLabel}
@@ -232,26 +231,26 @@ export default function ParadiseHomeClient({
               <div className="mt-3 flex flex-wrap gap-2">
                 <Link
                   href="/paradise/analytics"
-                  className="inline-flex items-center justify-center rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-wide shadow-sm hover:opacity-90 transition"
+                  className="inline-flex items-center justify-center rounded-full px-4 py-2 text-[11px] sm:text-xs font-semibold uppercase tracking-wide shadow-sm hover:opacity-90 transition"
                   style={{ backgroundColor: accentColor, color: "#ffffff" }}
                 >
                   View analytics
                 </Link>
                 <Link
                   href="/paradise/budget"
-                  className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-700 hover:bg-slate-100"
+                  className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-4 py-2 text-[11px] sm:text-xs font-semibold uppercase tracking-wide text-slate-700 hover:bg-slate-100"
                 >
                   View budget
                 </Link>
                 <Link
                   href="/paradise/departments"
-                  className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-700 hover:bg-slate-100"
+                  className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-4 py-2 text-[11px] sm:text-xs font-semibold uppercase tracking-wide text-slate-700 hover:bg-slate-100"
                 >
                   Departments
                 </Link>
                 <Link
                   href="/paradise/transactions"
-                  className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-700 hover:bg-slate-100"
+                  className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-4 py-2 text-[11px] sm:text-xs font-semibold uppercase tracking-wide text-slate-700 hover:bg-slate-100"
                 >
                   Transactions
                 </Link>
@@ -262,7 +261,7 @@ export default function ParadiseHomeClient({
             <div className="flex w-full max-w-xs flex-col items-end gap-3 md:w-auto">
               <div className="flex items-center gap-3">
                 {logoUrl && (
-                  <div className="flex h-16 w-28 items-center justify-center rounded-xl border border-slate-300 bg-white px-3 shadow-sm">
+                  <div className="flex h-14 w-24 items-center justify-center rounded-xl border border-slate-300 bg-white px-3 shadow-sm sm:h-16 sm:w-28">
                     <img
                       src={logoUrl}
                       alt={`${cityName} logo`}
@@ -271,7 +270,7 @@ export default function ParadiseHomeClient({
                   </div>
                 )}
                 {sealUrl && (
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full border border-slate-300 bg-white shadow-sm">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-300 bg-white shadow-sm sm:h-12 sm:w-12">
                     <img
                       src={sealUrl}
                       alt={`${cityName} seal`}
@@ -282,7 +281,7 @@ export default function ParadiseHomeClient({
               </div>
 
               {years.length > 0 && (
-                <div className="w-40">
+                <div className="w-36 sm:w-40">
                   <FiscalYearSelect
                     options={years}
                     label="Fiscal year"

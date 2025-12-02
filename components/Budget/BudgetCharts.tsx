@@ -1,3 +1,4 @@
+// components/Budget/BudgetCharts.tsx
 "use client";
 
 import React, { useMemo } from "react";
@@ -33,6 +34,11 @@ const formatAxisCurrency = (v: number) => {
   return `$${v.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
 };
 
+const shortenLabel = (name: string, max = 26) => {
+  if (name.length <= max) return name;
+  return name.slice(0, max - 1) + "…";
+};
+
 export default function BudgetCharts({ year, departments }: Props) {
   const {
     totalBudget,
@@ -41,6 +47,7 @@ export default function BudgetCharts({ year, departments }: Props) {
     variancePct,
     execPct,
     chartData,
+    chartHeight,
   } = useMemo(() => {
     const totalBudget = departments.reduce(
       (sum, d) => sum + d.budget,
@@ -59,11 +66,23 @@ export default function BudgetCharts({ year, departments }: Props) {
         : (totalActuals / totalBudget) * 100;
     const execPct = Math.max(0, Math.min(100, execPctRaw));
 
-    const chartData = departments.map((d) => ({
+    // Sort by budget desc and show only top N in the chart
+    const TOP_N = 10;
+    const topDepartments = [...departments]
+      .sort((a, b) => b.budget - a.budget)
+      .slice(0, TOP_N);
+
+    const chartData = topDepartments.map((d) => ({
       name: d.department_name || "Unspecified",
       Budget: Math.round(d.budget),
       Actual: Math.round(d.actuals),
     }));
+
+    // Height scales with number of rows, capped so it doesn't get ridiculous
+    const base = 120;
+    const perRow = 28;
+    const rows = Math.max(chartData.length, 3);
+    const chartHeight = Math.min(420, base + rows * perRow);
 
     return {
       totalBudget,
@@ -72,6 +91,7 @@ export default function BudgetCharts({ year, departments }: Props) {
       variancePct,
       execPct,
       chartData,
+      chartHeight,
     };
   }, [departments]);
 
@@ -137,12 +157,17 @@ export default function BudgetCharts({ year, departments }: Props) {
 
       {/* Bar chart */}
       <section className="rounded-lg border border-slate-200 bg-white px-3 py-3">
-        <div className="h-80">
+        <div style={{ height: chartHeight }}>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
               data={chartData}
               layout="vertical"
-              margin={{ top: 10, right: 30, left: 10, bottom: 10 }}
+              margin={{
+                top: 10,
+                right: 24,
+                left: 8,
+                bottom: 10,
+              }}
             >
               <CartesianGrid
                 strokeDasharray="3 3"
@@ -155,8 +180,13 @@ export default function BudgetCharts({ year, departments }: Props) {
               <YAxis
                 type="category"
                 dataKey="name"
-                width={160}
-                tick={{ fontSize: 11 }}
+                width={140}
+                tick={{
+                  fontSize: 10,
+                }}
+                tickFormatter={(name: string) =>
+                  shortenLabel(name)
+                }
               />
               <Tooltip
                 formatter={(value: number, name) => [
