@@ -72,7 +72,9 @@ export async function POST(req: NextRequest) {
       console.error("Admin upload: profile error", profileError);
     }
 
-    if (!profile || profile.role !== "admin") {
+    const allowedRoles = ["admin", "super_admin"] as const;
+
+    if (!profile || !allowedRoles.includes(profile.role)) {
       return NextResponse.json(
         { error: "Admin privileges required" },
         { status: 403 }

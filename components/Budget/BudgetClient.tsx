@@ -6,11 +6,11 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import CardContainer from "../CardContainer";
 import SectionHeader from "../SectionHeader";
-import BudgetCharts from "./BudgetCharts";
 import type { BudgetRow, ActualRow } from "../../lib/types";
 import { formatCurrency, formatPercent } from "@/lib/format";
 import DataTable, { DataTableColumn } from "../DataTable";
 import FiscalYearSelect from "../FiscalYearSelect";
+import BudgetByDepartmentChart from "@/components/Analytics/BudgetByDepartmentChart";
 
 export type DepartmentSummary = {
   department_name: string;
@@ -252,10 +252,7 @@ export default function BudgetClient({ budgets, actuals }: Props) {
           description="Compare adopted budgets and actual spending across departments for the selected fiscal year."
           rightSlot={
             years.length > 0 ? (
-              <FiscalYearSelect
-                options={years}
-                label="Fiscal year"
-              />
+              <FiscalYearSelect options={years} label="Fiscal year" />
             ) : null
           }
         />
@@ -383,11 +380,74 @@ export default function BudgetClient({ budgets, actuals }: Props) {
               </p>
             ) : (
               <div className="space-y-6">
-                <BudgetCharts
+                {/* Two-column explanatory band at the top */}
+                <section
+                  aria-label="How to read the budget by department chart"
+                  className="grid gap-4 md:grid-cols-2 items-start"
+                >
+                  <div className="space-y-4">
+                    {/* Overall execution panel */}
+                    <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        Overall budget execution
+                      </p>
+                      <p className="mt-1 text-2xl font-semibold text-slate-900">
+                        {formatPercent(totals.execPct / 100)}
+                      </p>
+                      <p className="mt-1 text-xs text-slate-600">
+                        {formatCurrency(totals.actuals)} of{" "}
+                        {formatCurrency(totals.budget)} spent across all
+                        departments.
+                      </p>
+                      <div
+                        className="mt-3 h-2 w-full overflow-hidden rounded-full bg-slate-200"
+                        aria-hidden="true"
+                      >
+                        <div
+                          className="h-full rounded-full bg-emerald-600"
+                          style={{
+                            width: `${Math.min(totals.execPct, 100)}%`,
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* How to read this chart */}
+                    <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        How to read this chart
+                      </p>
+                      <p className="mt-1 text-xs text-slate-600">
+                        Each bar shows adopted budget (gray background)
+                        and actual spending (colored foreground) for a
+                        department. Green bars indicate spending at or
+                        below budget; red bars indicate spending above
+                        budget. Use the table below for exact values.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Side description / story */}
+                  <div className="rounded-lg border border-slate-200 bg-white p-4">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      Department spending highlights
+                    </p>
+                    <p className="mt-1 text-xs text-slate-600">
+                      Departments are sorted by size of adopted budget.
+                      Large green bars show major services that are
+                      currently under budget; red bars flag areas where
+                      spending is running ahead of plan.
+                    </p>
+                  </div>
+                </section>
+
+                {/* Full-width chart + accessible inner table */}
+                <BudgetByDepartmentChart
                   year={chartYear}
                   departments={departments}
-                  layout="two-column"
                 />
+
+                {/* Detailed interactive table */}
                 <DataTable<DepartmentSummary>
                   data={departments}
                   columns={columns}

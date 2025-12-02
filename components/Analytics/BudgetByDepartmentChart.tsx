@@ -18,7 +18,7 @@ import type { DepartmentSummary } from "@/components/Budget/BudgetClient";
 type Props = {
   year: number;
   departments: DepartmentSummary[];
-  accentColor?: string;
+  accentColor?: string; // kept for API compatibility, not strictly needed
 };
 
 const formatAxisCurrencyShort = (v: number) => {
@@ -30,18 +30,16 @@ const formatAxisCurrencyShort = (v: number) => {
 };
 
 const shortenLabel = (name: string) => {
-  if (name.length <= 26) return name;
-  return name.slice(0, 23) + "…";
+  if (name.length <= 28) return name;
+  return name.slice(0, 25) + "…";
 };
 
 export default function BudgetByDepartmentChart({
   year,
   departments,
-  accentColor = "#0f172a",
 }: Props) {
   const data = useMemo(
-    () =>
-      [...departments].sort((a, b) => b.budget - a.budget),
+    () => [...departments].sort((a, b) => b.budget - a.budget),
     [departments]
   );
 
@@ -58,42 +56,55 @@ export default function BudgetByDepartmentChart({
       role="group"
       aria-labelledby="budget-by-dept-heading"
       aria-describedby="budget-by-dept-desc"
-      className="space-y-3"
+      className="space-y-4"
     >
-      <h3
-        id="budget-by-dept-heading"
-        className="text-sm font-semibold text-slate-900"
-      >
-        Budget by department – {year}
-      </h3>
+      <div className="flex items-baseline justify-between gap-2">
+        <h3
+          id="budget-by-dept-heading"
+          className="text-sm font-semibold text-slate-900"
+        >
+          Budget vs actuals by department – {year}
+        </h3>
+        <p className="text-[11px] text-slate-500">
+          Larger bars indicate larger budgets. Colors show whether
+          departments are over or under budget.
+        </p>
+      </div>
+
       <p id="budget-by-dept-desc" className="sr-only">
-        Horizontal bar chart and data table showing total budget,
-        actuals, and percent of budget spent for each department
-        in fiscal year {year}, sorted from largest to smallest.
+        Horizontal bar chart and data table showing adopted budget and
+        actual spending for each department in fiscal year {year},
+        sorted from largest to smallest budget. Gray bars represent
+        budget; green bars show actual spending when at or below budget
+        and red bars show actual spending when above budget.
       </p>
 
-      <div className="h-80">
+      {/* Chart */}
+      <div className="w-full min-w-0 h-[420px] md:h-[460px]">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
             data={data}
             layout="vertical"
-            margin={{ left: 120, right: 16, top: 8, bottom: 8 }}
+            margin={{ top: 8, right: 24, bottom: 8, left: 16 }}
+            barCategoryGap={5}   // a bit less vertical gap
+            barGap={2}
+            barSize={9}          // <-- this is the one that actually works
           >
-            <CartesianGrid
-              strokeDasharray="3 3"
-              horizontal={false}
-            />
+
+            <CartesianGrid strokeDasharray="3 3" horizontal={false} />
             <XAxis
               type="number"
               tickFormatter={(v) =>
                 formatAxisCurrencyShort(Number(v))
               }
+              tick={{ fontSize: 11, fill: "#64748b" }}
             />
             <YAxis
               type="category"
               dataKey="department_name"
               tickFormatter={shortenLabel}
-              width={160}
+              width={180}
+              tick={{ fontSize: 11, fill: "#475569" }}
             />
             <Tooltip
               formatter={(value: any, name: string) => {
@@ -115,13 +126,43 @@ export default function BudgetByDepartmentChart({
                 `Department: ${String(label)}`
               }
             />
-            <Bar dataKey="budget" name="Budget">
-              {data.map((_, idx) => (
-                <Cell key={idx} fill={accentColor} />
-              ))}
+            {/* Background budget bar */}
+            <Bar
+              dataKey="budget"
+              name="Budget"
+              fill="#757b84ff" // neutral gray
+              radius={[4, 4, 4, 4]}
+            />
+            {/* Foreground actuals bar with per-department color */}
+            <Bar
+              dataKey="actuals"
+              name="Actuals"
+              radius={[4, 4, 4, 4]}
+            >
+              {data.map((row, idx) => {
+                const over = row.actuals > row.budget;
+                const fill = over ? "#dc2626" : "#16a34a"; // red vs green
+                return <Cell key={idx} fill={fill} />;
+              })}
             </Bar>
           </BarChart>
         </ResponsiveContainer>
+      </div>
+
+      {/* Legend */}
+      <div className="flex flex-wrap items-center gap-4 text-[11px] text-slate-600">
+        <div className="flex items-center gap-1">
+          <span className="inline-block h-2 w-3 rounded bg-slate-300" />
+          <span>Budget</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <span className="inline-block h-2 w-3 rounded bg-emerald-500" />
+          <span>Actuals (at or under budget)</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <span className="inline-block h-2 w-3 rounded bg-red-500" />
+          <span>Actuals (over budget)</span>
+        </div>
       </div>
 
       {/* Accessible tabular representation of the same data */}
@@ -162,7 +203,7 @@ export default function BudgetByDepartmentChart({
                   {formatCurrency(row.actuals)}
                 </td>
                 <td className="px-3 py-2 text-right text-slate-700">
-                  {formatPercent(row.percentSpent)}
+                  {formatPercent(row.percentSpent / 100)}
                 </td>
               </tr>
             ))}
