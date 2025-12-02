@@ -43,6 +43,7 @@ type DepartmentSummary = {
   department_name: string;
   budget: number;
   actuals: number;
+  variance: number;
   percentSpent: number;
 };
 
@@ -79,20 +80,22 @@ type Props = {
 const formatAxisCurrencyShort = (v: number) => {
   if (v === 0) return "$0";
   const abs = Math.abs(v);
-  if (abs >= 1_000_000) return `$${Math.round(v / 1_000_000)}M`;
-  if (abs >= 1_000) return `$${Math.round(v / 1_000)}k`;
-  return `$${v.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
-};
-
-const safeFiscalYear = (val: unknown): number | null => {
-  const n = Number(val);
-  return Number.isFinite(n) ? n : null;
-};
-
-const buildDistribution = (base: DistributionSlice[]): DistributionSlice[] => {
-  if (base.length <= 8) {
-    return base;
+  if (abs >= 1_000_000_000) {
+    return `$${(v / 1_000_000_000).toFixed(1)}B`;
   }
+  if (abs >= 1_000_000) {
+    return `$${(v / 1_000_000).toFixed(1)}M`;
+  }
+  if (abs >= 1_000) {
+    return `$${(v / 1_000).toFixed(0)}K`;
+  }
+  return formatCurrency(v);
+};
+
+const buildDistribution = (
+  base: DistributionSlice[]
+): DistributionSlice[] => {
+  if (base.length <= 7) return base;
 
   const sorted = [...base].sort((a, b) => b.value - a.value);
   const top = sorted.slice(0, 7);
@@ -107,6 +110,14 @@ const buildDistribution = (base: DistributionSlice[]): DistributionSlice[] => {
       value: otherValue,
     },
   ];
+};
+
+const safeFiscalYear = (
+  value: BudgetRow["fiscal_year"] | ActualRow["fiscal_year"] | TransactionRow["fiscal_year"]
+): number | null => {
+  if (typeof value === "number") return value;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
 };
 
 export default function CitywideDashboardClient({
@@ -139,8 +150,8 @@ export default function CitywideDashboardClient({
 
   const selectedYear = useMemo(() => {
     if (years.length === 0) return undefined;
-    const param = searchParams.get("year");
 
+    const param = searchParams.get("year");
     if (!param) {
       return years[0];
     }
@@ -159,89 +170,92 @@ export default function CitywideDashboardClient({
   const yearLabel =
     selectedYear ?? (years.length > 0 ? years[0] : new Date().getFullYear());
 
-  const yearParam = selectedYear ? `?year=${selectedYear}` : "";
+  // Filter budgets + actuals to selected year
+  const { deptSummaries, totalBudget, totalActuals, budgetsForYear, actualsForYear } =
+    useMemo(() => {
+      if (!selectedYear) {
+        return {
+          deptSummaries: [] as DepartmentSummary[],
+          totalBudget: 0,
+          totalActuals: 0,
+          budgetsForYear: [] as BudgetRow[],
+          actualsForYear: [] as ActualRow[],
+        };
+      }
 
-  // Aggregate budgets + actuals by department for selected year
-  const {
-    deptSummaries,
-    totalBudget,
-    totalActuals,
-    budgetsForYear,
-    actualsForYear,
-  } = useMemo(() => {
-    if (!selectedYear) {
+      const budgetsForYear = budgets.filter(
+        (b) => safeFiscalYear(b.fiscal_year) === selectedYear
+      );
+      const actualsForYear = actuals.filter(
+        (a) => safeFiscalYear(a.fiscal_year) === selectedYear
+      );
+
+      const byDept = new Map<string, DepartmentSummary>();
+
+      budgetsForYear.forEach((row) => {
+        const name = row.department_name || "Unspecified";
+        const existing = byDept.get(name) || {
+          department_name: name,
+          budget: 0,
+          actuals: 0,
+          variance: 0,
+          percentSpent: 0,
+        };
+        existing.budget += Number(row.amount || 0);
+        byDept.set(name, existing);
+      });
+
+      actualsForYear.forEach((row) => {
+        const name = row.department_name || "Unspecified";
+        const existing = byDept.get(name) || {
+          department_name: name,
+          budget: 0,
+          actuals: 0,
+          variance: 0,
+          percentSpent: 0,
+        };
+        existing.actuals += Number(row.amount || 0);
+        byDept.set(name, existing);
+      });
+
+      const summaries: DepartmentSummary[] = Array.from(byDept.values()).map(
+        (d) => {
+          const variance = Number(d.actuals) - Number(d.budget);
+          const percentSpent =
+            d.budget === 0 ? 0 : (Number(d.actuals) / Number(d.budget)) * 100;
+          return {
+            ...d,
+            variance,
+            percentSpent,
+          };
+        }
+      );
+
+      // sort by budget desc
+      summaries.sort((a, b) => b.budget - a.budget);
+
+      const totalBudget = summaries.reduce(
+        (sum, d) => sum + Number(d.budget || 0),
+        0
+      );
+      const totalActuals = summaries.reduce(
+        (sum, d) => sum + Number(d.actuals || 0),
+        0
+      );
+
       return {
-        deptSummaries: [] as DepartmentSummary[],
-        totalBudget: 0,
-        totalActuals: 0,
-        budgetsForYear: [] as BudgetRow[],
-        actualsForYear: [] as ActualRow[],
+        deptSummaries: summaries,
+        totalBudget,
+        totalActuals,
+        budgetsForYear,
+        actualsForYear,
       };
-    }
-
-    const budgetsForYear = budgets.filter((b) => b.fiscal_year === selectedYear);
-    const actualsForYear = actuals.filter((a) => a.fiscal_year === selectedYear);
-
-    const budgetByDept = new Map<string, number>();
-    const actualsByDept = new Map<string, number>();
-
-    budgetsForYear.forEach((row) => {
-      const dept = row.department_name || "Unspecified";
-      const amt = Number(row.amount || 0);
-      budgetByDept.set(dept, (budgetByDept.get(dept) || 0) + amt);
-    });
-
-    actualsForYear.forEach((row) => {
-      const dept = row.department_name || "Unspecified";
-      const amt = Number(row.amount || 0);
-      actualsByDept.set(dept, (actualsByDept.get(dept) || 0) + amt);
-    });
-
-    const allDepts = Array.from(
-      new Set([...budgetByDept.keys(), ...actualsByDept.keys()])
-    );
-
-    const deptSummaries: DepartmentSummary[] = allDepts.map((dept) => {
-      const budget = budgetByDept.get(dept) || 0;
-      const actuals = actualsByDept.get(dept) || 0;
-      const percentSpent = budget === 0 ? 0 : (actuals / budget) * 100;
-      return {
-        department_name: dept,
-        budget,
-        actuals,
-        percentSpent,
-      };
-    });
-
-    deptSummaries.sort((a, b) => b.budget - a.budget);
-
-    const totalBudget = deptSummaries.reduce(
-      (sum, d) => sum + d.budget,
-      0
-    );
-    const totalActuals = deptSummaries.reduce(
-      (sum, d) => sum + d.actuals,
-      0
-    );
-
-    return {
-      deptSummaries,
-      totalBudget,
-      totalActuals,
-      budgetsForYear,
-      actualsForYear,
-    };
-  }, [budgets, actuals, selectedYear]);
+    }, [budgets, actuals, selectedYear]);
 
   const variance = totalActuals - totalBudget;
   const execPct = totalBudget === 0 ? 0 : (totalActuals / totalBudget) * 100;
-  const execPctClamped = Math.max(0, Math.min(150, execPct));
-
-  const execPctDisplay = execPct < 0
-    ? 0
-    : execPct > 999
-    ? 999
-    : execPct;
+  const execPctClamped = Math.max(0, Math.min(execPct, 200));
+  const execPctDisplay = Math.max(0, execPct);
 
   const hasAnyActualsForSelectedYear = deptSummaries.some(
     (d) => d.actuals > 0
@@ -278,63 +292,22 @@ export default function CitywideDashboardClient({
         0
       );
 
-      const vendorRows: VendorSummary[] = Array.from(
-        byVendor.entries()
-      )
+      const vendors: VendorSummary[] = Array.from(byVendor.entries())
         .map(([name, total]) => ({
           name,
           total,
           percent:
-            totalVendorSpend === 0
-              ? 0
-              : (total / totalVendorSpend) * 100,
+            totalVendorSpend === 0 ? 0 : (total / totalVendorSpend) * 100,
         }))
         .sort((a, b) => b.total - a.total)
-        .slice(0, 6);
+        .slice(0, 10);
 
       return {
         transactionsForYear: filtered,
-        topVendors: vendorRows,
+        topVendors: vendors,
         totalVendorSpend,
       };
     }, [transactions, selectedYear]);
-
-  const deptAdditionalStats = useMemo(() => {
-    if (deptSummaries.length === 0) {
-      return {
-        underBudgetCount: 0,
-        overBudgetCount: 0,
-        onTargetCount: 0,
-      };
-    }
-
-    let underBudgetCount = 0;
-    let overBudgetCount = 0;
-    let onTargetCount = 0;
-
-    deptSummaries.forEach((d) => {
-      if (d.budget === 0 && d.actuals === 0) {
-        return;
-      }
-      const diff = d.actuals - d.budget;
-      const pctDiff =
-        d.budget === 0 ? 0 : (diff / d.budget) * 100;
-
-      if (Math.abs(pctDiff) <= 1) {
-        onTargetCount += 1;
-      } else if (diff > 0) {
-        overBudgetCount += 1;
-      } else {
-        underBudgetCount += 1;
-      }
-    });
-
-    return {
-      underBudgetCount,
-      overBudgetCount,
-      onTargetCount,
-    };
-  }, [deptSummaries]);
 
   // Budget distribution (top departments + "Other") for pie
   const budgetDistribution = useMemo(() => {
@@ -374,98 +347,81 @@ export default function CitywideDashboardClient({
       byCategory.set(cat, (byCategory.get(cat) || 0) + amt);
     });
 
-    const total = Array.from(byCategory.values()).reduce(
-      (sum, v) => sum + v,
-      0
-    );
-    if (total === 0) return [];
-
     return Array.from(byCategory.entries())
-      .map(([category, amount]) => ({
-        category,
-        total: amount,
-      }))
+      .map(([category, total]) => ({ category, total }))
       .sort((a, b) => b.total - a.total)
-      .slice(0, 8);
+      .slice(0, 10);
   }, [actualsForYear, selectedYear]);
 
-  // Citywide department/year variance matrix
+  // Multi-year variance matrix + stats
   const deptYearVarianceRows: DeptYearVarianceRow[] = useMemo(() => {
     if (budgets.length === 0 && actuals.length === 0) {
       return [];
     }
 
-    const yearSet = new Set<number>();
-    budgets.forEach((b) => {
-      const fy = safeFiscalYear(b.fiscal_year);
-      if (fy !== null) yearSet.add(fy);
-    });
-    actuals.forEach((a) => {
-      const fy = safeFiscalYear(a.fiscal_year);
-      if (fy !== null) yearSet.add(fy);
-    });
-
-    const allYears = Array.from(yearSet).sort((a, b) => a - b);
-    if (allYears.length === 0) return [];
-
-    const map = new Map<
-      string,
-      Map<
-        number,
-        {
-          budget: number;
-          actuals: number;
-        }
-      >
-    >();
-
-    const upsert = (
-      dept: string | null,
-      year: number,
-      type: "budget" | "actuals",
-      val: number
-    ) => {
-      const department_name = dept || "Unspecified";
-      if (!map.has(department_name)) {
-        map.set(department_name, new Map());
-      }
-      const byYear = map.get(department_name)!;
-      const entry =
-        byYear.get(year) || { budget: 0, actuals: 0 };
-      entry[type] += val;
-      byYear.set(year, entry);
-    };
+    const depts = new Set<string>();
+    const yearsSet = new Set<number>();
 
     budgets.forEach((b) => {
-      upsert(b.department_name, b.fiscal_year, "budget", Number(b.amount || 0));
+      const dept = b.department_name || "Unspecified";
+      const fy = b.fiscal_year;
+      depts.add(dept);
+      yearsSet.add(fy);
     });
 
     actuals.forEach((a) => {
-      upsert(
-        a.department_name,
-        a.fiscal_year,
-        "actuals",
-        Number(a.amount || 0)
-      );
+      const dept = a.department_name || "Unspecified";
+      const fy = a.fiscal_year;
+      depts.add(dept);
+      yearsSet.add(fy);
     });
 
-    const rows: DeptYearVarianceRow[] = Array.from(map.entries()).map(
-      ([department_name, byYearMap]) => {
-        const byYear: DeptYearVarianceRow["byYear"] = {};
+    const years = Array.from(yearsSet).sort((a, b) => a - b);
 
-        allYears.forEach((year) => {
-          const agg = byYearMap.get(year) || { budget: 0, actuals: 0 };
-          const variance = agg.actuals - agg.budget;
-          const percentSpent =
-            agg.budget === 0 ? 0 : (agg.actuals / agg.budget) * 100;
-          byYear[year] = { variance, percentSpent };
-        });
+    const rows: DeptYearVarianceRow[] = [];
 
-        return { department_name, byYear };
-      }
-    );
+    depts.forEach((dept) => {
+      const byYear: DeptYearVarianceRow["byYear"] = {};
 
-    const latestYear = allYears[allYears.length - 1];
+      years.forEach((year) => {
+        const budgetTotal = budgets
+          .filter(
+            (b) =>
+              b.department_name === dept &&
+              b.fiscal_year === year
+          )
+          .reduce((sum, b) => sum + Number(b.amount || 0), 0);
+
+        const actualsTotal = actuals
+          .filter(
+            (a) =>
+              a.department_name === dept &&
+              a.fiscal_year === year
+          )
+          .reduce((sum, a) => sum + Number(a.amount || 0), 0);
+
+        const variance = actualsTotal - budgetTotal;
+        const percentSpent =
+          budgetTotal === 0 ? 0 : (actualsTotal / budgetTotal) * 100;
+
+        byYear[year] = {
+          variance,
+          percentSpent,
+        };
+      });
+
+      rows.push({
+        department_name: dept,
+        byYear,
+      });
+    });
+
+    const latestYear =
+      years.length > 0 ? years[years.length - 1] : undefined;
+
+    if (!latestYear) return rows;
+
+    // sort by absolute variance in latest year
     rows.sort((a, b) => {
       const aLatest = a.byYear[latestYear]?.variance ?? 0;
       const bLatest = b.byYear[latestYear]?.variance ?? 0;
@@ -508,26 +464,53 @@ export default function CitywideDashboardClient({
         .filter((a) => a.fiscal_year === year)
         .reduce((sum, a) => sum + Number(a.amount || 0), 0);
 
-      const variance = actualsTotal - budgetTotal;
-
       result.push({
         year,
         Budget: budgetTotal,
         Actuals: actualsTotal,
-        Variance: variance,
+        Variance: actualsTotal - budgetTotal,
       });
     });
 
     return result;
   }, [budgets, actuals]);
 
+  const deptAdditionalStats = useMemo(() => {
+    let underBudgetCount = 0;
+    let overBudgetCount = 0;
+    let onTargetCount = 0;
+
+    deptSummaries.forEach((d) => {
+      if (d.budget === 0 && d.actuals === 0) return;
+
+      const variance = d.actuals - d.budget;
+      const pct = d.percentSpent;
+
+      if (Math.abs(pct - 100) <= 1) {
+        onTargetCount += 1;
+      } else if (variance > 0) {
+        overBudgetCount += 1;
+      } else {
+        underBudgetCount += 1;
+      }
+    });
+
+    return {
+      underBudgetCount,
+      overBudgetCount,
+      onTargetCount,
+    };
+  }, [deptSummaries]);
+
+  const totalTransactionsCount = transactionsForYear.length;
+
   return (
     <div className="min-h-screen bg-slate-50">
       <div className="mx-auto max-w-6xl px-4 py-8">
         <SectionHeader
-          eyebrow="Citywide overview"
-          title="Citywide Overview"
-          description="Multi-year citywide budget vs actuals, department performance, and spending distribution."
+          eyebrow="Citywide analytics"
+          title="Budget, spending, and vendors"
+          description="High-level trends, department performance, and vendor-level spending across the city."
           rightSlot={
             years.length > 0 ? (
               <FiscalYearSelect
@@ -554,74 +537,78 @@ export default function CitywideDashboardClient({
 
         <div className="space-y-6">
           {/* High-level KPIs */}
-          <div className="grid gap-4 md:grid-cols-4">
-            <CardContainer>
-              <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
-                Total budget ({yearLabel})
+          <CardContainer>
+            <section
+              aria-label="Citywide budget and spending summary"
+              className="grid gap-4 md:grid-cols-4"
+            >
+              <div>
+                <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                  Total budget ({yearLabel})
+                </div>
+                <div className="mt-1 text-2xl font-bold text-slate-900">
+                  {formatCurrency(totalBudget)}
+                </div>
+                <div className="mt-1 text-xs text-slate-500">
+                  Sum of all adopted budgets across departments.
+                </div>
               </div>
-              <div className="mt-1 text-2xl font-bold text-slate-900">
-                {formatCurrency(totalBudget)}
-              </div>
-            </CardContainer>
 
-            <CardContainer>
-              <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
-                Total actuals ({yearLabel})
+              <div>
+                <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                  Total actuals ({yearLabel})
+                </div>
+                <div className="mt-1 text-2xl font-bold text-slate-900">
+                  {formatCurrency(totalActuals)}
+                </div>
+                <div className="mt-1 text-xs text-slate-500">
+                  All recorded spending for this fiscal year.
+                </div>
               </div>
-              <div className="mt-1 text-2xl font-bold text-slate-900">
-                {formatCurrency(totalActuals)}
-              </div>
-              <div className="mt-1 text-xs text-slate-500">
-                {hasAnyActualsForSelectedYear
-                  ? "Includes all posted transactions."
-                  : "Actuals not yet available for this year."}
-              </div>
-            </CardContainer>
 
-            <CardContainer>
-              <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
-                Variance ({yearLabel})
-              </div>
-              <div
-                className={`mt-1 text-2xl font-bold ${
-                  variance > 0
-                    ? "text-emerald-700"
-                    : variance < 0
-                    ? "text-red-700"
-                    : "text-slate-900"
-                }`}
-              >
-                {formatCurrency(Math.abs(variance))}
-              </div>
-              <div className="mt-1 text-xs text-slate-500">
-                {variance === 0
-                  ? "On budget."
-                  : variance > 0
-                  ? "Over adopted budget."
-                  : "Under adopted budget."}
-              </div>
-            </CardContainer>
-
-            <CardContainer>
-              <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
-                Budget execution
-              </div>
-              <div className="mt-1 text-2xl font-bold text-slate-900">
-                {formatPercent(execPctDisplay)}
-              </div>
-              <div className="mt-1 text-xs text-slate-500">
-                Overall share of adopted budget that has been spent.
-              </div>
-              <div className="mt-3 h-2 w-full rounded-full bg-slate-100">
+              <div>
+                <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                  Variance (actuals - budget)
+                </div>
                 <div
-                  className={`h-2 rounded-full ${
-                    execPct <= 100 ? "bg-sky-500" : "bg-red-500"
+                  className={`mt-1 text-2xl font-bold ${
+                    variance < 0
+                      ? "text-emerald-700"
+                      : variance > 0
+                      ? "text-red-700"
+                      : "text-slate-900"
                   }`}
-                  style={{ width: `${execPctClamped}%` }}
-                />
+                >
+                  {formatCurrency(variance)}
+                </div>
+                <div className="mt-1 text-xs text-slate-500">
+                  Negative indicates citywide under-spend versus adopted
+                  budget.
+                </div>
               </div>
-            </CardContainer>
-          </div>
+
+              <div>
+                <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                  % of budget spent
+                </div>
+                <div className="mt-1 text-2xl font-bold text-slate-900">
+                  {formatPercent(execPctDisplay)}
+                </div>
+                <div className="mt-1 text-xs text-slate-500">
+                  Overall execution of the adopted budget across all
+                  departments.
+                </div>
+                <div className="mt-3 h-2 w-full rounded-full bg-slate-100">
+                  <div
+                    className={`h-2 rounded-full ${
+                      execPct <= 100 ? "bg-sky-500" : "bg-red-500"
+                    }`}
+                    style={{ width: `${execPctClamped}%` }}
+                  />
+                </div>
+              </div>
+            </section>
+          </CardContainer>
 
           <div className="grid gap-6 lg:grid-cols-3">
             {/* Left side: pies + dept chart + P&L + trend + matrix */}
@@ -629,172 +616,212 @@ export default function CitywideDashboardClient({
               {/* Distribution pies */}
               <div className="grid gap-4 md:grid-cols-2">
                 <CardContainer>
-                  <h2 className="mb-1 text-sm font-semibold text-slate-800">
-                    Budget distribution by department
-                  </h2>
-                  <p className="mb-2 text-xs text-slate-500">
-                    How the adopted budget is allocated across departments for{" "}
-                    {yearLabel}.
-                  </p>
-                  {budgetDistribution.length === 0 ? (
-                    <p className="text-sm text-slate-500">
-                      No budget data available for this year.
-                    </p>
-                  ) : (
-                    <>
-                      <div className="h-64">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <PieChart>
-                            <Pie
-                              data={budgetDistribution}
-                              dataKey="value"
-                              nameKey="name"
-                              outerRadius="80%"
-                            >
-                              {budgetDistribution.map((_, index) => (
-                                <Cell
-                                  key={index}
-                                  fill={
-                                    PIE_COLORS[
-                                      index % PIE_COLORS.length
-                                    ]
-                                  }
-                                />
-                              ))}
-                            </Pie>
-                            <Tooltip
-                              formatter={(value: any, name: string) => [
-                                formatCurrency(Number(value)),
-                                name,
-                              ]}
-                            />
-                          </PieChart>
-                        </ResponsiveContainer>
-                      </div>
+                  <figure
+                    role="group"
+                    aria-labelledby="budget-distribution-heading"
+                    aria-describedby="budget-distribution-desc"
+                    className="space-y-3"
+                  >
+                    <div>
+                      <h2
+                        id="budget-distribution-heading"
+                        className="mb-1 text-sm font-semibold text-slate-800"
+                      >
+                        Budget distribution by department
+                      </h2>
+                      <p
+                        id="budget-distribution-desc"
+                        className="mb-2 text-xs text-slate-500"
+                      >
+                        How the adopted budget is allocated across departments for{" "}
+                        {yearLabel}.
+                      </p>
+                    </div>
 
-                      <div className="mt-3 space-y-1.5 text-xs text-slate-600">
-                        {budgetDistribution.map((slice, index) => {
-                          const total = budgetDistribution.reduce(
-                            (sum, s) => sum + s.value,
-                            0
-                          );
-                          const percent =
-                            total === 0
-                              ? 0
-                              : (slice.value / total) * 100;
+                    {budgetDistribution.length === 0 ? (
+                      <p className="text-sm text-slate-500">
+                        No budget data available for this year.
+                      </p>
+                    ) : (
+                      <>
+                        <div className="h-64">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                              <Pie
+                                data={budgetDistribution}
+                                dataKey="value"
+                                nameKey="name"
+                                outerRadius="80%"
+                                paddingAngle={1}
+                              >
+                                {budgetDistribution.map((entry, index) => (
+                                  <Cell
+                                    key={entry.name}
+                                    fill={PIE_COLORS[index % PIE_COLORS.length]}
+                                  />
+                                ))}
+                              </Pie>
+                              <Tooltip
+                                formatter={(value: any, name: string) => [
+                                  formatCurrency(Number(value)),
+                                  name,
+                                ]}
+                              />
+                            </PieChart>
+                          </ResponsiveContainer>
+                        </div>
 
-                          return (
-                            <div
-                              key={slice.name}
-                              className="flex items-center justify-between gap-2"
-                            >
-                              <div className="flex min-w-0 items-center gap-2">
-                                <span
-                                  className="inline-block h-2 w-2 rounded-full"
-                                  style={{
-                                    backgroundColor:
-                                      PIE_COLORS[
-                                        index % PIE_COLORS.length
-                                      ],
-                                  }}
-                                />
-                                <span className="max-w-[8.5rem] truncate sm:max-w-[11rem]">
-                                  {slice.name}
-                                </span>
-                              </div>
-                              <span className="whitespace-nowrap">
-                                {Math.round(percent)}%
-                              </span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </>
-                  )}
+                        <div className="overflow-x-auto">
+                          <table className="mt-3 min-w-full border border-slate-200 text-xs">
+                            <thead className="bg-slate-50 text-[11px] font-semibold uppercase tracking-wide text-slate-600">
+                              <tr>
+                                <th scope="col" className="px-3 py-2 text-left">
+                                  Department
+                                </th>
+                                <th scope="col" className="px-3 py-2 text-right">
+                                  Budget
+                                </th>
+                                <th scope="col" className="px-3 py-2 text-right">
+                                  Share of budget
+                                </th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-200">
+                              {budgetDistribution.map((slice) => {
+                                const total = budgetDistribution.reduce(
+                                  (sum, s) => sum + s.value,
+                                  0
+                                );
+                                const percent =
+                                  total === 0 ? 0 : (slice.value / total) * 100;
+
+                                return (
+                                  <tr key={slice.name}>
+                                    <th
+                                      scope="row"
+                                      className="px-3 py-2 text-left font-medium text-slate-800"
+                                    >
+                                      {slice.name}
+                                    </th>
+                                    <td className="px-3 py-2 text-right text-slate-700">
+                                      {formatCurrency(slice.value)}
+                                    </td>
+                                    <td className="px-3 py-2 text-right text-slate-700">
+                                      {formatPercent(percent)}
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      </>
+                    )}
+                  </figure>
                 </CardContainer>
 
                 <CardContainer>
-                  <h2 className="mb-1 text-sm font-semibold text-slate-800">
-                    Spending distribution by department
-                  </h2>
-                  <p className="mb-2 text-xs text-slate-500">
-                    Where actual spending has gone so far in {yearLabel}.
-                  </p>
-                  {actualsDistribution.length === 0 ? (
-                    <p className="text-sm text-slate-500">
-                      No spending data available for this year.
-                    </p>
-                  ) : (
-                    <>
-                      <div className="h-64">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <PieChart>
-                            <Pie
-                              data={actualsDistribution}
-                              dataKey="value"
-                              nameKey="name"
-                              outerRadius="80%"
-                            >
-                              {actualsDistribution.map((_, index) => (
-                                <Cell
-                                  key={index}
-                                  fill={
-                                    PIE_COLORS[
-                                      index % PIE_COLORS.length
-                                    ]
-                                  }
-                                />
-                              ))}
-                            </Pie>
-                            <Tooltip
-                              formatter={(value: any, name: string) => [
-                                formatCurrency(Number(value)),
-                                name,
-                              ]}
-                            />
-                          </PieChart>
-                        </ResponsiveContainer>
-                      </div>
+                  <figure
+                    role="group"
+                    aria-labelledby="actuals-distribution-heading"
+                    aria-describedby="actuals-distribution-desc"
+                    className="space-y-3"
+                  >
+                    <div>
+                      <h2
+                        id="actuals-distribution-heading"
+                        className="mb-1 text-sm font-semibold text-slate-800"
+                      >
+                        Spending distribution by department
+                      </h2>
+                      <p
+                        id="actuals-distribution-desc"
+                        className="mb-2 text-xs text-slate-500"
+                      >
+                        Where actual spending has gone so far in {yearLabel}.
+                      </p>
+                    </div>
 
-                      <div className="mt-3 space-y-1.5 text-xs text-slate-600">
-                        {actualsDistribution.map((slice, index) => {
-                          const total = actualsDistribution.reduce(
-                            (sum, s) => sum + s.value,
-                            0
-                          );
-                          const percent =
-                            total === 0
-                              ? 0
-                              : (slice.value / total) * 100;
+                    {actualsDistribution.length === 0 ? (
+                      <p className="text-sm text-slate-500">
+                        No spending data available for this year.
+                      </p>
+                    ) : (
+                      <>
+                        <div className="h-64">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                              <Pie
+                                data={actualsDistribution}
+                                dataKey="value"
+                                nameKey="name"
+                                outerRadius="80%"
+                                paddingAngle={1}
+                              >
+                                {actualsDistribution.map((entry, index) => (
+                                  <Cell
+                                    key={entry.name}
+                                    fill={PIE_COLORS[index % PIE_COLORS.length]}
+                                  />
+                                ))}
+                              </Pie>
+                              <Tooltip
+                                formatter={(value: any, name: string) => [
+                                  formatCurrency(Number(value)),
+                                  name,
+                                ]}
+                              />
+                            </PieChart>
+                          </ResponsiveContainer>
+                        </div>
 
-                          return (
-                            <div
-                              key={slice.name}
-                              className="flex items-center justify-between gap-2"
-                            >
-                              <div className="flex min-w-0 items-center gap-2">
-                                <span
-                                  className="inline-block h-2 w-2 rounded-full"
-                                  style={{
-                                    backgroundColor:
-                                      PIE_COLORS[
-                                        index % PIE_COLORS.length
-                                      ],
-                                  }}
-                                />
-                                <span className="max-w-[8.5rem] truncate sm:max-w-[11rem]">
-                                  {slice.name}
-                                </span>
-                              </div>
-                              <span className="whitespace-nowrap">
-                                {Math.round(percent)}%
-                              </span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </>
-                  )}
+                        <div className="overflow-x-auto">
+                          <table className="mt-3 min-w-full border border-slate-200 text-xs">
+                            <thead className="bg-slate-50 text-[11px] font-semibold uppercase tracking-wide text-slate-600">
+                              <tr>
+                                <th scope="col" className="px-3 py-2 text-left">
+                                  Department
+                                </th>
+                                <th scope="col" className="px-3 py-2 text-right">
+                                  Actuals
+                                </th>
+                                <th scope="col" className="px-3 py-2 text-right">
+                                  Share of spending
+                                </th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-200">
+                              {actualsDistribution.map((slice) => {
+                                const total = actualsDistribution.reduce(
+                                  (sum, s) => sum + s.value,
+                                  0
+                                );
+                                const percent =
+                                  total === 0 ? 0 : (slice.value / total) * 100;
+
+                                return (
+                                  <tr key={slice.name}>
+                                    <th
+                                      scope="row"
+                                      className="px-3 py-2 text-left font-medium text-slate-800"
+                                    >
+                                      {slice.name}
+                                    </th>
+                                    <td className="px-3 py-2 text-right text-slate-700">
+                                      {formatCurrency(slice.value)}
+                                    </td>
+                                    <td className="px-3 py-2 text-right text-slate-700">
+                                      {formatPercent(percent)}
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      </>
+                    )}
+                  </figure>
                 </CardContainer>
               </div>
 
@@ -868,19 +895,19 @@ export default function CitywideDashboardClient({
                       <span className="text-slate-600">Variance</span>
                       <span
                         className={`font-mono ${
-                          variance > 0
+                          variance < 0
                             ? "text-emerald-700"
-                            : variance < 0
+                            : variance > 0
                             ? "text-red-700"
                             : "text-slate-900"
                         }`}
                       >
-                        {formatCurrency(Math.abs(variance))}
+                        {formatCurrency(variance)}
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-slate-600">
-                        Budget execution
+                        % of budget spent
                       </span>
                       <span className="font-mono text-slate-900">
                         {formatPercent(execPctDisplay)}
@@ -923,81 +950,137 @@ export default function CitywideDashboardClient({
 
               {/* YOY Budget vs Actuals line chart */}
               <CardContainer>
-                <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-                  <div>
-                    <h2 className="text-sm font-semibold text-slate-800">
-                      Citywide budget vs actuals over time
-                    </h2>
-                    <p className="text-xs text-slate-500">
-                      Multi-year citywide view of total budget, actuals, and
-                      variance.
-                    </p>
-                  </div>
-                </div>
-
-                {yoyTrendData.length === 0 ? (
-                  <p className="text-sm text-slate-500">
-                    No multi-year data available.
-                  </p>
-                ) : (
-                  <div className="h-80 w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart
-                        data={yoyTrendData}
-                        margin={{
-                          top: 10,
-                          right: 30,
-                          left: 10,
-                          bottom: 20,
-                        }}
+                <figure
+                  role="group"
+                  aria-labelledby="citywide-yoy-heading"
+                  aria-describedby="citywide-yoy-desc"
+                  className="space-y-3"
+                >
+                  <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+                    <div>
+                      <h2
+                        id="citywide-yoy-heading"
+                        className="text-sm font-semibold text-slate-800"
                       >
-                        <CartesianGrid
-                          strokeDasharray="3 3"
-                          stroke="#e5e7eb"
-                        />
-                        <XAxis
-                          dataKey="year"
-                          tickLine={false}
-                          axisLine={false}
-                        />
-                        <YAxis
-                          tickFormatter={formatAxisCurrencyShort}
-                          tickLine={false}
-                          axisLine={false}
-                        />
-                        <Tooltip
-                          labelFormatter={(label) =>
-                            `Fiscal year ${label}`
-                          }
-                          formatter={(value: any, name) =>
-                            typeof value === "number"
-                              ? [formatCurrency(value), name]
-                              : [value, name]
-                          }
-                        />
-                        <Legend
-                          verticalAlign="top"
-                          align="right"
-                          wrapperStyle={{ fontSize: 11 }}
-                        />
-                        <Line
-                          type="monotone"
-                          dataKey="Budget"
-                          dot={false}
-                          strokeWidth={2}
-                          stroke={BUDGET_COLOR}
-                        />
-                        <Line
-                          type="monotone"
-                          dataKey="Actuals"
-                          dot={false}
-                          strokeWidth={2}
-                          stroke={ACTUAL_COLOR}
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
+                        Citywide budget vs actuals over time
+                      </h2>
+                      <p
+                        id="citywide-yoy-desc"
+                        className="text-xs text-slate-500"
+                      >
+                        Multi-year citywide view of total budget, actuals, and variance.
+                      </p>
+                    </div>
                   </div>
-                )}
+
+                  {yoyTrendData.length === 0 ? (
+                    <p className="text-sm text-slate-500">
+                      No multi-year data available.
+                    </p>
+                  ) : (
+                    <>
+                      <div className="h-80 w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart
+                            data={yoyTrendData}
+                            margin={{
+                              top: 10,
+                              right: 30,
+                              left: 10,
+                              bottom: 20,
+                            }}
+                          >
+                            <CartesianGrid
+                              strokeDasharray="3 3"
+                              stroke="#e5e7eb"
+                            />
+                            <XAxis
+                              dataKey="year"
+                              tickLine={false}
+                              axisLine={false}
+                            />
+                            <YAxis
+                              tickFormatter={formatAxisCurrencyShort}
+                              tickLine={false}
+                              axisLine={false}
+                            />
+                            <Tooltip
+                              labelFormatter={(label) =>
+                                `Fiscal year ${label}`
+                              }
+                              formatter={(value: any, name) =>
+                                typeof value === "number"
+                                  ? [formatCurrency(value), name]
+                                  : [value, name]
+                              }
+                            />
+                            <Legend
+                              verticalAlign="top"
+                              align="right"
+                              wrapperStyle={{ fontSize: 11 }}
+                            />
+                            <Line
+                              type="monotone"
+                              dataKey="Budget"
+                              dot={false}
+                              strokeWidth={2}
+                              stroke={BUDGET_COLOR}
+                            />
+                            <Line
+                              type="monotone"
+                              dataKey="Actuals"
+                              dot={false}
+                              strokeWidth={2}
+                              stroke={ACTUAL_COLOR}
+                            />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </div>
+
+                      <div className="mt-3 overflow-x-auto">
+                        <table className="min-w-full border border-slate-200 text-xs">
+                          <thead className="bg-slate-50 text-[11px] font-semibold uppercase tracking-wide text-slate-600">
+                            <tr>
+                              <th scope="col" className="px-3 py-2 text-left">
+                                Fiscal year
+                              </th>
+                              <th scope="col" className="px-3 py-2 text-right">
+                                Budget
+                              </th>
+                              <th scope="col" className="px-3 py-2 text-right">
+                                Actuals
+                              </th>
+                              <th scope="col" className="px-3 py-2 text-right">
+                                Variance
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-200">
+                            {yoyTrendData.map((row) => (
+                              <tr key={row.year}>
+                                <th
+                                  scope="row"
+                                  className="px-3 py-2 text-left font-medium text-slate-800"
+                                >
+                                  {row.year}
+                                </th>
+                                <td className="px-3 py-2 text-right text-slate-700">
+                                  {formatCurrency(row.Budget)}
+                                </td>
+                                <td className="px-3 py-2 text-right text-slate-700">
+                                  {formatCurrency(row.Actuals)}
+                                </td>
+                                <td className="px-3 py-2 text-right text-slate-700">
+                                  {formatCurrency(row.Variance)}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </>
+                  )}
+                </figure>
               </CardContainer>
 
               {/* Citywide YOY variance matrix */}
@@ -1040,169 +1123,190 @@ export default function CitywideDashboardClient({
                         </tr>
                       </thead>
                       <tbody>
-                        {deptYearVarianceRows.map(
-                          ({ department_name, byYear }) => (
-                            <tr
-                              key={department_name}
-                              className="border-b border-slate-100 last:border-0"
+                        {deptYearVarianceRows.map((row) => (
+                          <tr
+                            key={row.department_name}
+                            className="border-t border-slate-200"
+                          >
+                            <th
+                              scope="row"
+                              className="sticky left-0 z-10 bg-slate-50 px-2 py-2 text-left font-medium text-slate-800"
                             >
-                              <td className="sticky left-0 z-[1] bg-white px-2 py-1.5 pr-3 text-left align-top text-xs font-medium text-slate-900">
-                                <Link
-                                  href={`/paradise/departments/${encodeURIComponent(
-                                    department_name
-                                  )}${yearParam}`}
-                                  className="hover:underline"
-                                >
-                                  {department_name}
-                                </Link>
-                              </td>
-                              {years
-                                .slice()
-                                .sort((a, b) => a - b)
-                                .map((year) => {
-                                  const cell =
-                                    byYear[year] ?? {
-                                      variance: 0,
-                                      percentSpent: 0,
-                                    };
-                                  const cls =
-                                    cell.variance > 0
-                                      ? "text-red-700"
-                                      : cell.variance < 0
-                                      ? "text-emerald-700"
-                                      : "text-slate-700";
+                              {row.department_name}
+                            </th>
+                            {years
+                              .slice()
+                              .sort((a, b) => a - b)
+                              .map((year) => {
+                                const cell = row.byYear[year];
+                                if (!cell) {
                                   return (
                                     <td
                                       key={year}
-                                      className={`whitespace-nowrap px-2 py-1.5 text-right align-middle font-mono text-[11px] sm:text-xs ${cls}`}
+                                      className="px-2 py-1 text-center text-slate-300"
                                     >
-                                      <div>
-                                        {formatCurrency(
-                                          cell.variance
-                                        )}
-                                      </div>
-                                      <div className="text-[10px] text-slate-400">
-                                        {formatPercent(
-                                          cell.percentSpent
-                                        )}{" "}
-                                        spent
-                                      </div>
+                                      –
                                     </td>
                                   );
-                                })}
-                            </tr>
-                          )
-                        )}
+                                }
+
+                                const variance = cell.variance;
+                                const pct = cell.percentSpent;
+                                const isOver = variance > 0;
+                                const isNear =
+                                  Math.abs(pct - 100) <= 1;
+                                const bgClass = isNear
+                                  ? "bg-slate-100 text-slate-700"
+                                  : isOver
+                                  ? "bg-red-50 text-red-700"
+                                  : "bg-emerald-50 text-emerald-700";
+
+                                return (
+                                  <td
+                                    key={year}
+                                    className={`px-2 py-1 text-right ${bgClass}`}
+                                  >
+                                    {formatCurrency(variance)}
+                                  </td>
+                                );
+                              })}
+                          </tr>
+                        ))}
                       </tbody>
                     </table>
+
+                    <div className="mt-3 flex flex-wrap gap-3 text-[11px] text-slate-600">
+                      <div className="inline-flex items-center gap-1">
+                        <span className="inline-block h-2 w-3 rounded bg-emerald-100" />
+                        <span>Under budget</span>
+                        <span className="font-semibold text-emerald-700">
+                          {deptAdditionalStats.underBudgetCount}
+                        </span>
+                      </div>
+                      <div className="inline-flex items-center gap-1">
+                        <span className="inline-block h-2 w-3 rounded bg-slate-200" />
+                        <span>Near budget</span>
+                        <span className="font-semibold text-slate-700">
+                          {deptAdditionalStats.onTargetCount}
+                        </span>
+                      </div>
+                      <div className="inline-flex items-center gap-1">
+                        <span className="inline-block h-2 w-3 rounded bg-red-100" />
+                        <span>Over budget</span>
+                        <span className="font-semibold text-red-700">
+                          {deptAdditionalStats.overBudgetCount}
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 )}
               </CardContainer>
             </div>
 
-            {/* Right side: department status + vendors + guidance */}
+            {/* Right side: vendors + transactions summary + guidance */}
             <div className="space-y-6">
-              {/* Department status */}
+              {/* Vendors summary */}
               <CardContainer>
-                <div className="mb-3">
-                  <h2 className="text-sm font-semibold text-slate-800">
-                    Department budget status
-                  </h2>
-                  <p className="text-xs text-slate-500">
-                    How departments are tracking relative to budget in{" "}
-                    {yearLabel}.
-                  </p>
-                </div>
-
-                {deptSummaries.length === 0 ? (
-                  <p className="text-sm text-slate-500">
-                    No department data available for this year.
-                  </p>
-                ) : (
-                  <div className="space-y-3 text-xs text-slate-700">
-                    <div className="flex items-center justify-between">
-                      <span>Under budget</span>
-                      <span className="font-semibold text-emerald-700">
-                        {deptAdditionalStats.underBudgetCount}
-                      </span>
+                <section
+                  aria-label="Top vendors for the selected fiscal year"
+                  className="space-y-3"
+                >
+                  <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+                    <div>
+                      <h2 className="text-sm font-semibold text-slate-800">
+                        Top vendors ({yearLabel})
+                      </h2>
+                      <p className="text-xs text-slate-500">
+                        Vendors ranked by total spending in the selected
+                        fiscal year.
+                      </p>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <span>On target (±1%)</span>
-                      <span className="font-semibold text-slate-900">
-                        {deptAdditionalStats.onTargetCount}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span>Over budget</span>
-                      <span className="font-semibold text-red-700">
-                        {deptAdditionalStats.overBudgetCount}
-                      </span>
+                    <div className="text-xs text-slate-500">
+                      {totalVendorSpend > 0 && (
+                        <span>
+                          Total vendor spend:{" "}
+                          <span className="font-mono text-slate-900">
+                            {formatCurrency(totalVendorSpend)}
+                          </span>
+                        </span>
+                      )}
                     </div>
                   </div>
-                )}
-              </CardContainer>
 
-              {/* Top vendors */}
-              <CardContainer>
-                <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-                  <div>
-                    <h2 className="text-sm font-semibold text-slate-800">
-                      Top vendors ({yearLabel})
-                    </h2>
-                    <p className="text-xs text-slate-500">
-                      Largest vendors by total spending in the selected year.
+                  {topVendors.length === 0 ? (
+                    <p className="text-sm text-slate-500">
+                      No vendor-level spending available for this year.
                     </p>
-                  </div>
-                  <div className="text-xs text-slate-500">
-                    {transactionsForYear.length.toLocaleString(
-                      "en-US"
-                    )}{" "}
-                    transactions
-                  </div>
-                </div>
-
-                {transactionsForYear.length === 0 ? (
-                  <p className="text-sm text-slate-500">
-                    No transactions available for this year.
-                  </p>
-                ) : topVendors.length === 0 ? (
-                  <p className="text-sm text-slate-500">
-                    Could not compute vendor breakdown.
-                  </p>
-                ) : (
-                  <ul className="space-y-2 text-xs sm:text-sm">
-                    {topVendors.map((vendor) => (
-                      <li key={vendor.name}>
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="truncate pr-2">
-                            {vendor.name}
-                          </span>
-                          <span className="whitespace-nowrap font-mono">
-                            {formatCurrency(vendor.total)}
-                          </span>
-                        </div>
-                        {totalVendorSpend > 0 && (
-                          <div className="mt-1 flex items-center gap-2">
-                            <div className="h-1.5 flex-1 rounded-full bg-slate-100">
-                              <div
-                                className="h-1.5 rounded-full bg-sky-500"
-                                style={{
-                                  width: `${Math.max(
-                                    2,
-                                    Math.min(vendor.percent, 100)
-                                  )}%`,
-                                }}
-                              />
-                            </div>
-                            <span className="w-10 text-right text-[11px] text-slate-500">
+                  ) : (
+                    <div className="space-y-1.5 text-xs text-slate-700">
+                      {topVendors.map((vendor) => (
+                        <div
+                          key={vendor.name}
+                          className="flex items-center justify-between gap-3"
+                        >
+                          <div className="flex min-w-0 flex-1 items-center gap-2">
+                            <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-[10px] font-semibold text-slate-700">
+                              {vendor.name.charAt(0).toUpperCase()}
+                            </span>
+                            <span className="truncate pr-2">
+                              {vendor.name}
+                            </span>
+                          </div>
+                          <div className="flex flex-col items-end text-right">
+                            <span className="font-mono">
+                              {formatCurrency(vendor.total)}
+                            </span>
+                            <span className="text-[11px] text-slate-500">
                               {formatPercent(vendor.percent)}
                             </span>
                           </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </section>
+              </CardContainer>
+
+              {/* Transactions summary */}
+              <CardContainer>
+                <section
+                  aria-label="Transactions summary"
+                  className="space-y-2 text-xs text-slate-600"
+                >
+                  <div className="flex items-baseline justify-between gap-3">
+                    <div>
+                      <h2 className="text-sm font-semibold text-slate-800">
+                        Transactions overview
+                      </h2>
+                      <p>
+                        Summary of transaction volume for{" "}
+                        {yearLabel}.
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                        Transactions
+                      </div>
+                      <div className="mt-1 text-2xl font-bold text-slate-900">
+                        {totalTransactionsCount.toLocaleString(
+                          "en-US"
                         )}
-                      </li>
-                    ))}
-                  </ul>
-                )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <p>
+                    Use the{" "}
+                    <Link
+                      href="/paradise/transactions"
+                      className="font-medium text-sky-700 hover:underline"
+                    >
+                      Transactions
+                    </Link>{" "}
+                    page to filter by department, vendor, or keyword
+                    and export CSVs for detailed analysis.
+                  </p>
+                </section>
               </CardContainer>
 
               {/* Guidance card */}
@@ -1218,12 +1322,12 @@ export default function CitywideDashboardClient({
                   </p>
                   <p>
                     For example, you can identify which departments are
-                    consistently over or under budget, how spending compares
-                    year over year, and where the largest vendors and
-                    categories of spending are.
+                    responsible for the largest share of the budget, how
+                    execution compares across years, and which vendors
+                    account for most of your spend.
                   </p>
                   <p>
-                    For more detail, use the{" "}
+                    Drill down into the{" "}
                     <Link
                       href="/paradise/departments"
                       className="font-medium text-sky-700 hover:underline"

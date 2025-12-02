@@ -59,149 +59,173 @@ export default function BudgetClient({ budgets, actuals }: Props) {
       if (v !== null) set.add(v);
     });
 
-    return Array.from(set).sort((a, b) => b - a);
+    return set;
   }, [actuals]);
 
-  // Selected year from ?year= + sane defaults
-  const selectedYear = useMemo(() => {
-    if (years.length === 0) return undefined;
+  const yearParam = searchParams.get("year");
+  const selectedYear = (() => {
+    if (!years.length) return null;
 
-    const param = searchParams.get("year");
-    const parsed = param ? Number(param) : NaN;
-
-    // If URL param is valid and in the list of years, respect it
-    if (Number.isFinite(parsed) && years.includes(parsed)) {
-      return parsed;
+    const paramVal = fy(yearParam ?? undefined);
+    if (paramVal !== null && years.includes(paramVal)) {
+      return paramVal;
     }
 
-    // Otherwise default to the latest year that has actuals, if any
-    if (yearsWithActuals.length > 0) {
-      return yearsWithActuals[0];
-    }
-
-    // Fallback: latest year overall
+    // Default to most recent year
     return years[0];
-  }, [searchParams, years, yearsWithActuals]);
+  })();
 
-  // Aggregate budgets/actuals by department for the selected year
-  const departments = useMemo<DepartmentSummary[]>(() => {
-    if (!selectedYear) return [];
+  const yearLabel = selectedYear ? String(selectedYear) : null;
 
-    const budgetRows = budgets.filter(
-      (b) => fy(b.fiscal_year) === selectedYear
-    );
-    const actualRows = actuals.filter(
-      (a) => fy(a.fiscal_year) === selectedYear
-    );
+  // Slice down to the selected year
+  const budgetsForYear = useMemo(
+    () =>
+      selectedYear == null
+        ? []
+        : budgets.filter((b) => fy(b.fiscal_year) === selectedYear),
+    [budgets, selectedYear]
+  );
 
-    const budgetByDept = new Map<string, number>();
-    budgetRows.forEach((row) => {
-      const dept = row.department_name || "Unspecified";
-      const amt = Number(row.amount || 0);
-      budgetByDept.set(dept, (budgetByDept.get(dept) || 0) + amt);
-    });
+  const actualsForYear = useMemo(
+    () =>
+      selectedYear == null
+        ? []
+        : actuals.filter((a) => fy(a.fiscal_year) === selectedYear),
+    [actuals, selectedYear]
+  );
 
-    const actualsByDept = new Map<string, number>();
-    actualRows.forEach((row) => {
-      const dept = row.department_name || "Unspecified";
-      const amt = Number(row.amount || 0);
-      actualsByDept.set(dept, (actualsByDept.get(dept) || 0) + amt);
-    });
+  const hasAnyActualsForSelectedYear =
+    selectedYear != null &&
+    yearsWithActuals.has(selectedYear) &&
+    actualsForYear.length > 0;
 
-    const rows: DepartmentSummary[] = Array.from(
-      new Set([...budgetByDept.keys(), ...actualsByDept.keys()])
-    ).map((dept) => {
-      const budget = budgetByDept.get(dept) || 0;
-      const actual = actualsByDept.get(dept) || 0;
-      const percentSpent =
-        budget > 0 ? (actual / budget) * 100 : 0;
+  // Aggregate by department
+  const departments: DepartmentSummary[] = useMemo(() => {
+    if (!budgetsForYear.length && !actualsForYear.length) return [];
 
-      return {
-        department_name: dept,
-        budget,
-        actuals: actual,
-        percentSpent,
+    const byDept = new Map<string, DepartmentSummary>();
+
+    // Start with budget amounts
+    for (const b of budgetsForYear) {
+      const name = b.department_name || "Unspecified";
+      const existing = byDept.get(name) || {
+        department_name: name,
+        budget: 0,
+        actuals: 0,
+        percentSpent: 0,
       };
-    });
 
-    // Largest budgets first by default
-    rows.sort((a, b) => b.budget - a.budget);
+      existing.budget += b.amount || 0;
+      byDept.set(name, existing);
+    }
 
-    return rows;
-  }, [budgets, actuals, selectedYear]);
+    // Add actuals
+    for (const a of actualsForYear) {
+      const name = a.department_name || "Unspecified";
+      const existing = byDept.get(name) || {
+        department_name: name,
+        budget: 0,
+        actuals: 0,
+        percentSpent: 0,
+      };
 
-  const totalBudget = departments.reduce(
-    (sum, d) => sum + d.budget,
-    0
-  );
-  const totalActuals = departments.reduce(
-    (sum, d) => sum + d.actuals,
-    0
-  );
-  const variance = totalActuals - totalBudget;
-  const execPct =
-    totalBudget === 0 ? 0 : (totalActuals / totalBudget) * 100;
+      existing.actuals += a.amount || 0;
+      byDept.set(name, existing);
+    }
+
+    // Compute percent spent
+    const result: DepartmentSummary[] = [];
+
+    for (const value of byDept.values()) {
+      const { budget, actuals } = value;
+      const percentSpent =
+        budget > 0 ? Math.min((actuals / budget) * 100, 999) : 0;
+      result.push({
+        ...value,
+        percentSpent,
+      });
+    }
+
+    // Sort by budget descending by default
+    result.sort((a, b) => b.budget - a.budget);
+    return result;
+  }, [budgetsForYear, actualsForYear]);
+
+  // City-level aggregates
+  const totals = useMemo(() => {
+    let budget = 0;
+    let actualsSum = 0;
+
+    for (const d of departments) {
+      budget += d.budget;
+      actualsSum += d.actuals;
+    }
+
+    const variance = budget - actualsSum;
+    const execPct =
+      budget > 0 ? Math.min((actualsSum / budget) * 100, 999) : 0;
+
+    return {
+      budget,
+      actuals: actualsSum,
+      variance,
+      execPct,
+    };
+  }, [departments]);
 
   const deptCount = departments.length;
-
-  const yearLabel =
-    selectedYear ?? (years.length > 0 ? years[0] : undefined);
-
-  const yearParam = selectedYear ? `?year=${selectedYear}` : "";
+  const chartYear = selectedYear ?? (years.length ? years[0] : 0);
 
   const columns: DataTableColumn<DepartmentSummary>[] = useMemo(
     () => [
       {
-        key: "department",
+        key: "department_name",
         header: "Department",
-        sortable: true,
-        sortAccessor: (row) =>
-          (row.department_name || "Unspecified").toLowerCase(),
-        cellClassName: "whitespace-nowrap",
-        cell: (row) => (
-          <Link
-            href={`/paradise/departments/${encodeURIComponent(
-              row.department_name || "Unspecified"
-            )}${yearParam}`}
-            className="font-medium text-sky-700 hover:underline"
-          >
-            {row.department_name || "Unspecified"}
-          </Link>
-        ),
+        align: "left",
+        cell: (row: DepartmentSummary) => {
+          const name = row.department_name || "Unspecified";
+          return (
+            <Link
+              href={`/paradise/departments/${encodeURIComponent(
+                name
+              )}?year=${chartYear}`}
+              className="text-sm font-medium text-slate-800 hover:underline"
+            >
+              {name}
+            </Link>
+          );
+        },
       },
       {
         key: "budget",
         header: "Budget",
-        sortable: true,
-        headerClassName: "text-right",
-        cellClassName: "text-right font-mono",
-        cell: (row) => formatCurrency(row.budget),
+        align: "right",
+        cell: (row: DepartmentSummary) => (
+          <span>{formatCurrency(row.budget)}</span>
+        ),
       },
       {
         key: "actuals",
         header: "Actuals",
-        sortable: true,
-        headerClassName: "text-right",
-        cellClassName: "text-right font-mono",
-        cell: (row) => formatCurrency(row.actuals),
+        align: "right",
+        cell: (row: DepartmentSummary) => (
+          <span>{formatCurrency(row.actuals)}</span>
+        ),
       },
       {
         key: "percentSpent",
         header: "% spent",
-        sortable: true,
-        headerClassName: "text-right",
-        cellClassName: "text-right font-mono",
-        cell: (row) => formatPercent(row.percentSpent, 1),
+        align: "right",
+        cell: (row: DepartmentSummary) => (
+          <span>{formatPercent(row.percentSpent / 100)}</span>
+        ),
       },
       {
         key: "variance",
         header: "Variance",
-        sortable: true,
-        sortAccessor: (row) => row.actuals - row.budget,
-        headerClassName: "text-right",
-        cellClassName: "text-right font-mono",
-        cell: (row) => {
-          const v = row.actuals - row.budget;
+        align: "right",
+        cell: (row: DepartmentSummary) => {
+          const v = row.budget - row.actuals;
           const color =
             v > 0
               ? " text-emerald-700"
@@ -216,15 +240,8 @@ export default function BudgetClient({ budgets, actuals }: Props) {
         },
       },
     ],
-    [yearParam]
+    [chartYear]
   );
-
-  const hasAnyActualsForSelectedYear = departments.some(
-    (d) => d.actuals > 0
-  );
-
-  const chartYear =
-    yearLabel ?? new Date().getFullYear();
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -246,15 +263,23 @@ export default function BudgetClient({ budgets, actuals }: Props) {
         {/* Breadcrumb */}
         <nav
           aria-label="Breadcrumb"
-          className="mb-4 flex items-center gap-1 px-1 text-[11px] text-slate-500"
+          className="mb-4 px-1 text-[11px] text-slate-500"
         >
-          <Link href="/paradise" className="hover:text-slate-800">
-            Overview
-          </Link>
-          <span className="text-slate-400">›</span>
-          <span className="font-medium text-slate-700">
-            Budget
-          </span>
+          <ol className="flex items-center gap-1">
+            <li>
+              <Link href="/paradise" className="hover:text-slate-800">
+                Overview
+              </Link>
+            </li>
+            <li aria-hidden="true" className="text-slate-400">
+              ›
+            </li>
+            <li aria-current="page">
+              <span className="font-medium text-slate-700">
+                Budget
+              </span>
+            </li>
+          </ol>
         </nav>
 
         <div className="space-y-6">
@@ -279,53 +304,71 @@ export default function BudgetClient({ budgets, actuals }: Props) {
                         " Actuals have not been uploaded for this year yet."}
                     </>
                   ) : (
-                    "No fiscal year selected."
+                    "No budget years available yet."
                   )}
                 </div>
               </div>
 
               {/* KPI tiles */}
               <section
-                aria-label="Budget summary metrics"
-                className="grid gap-4 sm:grid-cols-2 md:grid-cols-4"
+                aria-label="Budget execution summary"
+                className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
               >
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3">
-                  <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
-                    Departments
-                  </div>
-                  <div className="mt-1 text-2xl font-bold text-slate-900">
-                    {deptCount}
-                  </div>
-                </div>
-
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3">
-                  <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
+                  <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
                     Total budget
                   </div>
-                  <div className="mt-1 text-2xl font-bold text-slate-900">
-                    {formatCurrency(totalBudget)}
-                  </div>
-                </div>
-
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3">
-                  <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
-                    Total actuals
-                  </div>
-                  <div className="mt-1 text-2xl font-bold text-slate-900">
-                    {formatCurrency(totalActuals)}
-                  </div>
-                </div>
-
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3">
-                  <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
-                    Budget execution
-                  </div>
-                  <div className="mt-1 text-2xl font-bold text-slate-900">
-                    {formatPercent(execPct, 1)}
+                  <div className="mt-1 text-lg font-semibold text-slate-900">
+                    {formatCurrency(totals.budget)}
                   </div>
                   <div className="mt-1 text-[11px] text-slate-500">
-                    Share of adopted budget that has been
-                    spent this year.
+                    Sum of department-level adopted budgets.
+                  </div>
+                </div>
+
+                <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
+                  <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                    Total actuals
+                  </div>
+                  <div className="mt-1 text-lg font-semibold text-slate-900">
+                    {formatCurrency(totals.actuals)}
+                  </div>
+                  <div className="mt-1 text-[11px] text-slate-500">
+                    All spending recorded against these departments.
+                  </div>
+                </div>
+
+                <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
+                  <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                    Variance (budget - actuals)
+                  </div>
+                  <div
+                    className={
+                      "mt-1 text-lg font-semibold" +
+                      (totals.variance > 0
+                        ? " text-emerald-700"
+                        : totals.variance < 0
+                        ? " text-red-700"
+                        : " text-slate-900")
+                    }
+                  >
+                    {formatCurrency(totals.variance)}
+                  </div>
+                  <div className="mt-1 text-[11px] text-slate-500">
+                    Positive means the city is currently under budget.
+                  </div>
+                </div>
+
+                <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
+                  <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                    % of budget spent
+                  </div>
+                  <div className="mt-1 text-lg font-semibold text-slate-900">
+                    {formatPercent(totals.execPct / 100)}
+                  </div>
+                  <div className="mt-1 text-[11px] text-slate-500">
+                    Share of adopted budget that has been spent this
+                    year.
                   </div>
                 </div>
               </section>
@@ -336,14 +379,14 @@ export default function BudgetClient({ budgets, actuals }: Props) {
           <CardContainer>
             {departments.length === 0 ? (
               <p className="text-sm text-slate-500">
-                No budget or actuals data available for this
-                year.
+                No budget or actuals data available for this year.
               </p>
             ) : (
               <div className="space-y-6">
                 <BudgetCharts
                   year={chartYear}
                   departments={departments}
+                  layout="two-column"
                 />
                 <DataTable<DepartmentSummary>
                   data={departments}

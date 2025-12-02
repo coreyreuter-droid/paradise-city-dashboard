@@ -72,22 +72,22 @@ export default function ParadiseHomeClient({
     return Array.from(set).sort((a, b) => b - a);
   }, [availableYears, budgets, actuals, transactions]);
 
-  // Selected year via ?year= or default to most recent
-  const selectedYear = useMemo(() => {
-    if (!years || years.length === 0) return undefined;
+  const selectedYear: number | null = useMemo(() => {
+    if (!years.length) return null;
+
     const param = searchParams.get("year");
     if (!param) return years[0];
 
     const parsed = Number(param);
     if (!Number.isFinite(parsed)) return years[0];
+
     if (years.includes(parsed)) return parsed;
     return years[0];
   }, [searchParams, years]);
 
-  const yearLabel =
-    selectedYear ?? (years.length > 0 ? years[0] : undefined);
+  const yearLabel = selectedYear ?? (years.length > 0 ? years[0] : undefined);
 
-  // Filter to selected year
+  // Year-scoped slices
   const budgetsForYear = useMemo(
     () =>
       selectedYear != null
@@ -190,7 +190,7 @@ export default function ParadiseHomeClient({
     const execPct =
       totalBudget === 0
         ? 0
-        : (totalActuals / totalBudget) * 100;
+        : Math.min((totalActuals / totalBudget) * 100, 999);
 
     const deptCount = departmentsForYear.length;
     const txCount = txForYear.length;
@@ -215,8 +215,8 @@ export default function ParadiseHomeClient({
   }, [departmentsForYear, txForYear]);
 
   const accentColor =
-    portalSettings?.primary_color ||
     portalSettings?.accent_color ||
+    portalSettings?.primary_color ||
     CITY_CONFIG.accentColor ||
     CITY_CONFIG.primaryColor;
 
@@ -244,14 +244,18 @@ export default function ParadiseHomeClient({
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <div className="mx-auto max-w-6xl px-3 py-6 space-y-6 sm:px-4 sm:py-8">
+      <div className="mx-auto max-w-6xl space-y-6 px-3 py-6 sm:px-4 sm:py-8">
         {/* HERO */}
         <section
-          className="relative overflow-hidden rounded-2xl border border-slate-200 shadow-sm px-4 py-6 sm:px-6 sm:py-8 md:px-8 md:py-10"
+          aria-label={`${cityName} financial transparency introduction`}
+          className="relative overflow-hidden rounded-2xl border border-slate-800/40 bg-slate-900 px-4 py-6 shadow-sm sm:px-6 sm:py-8 md:px-8 md:py-10"
           style={{ backgroundColor: heroBackground }}
         >
           {heroImageUrl && (
-            <div className="pointer-events-none absolute inset-0 opacity-25">
+            <div
+              className="pointer-events-none absolute inset-0 opacity-25"
+              aria-hidden="true"
+            >
               <img
                 src={heroImageUrl}
                 alt=""
@@ -271,102 +275,84 @@ export default function ParadiseHomeClient({
                 {tagline}
               </p>
               <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">
-                {cityName} Financial Transparency
+                {cityName} financial transparency
               </h1>
               <p className="mt-2 text-sm text-slate-100/80">
                 {heroMessage}
               </p>
 
-              {yearLabel && (
-                <p className="mt-1 text-xs text-slate-200/80">
-                  Showing data for fiscal year{" "}
-                  <span className="font-semibold">
-                    {yearLabel}
-                  </span>
-                  .
-                </p>
-              )}
-
               <div className="mt-4 flex flex-wrap gap-2">
                 <Link
-                  href="/paradise/analytics"
-                  className="inline-flex items-center justify-center rounded-full px-4 py-2 text-[11px] font-semibold uppercase tracking-wide shadow-sm hover:opacity-90"
-                  style={{
-                    backgroundColor: accentColor,
-                    color: "#ffffff",
-                  }}
-                >
-                  View analytics
-                </Link>
-                <Link
                   href="/paradise/budget"
-                  className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white/90 px-4 py-2 text-[11px] font-semibold uppercase tracking-wide text-slate-700 hover:bg-white"
+                  className="inline-flex items-center justify-center rounded-md border border-transparent bg-white px-3 py-1.5 text-xs font-semibold text-slate-900 shadow-sm hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"
                 >
-                  View budget
+                  View budget details
                 </Link>
                 <Link
                   href="/paradise/departments"
-                  className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white/90 px-4 py-2 text-[11px] font-semibold uppercase tracking-wide text-slate-700 hover:bg-white"
+                  className="inline-flex items-center justify-center rounded-md border border-slate-300 bg-slate-900/40 px-3 py-1.5 text-xs font-semibold text-slate-50 hover:bg-slate-800/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"
                 >
-                  Departments
+                  Explore departments
                 </Link>
                 <Link
                   href="/paradise/transactions"
-                  className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white/90 px-4 py-2 text-[11px] font-semibold uppercase tracking-wide text-slate-700 hover:bg-white"
+                  className="inline-flex items-center justify-center rounded-md border border-slate-300 bg-slate-900/40 px-3 py-1.5 text-xs font-semibold text-slate-50 hover:bg-slate-800/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"
                 >
-                  Transactions
+                  Search transactions
                 </Link>
               </div>
             </div>
 
-            {/* Right: logo/seal + FY select */}
-            <div className="flex w-full max-w-xs flex-col items-end gap-3 md:w-auto">
+            {/* Right: logo / seal / quick stats */}
+            <div className="flex flex-col items-end gap-4">
               <div className="flex items-center gap-3">
-                {logoUrl && (
-                  <div className="flex h-12 w-20 items-center justify-center rounded-xl border border-slate-300 bg-white px-3 shadow-sm">
-                    <img
-                      src={logoUrl}
-                      alt={`${cityName} logo`}
-                      className="max-h-10 max-w-full object-contain"
-                    />
-                  </div>
-                )}
                 {sealUrl && (
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full border border-slate-300 bg-white shadow-sm">
-                    <img
-                      src={sealUrl}
-                      alt={`${cityName} seal`}
-                      className="h-10 w-10 rounded-full object-contain"
-                    />
-                  </div>
+                  <img
+                    src={sealUrl}
+                    alt={`${cityName} seal`}
+                    className="h-12 w-12 rounded-full border border-slate-700 bg-slate-900/60 object-contain p-1"
+                  />
+                )}
+                {logoUrl && (
+                  <img
+                    src={logoUrl}
+                    alt={`${cityName} logo`}
+                    className="h-10 max-w-[160px] object-contain"
+                  />
                 )}
               </div>
 
-              <div className="rounded-xl bg-white/95 px-3 py-2 text-xs text-slate-800 shadow-sm">
-                <div className="mb-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-                  Fiscal year
+              <div className="rounded-lg bg-slate-900/60 px-3 py-2 text-right text-[11px] text-slate-200 shadow-sm">
+                <div className="font-semibold">
+                  {yearLabel
+                    ? `Fiscal year ${yearLabel}`
+                    : "Latest fiscal year"}
                 </div>
-                {years.length > 0 ? (
-                  <FiscalYearSelect
-                    options={years}
-                    label="Fiscal year"
-                  />
-                ) : (
-                  <div className="text-[11px] text-slate-500">
-                    No years available
-                  </div>
-                )}
+                <div className="mt-1">
+                  Managing{" "}
+                  <span className="font-semibold">
+                    {formatCurrency(totalBudget)}
+                  </span>{" "}
+                  in adopted budget.
+                </div>
               </div>
             </div>
           </div>
         </section>
 
-        {/* SNAPSHOT HEADER */}
+        {/* Snapshot header */}
         <SectionHeader
-          as="h2"
           eyebrow="Overview"
           title="Budget & spending snapshot"
-          description="Citywide totals, department comparison, multi-year trends, and recent transactions for the selected fiscal year."
+          description="Citywide totals, department comparisons, year-over-year trends, and recent transactions for the selected fiscal year."
+          rightSlot={
+            years.length > 0 ? (
+              <FiscalYearSelect
+                options={years}
+                label="Fiscal year"
+              />
+            ) : null
+          }
         />
 
         {/* KPI Strip */}
@@ -389,67 +375,86 @@ export default function ParadiseHomeClient({
             deptCount={deptCount}
             txCount={txCount}
             topDepartment={topDepartment}
-            accentColor={accentColor || undefined}
+            accentColor={accentColor}
           />
         </CardContainer>
 
         {/* Row 1: Budget vs actuals by department + multi-year chart */}
-        <div className="mt-2 grid gap-6 lg:grid-cols-[2fr,1.3fr]">
+        <div className="grid gap-6 lg:grid-cols-[2fr,1.3fr]">
           <CardContainer>
-            <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-              <div>
-                <h3 className="text-sm font-semibold text-slate-800">
-                  Budget vs actuals by department
-                </h3>
-                <p className="text-xs text-slate-500">
-                  Top departments by budget and their corresponding spending for{" "}
-                  {yearLabel ?? "the selected year"}.
-                </p>
+            <section
+              aria-label="Budget vs actuals by department"
+              className="space-y-3"
+            >
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                  <h2 className="text-sm font-semibold text-slate-800">
+                    Budget vs actuals by department
+                  </h2>
+                  <p className="text-xs text-slate-500">
+                    Top departments by budget and their
+                    corresponding spending for{" "}
+                    {yearLabel ?? "the selected year"}.
+                  </p>
+                </div>
               </div>
-            </div>
-            <BudgetCharts
-              year={yearLabel ?? new Date().getFullYear()}
-              departments={departmentsForYear}
-            />
+
+              <BudgetCharts
+                year={yearLabel ?? new Date().getFullYear()}
+                departments={departmentsForYear}
+                layout="stacked"
+              />
+            </section>
           </CardContainer>
 
           <CardContainer>
-            <h3 className="mb-2 text-sm font-semibold text-slate-800">
-              Multi-year budget vs actuals
-            </h3>
-            <p className="mb-3 text-xs text-slate-500">
-              Citywide budget and actual spending across recent fiscal years.
-            </p>
-            <ParadiseHomeMultiYearChart
-              budgets={budgets}
-              actuals={actuals}
-            />
+            <section
+              aria-labelledby="home-multiyear-heading"
+              className="space-y-2"
+            >
+              <h2
+                id="home-multiyear-heading"
+                className="text-sm font-semibold text-slate-800"
+              >
+                Multi-year budget vs actuals
+              </h2>
+              <p className="text-xs text-slate-500">
+                Citywide budget and actual spending across
+                recent fiscal years.
+              </p>
+              <ParadiseHomeMultiYearChart
+                budgets={budgets}
+                actuals={actuals}
+              />
+            </section>
           </CardContainer>
         </div>
 
-        {/* Row 2: Recent transactions + departments snapshot + top vendors */}
-        <div className="mt-2 grid gap-6 lg:grid-cols-[2fr,1.3fr]">
+        {/* Row 2: recent transactions + departments + vendors */}
+        <div className="grid gap-6 lg:grid-cols-[1.4fr,1.6fr]">
           <CardContainer>
             <RecentTransactionsCard
-              year={yearLabel}
+              year={yearLabel ?? undefined}
               transactions={txForYear}
+              limit={6}
             />
           </CardContainer>
 
           <CardContainer>
             <div className="space-y-4">
               <DepartmentsGrid
-                year={yearLabel}
+                year={yearLabel ?? undefined}
                 departments={departmentsForYear}
               />
               <TopVendorsCard
-                year={yearLabel}
+                year={yearLabel ?? undefined}
                 transactions={txForYear}
               />
             </div>
           </CardContainer>
         </div>
 
+        {/* Footer */}
         <div className="pb-4 pt-1 text-center text-[11px] text-slate-400">
           Powered by{" "}
           <span className="font-semibold text-slate-600">
