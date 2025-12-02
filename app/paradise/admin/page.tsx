@@ -8,47 +8,61 @@ export default function AdminHomePage() {
   return (
     <AdminGuard>
       <div className="min-h-screen bg-slate-50 px-4 py-10">
-        <div className="mx-auto max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="mx-auto max-w-xl rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="mb-4 space-y-1">
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
               Admin
             </p>
             <h1 className="text-lg font-semibold text-slate-900">
-              CiviPortal admin tools
+              CiviPortal admin console
             </h1>
-            <p className="text-sm text-slate-600">
-              Upload budget data, manage branding, and complete onboarding
-              tasks for this deployment.
+            <p className="text-xs text-slate-600">
+              Upload data, manage branding, control access, and prepare your
+              portal for public launch.
             </p>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-2 text-sm">
+            <Link
+              href="/paradise/admin/onboarding"
+              className="block rounded-md border border-slate-200 bg-slate-50 px-3 py-2 font-medium text-slate-800 shadow-sm hover:bg-slate-100"
+            >
+              ✅ Onboarding checklist
+            </Link>
+
             <Link
               href="/paradise/admin/upload"
-              className="block rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50"
+              className="block rounded-md border border-slate-200 bg-white px-3 py-2 font-medium text-slate-800 shadow-sm hover:bg-slate-50"
             >
-              Upload data
+              📤 Data uploads (budgets, actuals, transactions)
+            </Link>
+
+            <Link
+              href="/paradise/admin/upload/history"
+              className="block rounded-md border border-slate-200 bg-white px-3 py-2 font-medium text-slate-800 shadow-sm hover:bg-slate-50"
+            >
+              📜 Data upload history &amp; audit log
             </Link>
 
             <Link
               href="/paradise/admin/settings"
-              className="block rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50"
+              className="block rounded-md border border-slate-200 bg-white px-3 py-2 font-medium text-slate-800 shadow-sm hover:bg-slate-50"
             >
-              Branding settings
+              🎨 Branding &amp; portal settings
             </Link>
 
             <Link
               href="/paradise/admin/users"
-              className="block rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50"
+              className="block rounded-md border border-slate-200 bg-white px-3 py-2 font-medium text-slate-800 shadow-sm hover:bg-slate-50"
             >
-              Admin users
+              👥 Admin users &amp; roles
             </Link>
 
             <Link
-              href="/paradise/admin/onboarding"
-              className="block rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50"
+              href="/paradise/admin/publish"
+              className="block rounded-md border border-slate-200 bg-white px-3 py-2 font-medium text-slate-800 shadow-sm hover:bg-slate-50"
             >
-              Onboarding checklist
+              🚀 Publish / unpublish portal
             </Link>
           </div>
         </div>

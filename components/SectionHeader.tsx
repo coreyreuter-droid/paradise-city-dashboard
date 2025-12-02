@@ -13,11 +13,12 @@ type SectionHeaderProps = {
    */
   rightSlot?: ReactNode;
   /**
-   * Optional accent color for the eyebrow + underline
+   * Optional accent color for the eyebrow + underline. This will only be
+   * used for text if it meets WCAG 2.1 AA contrast against a light background.
    */
   accentColor?: string;
   /**
-   * Heading level (defaults to h1)
+   * Heading level (defaults to h2 so page-level h1 can live in layout/hero)
    */
   as?: "h1" | "h2" | "h3";
   /**
@@ -33,13 +34,84 @@ function slugify(value: string) {
     .replace(/(^-|-$)+/g, "");
 }
 
+/**
+ * Compute relative luminance for an sRGB color.
+ * Expects r, g, b in 0-255.
+ */
+function relativeLuminance(r: number, g: number, b: number): number {
+  const transform = (c: number) => {
+    const s = c / 255;
+    return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+  };
+
+  const R = transform(r);
+  const G = transform(g);
+  const B = transform(b);
+
+  return 0.2126 * R + 0.7152 * G + 0.0722 * B;
+}
+
+/**
+ * Parse a hex color string (#rgb or #rrggbb) into r/g/b.
+ */
+function parseHexColor(hex: string): { r: number; g: number; b: number } | null {
+  const normalized = hex.trim().toLowerCase();
+  if (!normalized.startsWith("#")) return null;
+
+  const raw = normalized.slice(1);
+  if (raw.length === 3) {
+    const r = parseInt(raw[0] + raw[0], 16);
+    const g = parseInt(raw[1] + raw[1], 16);
+    const b = parseInt(raw[2] + raw[2], 16);
+    if (Number.isNaN(r) || Number.isNaN(g) || Number.isNaN(b)) return null;
+    return { r, g, b };
+  }
+
+  if (raw.length === 6) {
+    const r = parseInt(raw.slice(0, 2), 16);
+    const g = parseInt(raw.slice(2, 4), 16);
+    const b = parseInt(raw.slice(4, 6), 16);
+    if (Number.isNaN(r) || Number.isNaN(g) || Number.isNaN(b)) return null;
+    return { r, g, b };
+  }
+
+  return null;
+}
+
+/**
+ * Given an accent color, only return it if it passes the requested contrast
+ * ratio against a white background (used for text). Otherwise return null so
+ * that we fall back to the default slate text color.
+ */
+function getReadableAccentColor(
+  accentColor: string | undefined,
+  minContrastRatio = 4.5
+): string | null {
+  if (!accentColor) return null;
+  const rgb = parseHexColor(accentColor);
+  if (!rgb) return null;
+
+  const accentL = relativeLuminance(rgb.r, rgb.g, rgb.b);
+  const whiteL = relativeLuminance(255, 255, 255);
+
+  const lighter = Math.max(accentL, whiteL);
+  const darker = Math.min(accentL, whiteL);
+  const contrastRatio = (lighter + 0.05) / (darker + 0.05);
+
+  if (contrastRatio < minContrastRatio) {
+    return null;
+  }
+
+  return accentColor;
+}
+
 export default function SectionHeader({
   title,
   description,
   eyebrow,
   rightSlot,
   accentColor,
-  as = "h1",
+  as = "h2",
   id,
 }: SectionHeaderProps) {
   const HeadingTag = as;
@@ -47,9 +119,11 @@ export default function SectionHeader({
   const headingId = id ?? generatedId;
   const descriptionId = description ? `${headingId}-description` : undefined;
 
-  const accentStyle = accentColor ? { color: accentColor } : undefined;
-  const underlineStyle = accentColor
-    ? { backgroundColor: accentColor }
+  // Only use the accent color for text/underline if it meets contrast
+  const safeAccentColor = getReadableAccentColor(accentColor);
+  const accentStyle = safeAccentColor ? { color: safeAccentColor } : undefined;
+  const underlineStyle = safeAccentColor
+    ? { backgroundColor: safeAccentColor }
     : undefined;
 
   return (

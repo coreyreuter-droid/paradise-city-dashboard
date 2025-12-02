@@ -28,10 +28,8 @@ export default function LoginClient({ redirect }: Props) {
         data: { user },
       } = await supabase.auth.getUser();
 
-      if (cancelled) return;
-
-      if (user) {
-        router.replace(redirect);
+      if (!cancelled && user) {
+        router.replace(redirect || "/paradise");
       }
     }
 
@@ -79,70 +77,79 @@ export default function LoginClient({ redirect }: Props) {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
+    <div
+      className="flex min-h-screen items-center justify-center bg-slate-50 px-4"
+      role="region"
+      aria-label="Admin login"
+    >
       <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="mb-4 space-y-1">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-            {CITY_CONFIG.displayName}
+        <div className="mb-4">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+            Admin access
           </p>
-          <h1 className="text-lg font-semibold text-slate-900">
-            Admin sign-in
+          <h1 className="mt-1 text-lg font-semibold tracking-tight text-slate-900">
+            {CITY_CONFIG.displayName} admin portal
           </h1>
-          <p className="text-sm text-slate-600">
+          <p className="mt-1 text-xs text-slate-500">
             Enter your work email and we&apos;ll send you a secure
-            one-time sign-in link.
+            sign-in link.
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-1">
-            <label
-              htmlFor="email"
-              className="text-xs font-semibold uppercase tracking-wide text-slate-500"
-            >
-              Email address
-            </label>
-            <input
-              id="email"
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
-              placeholder="you@city.gov"
-              autoComplete="email"
-            />
+        {error && (
+          <div className="mb-3 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
+            {error}
           </div>
+        )}
 
-          {error && (
-            <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
-              {error}
-            </div>
-          )}
-
-          {status === "sent" && (
-            <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
-              Magic link sent. Check your email and open the link
-              on this device.
-            </div>
-          )}
-
-          <button
-            type="submit"
-            disabled={status === "sending"}
-            className="inline-flex w-full items-center justify-center rounded-md bg-slate-900 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+        {status === "sent" ? (
+          <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
+            Check your email for a sign-in link.
+          </div>
+        ) : (
+          <form
+            onSubmit={handleSubmit}
+            className="space-y-3"
+            aria-describedby="login-help-text"
           >
-            {status === "sending"
-              ? "Sending link..."
-              : "Send magic link"}
-          </button>
-        </form>
+            <div>
+              <label
+                htmlFor="email"
+                className="mb-1 block text-xs font-medium text-slate-700"
+              >
+                Work email
+              </label>
+              <input
+                id="email"
+                type="email"
+                required
+                autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="block w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-1"
+              />
+            </div>
 
-        <p className="mt-4 text-xs text-slate-500">
+            <button
+              type="submit"
+              disabled={status === "sending"}
+              className="inline-flex w-full items-center justify-center rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-slate-50 shadow-sm transition hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 disabled:opacity-60"
+            >
+              {status === "sending"
+                ? "Sending link..."
+                : "Send magic link"}
+            </button>
+          </form>
+        )}
+
+        <p
+          id="login-help-text"
+          className="mt-4 text-xs text-slate-500"
+        >
           Make sure your deployment&apos;s domain is added as an
           allowed redirect URL in Supabase Auth settings.
         </p>
       </div>
-    </main>
+    </div>
   );
 }
