@@ -39,21 +39,22 @@ export default async function ParadiseLayout({
     accentFromSettings ?? CITY_CONFIG.primaryColor ?? "#2563eb";
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-50 flex flex-col sm:flex-row">
+      {/* Sidebar + mobile top bar */}
       <ParadiseSidebar />
 
+      {/* Main content */}
       <main className="flex-1">
         {/* Top accent band */}
         <div
-          className="h-28 w-full"
+          className="h-24 w-full sm:h-28"
           style={{
-            // Use the accent color directly so changes are obvious
             backgroundImage: `linear-gradient(135deg, ${accent}, transparent)`,
           }}
         />
 
         {/* Floating content card */}
-        <div className="-mt-10 px-3 pb-10 sm:px-6 lg:px-10">
+        <div className="-mt-8 px-3 pb-10 sm:-mt-10 sm:px-6 lg:px-10">
           <div className="mx-auto max-w-6xl rounded-2xl border border-slate-200/80 bg-white/95 p-4 shadow-sm sm:p-6">
             {children}
           </div>

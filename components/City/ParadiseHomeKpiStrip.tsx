@@ -13,7 +13,7 @@ type Props = {
   txCount: number;
   topDepartment: string | null;
   accentColor?: string;
-  yearLabel?: number | string; // ✅ NEW
+  yearLabel?: number | string;
 };
 
 export default function KpiStrip({
@@ -47,7 +47,7 @@ export default function KpiStrip({
             Citywide Overview
           </p>
           <h1 className="text-xl font-semibold text-slate-900 sm:text-2xl">
-            Budget & spending snapshot
+            Budget &amp; spending snapshot
           </h1>
         </div>
         <div className="text-right text-[11px] text-slate-400">
@@ -61,7 +61,15 @@ export default function KpiStrip({
         </div>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+      {/* 
+        Grid behavior:
+        - 1 col on very small screens
+        - 2 cols on small screens
+        - 3 cols on laptops (lg)
+        - 4 cols on wider desktops (xl)
+        - 6 cols only on very wide (2xl) screens
+      */}
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6">
         <MetricCard
           label="Total adopted budget"
           value={formatCurrency(totalBudget)}
