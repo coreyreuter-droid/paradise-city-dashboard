@@ -9,28 +9,29 @@ type Props = {
   transactions: TransactionRow[];
 };
 
-export default function TopVendorsCard({
-  year,
-  transactions,
-}: Props) {
-  const vendorMap = new Map<
-    string,
-    { total: number; count: number }
-  >();
+type VendorAgg = {
+  name: string;
+  total: number;
+  count: number;
+  avg: number;
+};
 
-  transactions.forEach((tx) => {
-    const vendor = tx.vendor || "Unspecified";
+export default function TopVendorsCard({ year, transactions }: Props) {
+  const map = new Map<string, { total: number; count: number }>();
+
+  for (const tx of transactions) {
+    const name =
+      tx.vendor && tx.vendor.trim().length > 0
+        ? tx.vendor.trim()
+        : "Unspecified";
     const amt = Number(tx.amount || 0);
-    const existing = vendorMap.get(vendor) ?? {
-      total: 0,
-      count: 0,
-    };
-    existing.total += amt;
-    existing.count += 1;
-    vendorMap.set(vendor, existing);
-  });
+    const entry = map.get(name) ?? { total: 0, count: 0 };
+    entry.total += amt;
+    entry.count += 1;
+    map.set(name, entry);
+  }
 
-  const vendors = Array.from(vendorMap.entries())
+  const vendors: VendorAgg[] = Array.from(map.entries())
     .map(([name, v]) => ({
       name,
       total: v.total,
@@ -41,54 +42,39 @@ export default function TopVendorsCard({
     .slice(0, 5);
 
   return (
-    <div className="space-y-3">
+    <section aria-label="Top vendors by spending" className="space-y-3">
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-slate-900">
-          Top Vendors{year ? ` – ${year}` : ""}
-        </h2>
+        <h3 className="text-sm font-semibold text-slate-900">
+          Top vendors{year ? ` – ${year}` : ""}
+        </h3>
       </div>
       {vendors.length === 0 ? (
         <p className="text-xs text-slate-500">
-          No transactions available for this year.
+          No vendor spending available for this year.
         </p>
       ) : (
-        <table className="min-w-full text-xs">
-          <thead>
-            <tr className="border-b border-slate-200">
-              <th className="px-2 py-1 text-left text-slate-500">
-                Vendor
-              </th>
-              <th className="px-2 py-1 text-right text-slate-500">
-                Total
-              </th>
-              <th className="px-2 py-1 text-right text-slate-500">
-                Txns
-              </th>
-              <th className="px-2 py-1 text-right text-slate-500">
-                Avg
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {vendors.map((v) => (
-              <tr key={v.name} className="border-b border-slate-100">
-                <td className="px-2 py-1 align-top text-slate-800">
-                  {v.name}
-                </td>
-                <td className="px-2 py-1 text-right font-mono">
+        <ul className="space-y-2 text-xs sm:text-sm">
+          {vendors.map((v) => (
+            <li key={v.name} className="space-y-0.5">
+              <div className="flex items-center justify-between gap-2">
+                <span className="truncate pr-2">{v.name}</span>
+                <span className="whitespace-nowrap font-mono">
                   {formatCurrency(v.total)}
-                </td>
-                <td className="px-2 py-1 text-right font-mono">
-                  {v.count}
-                </td>
-                <td className="px-2 py-1 text-right font-mono">
-                  {formatCurrency(v.avg)}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-[11px] text-slate-500">
+                <span>
+                  {v.count.toLocaleString("en-US")} transaction
+                  {v.count === 1 ? "" : "s"}
+                </span>
+                <span className="font-mono">
+                  Avg {formatCurrency(v.avg)}
+                </span>
+              </div>
+            </li>
+          ))}
+        </ul>
       )}
-    </div>
+    </section>
   );
 }

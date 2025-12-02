@@ -2,7 +2,6 @@
 "use client";
 
 import { formatCurrency, formatPercent } from "@/lib/format";
-import MetricCard from "@/components/MetricCard";
 
 type Props = {
   totalBudget: number;
@@ -13,10 +12,9 @@ type Props = {
   txCount: number;
   topDepartment: string | null;
   accentColor?: string;
-  yearLabel?: number | string;
 };
 
-export default function KpiStrip({
+export default function ParadiseHomeKpiStrip({
   totalBudget,
   totalActuals,
   variance,
@@ -25,96 +23,132 @@ export default function KpiStrip({
   txCount,
   topDepartment,
   accentColor,
-  yearLabel,
 }: Props) {
-  const accent = accentColor || "#2563eb";
-
-  const varianceLabel = variance >= 0 ? "Under budget" : "Over budget";
-  const varianceDisplay = `${variance >= 0 ? "" : "-"}${formatCurrency(
-    Math.abs(variance)
-  )}`;
-
-  const yearText =
-    yearLabel !== undefined && yearLabel !== null
-      ? String(yearLabel)
-      : "—";
+  const labelStyle = accentColor ? { color: accentColor } : undefined;
+  const varianceLabel =
+    variance === 0
+      ? "On budget"
+      : variance > 0
+      ? "Over budget"
+      : "Under budget";
 
   return (
-    <section className="space-y-3">
-      <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
-        <div>
-          <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">
-            Citywide Overview
-          </p>
-          <h1 className="text-xl font-semibold text-slate-900 sm:text-2xl">
-            Budget &amp; spending snapshot
-          </h1>
+    <section
+      aria-label="Key citywide financial metrics"
+      className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6"
+    >
+      {/* Total budget */}
+      <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
+        <div
+          className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500"
+          style={labelStyle}
+        >
+          Adopted budget
         </div>
-        <div className="text-right text-[11px] text-slate-400">
-          <span className="inline-flex items-center gap-1 rounded-full bg-slate-50 px-2.5 py-1">
-            <span
-              className="inline-block h-2 w-2 rounded-full"
-              style={{ backgroundColor: accent }}
-            />
-            Live data from city finance system
-          </span>
+        <div className="mt-1 text-lg font-bold text-slate-900">
+          {formatCurrency(totalBudget)}
         </div>
+        <p className="mt-1 text-[11px] text-slate-500">
+          Total adopted budget across all funds.
+        </p>
       </div>
 
-      {/* 
-        Grid behavior:
-        - 1 col on very small screens
-        - 2 cols on small screens
-        - 3 cols on laptops (lg)
-        - 4 cols on wider desktops (xl)
-        - 6 cols only on very wide (2xl) screens
-      */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6">
-        <MetricCard
-          label="Total adopted budget"
-          value={formatCurrency(totalBudget)}
-          sublabel={`All departments • fiscal year ${yearText}`}
-          accentColor={accent}
-        />
+      {/* Total actuals */}
+      <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
+        <div
+          className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500"
+          style={labelStyle}
+        >
+          Actual spending
+        </div>
+        <div className="mt-1 text-lg font-bold text-slate-900">
+          {formatCurrency(totalActuals)}
+        </div>
+        <p className="mt-1 text-[11px] text-slate-500">
+          Total posted spending for the selected year.
+        </p>
+      </div>
 
-        <MetricCard
-          label="Actual spending to date"
-          value={formatCurrency(totalActuals)}
-          sublabel={`${formatPercent(execPct)} of budget spent`}
-          accentColor={accent}
-        />
+      {/* Variance */}
+      <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
+        <div
+          className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500"
+          style={labelStyle}
+        >
+          Variance
+        </div>
+        <div
+          className={`mt-1 text-lg font-bold ${
+            variance > 0
+              ? "text-emerald-700"
+              : variance < 0
+              ? "text-red-700"
+              : "text-slate-900"
+          }`}
+        >
+          {formatCurrency(Math.abs(variance))}
+        </div>
+        <p className="mt-1 text-[11px] text-slate-500">
+          {varianceLabel} relative to the adopted budget.
+        </p>
+      </div>
 
-        <MetricCard
-          label={varianceLabel}
-          value={varianceDisplay}
-          sublabel={
-            variance >= 0
-              ? "Available budget remaining"
-              : "Spending beyond adopted budget"
-          }
-          accentColor={variance >= 0 ? "#16a34a" : "#b91c1c"}
-        />
+      {/* Budget execution */}
+      <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
+        <div
+          className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500"
+          style={labelStyle}
+        >
+          Budget execution
+        </div>
+        <div className="mt-1 text-lg font-bold text-slate-900">
+          {formatPercent(execPct, 1)}
+        </div>
+        <p className="mt-1 text-[11px] text-slate-500">
+          Share of adopted budget that has been spent.
+        </p>
+      </div>
 
-        <MetricCard
-          label="Departments tracked"
-          value={deptCount.toLocaleString()}
-          sublabel="Active departments with budget data"
-          accentColor={accent}
-        />
+      {/* Departments */}
+      <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
+        <div
+          className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500"
+          style={labelStyle}
+        >
+          Departments
+        </div>
+        <div className="mt-1 text-lg font-bold text-slate-900">
+          {deptCount.toLocaleString("en-US")}
+        </div>
+        <p className="mt-1 text-[11px] text-slate-500">
+          With budget or spending in the selected year.
+        </p>
+      </div>
 
-        <MetricCard
-          label="Transactions"
-          value={txCount.toLocaleString()}
-          sublabel={`Posted expenses in fiscal year ${yearText}`}
-          accentColor={accent}
-        />
-
-        <MetricCard
-          label="Top spending department"
-          value={topDepartment || "—"}
-          sublabel="By total actual expenditures"
-          accentColor={accent}
-        />
+      {/* Transactions + top department */}
+      <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
+        <div
+          className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500"
+          style={labelStyle}
+        >
+          Transactions
+        </div>
+        <div className="mt-1 text-lg font-bold text-slate-900">
+          {txCount.toLocaleString("en-US")}
+        </div>
+        <p className="mt-1 text-[11px] text-slate-500">
+          {topDepartment ? (
+            <>
+              Highest spending department:{" "}
+              <span className="font-semibold">
+                {topDepartment}
+              </span>
+              .
+            </>
+          ) : (
+            "Highest spending department will appear here once data is available."
+          )}
+        </p>
       </div>
     </section>
   );

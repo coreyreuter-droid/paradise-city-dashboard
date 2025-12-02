@@ -12,18 +12,13 @@ import {
   CartesianGrid,
   Cell,
 } from "recharts";
-import { formatCurrency } from "@/lib/format";
-
-export type DepartmentSummary = {
-  department_name: string;
-  budget: number;
-  actuals: number;
-  percentSpent: number;
-};
+import { formatCurrency, formatPercent } from "@/lib/format";
+import type { DepartmentSummary } from "@/components/Budget/BudgetClient";
 
 type Props = {
-  year: number; // kept for future use / tooltips if needed
+  year: number;
   departments: DepartmentSummary[];
+  accentColor?: string;
 };
 
 const formatAxisCurrencyShort = (v: number) => {
@@ -34,124 +29,146 @@ const formatAxisCurrencyShort = (v: number) => {
   return `$${v.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
 };
 
-const shortenLabel = (name: string, max = 24) => {
-  if (name.length <= max) return name;
-  return name.slice(0, max - 1) + "…";
+const shortenLabel = (name: string) => {
+  if (name.length <= 26) return name;
+  return name.slice(0, 23) + "…";
 };
 
 export default function BudgetByDepartmentChart({
-  year, // unused for now
+  year,
   departments,
+  accentColor = "#0f172a",
 }: Props) {
-  const { chartData, longestLabel } = useMemo(() => {
-    // Sort by budget desc and limit to top N to keep chart readable
-    const TOP_N = 14;
-    const sorted = [...departments]
-      .sort((a, b) => b.budget - a.budget)
-      .slice(0, TOP_N);
+  const data = useMemo(
+    () =>
+      [...departments].sort((a, b) => b.budget - a.budget),
+    [departments]
+  );
 
-    const data = sorted.map((d) => ({
-      name: d.department_name || "Unspecified",
-      budget: Number(d.budget || 0),
-      actual: Number(d.actuals || 0),
-    }));
-
-    const longestLabel = data.reduce(
-      (max, d) => Math.max(max, d.name.length),
-      0
-    );
-
-    return { chartData: data, longestLabel };
-  }, [departments]);
-
-  if (chartData.length === 0) {
+  if (data.length === 0) {
     return (
       <p className="text-sm text-slate-500">
-        No budget/actuals data available for this year.
+        No department budget data available for {year}.
       </p>
     );
   }
 
-  // Height scales with number of rows, but capped so it doesn't get absurd
-  const rows = Math.max(chartData.length, 3);
-  const height = Math.min(440, Math.max(260, rows * 28));
-
-  const yAxisWidth =
-    longestLabel > 24 ? 190 : longestLabel > 18 ? 160 : 130;
-
   return (
-    <>
-      <div className="mt-2 w-full" style={{ height }}>
+    <figure
+      role="group"
+      aria-labelledby="budget-by-dept-heading"
+      aria-describedby="budget-by-dept-desc"
+      className="space-y-3"
+    >
+      <h3
+        id="budget-by-dept-heading"
+        className="text-sm font-semibold text-slate-900"
+      >
+        Budget by department – {year}
+      </h3>
+      <p id="budget-by-dept-desc" className="sr-only">
+        Horizontal bar chart and data table showing total budget,
+        actuals, and percent of budget spent for each department
+        in fiscal year {year}, sorted from largest to smallest.
+      </p>
+
+      <div className="h-80">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
-            data={chartData}
+            data={data}
             layout="vertical"
-            margin={{
-              top: 10,
-              right: 28,
-              left: 8,
-              bottom: 10,
-            }}
+            margin={{ left: 120, right: 16, top: 8, bottom: 8 }}
           >
-            <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-
+            <CartesianGrid
+              strokeDasharray="3 3"
+              horizontal={false}
+            />
             <XAxis
               type="number"
-              tickFormatter={formatAxisCurrencyShort}
-              domain={[0, "auto"]}
+              tickFormatter={(v) =>
+                formatAxisCurrencyShort(Number(v))
+              }
             />
-
             <YAxis
-              dataKey="name"
               type="category"
-              width={yAxisWidth}
-              tick={{ fontSize: 11 }}
-              tickFormatter={(name: string) => shortenLabel(name)}
+              dataKey="department_name"
+              tickFormatter={shortenLabel}
+              width={160}
             />
-
             <Tooltip
-              formatter={(value: number, name) => [
-                formatCurrency(value),
-                name === "budget" ? "Budget" : "Actual",
-              ]}
+              formatter={(value: any, name: string) => {
+                if (name === "Budget") {
+                  return [formatCurrency(Number(value)), "Budget"];
+                }
+                if (name === "Actuals") {
+                  return [formatCurrency(Number(value)), "Actuals"];
+                }
+                if (name === "% spent") {
+                  return [
+                    formatPercent(Number(value)),
+                    "% of budget spent",
+                  ];
+                }
+                return value;
+              }}
+              labelFormatter={(label: any) =>
+                `Department: ${String(label)}`
+              }
             />
-
-            {/* Budget: dark gray */}
-            <Bar dataKey="budget" barSize={10} fill="#4b5563" />
-
-            {/* Actual: green if ≤ budget, red if > budget */}
-            <Bar dataKey="actual" barSize={10}>
-              {chartData.map((entry, index) => (
-                <Cell
-                  key={index}
-                  fill={
-                    entry.actual <= entry.budget ? "#10b981" : "#FF746C"
-                  }
-                />
+            <Bar dataKey="budget" name="Budget">
+              {data.map((_, idx) => (
+                <Cell key={idx} fill={accentColor} />
               ))}
             </Bar>
           </BarChart>
         </ResponsiveContainer>
       </div>
 
-      <div className="mt-3 flex flex-wrap items-center gap-6 text-xs text-slate-600">
-        <span className="font-semibold uppercase tracking-wide text-slate-500">
-          Chart key:
-        </span>
-
-        <div className="flex items-center gap-2">
-          <span className="inline-block h-3 w-3 rounded-sm bg-slate-600" />
-          <span>Budget</span>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <span className="inline-block h-3 w-3 overflow-hidden rounded-sm">
-            <span className="inline-block h-full w-1/2 float-left bg-emerald-500" />
-            <span className="inline-block h-full w-1/2 float-left bg-[#FF746C]" />
-          </span>
-          <span>Actual (green = under, red = over)</span>
-        </div>
+      {/* Accessible tabular representation of the same data */}
+      <div className="overflow-x-auto">
+        <table className="min-w-full border border-slate-200 text-xs">
+          <thead className="bg-slate-50 text-[11px] font-semibold uppercase tracking-wide text-slate-600">
+            <tr>
+              <th scope="col" className="px-3 py-2 text-left">
+                Department
+              </th>
+              <th scope="col" className="px-3 py-2 text-right">
+                Budget
+              </th>
+              <th scope="col" className="px-3 py-2 text-right">
+                Actuals
+              </th>
+              <th scope="col" className="px-3 py-2 text-right">
+                % spent
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.map((row) => (
+              <tr
+                key={row.department_name}
+                className="border-t border-slate-200"
+              >
+                <th
+                  scope="row"
+                  className="px-3 py-2 text-left font-medium text-slate-800"
+                >
+                  {row.department_name}
+                </th>
+                <td className="px-3 py-2 text-right text-slate-700">
+                  {formatCurrency(row.budget)}
+                </td>
+                <td className="px-3 py-2 text-right text-slate-700">
+                  {formatCurrency(row.actuals)}
+                </td>
+                <td className="px-3 py-2 text-right text-slate-700">
+                  {formatPercent(row.percentSpent)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
-    </>
+    </figure>
   );
 }

@@ -17,22 +17,23 @@ export default async function ParadiseLayout({
 
   try {
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-    // Read branding colors from portal_settings (singleton row)
     const { data, error } = await supabase
       .from("portal_settings")
       .select("primary_color, accent_color")
+      .eq("id", 1)
       .maybeSingle();
 
     if (!error && data) {
-      // Prefer primary_color, fall back to accent_color
       accentFromSettings =
         (data.primary_color as string | null) ??
         (data.accent_color as string | null) ??
         null;
     }
   } catch (err) {
-    console.error("ParadiseLayout: failed to load portal_settings", err);
+    console.error(
+      "ParadiseLayout: failed to load portal_settings",
+      err
+    );
   }
 
   const accent =
@@ -43,14 +44,20 @@ export default async function ParadiseLayout({
       {/* Sidebar + mobile top bar */}
       <ParadiseSidebar />
 
-      {/* Main content */}
-      <main className="flex-1">
-        {/* Top accent band */}
+      {/* Main content – single landmark for the whole /paradise area */}
+      <main
+        id="main-content"
+        className="flex-1"
+        role="main"
+        aria-label={`${CITY_CONFIG.displayName} financial transparency content`}
+      >
+        {/* Top accent band (decorative) */}
         <div
           className="h-24 w-full sm:h-28"
           style={{
             backgroundImage: `linear-gradient(135deg, ${accent}, transparent)`,
           }}
+          aria-hidden="true"
         />
 
         {/* Floating content card */}

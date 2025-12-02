@@ -15,85 +15,133 @@ import type { BudgetRow, ActualRow } from "@/lib/types";
 import { formatCurrency } from "@/lib/format";
 
 type Props = {
-  years: number[];
   budgets: BudgetRow[];
   actuals: ActualRow[];
 };
 
-function toYear(v: unknown): number | null {
-  const n = Number(v);
-  return Number.isFinite(n) ? n : null;
-}
-
-const formatAxisCurrencyShort = (v: number) => {
-  if (v === 0) return "$0";
-  const abs = Math.abs(v);
-  if (abs >= 1_000_000) return `$${Math.round(v / 1_000_000)}M`;
-  if (abs >= 1_000) return `$${Math.round(v / 1_000)}k`;
-  return `$${v.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
-};
-
-export default function MultiYearBudgetActualsChart({
-  years,
+export default function ParadiseHomeMultiYearChart({
   budgets,
   actuals,
 }: Props) {
-  const sortedYears = [...years].sort((a, b) => a - b).slice(-5);
+  const yearSet = new Set<number>();
 
-  const data = sortedYears.map((year) => {
-    const budgetTotal = budgets
-      .filter((b) => toYear(b.fiscal_year) === year)
+  budgets.forEach((b) => yearSet.add(b.fiscal_year));
+  actuals.forEach((a) => yearSet.add(a.fiscal_year));
+
+  const years = Array.from(yearSet).sort((a, b) => a - b);
+
+  const data = years.map((year) => {
+    const yearBudget = budgets
+      .filter((b) => b.fiscal_year === year)
       .reduce((sum, b) => sum + Number(b.amount || 0), 0);
 
-    const actualTotal = actuals
-      .filter((a) => toYear(a.fiscal_year) === year)
+    const yearActuals = actuals
+      .filter((a) => a.fiscal_year === year)
       .reduce((sum, a) => sum + Number(a.amount || 0), 0);
 
     return {
       year,
-      budget: budgetTotal,
-      actuals: actualTotal,
+      budget: yearBudget,
+      actuals: yearActuals,
     };
   });
 
   if (data.length === 0) {
     return (
-      <p className="text-xs text-slate-500">
-        No multi-year data available.
+      <p className="text-sm text-slate-500">
+        No multi-year data available yet.
       </p>
     );
   }
 
   return (
-    <div className="h-64 sm:h-72">
-      <ResponsiveContainer width="100%" height="100%">
-        <BarChart
-          data={data}
-          margin={{ top: 8, right: 16, left: 40, bottom: 8 }}
-          barCategoryGap={24}
-        >
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis
-            dataKey="year"
-            tickLine={false}
-            axisLine={false}
-          />
-          <YAxis
-            tickFormatter={formatAxisCurrencyShort}
-            tickLine={false}
-            axisLine={false}
-            tickMargin={8}
-          />
-          <Tooltip
-            formatter={(value: any) =>
-              formatCurrency(Number(value))
-            }
-          />
-          <Legend />
-          <Bar dataKey="actuals" name="Actuals" />
-          <Bar dataKey="budget" name="Budget" />
-        </BarChart>
-      </ResponsiveContainer>
-    </div>
+    <figure
+      role="group"
+      aria-labelledby="home-multi-year-heading"
+      aria-describedby="home-multi-year-desc"
+      className="space-y-3"
+    >
+      <h3
+        id="home-multi-year-heading"
+        className="text-sm font-semibold text-slate-900"
+      >
+        Multi-year budget vs actuals
+      </h3>
+      <p id="home-multi-year-desc" className="sr-only">
+        Column chart and data table showing total annual budget and
+        actual spending for each fiscal year.
+      </p>
+
+      <div className="h-64">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={data}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="year" />
+            <YAxis
+              tickFormatter={(v) =>
+                formatCurrency(Number(v)).replace("$", "")
+              }
+            />
+            <Tooltip
+              formatter={(value: any) =>
+                formatCurrency(Number(value))
+              }
+            />
+            <Legend />
+            {/* add color back in */}
+            <Bar
+              dataKey="actuals"
+              name="Actuals"
+              fill="#0f766e"
+            />
+            <Bar
+              dataKey="budget"
+              name="Budget"
+              fill="#4b5563"
+            />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* Accessible tabular representation */}
+      <div className="overflow-x-auto">
+        <table className="min-w-full border border-slate-200 text-xs">
+          <thead className="bg-slate-50 text-[11px] font-semibold uppercase tracking-wide text-slate-600">
+            <tr>
+              <th scope="col" className="px-3 py-2 text-left">
+                Fiscal year
+              </th>
+              <th scope="col" className="px-3 py-2 text-right">
+                Budget
+              </th>
+              <th scope="col" className="px-3 py-2 text-right">
+                Actuals
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.map((row) => (
+              <tr
+                key={row.year}
+                className="border-t border-slate-200"
+              >
+                <th
+                  scope="row"
+                  className="px-3 py-2 text-left font-medium text-slate-800"
+                >
+                  {row.year}
+                </th>
+                <td className="px-3 py-2 text-right text-slate-700">
+                  {formatCurrency(row.budget)}
+                </td>
+                <td className="px-3 py-2 text-right text-slate-700">
+                  {formatCurrency(row.actuals)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </figure>
   );
 }

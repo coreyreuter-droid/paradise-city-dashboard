@@ -15,61 +15,104 @@ import FiscalYearSelect from "../FiscalYearSelect";
 import DataTable, {
   DataTableColumn,
 } from "../DataTable";
-
-type Props = {
-  budgets: BudgetRow[];
-  actuals: ActualRow[];
-  transactions: TransactionRow[];
-  years: number[]; // provided by server
-};
+import { formatCurrency, formatPercent } from "@/lib/format";
 
 type DepartmentSummary = {
   department_name: string;
   budget: number;
   actuals: number;
-  percentSpent: number;
   variance: number;
+  percentSpent: number;
   txCount: number;
 };
 
-const formatCurrency = (value: number) =>
-  value.toLocaleString("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 0,
-  });
+type Props = {
+  budgets: BudgetRow[];
+  actuals: ActualRow[];
+  transactions: TransactionRow[];
+};
 
-const formatPercent = (value: number) =>
-  `${value.toFixed(1).replace(/-0\.0/, "0.0")}%`;
+function safeYear(value: unknown): number | null {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
 
 export default function DepartmentsDashboardClient({
   budgets,
   actuals,
   transactions,
-  years,
 }: Props) {
   const searchParams = useSearchParams();
 
+  // All fiscal years from budgets/actuals/transactions
+  const years = useMemo(() => {
+    const set = new Set<number>();
+
+    budgets.forEach((b) => {
+      const y = safeYear(b.fiscal_year);
+      if (y !== null) set.add(y);
+    });
+
+    actuals.forEach((a) => {
+      const y = safeYear(a.fiscal_year);
+      if (y !== null) set.add(y);
+    });
+
+    transactions.forEach((t) => {
+      const y = safeYear(t.fiscal_year);
+      if (y !== null) set.add(y);
+    });
+
+    return Array.from(set).sort((a, b) => b - a);
+  }, [budgets, actuals, transactions]);
+
+  // Selected fiscal year (from ?year= or default to latest)
   const selectedYear = useMemo(() => {
     if (years.length === 0) return undefined;
+
     const param = searchParams.get("year");
-    const parsed = param ? Number(param) : NaN;
-    if (Number.isFinite(parsed) && years.includes(parsed)) return parsed;
+    if (!param) return years[0];
+
+    const parsed = Number(param);
+    if (Number.isNaN(parsed)) return years[0];
+
+    if (years.includes(parsed)) return parsed;
     return years[0];
   }, [searchParams, years]);
 
-  const summaries = useMemo<DepartmentSummary[]>(() => {
-    if (!selectedYear) return [];
+  const yearLabel =
+    selectedYear ?? (years.length > 0 ? years[0] : undefined);
 
-    const budgetsForYear = budgets.filter(
-      (b) => b.fiscal_year === selectedYear
-    );
-    const actualsForYear = actuals.filter(
-      (a) => a.fiscal_year === selectedYear
-    );
-    const txForYear = transactions.filter(
-      (t) => t.fiscal_year === selectedYear
-    );
+  // Filter rows to selected year
+  const budgetsForYear = useMemo(
+    () =>
+      selectedYear
+        ? budgets.filter((b) => b.fiscal_year === selectedYear)
+        : [],
+    [budgets, selectedYear]
+  );
+
+  const actualsForYear = useMemo(
+    () =>
+      selectedYear
+        ? actuals.filter((a) => a.fiscal_year === selectedYear)
+        : [],
+    [actuals, selectedYear]
+  );
+
+  const txForYear = useMemo(
+    () =>
+      selectedYear
+        ? transactions.filter(
+            (t) => t.fiscal_year === selectedYear
+          )
+        : [],
+    [transactions, selectedYear]
+  );
+
+  // Aggregate per-department metrics
+  const summaries: DepartmentSummary[] = useMemo(() => {
+    if (!selectedYear) return [];
 
     const budgetByDept = new Map<string, number>();
     const actualsByDept = new Map<string, number>();
@@ -129,11 +172,11 @@ export default function DepartmentsDashboardClient({
       }
     );
 
-    // Largest budgets first by default
+    // Sort by budget DESC
     rows.sort((a, b) => b.budget - a.budget);
 
     return rows;
-  }, [budgets, actuals, transactions, selectedYear]);
+  }, [budgetsForYear, actualsForYear, txForYear, selectedYear]);
 
   const totalBudget = summaries.reduce(
     (sum, d) => sum + d.budget,
@@ -157,209 +200,209 @@ export default function DepartmentsDashboardClient({
     ? `?year=${selectedYear}`
     : "";
 
-  const columns: DataTableColumn<DepartmentSummary>[] =
-    useMemo(
-      () => [
-        {
-          key: "department",
-          header: "Department",
-          sortable: true,
-          sortAccessor: (row) =>
-            (row.department_name || "Unspecified").toLowerCase(),
-          cellClassName: "whitespace-nowrap",
-          cell: (dept) => (
-            <Link
-              href={`/paradise/departments/${encodeURIComponent(
-                dept.department_name
-              )}${yearParam}`}
-              className="font-medium text-sky-700 hover:underline"
-            >
-              {dept.department_name}
-            </Link>
-          ),
+  const columns: DataTableColumn<DepartmentSummary>[] = useMemo(
+    () => [
+      {
+        key: "department",
+        header: "Department",
+        sortable: true,
+        sortAccessor: (row) =>
+          (row.department_name || "Unspecified").toLowerCase(),
+        cellClassName: "whitespace-nowrap",
+        cell: (dept) => (
+          <Link
+            href={`/paradise/departments/${encodeURIComponent(
+              dept.department_name || "Unspecified"
+            )}${yearParam}`}
+            className="font-medium text-sky-700 hover:underline"
+          >
+            {dept.department_name || "Unspecified"}
+          </Link>
+        ),
+      },
+      {
+        key: "budget",
+        header: "Budget",
+        sortable: true,
+        sortAccessor: (row) => row.budget,
+        headerClassName: "text-right",
+        cellClassName: "text-right font-mono",
+        cell: (dept) => formatCurrency(dept.budget),
+      },
+      {
+        key: "actuals",
+        header: "Actuals",
+        sortable: true,
+        sortAccessor: (row) => row.actuals,
+        headerClassName: "text-right",
+        cellClassName: "text-right font-mono",
+        cell: (dept) => formatCurrency(dept.actuals),
+      },
+      {
+        key: "percentSpent",
+        header: "% spent",
+        sortable: true,
+        sortAccessor: (row) => row.percentSpent,
+        headerClassName: "text-right",
+        cellClassName: "text-right font-mono",
+        cell: (dept) => formatPercent(dept.percentSpent, 1),
+      },
+      {
+        key: "variance",
+        header: "Variance",
+        sortable: true,
+        sortAccessor: (row) => row.variance,
+        headerClassName: "text-right",
+        cellClassName: "text-right font-mono",
+        cell: (dept) => {
+          const color =
+            dept.variance > 0
+              ? "text-emerald-700"
+              : dept.variance < 0
+              ? "text-red-700"
+              : "text-slate-700";
+          return (
+            <span className={color}>
+              {formatCurrency(dept.variance)}
+            </span>
+          );
         },
-        {
-          key: "budget",
-          header: "Budget",
-          sortable: true,
-          sortAccessor: (row) => row.budget,
-          headerClassName: "text-right",
-          cellClassName: "text-right font-mono",
-          cell: (dept) => formatCurrency(dept.budget),
-        },
-        {
-          key: "actuals",
-          header: "Actuals",
-          sortable: true,
-          sortAccessor: (row) => row.actuals,
-          headerClassName: "text-right",
-          cellClassName: "text-right font-mono",
-          cell: (dept) => formatCurrency(dept.actuals),
-        },
-        {
-          key: "percentSpent",
-          header: "% Spent",
-          sortable: true,
-          sortAccessor: (row) => row.percentSpent,
-          headerClassName: "text-right",
-          cellClassName: "text-right font-mono",
-          cell: (dept) =>
-            formatPercent(dept.percentSpent),
-        },
-        {
-          key: "variance",
-          header: "Variance",
-          sortable: true,
-          sortAccessor: (row) => row.variance,
-          headerClassName: "text-right",
-          cellClassName: "text-right font-mono",
-          cell: (dept) => {
-            const base = "text-right font-mono";
-            const color =
-              dept.variance > 0
-                ? " text-emerald-700"
-                : dept.variance < 0
-                ? " text-red-700"
-                : " text-slate-700";
-            return (
-              <span className={base + color}>
-                {formatCurrency(dept.variance)}
-              </span>
-            );
-          },
-        },
-        {
-          key: "txCount",
-          header: "Transactions",
-          sortable: true,
-          sortAccessor: (row) => row.txCount,
-          headerClassName: "text-right",
-          cellClassName: "text-right font-mono",
-          cell: (dept) =>
-            dept.txCount.toLocaleString("en-US"),
-        },
-      ],
-      [yearParam]
-    );
-
-  const yearLabel =
-    selectedYear ??
-    (years.length > 0 ? years[0] : undefined);
+      },
+      {
+        key: "txCount",
+        header: "Transactions",
+        sortable: true,
+        sortAccessor: (row) => row.txCount,
+        headerClassName: "text-right",
+        cellClassName: "text-right font-mono",
+        cell: (dept) =>
+          dept.txCount.toLocaleString("en-US"),
+      },
+    ],
+    [yearParam]
+  );
 
   return (
-    <main className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-50">
       <div className="mx-auto max-w-6xl px-4 py-8">
         <SectionHeader
-          title="Departments"
-          description="Compare budgets, spending, and activity across all departments. Click a department to drill into multi-year trends and transactions."
+          eyebrow="Departments"
+          title="Department overview"
+          description="See how each department’s budget, actual spending, and transaction volume compare for the selected year."
+          rightSlot={
+            years.length > 0 ? (
+              <FiscalYearSelect
+                options={years}
+                label="Fiscal year"
+              />
+            ) : null
+          }
         />
-<div className="mb-4 flex items-center gap-1 text-[11px] text-slate-500 px-1">
-  <Link href="/paradise" className="hover:text-slate-800">
-    Overview
-  </Link>
-  <span className="text-slate-400">›</span>
-  <span className="font-medium text-slate-700">
-    Departments
-  </span>
-</div>
-        {/* Filters + KPIs card */}
-        <CardContainer>
-          <div className="space-y-5">
-            <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-              <div className="max-w-xs">
-                {years.length > 0 && (
-                  <FiscalYearSelect
-                    options={years}
-                    label="Fiscal year"
-                  />
-                )}
-              </div>
-              {yearLabel && (
-                <div className="text-xs text-slate-500 md:text-right">
-                  Showing{" "}
-                  <span className="font-semibold">
-                    {deptCount}
-                  </span>{" "}
-                  departments and{" "}
-                  <span className="font-semibold">
-                    {totalTx.toLocaleString("en-US")}
-                  </span>{" "}
-                  transactions for fiscal year{" "}
-                  <span className="font-semibold">
-                    {yearLabel}
-                  </span>
-                  .
-                </div>
-              )}
-            </div>
 
-            <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
-              <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
-                <div className="text-xs font-semibold uppercase text-slate-500">
+        {/* Breadcrumb */}
+        <nav
+          aria-label="Breadcrumb"
+          className="mb-4 flex items-center gap-1 px-1 text-[11px] text-slate-500"
+        >
+          <Link
+            href="/paradise"
+            className="hover:text-slate-800"
+          >
+            Overview
+          </Link>
+          <span className="text-slate-400">›</span>
+          <span className="font-medium text-slate-700">
+            Departments
+          </span>
+        </nav>
+
+        <div className="space-y-6">
+          {/* KPI strip */}
+          <CardContainer>
+            <section
+              aria-label="Department summary metrics"
+              className="grid gap-4 md:grid-cols-4"
+            >
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
                   Departments
                 </div>
                 <div className="mt-1 text-2xl font-bold text-slate-900">
                   {deptCount}
                 </div>
+                <div className="mt-1 text-[11px] text-slate-500">
+                  With budget, actuals, or transactions in{" "}
+                  {yearLabel ?? "–"}.
+                </div>
               </div>
 
-              <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
-                <div className="text-xs font-semibold uppercase text-slate-500">
-                  Total Budget
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                  Total budget
                 </div>
                 <div className="mt-1 text-2xl font-bold text-slate-900">
                   {formatCurrency(totalBudget)}
                 </div>
               </div>
 
-              <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
-                <div className="text-xs font-semibold uppercase text-slate-500">
-                  Total Actuals
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                  Total actuals
                 </div>
                 <div className="mt-1 text-2xl font-bold text-slate-900">
                   {formatCurrency(totalActuals)}
                 </div>
-                <div className="mt-1 text-xs text-slate-500">
-                  {formatPercent(execPct)} of budget spent
-                </div>
               </div>
 
-              <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
-                <div className="text-xs font-semibold uppercase text-slate-500">
-                  Variance &amp; Transactions
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                  Transactions
                 </div>
-                <div className="mt-1 text-lg font-semibold text-slate-900">
-                  {formatCurrency(variance)}
+                <div className="mt-1 text-2xl font-bold text-slate-900">
+                  {totalTx.toLocaleString("en-US")}
                 </div>
-                <div className="mt-1 text-xs text-slate-500">
-                  {totalTx.toLocaleString("en-US")} transactions
+                <div className="mt-1 text-[11px] text-slate-500">
+                  Posted for {yearLabel ?? "–"}.
                 </div>
               </div>
-            </div>
-          </div>
-        </CardContainer>
+            </section>
+          </CardContainer>
 
-        {/* Table card */}
-        <div className="mt-6">
+          {/* Table */}
           <CardContainer>
             {summaries.length === 0 ? (
               <p className="text-sm text-slate-500">
-                No department data available for this year.
+                No department data available for the selected
+                year.
               </p>
             ) : (
-              <DataTable<DepartmentSummary>
-                data={summaries}
-                columns={columns}
-                initialSortKey="budget"
-                initialSortDirection="desc"
-                getRowKey={(row) =>
-                  row.department_name || "Unspecified"
-                }
-              />
+              <div className="space-y-3">
+                <div className="text-xs text-slate-600">
+                  Showing{" "}
+                  <span className="font-semibold">
+                    {summaries.length}
+                  </span>{" "}
+                  departments for fiscal year{" "}
+                  <span className="font-semibold">
+                    {yearLabel}
+                  </span>
+                  .
+                </div>
+
+                <DataTable<DepartmentSummary>
+                  data={summaries}
+                  columns={columns}
+                  initialSortKey="budget"
+                  initialSortDirection="desc"
+                  getRowKey={(row) =>
+                    row.department_name || "Unspecified"
+                  }
+                />
+              </div>
             )}
           </CardContainer>
         </div>
       </div>
-    </main>
+    </div>
   );
 }

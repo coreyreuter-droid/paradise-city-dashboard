@@ -76,7 +76,9 @@ export default function DepartmentDetailClient({
   transactions,
 }: Props) {
   const searchParams = useSearchParams();
-  const [activeVendor, setActiveVendor] = useState<string | null>(null);
+  const [activeVendor, setActiveVendor] = useState<string | null>(
+    null
+  );
 
   // Robust display name: prop → query → first dept in data → fallback label
   const displayName = useMemo(() => {
@@ -133,7 +135,6 @@ export default function DepartmentDetailClient({
     [actuals, normalizedDisplay]
   );
 
-  // All transactions for this department (across all years)
   const deptTx = useMemo(
     () =>
       transactions.filter(
@@ -153,12 +154,19 @@ export default function DepartmentDetailClient({
 
   const selectedYear = useMemo(() => {
     if (deptYears.length === 0) return undefined;
-    const param = searchParams.get("year");
-    const parsed = param ? Number(param) : NaN;
-    if (Number.isFinite(parsed) && deptYears.includes(parsed)) return parsed;
-    return deptYears[0];
+
+    const yearParam = searchParams.get("year");
+    if (!yearParam) return deptYears[0];
+
+    const parsed = Number(yearParam);
+    if (Number.isNaN(parsed)) return deptYears[0];
+
+    if (!deptYears.includes(parsed)) return deptYears[0];
+
+    return parsed;
   }, [searchParams, deptYears]);
 
+  // Multi-year budget vs actuals series
   const multiYearSeries = useMemo(() => {
     const byYear = new Map<
       number,
@@ -181,7 +189,9 @@ export default function DepartmentDetailClient({
       byYear.set(year, entry);
     });
 
-    return Array.from(byYear.values()).sort((a, b) => a.year - b.year);
+    return Array.from(byYear.values()).sort(
+      (a, b) => a.year - b.year
+    );
   }, [deptBudgets, deptActuals]);
 
   const selectedYearTotals = useMemo(() => {
@@ -222,7 +232,8 @@ export default function DepartmentDetailClient({
             .filter((t) => t.fiscal_year === selectedYear)
             .sort(
               (a, b) =>
-                new Date(b.date).getTime() - new Date(a.date).getTime()
+                new Date(b.date).getTime() -
+                new Date(a.date).getTime()
             )
         : [],
     [deptTx, selectedYear]
@@ -240,24 +251,27 @@ export default function DepartmentDetailClient({
           ? tx.vendor
           : "Unspecified";
       const amt = Number(tx.amount || 0);
-      const existing = byVendor.get(name) || { total: 0, count: 0 };
+      const existing = byVendor.get(name) || {
+        total: 0,
+        count: 0,
+      };
       existing.total += amt;
       existing.count += 1;
       byVendor.set(name, existing);
     });
 
-    const totalDeptSpend = Array.from(byVendor.values()).reduce(
+    const grandTotal = Array.from(byVendor.values()).reduce(
       (sum, v) => sum + v.total,
       0
     );
 
     return Array.from(byVendor.entries())
-      .map(([name, agg]) => ({
+      .map(([name, info]) => ({
         name,
-        total: agg.total,
-        txCount: agg.count,
+        total: info.total,
+        txCount: info.count,
         percent:
-          totalDeptSpend > 0 ? (agg.total / totalDeptSpend) * 100 : 0,
+          grandTotal === 0 ? 0 : (info.total / grandTotal) * 100,
       }))
       .sort((a, b) => b.total - a.total)
       .slice(0, 10);
@@ -283,7 +297,7 @@ export default function DepartmentDetailClient({
       byCategory.set(cat, (byCategory.get(cat) || 0) + amt);
     });
 
-    const total = Array.from(byCategory.values()).reduce(
+    const grandTotal = Array.from(byCategory.values()).reduce(
       (sum, v) => sum + v,
       0
     );
@@ -292,7 +306,8 @@ export default function DepartmentDetailClient({
       .map(([category, totalAmt]) => ({
         category,
         total: totalAmt,
-        percent: total > 0 ? (totalAmt / total) * 100 : 0,
+        percent:
+          grandTotal === 0 ? 0 : (totalAmt / grandTotal) * 100,
       }))
       .sort((a, b) => b.total - a.total)
       .slice(0, 10);
@@ -300,68 +315,71 @@ export default function DepartmentDetailClient({
 
   // Active vendor transactions (for slideout)
   const activeVendorTx = useMemo(() => {
-    if (!activeVendor) return [];
+    if (!activeVendor || !selectedYear) return [];
     return deptTxForYear.filter(
-      (t) =>
-        (t.vendor && t.vendor.trim().length > 0
-          ? t.vendor
-          : "Unspecified") === activeVendor
+      (tx) =>
+        (tx.vendor || "Unspecified") === activeVendor
     );
-  }, [activeVendor, deptTxForYear]);
+  }, [activeVendor, deptTxForYear, selectedYear]);
 
-  const transactionColumns: DataTableColumn<TransactionRow>[] = useMemo(
-    () => [
-      {
-        key: "date",
-        header: "Date",
-        sortable: true,
-        sortAccessor: (row) => row.date,
-        cellClassName: "whitespace-nowrap",
-        cell: (row) => row.date,
-      },
-      {
-        key: "vendor",
-        header: "Vendor",
-        sortable: true,
-        sortAccessor: (row) =>
-          (row.vendor || "Unspecified").toLowerCase(),
-        cellClassName: "whitespace-nowrap",
-        cell: (row) => {
-          const name = row.vendor || "Unspecified";
-          return (
-            <button
-              type="button"
-              onClick={() => setActiveVendor(name)}
-              className="whitespace-nowrap text-sky-700 hover:underline"
-            >
-              {name}
-            </button>
-          );
+  // Transactions table columns
+  const transactionColumns: DataTableColumn<TransactionRow>[] =
+    useMemo(
+      () => [
+        {
+          key: "date",
+          header: "Date",
+          sortable: true,
+          sortAccessor: (row) => row.date,
+          cellClassName: "whitespace-nowrap",
+          cell: (row) => row.date,
         },
-      },
-      {
-        key: "description",
-        header: "Description",
-        sortable: true,
-        sortAccessor: (row) =>
-          (row.description || "").toLowerCase(),
-        cellClassName: "",
-        cell: (row) => row.description || "",
-      },
-      {
-        key: "amount",
-        header: "Amount",
-        sortable: true,
-        sortAccessor: (row) => Number(row.amount || 0),
-        headerClassName: "text-right",
-        cellClassName:
-          "text-right font-mono whitespace-nowrap",
-        cell: (row) =>
-          formatCurrency(Number(row.amount || 0)),
-      },
-    ],
-    []
-  );
+        {
+          key: "vendor",
+          header: "Vendor",
+          sortable: true,
+          sortAccessor: (row) =>
+            (row.vendor || "Unspecified").toLowerCase(),
+          cellClassName: "whitespace-nowrap",
+          cell: (row) => {
+            const name = row.vendor || "Unspecified";
+            return (
+              <button
+                type="button"
+                onClick={() => setActiveVendor(name)}
+                className="whitespace-nowrap text-sky-700 hover:underline"
+              >
+                {name}
+              </button>
+            );
+          },
+        },
+        {
+          key: "description",
+          header: "Description",
+          sortable: true,
+          sortAccessor: (row) =>
+            (row.description || "").toLowerCase(),
+          cell: (row) =>
+            row.description || (
+              <span className="italic text-slate-400">
+                No description
+              </span>
+            ),
+        },
+        {
+          key: "amount",
+          header: "Amount",
+          sortable: true,
+          sortAccessor: (row) => Number(row.amount || 0),
+          headerClassName: "text-right",
+          cellClassName: "text-right font-mono",
+          cell: (row) =>
+            formatCurrency(Number(row.amount || 0)),
+        },
+      ],
+      []
+    );
 
   const vendorTotal = useMemo(
     () =>
@@ -373,7 +391,7 @@ export default function DepartmentDetailClient({
   );
 
   return (
-    <main className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-50">
       <div className="mx-auto max-w-6xl px-4 py-8">
         <SectionHeader
           eyebrow="Department overview"
@@ -389,12 +407,12 @@ export default function DepartmentDetailClient({
           }
         />
 
-        {/* BREADCRUMB: Overview › Departments › [Department] */}
-        <div className="mb-4 flex items-center gap-1 text-[11px] text-slate-500 px-1">
-          <Link
-            href="/paradise"
-            className="hover:text-slate-800"
-          >
+        {/* Breadcrumb */}
+        <nav
+          aria-label="Breadcrumb"
+          className="mb-4 flex items-center gap-1 px-1 text-[11px] text-slate-500"
+        >
+          <Link href="/paradise" className="hover:text-slate-800">
             Overview
           </Link>
           <span className="text-slate-400">›</span>
@@ -408,7 +426,7 @@ export default function DepartmentDetailClient({
           <span className="font-medium text-slate-700">
             {displayName}
           </span>
-        </div>
+        </nav>
 
         {/* Metrics */}
         <div className="mb-6 grid gap-4 md:grid-cols-4">
@@ -429,8 +447,10 @@ export default function DepartmentDetailClient({
               {formatCurrency(selectedYearTotals.actuals)}
             </div>
             <div className="mt-1 text-xs text-slate-500">
-              {formatPercent(selectedYearTotals.percentSpent)} of budget
-              spent
+              {formatPercent(
+                selectedYearTotals.percentSpent
+              )}{" "}
+              of budget spent
             </div>
           </CardContainer>
 
@@ -447,10 +467,19 @@ export default function DepartmentDetailClient({
                   : "text-slate-900"
               }`}
             >
-              {formatCurrency(selectedYearTotals.variance)}
+              {formatCurrency(
+                Math.abs(selectedYearTotals.variance)
+              )}
             </div>
             <div className="mt-1 text-xs text-slate-500">
-              Positive = under budget; negative = over budget.
+              {selectedYearTotals.variance >= 0
+                ? "Over"
+                : "Under"}{" "}
+              budget by{" "}
+              {formatPercent(
+                Math.abs(selectedYearTotals.percentSpent - 100)
+              )}
+              .
             </div>
           </CardContainer>
 
@@ -467,53 +496,52 @@ export default function DepartmentDetailClient({
         {/* Multi-year chart */}
         <div className="mb-6">
           <CardContainer>
-            <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-              <div>
-                <h2 className="text-sm font-semibold text-slate-800">
-                  Multi-year budget vs actuals
-                </h2>
-                <p className="text-xs text-slate-500">
-                  Trend of adopted budget compared to actual spending for
-                  this department.
-                </p>
+            <figure
+              role="group"
+              aria-labelledby="dept-multiyear-heading"
+              aria-describedby="dept-multiyear-desc"
+              className="space-y-3"
+            >
+              <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                  <h2
+                    id="dept-multiyear-heading"
+                    className="text-sm font-semibold text-slate-800"
+                  >
+                    Multi-year budget vs actuals
+                  </h2>
+                  <p
+                    id="dept-multiyear-desc"
+                    className="text-xs text-slate-500"
+                  >
+                    Trend of adopted budget and actual spending for{" "}
+                    {displayName} across fiscal years.
+                  </p>
+                </div>
               </div>
-            </div>
 
-            {multiYearSeries.length === 0 ? (
-              <p className="text-sm text-slate-500">
-                No budget/actuals data available for this department.
-              </p>
-            ) : (
-              <div className="h-72">
+              <div className="h-[320px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart
-                    data={multiYearSeries.map((d) => ({
-                      year: d.year,
-                      Budget: d.budget,
-                      Actuals: d.actuals,
-                    }))}
+                    data={multiYearSeries}
                     margin={{
                       top: 10,
-                      right: 16,
-                      left: 0,
+                      right: 30,
+                      left: 10,
                       bottom: 20,
                     }}
                   >
                     <CartesianGrid
                       strokeDasharray="3 3"
-                      vertical={false}
+                      stroke="#e5e7eb"
                     />
                     <XAxis
                       dataKey="year"
                       tickLine={false}
                       axisLine={false}
-                      tickMargin={8}
-                      tick={{ fontSize: 12, fill: "#64748b" }}
                     />
                     <YAxis
                       tickFormatter={formatAxisCurrency}
-                      tick={{ fontSize: 11, fill: "#64748b" }}
-                      width={80}
                       tickLine={false}
                       axisLine={false}
                     />
@@ -534,160 +562,233 @@ export default function DepartmentDetailClient({
                     />
                     <Line
                       type="monotone"
-                      dataKey="Budget"
+                      dataKey="budget"
+                      name="Budget"
                       dot={false}
                       strokeWidth={2}
                       stroke="#3b82f6"
                     />
                     <Line
                       type="monotone"
-                      dataKey="Actuals"
+                      dataKey="actuals"
+                      name="Actuals"
                       dot={false}
                       strokeWidth={2}
-                      stroke="#111827"
+                      stroke="#10b981"
                     />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
-            )}
+
+              {/* Accessible tabular representation */}
+              {multiYearSeries.length > 0 && (
+                <div className="overflow-x-auto">
+                  <table className="mt-2 min-w-full border border-slate-200 text-xs">
+                    <thead className="bg-slate-50 text-[11px] font-semibold uppercase tracking-wide text-slate-600">
+                      <tr>
+                        <th
+                          scope="col"
+                          className="px-3 py-2 text-left"
+                        >
+                          Fiscal year
+                        </th>
+                        <th
+                          scope="col"
+                          className="px-3 py-2 text-right"
+                        >
+                          Budget
+                        </th>
+                        <th
+                          scope="col"
+                          className="px-3 py-2 text-right"
+                        >
+                          Actuals
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {multiYearSeries.map((row) => (
+                        <tr
+                          key={row.year}
+                          className="border-t border-slate-200"
+                        >
+                          <th
+                            scope="row"
+                            className="px-3 py-2 text-left font-medium text-slate-800"
+                          >
+                            {row.year}
+                          </th>
+                          <td className="px-3 py-2 text-right text-slate-700">
+                            {formatCurrency(row.budget)}
+                          </td>
+                          <td className="px-3 py-2 text-right text-slate-700">
+                            {formatCurrency(row.actuals)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </figure>
           </CardContainer>
         </div>
 
-        {/* Transactions + Category + Vendor rollup */}
-        <CardContainer>
-          <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <h2 className="text-sm font-semibold text-slate-800">
+        {/* Vendors + categories + transactions */}
+        <div className="grid gap-6 lg:grid-cols-[2fr,1.2fr]">
+          {/* Left: transactions table */}
+          <CardContainer>
+            <div className="p-4">
+              <h2 className="mb-2 text-sm font-semibold text-slate-900">
                 Transactions ({selectedYear ?? "–"})
               </h2>
-              <p className="text-xs text-slate-500">
-                Category and vendor breakdowns, plus detailed transactions
-                for this department in the selected fiscal year.
-              </p>
+              {deptTxForYear.length === 0 ? (
+                <p className="text-xs text-slate-500">
+                  No transactions found for this department in the
+                  selected year.
+                </p>
+              ) : (
+                <DataTable<TransactionRow>
+                  data={deptTxForYear}
+                  columns={transactionColumns}
+                  initialSortKey="date"
+                  initialSortDirection="desc"
+                  getRowKey={(_, index) => String(index)}
+                />
+              )}
             </div>
+          </CardContainer>
+
+          {/* Right: vendors + categories */}
+          <div className="space-y-6">
+            {/* Vendors */}
+            <CardContainer>
+              <div className="p-4">
+                <h2 className="mb-2 text-sm font-semibold text-slate-900">
+                  Top vendors ({selectedYear ?? "–"})
+                </h2>
+
+                {deptVendorSummaries.length === 0 ? (
+                  <p className="text-xs text-slate-500">
+                    No vendor spending found for the selected year.
+                  </p>
+                ) : (
+                  <div className="space-y-1.5 text-xs sm:text-sm">
+                    {deptVendorSummaries.map((v) => (
+                      <div key={v.name}>
+                        <div className="flex items-center justify-between gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setActiveVendor(v.name)}
+                            className="truncate pr-2 text-left text-sky-700 hover:underline"
+                          >
+                            {v.name}
+                          </button>
+                          <span className="whitespace-nowrap font-mono">
+                            {formatCurrency(v.total)}
+                          </span>
+                        </div>
+                        <div className="mt-1 flex items-center gap-2">
+                          <div className="h-1.5 flex-1 rounded-full bg-slate-100">
+                            <div
+                              className="h-1.5 rounded-full bg-sky-500"
+                              style={{
+                                width: `${Math.max(
+                                  2,
+                                  Math.min(v.percent, 100)
+                                )}%`,
+                              }}
+                            />
+                          </div>
+                          <span className="w-12 text-right text-[11px] text-slate-500">
+                            {formatPercent(v.percent)}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </CardContainer>
+
+            {/* Categories */}
+            <CardContainer>
+              <div className="p-4">
+                <h2 className="mb-2 text-sm font-semibold text-slate-900">
+                  Spending by category ({selectedYear ?? "–"})
+                </h2>
+
+                {deptCategorySummaries.length === 0 ? (
+                  <p className="text-xs text-slate-500">
+                    No categorized spending found for the selected
+                    year.
+                  </p>
+                ) : (
+                  <div className="space-y-1.5 text-xs sm:text-sm">
+                    {deptCategorySummaries.map((c) => (
+                      <div key={c.category}>
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="truncate pr-2">
+                            {c.category}
+                          </span>
+                          <span className="whitespace-nowrap font-mono">
+                            {formatCurrency(c.total)}
+                          </span>
+                        </div>
+                        <div className="mt-1 flex items-center gap-2">
+                          <div className="h-1.5 flex-1 rounded-full bg-slate-100">
+                            <div
+                              className="h-1.5 rounded-full bg-emerald-500"
+                              style={{
+                                width: `${Math.max(
+                                  2,
+                                  Math.min(c.percent, 100)
+                                )}%`,
+                              }}
+                            />
+                          </div>
+                          <span className="w-12 text-right text-[11px] text-slate-500">
+                            {formatPercent(c.percent)}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </CardContainer>
           </div>
-
-          {/* Top categories for this department & year (from actuals) */}
-          {deptCategorySummaries.length > 0 && (
-            <div className="mb-4">
-              <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
-                Top spending categories (actuals) — {selectedYear ?? "–"}
-              </p>
-              <ul className="space-y-1.5 text-xs sm:text-sm">
-                {deptCategorySummaries.map((c) => (
-                  <li key={c.category}>
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="truncate pr-2">{c.category}</span>
-                      <span className="whitespace-nowrap font-mono">
-                        {formatCurrency(c.total)}
-                      </span>
-                    </div>
-                    <div className="mt-1 flex items-center gap-2">
-                      <div className="h-1.5 flex-1 rounded-full bg-slate-100">
-                        <div
-                          className="h-1.5 rounded-full bg-slate-700"
-                          style={{
-                            width: `${Math.max(
-                              2,
-                              Math.min(c.percent, 100)
-                            )}%`,
-                          }}
-                        />
-                      </div>
-                      <span className="w-12 text-right text-[11px] text-slate-500">
-                        {formatPercent(c.percent)}
-                      </span>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {/* Top vendors for this department & year */}
-          {deptVendorSummaries.length > 0 && (
-            <div className="mb-4">
-              <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
-                Top vendors for this department ({selectedYear ?? "–"})
-              </p>
-              <ul className="space-y-1.5 text-xs sm:text-sm">
-                {deptVendorSummaries.map((v) => (
-                  <li key={v.name}>
-                    <div className="flex items-center justify-between gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setActiveVendor(v.name)}
-                        className="truncate pr-2 text-left text-sky-700 hover:underline"
-                      >
-                        {v.name}
-                      </button>
-                      <span className="whitespace-nowrap font-mono">
-                        {formatCurrency(v.total)}
-                      </span>
-                    </div>
-                    <div className="mt-1 flex items-center gap-2">
-                      <div className="h-1.5 flex-1 rounded-full bg-slate-100">
-                        <div
-                          className="h-1.5 rounded-full bg-sky-500"
-                          style={{
-                            width: `${Math.max(
-                              2,
-                              Math.min(v.percent, 100)
-                            )}%`,
-                          }}
-                        />
-                      </div>
-                      <span className="w-12 text-right text-[11px] text-slate-500">
-                        {formatPercent(v.percent)}
-                      </span>
-                    </div>
-                    <p className="mt-0.5 text-[11px] text-slate-500">
-                      {v.txCount.toLocaleString("en-US")} transaction
-                      {v.txCount === 1 ? "" : "s"}
-                    </p>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {deptTxForYear.length === 0 ? (
-            <p className="text-sm text-slate-500">
-              No transactions found for this year.
-            </p>
-          ) : (
-            <div className="max-h-[480px] overflow-auto text-sm">
-              <DataTable<TransactionRow>
-                data={deptTxForYear}
-                columns={transactionColumns}
-                pageSize={50}
-                initialSortKey="date"
-                initialSortDirection="desc"
-                getRowKey={(row, idx) =>
-                  `${row.date}-${row.vendor}-${idx}`
-                }
-                showPagination={deptTxForYear.length > 50}
-              />
-            </div>
-          )}
-        </CardContainer>
+        </div>
       </div>
 
-      {/* Vendor slideout */}
+      {/* Vendor detail slideout */}
       {activeVendor && (
         <div className="fixed inset-0 z-[9999] flex justify-end bg-black/40 backdrop-blur-sm">
-          <div className="flex h-full w-full max-w-md flex-col bg-white shadow-2xl">
+          <div
+            className="flex h-full w-full max-w-md flex-col bg-white shadow-2xl"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="vendor-detail-heading"
+            aria-describedby="vendor-detail-subtitle"
+          >
             {/* Header */}
             <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
                   Vendor detail
                 </p>
-                <h2 className="text-sm font-semibold text-slate-900">
+                <h2
+                  id="vendor-detail-heading"
+                  className="text-sm font-semibold text-slate-900"
+                >
                   {activeVendor}
                 </h2>
-                <p className="mt-0.5 text-[11px] text-slate-500">
-                  {displayName} • Fiscal year {selectedYear ?? "–"}
+                <p
+                  id="vendor-detail-subtitle"
+                  className="mt-0.5 text-[11px] text-slate-500"
+                >
+                  {displayName} • Fiscal year{" "}
+                  {selectedYear ?? "–"}
                 </p>
               </div>
 
@@ -711,15 +812,15 @@ export default function DepartmentDetailClient({
                 </div>
                 <div className="mt-1 text-[11px] text-slate-500">
                   {activeVendorTx.length.toLocaleString("en-US")}{" "}
-                  transaction{activeVendorTx.length === 1 ? "" : "s"} for
-                  this department in {selectedYear ?? "–"}.
+                  transaction{activeVendorTx.length === 1 ? "" : "s"}{" "}
+                  for this department in {selectedYear ?? "–"}.
                 </div>
               </div>
 
               {activeVendorTx.length === 0 ? (
                 <p className="text-sm text-slate-500">
-                  No transactions found for this vendor in the selected
-                  year.
+                  No transactions found for this vendor in the
+                  selected year.
                 </p>
               ) : (
                 <div className="space-y-2">
@@ -744,16 +845,20 @@ export default function DepartmentDetailClient({
                       <tbody>
                         {activeVendorTx.map((tx, idx) => (
                           <tr
-                            key={`${tx.date}-${tx.amount}-${idx}`}
-                            className="border-b border-slate-100 align-top"
+                            key={`${tx.date}-${idx}`}
+                            className="border-b border-slate-100 last:border-0"
                           >
-                            <td className="whitespace-nowrap px-2 py-2 font-mono">
+                            <td className="px-2 py-1.5">
                               {tx.date}
                             </td>
-                            <td className="px-2 py-2">
-                              {tx.description || "—"}
+                            <td className="px-2 py-1.5">
+                              {tx.description || (
+                                <span className="italic text-slate-400">
+                                  No description
+                                </span>
+                              )}
                             </td>
-                            <td className="px-2 py-2 text-right font-mono">
+                            <td className="px-2 py-1.5 text-right font-mono">
                               {formatCurrency(
                                 Number(tx.amount || 0)
                               )}
@@ -769,6 +874,6 @@ export default function DepartmentDetailClient({
           </div>
         </div>
       )}
-    </main>
+    </div>
   );
 }

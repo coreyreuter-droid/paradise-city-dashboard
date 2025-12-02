@@ -1,11 +1,7 @@
+// components/DataTable.tsx
 "use client";
 
-import React, {
-  useMemo,
-  useState,
-  useEffect,
-  ReactNode,
-} from "react";
+import React, { useMemo, useState, ReactNode } from "react";
 
 type SortDirection = "asc" | "desc";
 
@@ -26,7 +22,10 @@ export type DataTableProps<T> = {
   pageSize?: number;
   initialSortKey?: string;
   initialSortDirection?: SortDirection;
-  showPagination?: boolean; // hide when using server-side pagination upstream
+  /**
+   * Hide pagination controls when the parent is doing server-side pagination.
+   */
+  showPagination?: boolean;
 };
 
 export default function DataTable<T>({
@@ -45,44 +44,44 @@ export default function DataTable<T>({
     useState<SortDirection>(initialSortDirection);
   const [page, setPage] = useState(1);
 
-  // Reset page when upstream filters change
-  useEffect(() => {
-    setPage(1);
-  }, [data]);
-
   const columnsByKey = useMemo(() => {
-    const map: Record<string, DataTableColumn<T>> = {};
-    columns.forEach((c) => {
-      map[c.key] = c;
-    });
+    const map = new Map<string, DataTableColumn<T>>();
+    for (const col of columns) {
+      map.set(col.key, col);
+    }
     return map;
   }, [columns]);
 
   const sorted = useMemo(() => {
-    if (!sortKey) return data;
+    if (!sortKey) return [...data];
 
-    const col = columnsByKey[sortKey];
-    if (!col || !col.sortable || !col.sortAccessor) return data;
+    const col = columnsByKey.get(sortKey);
+    if (!col || !col.sortable) return [...data];
 
     const dirMultiplier = sortDirection === "desc" ? -1 : 1;
 
     return [...data].sort((a, b) => {
-      const av = col.sortAccessor!(a);
-      const bv = col.sortAccessor!(b);
+      const avRaw =
+        col.sortAccessor?.(a) ?? (a as any)[sortKey as keyof T];
+      const bvRaw =
+        col.sortAccessor?.(b) ?? (b as any)[sortKey as keyof T];
 
-      if (av == null && bv == null) return 0;
-      if (av == null) return 1;
-      if (bv == null) return -1;
+      // Handle null/undefined
+      if (avRaw == null && bvRaw == null) return 0;
+      if (avRaw == null) return 1;
+      if (bvRaw == null) return -1;
 
-      if (typeof av === "number" && typeof bv === "number") {
-        return (av - bv) * dirMultiplier;
-      }
+      const av =
+        typeof avRaw === "number"
+          ? avRaw
+          : String(avRaw).toLowerCase();
+      const bv =
+        typeof bvRaw === "number"
+          ? bvRaw
+          : String(bvRaw).toLowerCase();
 
-      const as = String(av).toLowerCase();
-      const bs = String(bv).toLowerCase();
-
-      if (as < bs) return -1 * dirMultiplier;
-      if (as > bs) return 1 * dirMultiplier;
+      if (av < bv) return -1 * dirMultiplier;
+      if (av > bv) return 1 * dirMultiplier;
       return 0;
     });
   }, [data, sortKey, sortDirection, columnsByKey]);
@@ -99,16 +98,18 @@ export default function DataTable<T>({
   const handleHeaderClick = (key: string, col: DataTableColumn<T>) => {
     if (!col.sortable) return;
 
-    if (sortKey === key) {
-      setSortDirection((prev) =>
-        prev === "asc" ? "desc" : "asc"
-      );
-    } else {
-      setSortKey(key);
-      setSortDirection("asc");
-    }
-
     setPage(1);
+    setSortKey((prevKey) => {
+      if (prevKey !== key) {
+        setSortDirection("asc");
+        return key;
+      }
+
+      setSortDirection((prevDir) =>
+        prevDir === "asc" ? "desc" : "asc"
+      );
+      return key;
+    });
   };
 
   const renderSortIcon = (key: string) => {
@@ -120,9 +121,23 @@ export default function DataTable<T>({
       );
     }
 
+    if (sortDirection === "asc") {
+      return (
+        <span
+          aria-hidden="true"
+          className="ml-1 text-[10px] text-slate-600"
+        >
+          ▲
+        </span>
+      );
+    }
+
     return (
-      <span className="ml-1 text-[10px] text-slate-500">
-        {sortDirection === "asc" ? "▲" : "▼"}
+      <span
+        aria-hidden="true"
+        className="ml-1 text-[10px] text-slate-600"
+      >
+        ▼
       </span>
     );
   };
@@ -132,56 +147,55 @@ export default function DataTable<T>({
       <div className="overflow-x-auto">
         <div className="max-h-[70vh] overflow-auto">
           <table className="min-w-full border-collapse text-left text-sm">
-            <thead className="sticky top-0 z-10 border-b border-slate-200 bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <thead className="sticky top-0 z-10 border-b border-slate-200 bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-600">
               <tr>
-                {columns.map((col) => (
-                  <th
-                    key={col.key}
-                    className={[
-                      "px-3 py-2",
-                      col.headerClassName ?? "",
-                      col.sortable ? "cursor-pointer select-none" : "",
-                    ]
-                      .filter(Boolean)
-                      .join(" ")}
-                    onClick={() =>
-                      handleHeaderClick(col.key, col)
-                    }
-                  >
-                    <span className="inline-flex items-center">
-                      {col.header}
-                      {col.sortable && renderSortIcon(col.key)}
-                    </span>
-                  </th>
-                ))}
+                {columns.map((col) => {
+                  const isSorted = sortKey === col.key;
+                  const ariaSort: "none" | "ascending" | "descending" =
+                    !col.sortable || !isSorted
+                      ? "none"
+                      : sortDirection === "asc"
+                      ? "ascending"
+                      : "descending";
+
+                  const baseClasses =
+                    "px-3 py-2 align-bottom text-[11px]";
+                  const className = [
+                    baseClasses,
+                    col.headerClassName ?? "",
+                    col.sortable ? "whitespace-nowrap" : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" ");
+
+                  return (
+                    <th
+                      key={col.key}
+                      scope="col"
+                      className={className}
+                      aria-sort={ariaSort}
+                    >
+                      {col.sortable ? (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleHeaderClick(col.key, col)
+                          }
+                          className="inline-flex items-center gap-1 text-left"
+                        >
+                          <span>{col.header}</span>
+                          {renderSortIcon(col.key)}
+                        </button>
+                      ) : (
+                        col.header
+                      )}
+                    </th>
+                  );
+                })}
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
-              {paged.map((row, idx) => (
-                <tr
-                  key={
-                    getRowKey
-                      ? getRowKey(row, idx)
-                      : String(idx)
-                  }
-                  className="odd:bg-slate-50/40 hover:bg-sky-50"
-                >
-                  {columns.map((col) => (
-                    <td
-                      key={col.key}
-                      className={[
-                        "px-3 py-2 align-top",
-                        col.cellClassName ?? "",
-                      ]
-                        .filter(Boolean)
-                        .join(" ")}
-                    >
-                      {col.cell(row)}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-              {total === 0 && (
+            <tbody>
+              {paged.length === 0 ? (
                 <tr>
                   <td
                     colSpan={columns.length}
@@ -190,6 +204,33 @@ export default function DataTable<T>({
                     No records to display.
                   </td>
                 </tr>
+              ) : (
+                paged.map((row, rowIndex) => {
+                  const key =
+                    getRowKey?.(row, rowIndex) ??
+                    String(rowIndex);
+
+                  return (
+                    <tr
+                      key={key}
+                      className="border-b border-slate-100 last:border-0 odd:bg-white even:bg-slate-50/40"
+                    >
+                      {columns.map((col) => (
+                        <td
+                          key={col.key}
+                          className={[
+                            "px-3 py-2 align-top text-xs text-slate-700",
+                            col.cellClassName ?? "",
+                          ]
+                            .filter(Boolean)
+                            .join(" ")}
+                        >
+                          {col.cell(row)}
+                        </td>
+                      ))}
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
@@ -199,52 +240,37 @@ export default function DataTable<T>({
       {showPagination && total > 0 && (
         <div className="mt-3 flex items-center justify-between text-xs text-slate-600">
           <div>
-            Showing{" "}
-            <span className="font-mono">
-              {total === 0
-                ? 0
-                : (currentPage - 1) * pageSize + 1}
-            </span>{" "}
-            –{" "}
-            <span className="font-mono">
-              {Math.min(currentPage * pageSize, total)}
-            </span>{" "}
+            Page{" "}
+            <span className="font-semibold">{currentPage}</span>{" "}
             of{" "}
-            <span className="font-mono">
-              {total.toLocaleString("en-US")}
-            </span>{" "}
-            rows
+            <span className="font-semibold">{totalPages}</span>{" "}
+            • Showing{" "}
+            <span className="font-semibold">{paged.length}</span>{" "}
+            of{" "}
+            <span className="font-semibold">{total}</span> records
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
             <button
               type="button"
-              disabled={currentPage <= 1}
               onClick={() =>
                 setPage((p) => Math.max(1, p - 1))
               }
+              disabled={currentPage <= 1}
               className="rounded-md border border-slate-300 px-2 py-1 text-xs disabled:opacity-40"
+              aria-label="Previous page"
             >
               Previous
             </button>
-            <span>
-              Page{" "}
-              <span className="font-semibold">
-                {currentPage}
-              </span>{" "}
-              of{" "}
-              <span className="font-semibold">
-                {totalPages}
-              </span>
-            </span>
             <button
               type="button"
-              disabled={currentPage >= totalPages}
               onClick={() =>
                 setPage((p) =>
                   Math.min(totalPages, p + 1)
                 )
               }
+              disabled={currentPage >= totalPages}
               className="rounded-md border border-slate-300 px-2 py-1 text-xs disabled:opacity-40"
+              aria-label="Next page"
             >
               Next
             </button>

@@ -7,18 +7,21 @@ import { useSearchParams } from "next/navigation";
 import CardContainer from "@/components/CardContainer";
 import BudgetCharts from "@/components/Budget/BudgetCharts";
 import type { DepartmentSummary } from "@/components/Budget/BudgetClient";
+import SectionHeader from "@/components/SectionHeader";
+import FiscalYearSelect from "@/components/FiscalYearSelect";
+import ParadiseHomeKpiStrip from "@/components/City/ParadiseHomeKpiStrip";
+import ParadiseHomeMultiYearChart from "@/components/City/ParadiseHomeMultiYearChart";
+import DepartmentsGrid from "@/components/City/ParadiseHomeDepartmentsGrid";
+import TopVendorsCard from "@/components/City/ParadiseHomeTopVendorsCard";
+import RecentTransactionsCard from "@/components/City/ParadiseHomeRecentTransactionsCard";
+import { CITY_CONFIG } from "@/lib/cityConfig";
 import type { PortalSettings } from "@/lib/queries";
 import type {
   BudgetRow,
   ActualRow,
   TransactionRow,
 } from "@/lib/types";
-import KpiStrip from "@/components/City/ParadiseHomeKpiStrip";
-import TopVendorsCard from "@/components/City/ParadiseHomeTopVendorsCard";
-import RecentTransactionsCard from "@/components/City/ParadiseHomeRecentTransactionsCard";
-import DepartmentsGrid from "@/components/City/ParadiseHomeDepartmentsGrid";
-import MultiYearBudgetActualsChart from "@/components/City/ParadiseHomeMultiYearChart";
-import FiscalYearSelect from "@/components/FiscalYearSelect";
+import { formatCurrency } from "@/lib/format";
 
 type Props = {
   budgets: BudgetRow[];
@@ -28,8 +31,8 @@ type Props = {
   portalSettings: PortalSettings | null;
 };
 
-function toYear(v: unknown): number | null {
-  const n = Number(v);
+function safeYear(value: unknown): number | null {
+  const n = Number(value);
   return Number.isFinite(n) ? n : null;
 }
 
@@ -42,37 +45,54 @@ export default function ParadiseHomeClient({
 }: Props) {
   const searchParams = useSearchParams();
 
+  // Canonical list of fiscal years
   const years = useMemo(() => {
     const set = new Set<number>();
-    availableYears.forEach((y) => {
-      if (Number.isFinite(y)) set.add(y);
-    });
-    budgets.forEach((b) => {
-      const y = toYear(b.fiscal_year);
-      if (y !== null) set.add(y);
-    });
-    actuals.forEach((a) => {
-      const y = toYear(a.fiscal_year);
-      if (y !== null) set.add(y);
-    });
-    return Array.from(set).sort((a, b) => b - a);
-  }, [availableYears, budgets, actuals]);
 
+    availableYears.forEach((y) => {
+      const n = Number(y);
+      if (Number.isFinite(n)) set.add(n);
+    });
+
+    budgets.forEach((b) => {
+      const y = safeYear(b.fiscal_year);
+      if (y !== null) set.add(y);
+    });
+
+    actuals.forEach((a) => {
+      const y = safeYear(a.fiscal_year);
+      if (y !== null) set.add(y);
+    });
+
+    transactions.forEach((t) => {
+      const y = safeYear(t.fiscal_year);
+      if (y !== null) set.add(y);
+    });
+
+    return Array.from(set).sort((a, b) => b - a);
+  }, [availableYears, budgets, actuals, transactions]);
+
+  // Selected year via ?year= or default to most recent
   const selectedYear = useMemo(() => {
-    if (years.length === 0) return undefined;
+    if (!years || years.length === 0) return undefined;
     const param = searchParams.get("year");
-    const parsed = param ? Number(param) : NaN;
-    if (Number.isFinite(parsed) && years.includes(parsed)) {
-      return parsed;
-    }
+    if (!param) return years[0];
+
+    const parsed = Number(param);
+    if (!Number.isFinite(parsed)) return years[0];
+    if (years.includes(parsed)) return parsed;
     return years[0];
   }, [searchParams, years]);
 
+  const yearLabel =
+    selectedYear ?? (years.length > 0 ? years[0] : undefined);
+
+  // Filter to selected year
   const budgetsForYear = useMemo(
     () =>
-      selectedYear
+      selectedYear != null
         ? budgets.filter(
-            (b) => toYear(b.fiscal_year) === selectedYear
+            (b) => safeYear(b.fiscal_year) === selectedYear
           )
         : [],
     [budgets, selectedYear]
@@ -80,53 +100,66 @@ export default function ParadiseHomeClient({
 
   const actualsForYear = useMemo(
     () =>
-      selectedYear
+      selectedYear != null
         ? actuals.filter(
-            (a) => toYear(a.fiscal_year) === selectedYear
+            (a) => safeYear(a.fiscal_year) === selectedYear
           )
         : [],
     [actuals, selectedYear]
   );
 
-  const transactionsForYear = useMemo(
+  const txForYear = useMemo(
     () =>
-      selectedYear
+      selectedYear != null
         ? transactions.filter(
-            (t) => toYear(t.fiscal_year) === selectedYear
+            (t) => safeYear(t.fiscal_year) === selectedYear
           )
         : [],
     [transactions, selectedYear]
   );
 
-  const departments: DepartmentSummary[] = useMemo(() => {
+  // Aggregate per-department for this year
+  const departmentsForYear: DepartmentSummary[] = useMemo(() => {
     if (!selectedYear) return [];
 
     const budgetByDept = new Map<string, number>();
+    const actualsByDept = new Map<string, number>();
+
     budgetsForYear.forEach((row) => {
       const dept = row.department_name || "Unspecified";
       const amt = Number(row.amount || 0);
-      budgetByDept.set(dept, (budgetByDept.get(dept) || 0) + amt);
+      budgetByDept.set(
+        dept,
+        (budgetByDept.get(dept) || 0) + amt
+      );
     });
 
-    const actualsByDept = new Map<string, number>();
     actualsForYear.forEach((row) => {
       const dept = row.department_name || "Unspecified";
       const amt = Number(row.amount || 0);
-      actualsByDept.set(dept, (actualsByDept.get(dept) || 0) + amt);
+      actualsByDept.set(
+        dept,
+        (actualsByDept.get(dept) || 0) + amt
+      );
     });
 
-    const rows: DepartmentSummary[] = Array.from(
-      new Set([...budgetByDept.keys(), ...actualsByDept.keys()])
-    ).map((dept) => {
+    const allDepts = Array.from(
+      new Set([
+        ...budgetByDept.keys(),
+        ...actualsByDept.keys(),
+      ])
+    );
+
+    const rows: DepartmentSummary[] = allDepts.map((dept) => {
       const budget = budgetByDept.get(dept) || 0;
-      const actual = actualsByDept.get(dept) || 0;
+      const actuals = actualsByDept.get(dept) || 0;
       const percentSpent =
-        budget > 0 ? (actual / budget) * 100 : 0;
+        budget === 0 ? 0 : (actuals / budget) * 100;
 
       return {
         department_name: dept,
         budget,
-        actuals: actual,
+        actuals,
         percentSpent,
       };
     });
@@ -135,91 +168,117 @@ export default function ParadiseHomeClient({
     return rows;
   }, [budgetsForYear, actualsForYear, selectedYear]);
 
-  const totalBudget = departments.reduce(
-    (sum, d) => sum + d.budget,
-    0
-  );
-  const totalActuals = departments.reduce(
-    (sum, d) => sum + d.actuals,
-    0
-  );
-  const variance = totalBudget - totalActuals;
-  const execPct =
-    totalBudget === 0 ? 0 : (totalActuals / totalBudget) * 100;
+  // KPI rollups
+  const {
+    totalBudget,
+    totalActuals,
+    variance,
+    execPct,
+    deptCount,
+    txCount,
+    topDepartment,
+  } = useMemo(() => {
+    const totalBudget = departmentsForYear.reduce(
+      (sum, d) => sum + d.budget,
+      0
+    );
+    const totalActuals = departmentsForYear.reduce(
+      (sum, d) => sum + d.actuals,
+      0
+    );
+    const variance = totalActuals - totalBudget;
+    const execPct =
+      totalBudget === 0
+        ? 0
+        : (totalActuals / totalBudget) * 100;
 
-  const topDepartment =
-    departments.length > 0
-      ? departments[0].department_name || "Unspecified"
-      : null;
+    const deptCount = departmentsForYear.length;
+    const txCount = txForYear.length;
 
-  const yearLabel =
-    selectedYear ?? (years.length > 0 ? years[0] : undefined);
+    let topDepartment: string | null = null;
+    if (departmentsForYear.length > 0) {
+      const sorted = [...departmentsForYear].sort(
+        (a, b) => b.actuals - a.actuals
+      );
+      topDepartment = sorted[0].department_name;
+    }
 
-  // Branding
-  const cityName =
-    portalSettings?.city_name ?? "Your City";
-  const tagline =
-    portalSettings?.tagline ??
-    "Financial Transparency Portal";
-  const heroMessage =
-    portalSettings?.hero_message ??
-    "Explore how public dollars are budgeted and spent.";
+    return {
+      totalBudget,
+      totalActuals,
+      variance,
+      execPct,
+      deptCount,
+      txCount,
+      topDepartment,
+    };
+  }, [departmentsForYear, txForYear]);
+
   const accentColor =
-    portalSettings?.accent_color ?? "#0ea5e9";
+    portalSettings?.primary_color ||
+    portalSettings?.accent_color ||
+    CITY_CONFIG.accentColor ||
+    CITY_CONFIG.primaryColor;
 
-  const logoUrl = portalSettings?.logo_url ?? null;
-  const heroImageUrl = portalSettings?.hero_image_url ?? null;
-  const sealUrl = portalSettings?.seal_url ?? null;
+  const cityName =
+    portalSettings?.city_name ||
+    CITY_CONFIG.displayName ||
+    "Your City";
 
-  const heroBackground = "#f8fafc";
-  const heroOverlay = "rgba(0,0,0,0.08)";
-  const textColor = "#0f172a";
+  const tagline =
+    portalSettings?.tagline ||
+    CITY_CONFIG.tagline ||
+    "Financial Transparency Portal";
+
+  const heroMessage =
+    portalSettings?.hero_message ||
+    "Explore how public dollars are budgeted and spent.";
+
+  const logoUrl = portalSettings?.logo_url || null;
+  const heroImageUrl =
+    portalSettings?.hero_image_url || null;
+  const sealUrl = portalSettings?.seal_url || null;
+
+  const heroBackground = "#0f172a";
+  const heroOverlay = "rgba(15,23,42,0.85)";
 
   return (
-    <main className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-50">
       <div className="mx-auto max-w-6xl px-3 py-6 space-y-6 sm:px-4 sm:py-8">
-
         {/* HERO */}
         <section
           className="relative overflow-hidden rounded-2xl border border-slate-200 shadow-sm px-4 py-6 sm:px-6 sm:py-8 md:px-8 md:py-10"
-          style={{ backgroundColor: heroBackground, color: textColor }}
+          style={{ backgroundColor: heroBackground }}
         >
           {heroImageUrl && (
-            <div className="absolute inset-0 pointer-events-none opacity-20">
+            <div className="pointer-events-none absolute inset-0 opacity-25">
               <img
                 src={heroImageUrl}
                 alt=""
                 className="h-full w-full object-cover"
               />
+              <div
+                className="absolute inset-0"
+                style={{ backgroundColor: heroOverlay }}
+              />
             </div>
           )}
 
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{ backgroundColor: heroOverlay }}
-          />
-
-          <div className="relative z-10 flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-            {/* Left */}
-            <div className="max-w-xl space-y-3">
-              <div className="inline-flex items-center gap-2 rounded-full bg-white/70 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.15em] text-slate-700 border border-slate-300 sm:text-[11px]">
-                <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500" />
+          <div className="relative flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+            {/* Left: text + CTAs */}
+            <div className="max-w-xl text-slate-50">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-300">
                 {tagline}
-              </div>
-
-              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold leading-tight">
-                {cityName}{" "}
-                <span className="font-normal text-slate-600">
-                  Financial Transparency
-                </span>
+              </p>
+              <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">
+                {cityName} Financial Transparency
               </h1>
-
-              <p className="text-sm md:text-base text-slate-700">
+              <p className="mt-2 text-sm text-slate-100/80">
                 {heroMessage}
               </p>
 
               {yearLabel && (
-                <p className="text-[11px] sm:text-xs text-slate-600">
+                <p className="mt-1 text-xs text-slate-200/80">
                   Showing data for fiscal year{" "}
                   <span className="font-semibold">
                     {yearLabel}
@@ -228,185 +287,185 @@ export default function ParadiseHomeClient({
                 </p>
               )}
 
-              <div className="mt-3 flex flex-wrap gap-2">
+              <div className="mt-4 flex flex-wrap gap-2">
                 <Link
                   href="/paradise/analytics"
-                  className="inline-flex items-center justify-center rounded-full px-4 py-2 text-[11px] sm:text-xs font-semibold uppercase tracking-wide shadow-sm hover:opacity-90 transition"
-                  style={{ backgroundColor: accentColor, color: "#ffffff" }}
+                  className="inline-flex items-center justify-center rounded-full px-4 py-2 text-[11px] font-semibold uppercase tracking-wide shadow-sm hover:opacity-90"
+                  style={{
+                    backgroundColor: accentColor,
+                    color: "#ffffff",
+                  }}
                 >
                   View analytics
                 </Link>
                 <Link
                   href="/paradise/budget"
-                  className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-4 py-2 text-[11px] sm:text-xs font-semibold uppercase tracking-wide text-slate-700 hover:bg-slate-100"
+                  className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white/90 px-4 py-2 text-[11px] font-semibold uppercase tracking-wide text-slate-700 hover:bg-white"
                 >
                   View budget
                 </Link>
                 <Link
                   href="/paradise/departments"
-                  className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-4 py-2 text-[11px] sm:text-xs font-semibold uppercase tracking-wide text-slate-700 hover:bg-slate-100"
+                  className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white/90 px-4 py-2 text-[11px] font-semibold uppercase tracking-wide text-slate-700 hover:bg-white"
                 >
                   Departments
                 </Link>
                 <Link
                   href="/paradise/transactions"
-                  className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-4 py-2 text-[11px] sm:text-xs font-semibold uppercase tracking-wide text-slate-700 hover:bg-slate-100"
+                  className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white/90 px-4 py-2 text-[11px] font-semibold uppercase tracking-wide text-slate-700 hover:bg-white"
                 >
                   Transactions
                 </Link>
               </div>
             </div>
 
-            {/* Right: logo + seal + year */}
+            {/* Right: logo/seal + FY select */}
             <div className="flex w-full max-w-xs flex-col items-end gap-3 md:w-auto">
               <div className="flex items-center gap-3">
                 {logoUrl && (
-                  <div className="flex h-14 w-24 items-center justify-center rounded-xl border border-slate-300 bg-white px-3 shadow-sm sm:h-16 sm:w-28">
+                  <div className="flex h-12 w-20 items-center justify-center rounded-xl border border-slate-300 bg-white px-3 shadow-sm">
                     <img
                       src={logoUrl}
                       alt={`${cityName} logo`}
-                      className="max-h-12 max-w-full object-contain"
+                      className="max-h-10 max-w-full object-contain"
                     />
                   </div>
                 )}
                 {sealUrl && (
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-300 bg-white shadow-sm sm:h-12 sm:w-12">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full border border-slate-300 bg-white shadow-sm">
                     <img
                       src={sealUrl}
                       alt={`${cityName} seal`}
-                      className="max-h-10 max-w-10 object-contain rounded-full"
+                      className="h-10 w-10 rounded-full object-contain"
                     />
                   </div>
                 )}
               </div>
 
-              {years.length > 0 && (
-                <div className="w-36 sm:w-40">
+              <div className="rounded-xl bg-white/95 px-3 py-2 text-xs text-slate-800 shadow-sm">
+                <div className="mb-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                  Fiscal year
+                </div>
+                {years.length > 0 ? (
                   <FiscalYearSelect
                     options={years}
                     label="Fiscal year"
                   />
-                </div>
-              )}
+                ) : (
+                  <div className="text-[11px] text-slate-500">
+                    No years available
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </section>
 
-        {/* BREADCRUMBS – Overview is root */}
-        <div className="flex items-center gap-1 text-[11px] text-slate-500 px-1">
-          <span className="font-medium text-slate-700">
-            Overview
-          </span>
-        </div>
+        {/* SNAPSHOT HEADER */}
+        <SectionHeader
+          as="h2"
+          eyebrow="Overview"
+          title="Budget & spending snapshot"
+          description="Citywide totals, department comparison, multi-year trends, and recent transactions for the selected fiscal year."
+        />
 
-        {/* KPI STRIP */}
+        {/* KPI Strip */}
         <CardContainer>
-          <div className="space-y-3">
-            <KpiStrip
-              totalBudget={totalBudget}
-              totalActuals={totalActuals}
-              variance={variance}
-              execPct={execPct}
-              deptCount={departments.length}
-              txCount={transactionsForYear.length}
-              topDepartment={topDepartment}
-              accentColor={accentColor}
-              yearLabel={yearLabel}
-            />
-            {yearLabel && (
-              <p className="text-xs text-slate-500">
-                Citywide totals for fiscal year{" "}
-                <span className="font-semibold">
-                  {yearLabel}
-                </span>
-                .
-              </p>
-            )}
-          </div>
+          {yearLabel && (
+            <div className="mb-3 text-xs text-slate-600">
+              Citywide totals for fiscal year{" "}
+              <span className="font-semibold">
+                {yearLabel}
+              </span>
+              .
+            </div>
+          )}
+
+          <ParadiseHomeKpiStrip
+            totalBudget={totalBudget}
+            totalActuals={totalActuals}
+            variance={variance}
+            execPct={execPct}
+            deptCount={deptCount}
+            txCount={txCount}
+            topDepartment={topDepartment}
+            accentColor={accentColor || undefined}
+          />
         </CardContainer>
 
-        {/* Charts */}
-        <div className="grid gap-6 lg:grid-cols-2">
+        {/* Row 1: Budget vs actuals by department + multi-year chart */}
+        <div className="mt-2 grid gap-6 lg:grid-cols-[2fr,1.3fr]">
           <CardContainer>
-            <div className="space-y-3">
-              <h2 className="text-sm font-semibold text-slate-900">
-                Budget vs actuals by department
-              </h2>
-              <p className="text-xs text-slate-500">
-                Top departments by budget and their corresponding
-                spending.
-              </p>
-              <BudgetCharts
-                year={yearLabel ?? new Date().getFullYear()}
-                departments={departments}
-              />
+            <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <h3 className="text-sm font-semibold text-slate-800">
+                  Budget vs actuals by department
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Top departments by budget and their corresponding spending for{" "}
+                  {yearLabel ?? "the selected year"}.
+                </p>
+              </div>
             </div>
+            <BudgetCharts
+              year={yearLabel ?? new Date().getFullYear()}
+              departments={departmentsForYear}
+            />
           </CardContainer>
 
           <CardContainer>
-            <div className="space-y-3">
-              <h2 className="text-sm font-semibold text-slate-900">
-                Multi-year budget vs actuals
-              </h2>
-              <p className="text-xs text-slate-500">
-                Citywide budget and actuals across recent years.
-              </p>
-              <MultiYearBudgetActualsChart
-                years={years}
-                budgets={budgets}
-                actuals={actuals}
-              />
-            </div>
+            <h3 className="mb-2 text-sm font-semibold text-slate-800">
+              Multi-year budget vs actuals
+            </h3>
+            <p className="mb-3 text-xs text-slate-500">
+              Citywide budget and actual spending across recent fiscal years.
+            </p>
+            <ParadiseHomeMultiYearChart
+              budgets={budgets}
+              actuals={actuals}
+            />
           </CardContainer>
         </div>
 
-        {/* Departments / Vendors */}
-        <div className="grid gap-6 xl:grid-cols-3">
-          <div className="space-y-4 xl:col-span-2">
-            <CardContainer>
+        {/* Row 2: Recent transactions + departments snapshot + top vendors */}
+        <div className="mt-2 grid gap-6 lg:grid-cols-[2fr,1.3fr]">
+          <CardContainer>
+            <RecentTransactionsCard
+              year={yearLabel}
+              transactions={txForYear}
+            />
+          </CardContainer>
+
+          <CardContainer>
+            <div className="space-y-4">
               <DepartmentsGrid
                 year={yearLabel}
-                departments={departments}
+                departments={departmentsForYear}
               />
-            </CardContainer>
-          </div>
-
-          <div className="space-y-4">
-            <CardContainer>
               <TopVendorsCard
                 year={yearLabel}
-                transactions={transactionsForYear}
+                transactions={txForYear}
               />
-            </CardContainer>
-            <CardContainer>
-              <RecentTransactionsCard
-                year={yearLabel}
-                transactions={transactionsForYear}
-              />
-            </CardContainer>
-          </div>
+            </div>
+          </CardContainer>
         </div>
-
-        {/* Info + footer */}
-        <CardContainer>
-          <div className="space-y-2">
-            <h2 className="text-sm font-semibold text-slate-900">
-              About this financial transparency portal
-            </h2>
-            <p className="text-xs text-slate-500">
-              This site provides a public view into the city’s adopted
-              budget, actual spending, and transaction-level detail.
-            </p>
-          </div>
-        </CardContainer>
 
         <div className="pb-4 pt-1 text-center text-[11px] text-slate-400">
           Powered by{" "}
           <span className="font-semibold text-slate-600">
             CiviPortal
           </span>
+          {" · "}
+          <span className="text-slate-500">
+            {cityName} –{" "}
+            {totalBudget > 0
+              ? `Managing ${formatCurrency(
+                  totalBudget
+                )} in adopted budget`
+              : "Awaiting budget data"}
+          </span>
         </div>
       </div>
-    </main>
+    </div>
   );
 }
