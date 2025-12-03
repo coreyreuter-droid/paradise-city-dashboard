@@ -16,6 +16,7 @@ import DataTable, {
   DataTableColumn,
 } from "../DataTable";
 import { formatCurrency, formatPercent } from "@/lib/format";
+import { cityHref } from "@/lib/cityRouting";
 
 type DepartmentSummary = {
   department_name: string;
@@ -209,8 +210,10 @@ export default function DepartmentsDashboardClient({
         cellClassName: "whitespace-nowrap",
         cell: (dept: DepartmentSummary) => (
           <Link
-            href={`/paradise/departments/${encodeURIComponent(
-              dept.department_name || "Unspecified"
+            href={`${cityHref(
+              `/departments/${encodeURIComponent(
+                dept.department_name || "Unspecified"
+              )}`
             )}${yearParam}`}
             className="font-medium text-sky-700 hover:underline"
           >
@@ -309,7 +312,7 @@ export default function DepartmentsDashboardClient({
           <ol className="flex items-center gap-1">
             <li>
               <Link
-                href="/paradise"
+                href={cityHref("/")}
                 className="hover:text-slate-800"
               >
                 Overview

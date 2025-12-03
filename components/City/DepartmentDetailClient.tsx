@@ -25,6 +25,7 @@ import FiscalYearSelect from "../FiscalYearSelect";
 import DataTable, {
   DataTableColumn,
 } from "../DataTable";
+import { cityHref } from "@/lib/cityRouting";
 
 type Props = {
   departmentName?: string;
@@ -76,9 +77,7 @@ export default function DepartmentDetailClient({
   transactions,
 }: Props) {
   const searchParams = useSearchParams();
-  const [activeVendor, setActiveVendor] = useState<string | null>(
-    null
-  );
+  const [activeVendor, setActiveVendor] = useState<string | null>(null);
 
   // Robust display name: prop → query → first dept in data → fallback label
   const displayName = useMemo(() => {
@@ -189,9 +188,7 @@ export default function DepartmentDetailClient({
       byYear.set(year, entry);
     });
 
-    return Array.from(byYear.values()).sort(
-      (a, b) => a.year - b.year
-    );
+    return Array.from(byYear.values()).sort((a, b) => a.year - b.year);
   }, [deptBudgets, deptActuals]);
 
   const selectedYearTotals = useMemo(() => {
@@ -412,12 +409,15 @@ export default function DepartmentDetailClient({
           aria-label="Breadcrumb"
           className="mb-4 flex items-center gap-1 px-1 text-[11px] text-slate-500"
         >
-          <Link href="/paradise" className="hover:text-slate-800">
+          <Link
+            href={cityHref("/")}
+            className="hover:text-slate-800"
+          >
             Overview
           </Link>
           <span className="text-slate-400">›</span>
           <Link
-            href="/paradise/departments"
+            href={cityHref("/departments")}
             className="hover:text-slate-800"
           >
             Departments
@@ -447,10 +447,8 @@ export default function DepartmentDetailClient({
               {formatCurrency(selectedYearTotals.actuals)}
             </div>
             <div className="mt-1 text-xs text-slate-500">
-              {formatPercent(
-                selectedYearTotals.percentSpent
-              )}{" "}
-              of budget spent
+              {formatPercent(selectedYearTotals.percentSpent)} of
+              budget spent
             </div>
           </CardContainer>
 
@@ -467,9 +465,7 @@ export default function DepartmentDetailClient({
                   : "text-slate-900"
               }`}
             >
-              {formatCurrency(
-                Math.abs(selectedYearTotals.variance)
-              )}
+              {formatCurrency(Math.abs(selectedYearTotals.variance))}
             </div>
             <div className="mt-1 text-xs text-slate-500">
               {selectedYearTotals.variance >= 0
@@ -787,8 +783,7 @@ export default function DepartmentDetailClient({
                   id="vendor-detail-subtitle"
                   className="mt-0.5 text-[11px] text-slate-500"
                 >
-                  {displayName} • Fiscal year{" "}
-                  {selectedYear ?? "–"}
+                  {displayName} • Fiscal year {selectedYear ?? "–"}
                 </p>
               </div>
 

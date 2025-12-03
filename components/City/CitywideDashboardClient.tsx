@@ -25,6 +25,7 @@ import SectionHeader from "../SectionHeader";
 import FiscalYearSelect from "../FiscalYearSelect";
 import BudgetByDepartmentChart from "../Analytics/BudgetByDepartmentChart";
 import { formatCurrency, formatPercent } from "@/lib/format";
+import { cityHref } from "@/lib/cityRouting";
 
 const BUDGET_COLOR = "#334155";
 const ACTUAL_COLOR = "#0f766e";
@@ -113,7 +114,10 @@ const buildDistribution = (
 };
 
 const safeFiscalYear = (
-  value: BudgetRow["fiscal_year"] | ActualRow["fiscal_year"] | TransactionRow["fiscal_year"]
+  value:
+    | BudgetRow["fiscal_year"]
+    | ActualRow["fiscal_year"]
+    | TransactionRow["fiscal_year"]
 ): number | null => {
   if (typeof value === "number") return value;
   const parsed = Number(value);
@@ -171,86 +175,91 @@ export default function CitywideDashboardClient({
     selectedYear ?? (years.length > 0 ? years[0] : new Date().getFullYear());
 
   // Filter budgets + actuals to selected year
-  const { deptSummaries, totalBudget, totalActuals, budgetsForYear, actualsForYear } =
-    useMemo(() => {
-      if (!selectedYear) {
+  const {
+    deptSummaries,
+    totalBudget,
+    totalActuals,
+    budgetsForYear,
+    actualsForYear,
+  } = useMemo(() => {
+    if (!selectedYear) {
+      return {
+        deptSummaries: [] as DepartmentSummary[],
+        totalBudget: 0,
+        totalActuals: 0,
+        budgetsForYear: [] as BudgetRow[],
+        actualsForYear: [] as ActualRow[],
+      };
+    }
+
+    const budgetsForYear = budgets.filter(
+      (b) => safeFiscalYear(b.fiscal_year) === selectedYear
+    );
+    const actualsForYear = actuals.filter(
+      (a) => safeFiscalYear(a.fiscal_year) === selectedYear
+    );
+
+    const byDept = new Map<string, DepartmentSummary>();
+
+    budgetsForYear.forEach((row) => {
+      const name = row.department_name || "Unspecified";
+      const existing = byDept.get(name) || {
+        department_name: name,
+        budget: 0,
+        actuals: 0,
+        variance: 0,
+        percentSpent: 0,
+      };
+      existing.budget += Number(row.amount || 0);
+      byDept.set(name, existing);
+    });
+
+    actualsForYear.forEach((row) => {
+      const name = row.department_name || "Unspecified";
+      const existing = byDept.get(name) || {
+        department_name: name,
+        budget: 0,
+        actuals: 0,
+        variance: 0,
+        percentSpent: 0,
+      };
+      existing.actuals += Number(row.amount || 0);
+      byDept.set(name, existing);
+    });
+
+    const summaries: DepartmentSummary[] = Array.from(byDept.values()).map(
+      (d) => {
+        const variance = Number(d.actuals) - Number(d.budget);
+        const percentSpent =
+          d.budget === 0 ? 0 : (Number(d.actuals) / Number(d.budget)) * 100;
         return {
-          deptSummaries: [] as DepartmentSummary[],
-          totalBudget: 0,
-          totalActuals: 0,
-          budgetsForYear: [] as BudgetRow[],
-          actualsForYear: [] as ActualRow[],
+          ...d,
+          variance,
+          percentSpent,
         };
       }
+    );
 
-      const budgetsForYear = budgets.filter(
-        (b) => safeFiscalYear(b.fiscal_year) === selectedYear
-      );
-      const actualsForYear = actuals.filter(
-        (a) => safeFiscalYear(a.fiscal_year) === selectedYear
-      );
+    // sort by budget desc
+    summaries.sort((a, b) => b.budget - a.budget);
 
-      const byDept = new Map<string, DepartmentSummary>();
+    const totalBudget = summaries.reduce(
+      (sum, d) => sum + Number(d.budget || 0),
+      0
+    );
+    const totalActuals = summaries.reduce(
+      (sum, d) => sum + Number(d.actuals || 0),
+      0
+    );
 
-      budgetsForYear.forEach((row) => {
-        const name = row.department_name || "Unspecified";
-        const existing = byDept.get(name) || {
-          department_name: name,
-          budget: 0,
-          actuals: 0,
-          variance: 0,
-          percentSpent: 0,
-        };
-        existing.budget += Number(row.amount || 0);
-        byDept.set(name, existing);
-      });
-
-      actualsForYear.forEach((row) => {
-        const name = row.department_name || "Unspecified";
-        const existing = byDept.get(name) || {
-          department_name: name,
-          budget: 0,
-          actuals: 0,
-          variance: 0,
-          percentSpent: 0,
-        };
-        existing.actuals += Number(row.amount || 0);
-        byDept.set(name, existing);
-      });
-
-      const summaries: DepartmentSummary[] = Array.from(byDept.values()).map(
-        (d) => {
-          const variance = Number(d.actuals) - Number(d.budget);
-          const percentSpent =
-            d.budget === 0 ? 0 : (Number(d.actuals) / Number(d.budget)) * 100;
-          return {
-            ...d,
-            variance,
-            percentSpent,
-          };
-        }
-      );
-
-      // sort by budget desc
-      summaries.sort((a, b) => b.budget - a.budget);
-
-      const totalBudget = summaries.reduce(
-        (sum, d) => sum + Number(d.budget || 0),
-        0
-      );
-      const totalActuals = summaries.reduce(
-        (sum, d) => sum + Number(d.actuals || 0),
-        0
-      );
-
-      return {
-        deptSummaries: summaries,
-        totalBudget,
-        totalActuals,
-        budgetsForYear,
-        actualsForYear,
-      };
-    }, [budgets, actuals, selectedYear]);
+    return {
+      deptSummaries: summaries,
+      totalBudget,
+      totalActuals,
+      budgetsForYear,
+      actualsForYear,
+    };
+  }, [budgets, actuals, selectedYear]);
 
   const variance = totalActuals - totalBudget;
   const execPct = totalBudget === 0 ? 0 : (totalActuals / totalBudget) * 100;
@@ -262,52 +271,51 @@ export default function CitywideDashboardClient({
   );
 
   // Total transactions + top vendors for selected year
-  const { transactionsForYear, topVendors, totalVendorSpend } =
-    useMemo(() => {
-      if (!selectedYear) {
-        return {
-          transactionsForYear: [] as TransactionRow[],
-          topVendors: [] as VendorSummary[],
-          totalVendorSpend: 0,
-        };
-      }
-
-      const filtered = transactions.filter(
-        (tx) => tx.fiscal_year === selectedYear
-      );
-
-      const byVendor = new Map<string, number>();
-
-      filtered.forEach((tx) => {
-        const name =
-          (tx.vendor && tx.vendor.trim().length > 0
-            ? tx.vendor
-            : "Unspecified") ?? "Unspecified";
-        const amt = Number(tx.amount || 0);
-        byVendor.set(name, (byVendor.get(name) || 0) + amt);
-      });
-
-      const totalVendorSpend = Array.from(byVendor.values()).reduce(
-        (sum, v) => sum + v,
-        0
-      );
-
-      const vendors: VendorSummary[] = Array.from(byVendor.entries())
-        .map(([name, total]) => ({
-          name,
-          total,
-          percent:
-            totalVendorSpend === 0 ? 0 : (total / totalVendorSpend) * 100,
-        }))
-        .sort((a, b) => b.total - a.total)
-        .slice(0, 10);
-
+  const { transactionsForYear, topVendors, totalVendorSpend } = useMemo(() => {
+    if (!selectedYear) {
       return {
-        transactionsForYear: filtered,
-        topVendors: vendors,
-        totalVendorSpend,
+        transactionsForYear: [] as TransactionRow[],
+        topVendors: [] as VendorSummary[],
+        totalVendorSpend: 0,
       };
-    }, [transactions, selectedYear]);
+    }
+
+    const filtered = transactions.filter(
+      (tx) => tx.fiscal_year === selectedYear
+    );
+
+    const byVendor = new Map<string, number>();
+
+    filtered.forEach((tx) => {
+      const name =
+        (tx.vendor && tx.vendor.trim().length > 0
+          ? tx.vendor
+          : "Unspecified") ?? "Unspecified";
+      const amt = Number(tx.amount || 0);
+      byVendor.set(name, (byVendor.get(name) || 0) + amt);
+    });
+
+    const totalVendorSpend = Array.from(byVendor.values()).reduce(
+      (sum, v) => sum + v,
+      0
+    );
+
+    const vendors: VendorSummary[] = Array.from(byVendor.entries())
+      .map(([name, total]) => ({
+        name,
+        total,
+        percent:
+          totalVendorSpend === 0 ? 0 : (total / totalVendorSpend) * 100,
+      }))
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 10);
+
+    return {
+      transactionsForYear: filtered,
+      topVendors: vendors,
+      totalVendorSpend,
+    };
+  }, [transactions, selectedYear]);
 
   // Budget distribution (top departments + "Other") for pie
   const budgetDistribution = useMemo(() => {
@@ -387,16 +395,14 @@ export default function CitywideDashboardClient({
         const budgetTotal = budgets
           .filter(
             (b) =>
-              b.department_name === dept &&
-              b.fiscal_year === year
+              b.department_name === dept && b.fiscal_year === year
           )
           .reduce((sum, b) => sum + Number(b.amount || 0), 0);
 
         const actualsTotal = actuals
           .filter(
             (a) =>
-              a.department_name === dept &&
-              a.fiscal_year === year
+              a.department_name === dept && a.fiscal_year === year
           )
           .reduce((sum, a) => sum + Number(a.amount || 0), 0);
 
@@ -526,7 +532,10 @@ export default function CitywideDashboardClient({
           aria-label="Breadcrumb"
           className="mb-4 flex items-center gap-1 px-1 text-[11px] text-slate-500"
         >
-          <Link href="/paradise" className="hover:text-slate-800">
+          <Link
+            href={cityHref("/")}
+            className="hover:text-slate-800"
+          >
             Overview
           </Link>
           <span className="text-slate-400">›</span>
@@ -633,7 +642,8 @@ export default function CitywideDashboardClient({
                         id="budget-distribution-desc"
                         className="mb-2 text-xs text-slate-500"
                       >
-                        How the adopted budget is allocated across departments for{" "}
+                        How the adopted budget is allocated across departments
+                        for{" "}
                         {yearLabel}.
                       </p>
                     </div>
@@ -738,7 +748,8 @@ export default function CitywideDashboardClient({
                         id="actuals-distribution-desc"
                         className="mb-2 text-xs text-slate-500"
                       >
-                        Where actual spending has gone so far in {yearLabel}.
+                        Where actual spending has gone so far in{" "}
+                        {yearLabel}.
                       </p>
                     </div>
 
@@ -761,7 +772,9 @@ export default function CitywideDashboardClient({
                                 {actualsDistribution.map((entry, index) => (
                                   <Cell
                                     key={entry.name}
-                                    fill={PIE_COLORS[index % PIE_COLORS.length]}
+                                    fill={
+                                      PIE_COLORS[index % PIE_COLORS.length]
+                                    }
                                   />
                                 ))}
                               </Pie>
@@ -968,7 +981,8 @@ export default function CitywideDashboardClient({
                         id="citywide-yoy-desc"
                         className="text-xs text-slate-500"
                       >
-                        Multi-year citywide view of total budget, actuals, and variance.
+                        Multi-year citywide view of total budget, actuals, and
+                        variance.
                       </p>
                     </div>
                   </div>
@@ -1150,9 +1164,9 @@ export default function CitywideDashboardClient({
                                   );
                                 }
 
-                                const variance = cell.variance;
+                                const varianceVal = cell.variance;
                                 const pct = cell.percentSpent;
-                                const isOver = variance > 0;
+                                const isOver = varianceVal > 0;
                                 const isNear =
                                   Math.abs(pct - 100) <= 1;
                                 const bgClass = isNear
@@ -1166,7 +1180,7 @@ export default function CitywideDashboardClient({
                                     key={year}
                                     className={`px-2 py-1 text-right ${bgClass}`}
                                   >
-                                    {formatCurrency(variance)}
+                                    {formatCurrency(varianceVal)}
                                   </td>
                                 );
                               })}
@@ -1288,9 +1302,7 @@ export default function CitywideDashboardClient({
                         Transactions
                       </div>
                       <div className="mt-1 text-2xl font-bold text-slate-900">
-                        {totalTransactionsCount.toLocaleString(
-                          "en-US"
-                        )}
+                        {totalTransactionsCount.toLocaleString("en-US")}
                       </div>
                     </div>
                   </div>
@@ -1298,13 +1310,13 @@ export default function CitywideDashboardClient({
                   <p>
                     Use the{" "}
                     <Link
-                      href="/paradise/transactions"
+                      href={cityHref("/transactions")}
                       className="font-medium text-sky-700 hover:underline"
                     >
                       Transactions
                     </Link>{" "}
-                    page to filter by department, vendor, or keyword
-                    and export CSVs for detailed analysis.
+                    page to filter by department, vendor, or keyword and
+                    export CSVs for detailed analysis.
                   </p>
                 </section>
               </CardContainer>
@@ -1329,7 +1341,7 @@ export default function CitywideDashboardClient({
                   <p>
                     Drill down into the{" "}
                     <Link
-                      href="/paradise/departments"
+                      href={cityHref("/departments")}
                       className="font-medium text-sky-700 hover:underline"
                     >
                       Departments

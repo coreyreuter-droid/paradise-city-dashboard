@@ -11,6 +11,7 @@ import { formatCurrency, formatPercent } from "@/lib/format";
 import DataTable, { DataTableColumn } from "../DataTable";
 import FiscalYearSelect from "../FiscalYearSelect";
 import BudgetByDepartmentChart from "@/components/Analytics/BudgetByDepartmentChart";
+import { cityHref } from "@/lib/cityRouting";
 
 export type DepartmentSummary = {
   department_name: string;
@@ -186,8 +187,8 @@ export default function BudgetClient({ budgets, actuals }: Props) {
           const name = row.department_name || "Unspecified";
           return (
             <Link
-              href={`/paradise/departments/${encodeURIComponent(
-                name
+              href={`${cityHref(
+                `/departments/${encodeURIComponent(name)}`
               )}?year=${chartYear}`}
               className="text-sm font-medium text-slate-800 hover:underline"
             >
@@ -232,11 +233,7 @@ export default function BudgetClient({ budgets, actuals }: Props) {
               : v < 0
               ? " text-red-700"
               : " text-slate-700";
-          return (
-            <span className={color}>
-              {formatCurrency(v)}
-            </span>
-          );
+          return <span className={color}>{formatCurrency(v)}</span>;
         },
       },
     ],
@@ -264,7 +261,10 @@ export default function BudgetClient({ budgets, actuals }: Props) {
         >
           <ol className="flex items-center gap-1">
             <li>
-              <Link href="/paradise" className="hover:text-slate-800">
+              <Link
+                href={cityHref("/")}
+                className="hover:text-slate-800"
+              >
                 Overview
               </Link>
             </li>
@@ -383,7 +383,7 @@ export default function BudgetClient({ budgets, actuals }: Props) {
                 {/* Two-column explanatory band at the top */}
                 <section
                   aria-label="How to read the budget by department chart"
-                  className="grid gap-4 md:grid-cols-2 items-start"
+                  className="grid items-start gap-4 md:grid-cols-2"
                 >
                   <div className="space-y-4">
                     {/* Overall execution panel */}

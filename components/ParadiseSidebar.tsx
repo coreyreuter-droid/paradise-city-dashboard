@@ -6,13 +6,14 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { CITY_CONFIG } from "@/lib/cityConfig";
 import { supabase } from "@/lib/supabase";
+import { CITY_SLUG, cityHref } from "@/lib/cityRouting";
 
 const navItems = [
-  { href: "/paradise", label: "Overview" },
-  { href: "/paradise/analytics", label: "Analytics" },
-  { href: "/paradise/budget", label: "Budget" },
-  { href: "/paradise/departments", label: "Departments" },
-  { href: "/paradise/transactions", label: "Transactions" },
+  { path: "/", label: "Overview" },
+  { path: "/analytics", label: "Analytics" },
+  { path: "/budget", label: "Budget" },
+  { path: "/departments", label: "Departments" },
+  { path: "/transactions", label: "Transactions" },
 ];
 
 type PortalBranding = {
@@ -54,20 +55,25 @@ export default function ParadiseSidebar() {
     };
   }, []);
 
-  const isActive = (href: string) => {
-    // Overview: only active on exact /paradise
-    if (href === "/paradise") {
-      return pathname === "/paradise";
+  const isActive = (path: string) => {
+    const full = cityHref(path);
+
+    // Overview: only active on exact /<slug>
+    if (path === "/") {
+      return pathname === full;
     }
+
     // Others: active on exact or nested route
-    return pathname === href || pathname.startsWith(href + "/");
+    return pathname === full || pathname.startsWith(full + "/");
   };
 
-  // If we're on /paradise/departments/<Department Name>...
+  // If we're on /<citySlug>/departments/<Department Name>...
   let currentDepartmentLabel: string | null = null;
-  if (pathname.startsWith("/paradise/departments/")) {
+  const deptPrefix = `/${CITY_SLUG}/departments/`;
+
+  if (pathname.startsWith(deptPrefix)) {
     const segments = pathname.split("/");
-    // ['', 'paradise', 'departments', '<Department Name>', ...]
+    // ['', '<citySlug>', 'departments', '<Department Name>', ...]
     if (segments.length >= 4) {
       try {
         currentDepartmentLabel = decodeURIComponent(segments[3]);
@@ -96,7 +102,7 @@ export default function ParadiseSidebar() {
     .slice(0, 3)
     .toUpperCase();
 
-  const adminHomeHref = "/paradise/admin";
+  const adminHomeHref = cityHref("/admin");
   const adminActive =
     pathname === adminHomeHref ||
     pathname.startsWith(adminHomeHref + "/");
@@ -117,8 +123,9 @@ export default function ParadiseSidebar() {
         </p>
         <ul className="mt-2 space-y-1">
           {navItems.map((item) => {
-            const active = isActive(item.href);
-            const isDepartmentsItem = item.href === "/paradise/departments";
+            const href = cityHref(item.path);
+            const active = isActive(item.path);
+            const isDepartmentsItem = item.path === "/departments";
 
             const baseClasses =
               "group flex items-center gap-2 rounded-xl px-3 py-2 text-sm transition";
@@ -133,9 +140,9 @@ export default function ParadiseSidebar() {
                 : "text-slate-600 hover:bg-slate-100 hover:text-slate-900";
 
             return (
-              <li key={item.href}>
+              <li key={item.path}>
                 <Link
-                  href={item.href}
+                  href={href}
                   onClick={variant === "mobile" ? closeMobile : undefined}
                   className={`${baseClasses} ${
                     active ? activeClasses : inactiveClasses
@@ -319,7 +326,7 @@ export default function ParadiseSidebar() {
                     className="inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-semibold text-white"
                     style={{ backgroundColor: accent }}
                   >
-                    CP
+                    {initials || "C"}
                   </span>
                 </div>
               </div>
@@ -328,7 +335,7 @@ export default function ParadiseSidebar() {
         </div>
       )}
 
-      {/* DESKTOP SIDEBAR (unchanged behaviour, sm+ only) */}
+      {/* DESKTOP SIDEBAR (sm+ only) */}
       <aside className="hidden w-64 flex-none border-r border-slate-200 bg-white/95 px-3 py-4 shadow-sm sm:flex sm:flex-col lg:w-72">
         {/* Brand */}
         <div className="mb-5 flex items-center gap-3 px-2">
@@ -381,7 +388,7 @@ export default function ParadiseSidebar() {
               className="inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-semibold text-white"
               style={{ backgroundColor: accent }}
             >
-              CP
+              {initials || "C"}
             </span>
           </div>
         </div>

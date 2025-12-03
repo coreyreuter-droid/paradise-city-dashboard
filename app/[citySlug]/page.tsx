@@ -1,4 +1,4 @@
-// app/paradise/page.tsx
+// app/[citySlug]/page.tsx
 
 import ParadiseHomeClient from "@/components/City/ParadiseHomeClient";
 import {
@@ -26,10 +26,11 @@ type SearchParams = {
   [key: string]: string | string[] | undefined;
 };
 
-export default async function ParadisePage({
+export default async function CityHomePage({
   searchParams,
 }: {
   searchParams: Promise<SearchParams>;
+  params: { citySlug: string };
 }) {
   const resolvedSearchParams = await searchParams;
 
@@ -90,8 +91,7 @@ export default async function ParadisePage({
 
   if (selectedYear !== undefined) {
     transactions =
-      ((await getTransactionsForYear(selectedYear)) ??
-        []) as TransactionRow[];
+      ((await getTransactionsForYear(selectedYear)) ?? []) as TransactionRow[];
   }
 
   return (

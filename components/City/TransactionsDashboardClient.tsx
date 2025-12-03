@@ -16,6 +16,7 @@ import FiscalYearSelect from "../FiscalYearSelect";
 import DataTable, {
   DataTableColumn,
 } from "../DataTable";
+import { cityHref } from "@/lib/cityRouting";
 
 type Props = {
   transactions: TransactionRow[];
@@ -108,10 +109,7 @@ function buildPageCsv(rows: TransactionRow[]): string {
     csvSafe(t.amount),
   ]);
 
-  return [
-    header.join(","),
-    ...body.map((r) => r.join(",")),
-  ].join("\n");
+  return [header.join(","), ...body.map((r) => r.join(","))].join("\n");
 }
 
 export default function TransactionsDashboardClient({
@@ -133,10 +131,7 @@ export default function TransactionsDashboardClient({
     vendorQuery ?? ""
   );
 
-  const totalPages = Math.max(
-    1,
-    Math.ceil(totalCount / pageSize)
-  );
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
   const hasPrev = page > 1;
   const hasNext = page < totalPages;
 
@@ -150,10 +145,7 @@ export default function TransactionsDashboardClient({
     if (selectedYear != null) {
       filters.push(`Year ${selectedYear}`);
     }
-    if (
-      effectiveDeptFilter &&
-      effectiveDeptFilter !== "all"
-    ) {
+    if (effectiveDeptFilter && effectiveDeptFilter !== "all") {
       filters.push(`Department: ${effectiveDeptFilter}`);
     }
     if (vendorQuery && vendorQuery.trim().length > 0) {
@@ -162,16 +154,13 @@ export default function TransactionsDashboardClient({
     return filters;
   }, [selectedYear, effectiveDeptFilter, vendorQuery]);
 
-  // /api/paradise/transactions/export?year=...&department=...&q=...
+  // /api/transactions/export?year=...&department=...&q=...
   const exportAllHref = useMemo(() => {
     const params = new URLSearchParams();
     if (selectedYear != null) {
       params.set("year", String(selectedYear));
     }
-    if (
-      effectiveDeptFilter &&
-      effectiveDeptFilter !== "all"
-    ) {
+    if (effectiveDeptFilter && effectiveDeptFilter !== "all") {
       params.set("department", effectiveDeptFilter);
     }
     if (vendorQuery && vendorQuery.trim().length > 0) {
@@ -179,8 +168,8 @@ export default function TransactionsDashboardClient({
     }
     const qs = params.toString();
     return qs
-      ? `/api/paradise/transactions/export?${qs}`
-      : `/api/paradise/transactions/export`;
+      ? `/api/transactions/export?${qs}`
+      : `/api/transactions/export`;
   }, [selectedYear, effectiveDeptFilter, vendorQuery]);
 
   const handleSearchSubmit = (e: FormEvent) => {
@@ -202,9 +191,7 @@ export default function TransactionsDashboardClient({
     router.push(url);
   };
 
-  const handleDepartmentChange = (
-    e: ChangeEvent<HTMLSelectElement>
-  ) => {
+  const handleDepartmentChange = (e: ChangeEvent<HTMLSelectElement>) => {
     const value = e.target.value;
     const url = buildSearchUrl(pathname, searchParams, {
       department: value,
@@ -214,10 +201,7 @@ export default function TransactionsDashboardClient({
   };
 
   const handlePageChange = (newPage: number) => {
-    const clamped = Math.max(
-      1,
-      Math.min(totalPages, newPage)
-    );
+    const clamped = Math.max(1, Math.min(totalPages, newPage));
     const url = buildSearchUrl(pathname, searchParams, {
       page: String(clamped),
     });
@@ -248,8 +232,7 @@ export default function TransactionsDashboardClient({
         sortable: true,
         sortAccessor: (row) => row.date,
         headerClassName: "w-28",
-        cellClassName:
-          "whitespace-nowrap font-mono text-xs",
+        cellClassName: "whitespace-nowrap font-mono text-xs",
         cell: (row) => formatDate(row.date),
       },
       {
@@ -263,11 +246,9 @@ export default function TransactionsDashboardClient({
           row.department_name ? (
             <Link
               className="text-sky-700 hover:underline"
-              href={`/paradise/departments/${encodeURIComponent(
-                row.department_name
-              )}${
-                selectedYear ? `?year=${selectedYear}` : ""
-              }`}
+              href={`${cityHref(
+                `/departments/${encodeURIComponent(row.department_name)}`
+              )}${selectedYear ? `?year=${selectedYear}` : ""}`}
             >
               {row.department_name}
             </Link>
@@ -331,8 +312,7 @@ export default function TransactionsDashboardClient({
         sortable: true,
         sortAccessor: (row) => row.amount,
         headerClassName: "text-right",
-        cellClassName:
-          "whitespace-nowrap text-right font-mono",
+        cellClassName: "whitespace-nowrap text-right font-mono",
         cell: (row) => formatCurrency(row.amount),
       },
     ],
@@ -367,7 +347,7 @@ export default function TransactionsDashboardClient({
           <ol className="flex items-center gap-1">
             <li>
               <Link
-                href="/paradise"
+                href={cityHref("/")}
                 className="hover:text-slate-800"
               >
                 Overview
@@ -509,9 +489,9 @@ export default function TransactionsDashboardClient({
                   </h2>
                   <p className="text-xs text-slate-500">
                     {totalCount.toLocaleString("en-US")} transaction
-                    {totalCount === 1 ? "" : "s"} found. Page{" "}
-                    {page} of {totalPages}. Use the export options to
-                    download data as CSV.
+                    {totalCount === 1 ? "" : "s"} found. Page {page} of{" "}
+                    {totalPages}. Use the export options to download
+                    data as CSV.
                   </p>
                 </div>
 
@@ -566,9 +546,7 @@ export default function TransactionsDashboardClient({
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
-                      onClick={() =>
-                        hasPrev && handlePageChange(page - 1)
-                      }
+                      onClick={() => hasPrev && handlePageChange(page - 1)}
                       disabled={!hasPrev}
                       className="rounded-md border border-slate-300 px-2 py-1 text-xs disabled:opacity-40"
                     >
@@ -576,19 +554,14 @@ export default function TransactionsDashboardClient({
                     </button>
                     <span>
                       Page{" "}
-                      <span className="font-semibold">
-                        {page}
-                      </span>{" "}
-                      of{" "}
+                      <span className="font-semibold">{page}</span> of{" "}
                       <span className="font-semibold">
                         {totalPages}
                       </span>
                     </span>
                     <button
                       type="button"
-                      onClick={() =>
-                        hasNext && handlePageChange(page + 1)
-                      }
+                      onClick={() => hasNext && handlePageChange(page + 1)}
                       disabled={!hasNext}
                       className="rounded-md border border-slate-300 px-2 py-1 text-xs disabled:opacity-40"
                     >

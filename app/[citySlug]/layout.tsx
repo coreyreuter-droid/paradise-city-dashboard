@@ -1,4 +1,4 @@
-// app/paradise/layout.tsx
+// app/[citySlug]/layout.tsx
 import type { ReactNode } from "react";
 import ParadiseSidebar from "@/components/ParadiseSidebar";
 import { CITY_CONFIG } from "@/lib/cityConfig";
@@ -16,7 +16,7 @@ async function getAccentFromSettings(): Promise<string | null> {
   try {
     if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
       console.warn(
-        "ParadiseLayout: NEXT_PUBLIC_SUPABASE_URL / ANON_KEY missing"
+        "CityLayout: NEXT_PUBLIC_SUPABASE_URL / ANON_KEY missing"
       );
       return null;
     }
@@ -35,7 +35,7 @@ async function getAccentFromSettings(): Promise<string | null> {
 
     if (error) {
       console.error(
-        "ParadiseLayout: failed to load portal_settings",
+        "CityLayout: failed to load portal_settings",
         error
       );
       return null;
@@ -47,14 +47,14 @@ async function getAccentFromSettings(): Promise<string | null> {
     return row.accent_color ?? row.primary_color ?? null;
   } catch (err) {
     console.error(
-      "ParadiseLayout: unexpected error loading portal_settings",
+      "CityLayout: unexpected error loading portal_settings",
       err
     );
     return null;
   }
 }
 
-export default async function ParadiseLayout({
+export default async function CityLayout({
   children,
 }: {
   children: ReactNode;
@@ -80,7 +80,7 @@ export default async function ParadiseLayout({
       {/* Shared sidebar navigation */}
       <ParadiseSidebar />
 
-      {/* Single <main> landmark for all /paradise pages */}
+      {/* Single <main> landmark for all city pages */}
       <main
         id="main-content"
         role="main"

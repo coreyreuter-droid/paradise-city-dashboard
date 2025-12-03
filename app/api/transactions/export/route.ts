@@ -1,3 +1,4 @@
+// app/api/transactions/export/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
@@ -137,9 +138,7 @@ export async function GET(req: NextRequest) {
 
     const hasAny = allRows.length > 0;
 
-    const yearPart = hasYearFilter
-      ? `year-${year}`
-      : "all-years";
+    const yearPart = hasYearFilter ? `year-${year}` : "all-years";
     const deptPart = departmentFilter
       ? departmentFilter.replace(/\s+/g, "-")
       : "all-departments";

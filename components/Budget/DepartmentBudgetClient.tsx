@@ -16,6 +16,7 @@ import {
 } from "recharts";
 import CardContainer from "../CardContainer";
 import SectionHeader from "../SectionHeader";
+import { cityHref } from "@/lib/cityRouting";
 
 type RawRow = {
   fiscal_year: number;
@@ -86,16 +87,21 @@ const formatAxisCurrency = (value: number) => {
 };
 
 export default function DepartmentBudgetClient(props: Props) {
-  const { departmentName, budgets, actuals, selectedYear, years, transactions } =
-    props;
+  const {
+    departmentName,
+    budgets,
+    actuals,
+    selectedYear,
+    years,
+    transactions,
+  } = props;
 
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname();
 
-  const [activeTab, setActiveTab] = useState<"overview" | "vendors" | "transactions">(
-    "overview"
-  );
+  const [activeTab, setActiveTab] =
+    useState<"overview" | "vendors" | "transactions">("overview");
 
   const year = useMemo(() => {
     if (selectedYear) return selectedYear;
@@ -134,11 +140,13 @@ export default function DepartmentBudgetClient(props: Props) {
     if (!trimmed) return "Department";
 
     const lower = trimmed.toLowerCase();
-    return {
-      airport: "Airport Operations",
-      "fire dept": "Fire Department",
-      "police dept": "Police Department",
-    }[lower] || trimmed;
+    return (
+      {
+        airport: "Airport Operations",
+        "fire dept": "Fire Department",
+        "police dept": "Police Department",
+      }[lower] || trimmed
+    );
   }, [departmentName, filteredBudgets, filteredActuals, budgets, actuals]);
 
   const yearSummaries: YearSummary[] = useMemo(() => {
@@ -183,8 +191,7 @@ export default function DepartmentBudgetClient(props: Props) {
   const totalActuals = selectedSummary?.actuals ?? 0;
   const variance = totalActuals - totalBudget;
   const variancePct = totalBudget === 0 ? 0 : (variance / totalBudget) * 100;
-  const execPctRaw =
-    totalBudget === 0 ? 0 : (totalActuals / totalBudget) * 100;
+  const execPctRaw = totalBudget === 0 ? 0 : (totalActuals / totalBudget) * 100;
   const execPct = Math.max(0, Math.min(100, execPctRaw));
 
   const chartData = yearSummaries.map((ys) => ({
@@ -236,10 +243,7 @@ export default function DepartmentBudgetClient(props: Props) {
       return [];
     }
 
-    const categories = new Map<
-      string,
-      { budget: number; actuals: number }
-    >();
+    const categories = new Map<string, { budget: number; actuals: number }>();
 
     filteredBudgets.forEach((row) => {
       const category = row.department_name?.trim() || "Uncategorized";
@@ -259,13 +263,13 @@ export default function DepartmentBudgetClient(props: Props) {
 
     return Array.from(categories.entries())
       .map(([category, { budget, actuals }]) => {
-        const variance = actuals - budget;
+        const varianceVal = actuals - budget;
         const percentSpent = budget === 0 ? 0 : (actuals / budget) * 100;
         return {
           category,
           budget,
           actuals,
-          variance,
+          variance: varianceVal,
           percentSpent,
         };
       })
@@ -297,7 +301,7 @@ export default function DepartmentBudgetClient(props: Props) {
         {/* Breadcrumb */}
         <div className="mb-3 text-xs text-slate-500">
           <Link
-            href="/paradise/budget"
+            href={cityHref("/budget")}
             className="hover:underline hover:text-slate-700"
           >
             Budget
@@ -587,7 +591,9 @@ export default function DepartmentBudgetClient(props: Props) {
                     className={`h-2 rounded-full ${
                       execPctRaw <= 100 ? "bg-sky-500" : "bg-red-500"
                     }`}
-                    style={{ width: `${Math.max(0, Math.min(execPctRaw, 150))}%` }}
+                    style={{
+                      width: `${Math.max(0, Math.min(execPctRaw, 150))}%`,
+                    }}
                   />
                 </div>
                 <div className="mt-2 text-xs text-slate-500">
