@@ -74,6 +74,8 @@ export default function BudgetCharts({
     ? Math.min((totalActuals / totalBudget) * 100, 999)
     : 0;
 
+  const avgMonthlySpend = totalActuals / 12;
+
   // Height scales with number of departments, but leaves margin so
   // categories never visually touch each other.
   const chartHeight = Math.max(
@@ -118,12 +120,17 @@ export default function BudgetCharts({
 
       <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
         <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-          How to read this chart
+          Average monthly spending
+        </div>
+        <div className="mt-1 text-lg font-semibold text-slate-900">
+          {formatCurrency(avgMonthlySpend)}
+          <span className="ml-1 text-xs font-normal text-slate-500">
+            per month
+          </span>
         </div>
         <p className="mt-1 text-xs text-slate-600">
-          Each bar shows adopted budget (background) and actual spending
-          (foreground) for a department. Bars are shown in dollars. Use
-          the table below for exact values.
+          Estimated by dividing total actual spending in fiscal year{" "}
+          {year} by 12 months.
         </p>
       </div>
     </>
@@ -147,9 +154,6 @@ export default function BudgetCharts({
           id="dept-spend-chart-desc"
           className="text-xs text-slate-500"
         >
-          Horizontal bars show budget in the background and actual
-          spending in the foreground. Bars are green when spending is at
-          or below budget and red when spending exceeds budget.
         </p>
       </header>
 
@@ -197,7 +201,7 @@ export default function BudgetCharts({
               dataKey="Budget"
               stackId="budget"
               radius={[4, 4, 4, 4]}
-              barSize={12}
+              barSize={8}
             >
               {chartData.map((entry, index) => (
                 <Cell
@@ -212,7 +216,7 @@ export default function BudgetCharts({
               dataKey="Actual"
               stackId="actual"
               radius={[4, 4, 4, 4]}
-              barSize={12}
+              barSize={8}
             >
               {chartData.map((entry, index) => {
                 const pct = entry.PercentSpent;
@@ -317,20 +321,7 @@ export default function BudgetCharts({
       aria-labelledby="budget-by-department-heading"
       className="space-y-3"
     >
-      <header className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
-        <div>
-          <h3
-            id="budget-by-department-heading"
-            className="text-sm font-semibold text-slate-900"
-          >
-            Budget vs actuals by department
-          </h3>
-          <p className="text-xs text-slate-500">
-            Horizontal bar chart comparing adopted budget and actual
-            spending for each department in {year}.
-          </p>
-        </div>
-      </header>
+
 
       {departments.length === 0 ? (
         <p className="text-sm text-slate-500">
@@ -348,8 +339,7 @@ export default function BudgetCharts({
         // Stacked layout – full width summary, then chart
         <div className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
-            {summaryBlocks}
-          </div>
+            {summaryBlocks}</div>
           <div className="space-y-3">{figureBlock}</div>
         </div>
       )}

@@ -19,6 +19,7 @@ type Props = {
   year: number;
   departments: DepartmentSummary[];
   accentColor?: string; // kept for API compatibility, not strictly needed
+  showTable?: boolean; // Controls rendering of the inner table
 };
 
 const formatAxisCurrencyShort = (v: number) => {
@@ -37,6 +38,8 @@ const shortenLabel = (name: string) => {
 export default function BudgetByDepartmentChart({
   year,
   departments,
+  accentColor,
+  showTable = true,
 }: Props) {
   const data = useMemo(
     () => [...departments].sort((a, b) => b.budget - a.budget),
@@ -65,10 +68,6 @@ export default function BudgetByDepartmentChart({
         >
           Budget vs actuals by department – {year}
         </h3>
-        <p className="text-[11px] text-slate-500">
-          Larger bars indicate larger budgets. Colors show whether
-          departments are over or under budget.
-        </p>
       </div>
 
       <p id="budget-by-dept-desc" className="sr-only">
@@ -86,17 +85,14 @@ export default function BudgetByDepartmentChart({
             data={data}
             layout="vertical"
             margin={{ top: 8, right: 24, bottom: 8, left: 16 }}
-            barCategoryGap={5}   // a bit less vertical gap
+            barCategoryGap={5} // a bit less vertical gap
             barGap={2}
-            barSize={9}          // <-- this is the one that actually works
+            barSize={9} // <-- this is the one that actually works
           >
-
             <CartesianGrid strokeDasharray="3 3" horizontal={false} />
             <XAxis
               type="number"
-              tickFormatter={(v) =>
-                formatAxisCurrencyShort(Number(v))
-              }
+              tickFormatter={(v) => formatAxisCurrencyShort(Number(v))}
               tick={{ fontSize: 11, fill: "#64748b" }}
             />
             <YAxis
@@ -166,50 +162,52 @@ export default function BudgetByDepartmentChart({
       </div>
 
       {/* Accessible tabular representation of the same data */}
-      <div className="overflow-x-auto">
-        <table className="min-w-full border border-slate-200 text-xs">
-          <thead className="bg-slate-50 text-[11px] font-semibold uppercase tracking-wide text-slate-600">
-            <tr>
-              <th scope="col" className="px-3 py-2 text-left">
-                Department
-              </th>
-              <th scope="col" className="px-3 py-2 text-right">
-                Budget
-              </th>
-              <th scope="col" className="px-3 py-2 text-right">
-                Actuals
-              </th>
-              <th scope="col" className="px-3 py-2 text-right">
-                % spent
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.map((row) => (
-              <tr
-                key={row.department_name}
-                className="border-t border-slate-200"
-              >
-                <th
-                  scope="row"
-                  className="px-3 py-2 text-left font-medium text-slate-800"
-                >
-                  {row.department_name}
+      {showTable && (
+        <div className="overflow-x-auto">
+          <table className="min-w-full border border-slate-200 text-xs">
+            <thead className="bg-slate-50 text-[11px] font-semibold uppercase tracking-wide text-slate-600">
+              <tr>
+                <th scope="col" className="px-3 py-2 text-left">
+                  Department
                 </th>
-                <td className="px-3 py-2 text-right text-slate-700">
-                  {formatCurrency(row.budget)}
-                </td>
-                <td className="px-3 py-2 text-right text-slate-700">
-                  {formatCurrency(row.actuals)}
-                </td>
-                <td className="px-3 py-2 text-right text-slate-700">
-                  {formatPercent(row.percentSpent, 1)}
-                </td>
+                <th scope="col" className="px-3 py-2 text-right">
+                  Budget
+                </th>
+                <th scope="col" className="px-3 py-2 text-right">
+                  Actuals
+                </th>
+                <th scope="col" className="px-3 py-2 text-right">
+                  % spent
+                </th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {data.map((row) => (
+                <tr
+                  key={row.department_name}
+                  className="border-t border-slate-200"
+                >
+                  <th
+                    scope="row"
+                    className="px-3 py-2 text-left font-medium text-slate-800"
+                  >
+                    {row.department_name}
+                  </th>
+                  <td className="px-3 py-2 text-right text-slate-700">
+                    {formatCurrency(row.budget)}
+                  </td>
+                  <td className="px-3 py-2 text-right text-slate-700">
+                    {formatCurrency(row.actuals)}
+                  </td>
+                  <td className="px-3 py-2 text-right text-slate-700">
+                    {formatPercent(row.percentSpent, 1)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </figure>
   );
 }

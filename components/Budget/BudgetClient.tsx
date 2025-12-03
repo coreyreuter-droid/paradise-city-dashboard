@@ -412,19 +412,7 @@ export default function BudgetClient({ budgets, actuals }: Props) {
                       </div>
                     </div>
 
-                    {/* How to read this chart */}
-                    <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                        How to read this chart
-                      </p>
-                      <p className="mt-1 text-xs text-slate-600">
-                        Each bar shows adopted budget (gray background)
-                        and actual spending (colored foreground) for a
-                        department. Green bars indicate spending at or
-                        below budget; red bars indicate spending above
-                        budget. Use the table below for exact values.
-                      </p>
-                    </div>
+
                   </div>
 
                   {/* Side description / story */}
@@ -445,6 +433,7 @@ export default function BudgetClient({ budgets, actuals }: Props) {
                 <BudgetByDepartmentChart
                   year={chartYear}
                   departments={departments}
+                  showTable={false}
                 />
 
                 {/* Detailed interactive table */}

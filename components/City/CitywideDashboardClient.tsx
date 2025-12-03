@@ -869,6 +869,7 @@ export default function CitywideDashboardClient({
                   <BudgetByDepartmentChart
                     year={yearLabel}
                     departments={deptSummaries}
+                    showTable={true}
                   />
                 )}
               </CardContainer>
