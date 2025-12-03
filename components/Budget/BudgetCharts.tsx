@@ -88,7 +88,7 @@ export default function BudgetCharts({
           Overall budget execution
         </div>
         <div className="mt-1 text-2xl font-semibold text-slate-900">
-          {formatPercent(execPct / 100)}
+          {formatPercent(execPct, 1)}
         </div>
         <div className="mt-1 text-xs text-slate-500">
           {formatCurrency(totalActuals)} of{" "}
@@ -302,7 +302,7 @@ export default function BudgetCharts({
                   {formatCurrency(row.Actual)}
                 </td>
                 <td className="px-3 py-2 text-right text-slate-700">
-                  {formatPercent(row.PercentSpent / 100)}
+                  {formatPercent(row.PercentSpent, 1)}
                 </td>
               </tr>
             ))}

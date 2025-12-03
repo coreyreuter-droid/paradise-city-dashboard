@@ -218,7 +218,7 @@ export default function BudgetClient({ budgets, actuals }: Props) {
         header: "% spent",
         align: "right",
         cell: (row: DepartmentSummary) => (
-          <span>{formatPercent(row.percentSpent / 100)}</span>
+          <span>{formatPercent(row.percentSpent, 1)}</span>
         ),
       },
       {
@@ -361,7 +361,7 @@ export default function BudgetClient({ budgets, actuals }: Props) {
                     % of budget spent
                   </div>
                   <div className="mt-1 text-lg font-semibold text-slate-900">
-                    {formatPercent(totals.execPct / 100)}
+                    {formatPercent(totals.execPct, 1)}
                   </div>
                   <div className="mt-1 text-[11px] text-slate-500">
                     Share of adopted budget that has been spent this
