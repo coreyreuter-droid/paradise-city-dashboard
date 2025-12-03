@@ -1,10 +1,11 @@
-// app/paradise/admin/onboarding/page.tsx
+// app/[citySlug]/admin/onboarding/page.tsx
 "use client";
 
 import Link from "next/link";
 import AdminGuard from "@/components/Auth/AdminGuard";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { cityHref } from "@/lib/cityRouting";
 
 type HealthStatus = "loading" | "pass" | "warn" | "fail";
 
@@ -97,7 +98,7 @@ export default function OnboardingPage() {
         <div className="mx-auto max-w-3xl">
           <div className="mb-4">
             <Link
-              href="/paradise/admin"
+              href={cityHref("/admin")}
               className="inline-flex items-center text-xs font-medium text-slate-500 hover:text-slate-800"
             >
               <span className="mr-1">←</span>
@@ -128,7 +129,7 @@ export default function OnboardingPage() {
                 </div>
               </div>
               <Link
-                href="/paradise/admin/upload?table=budgets"
+                href={cityHref("/admin/upload?table=budgets")}
                 className="rounded-md bg-slate-900 px-3 py-1 text-sm text-white hover:bg-slate-800"
               >
                 Upload
@@ -149,7 +150,7 @@ export default function OnboardingPage() {
                 </div>
               </div>
               <Link
-                href="/paradise/admin/upload?table=actuals"
+                href={cityHref("/admin/upload?table=actuals")}
                 className="rounded-md bg-slate-900 px-3 py-1 text-sm text-white hover:bg-slate-800"
               >
                 Upload
@@ -170,7 +171,7 @@ export default function OnboardingPage() {
                 </div>
               </div>
               <Link
-                href="/paradise/admin/upload?table=transactions"
+                href={cityHref("/admin/upload?table=transactions")}
                 className="rounded-md bg-slate-900 px-3 py-1 text-sm text-white hover:bg-slate-800"
               >
                 Upload
@@ -191,7 +192,7 @@ export default function OnboardingPage() {
                 </div>
               </div>
               <Link
-                href="/paradise/admin/settings"
+                href={cityHref("/admin/settings")}
                 className="rounded-md bg-slate-900 px-3 py-1 text-sm text-white hover:bg-slate-800"
               >
                 Edit
@@ -212,7 +213,7 @@ export default function OnboardingPage() {
                 </div>
               </div>
               <Link
-                href="/paradise/admin/publish"
+                href={cityHref("/admin/publish")}
                 className="rounded-md bg-emerald-600 px-3 py-1 text-sm text-white hover:bg-emerald-500"
               >
                 Go

@@ -1,6 +1,6 @@
 // app/[citySlug]/page.tsx
 
-import ParadiseHomeClient from "@/components/City/ParadiseHomeClient";
+import ParadiseHomeClient from "@/components/City/HomeClient";
 import {
   getAllBudgets,
   getAllActuals,

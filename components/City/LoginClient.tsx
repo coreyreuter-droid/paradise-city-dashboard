@@ -5,6 +5,7 @@ import { useEffect, useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { CITY_CONFIG } from "@/lib/cityConfig";
+import { cityHref } from "@/lib/cityRouting";
 
 type Status = "idle" | "sending" | "sent" | "error";
 
@@ -29,7 +30,7 @@ export default function LoginClient({ redirect }: Props) {
       } = await supabase.auth.getUser();
 
       if (!cancelled && user) {
-        router.replace(redirect || "/paradise");
+        router.replace(redirect || cityHref("/"));
       }
     }
 
@@ -51,7 +52,7 @@ export default function LoginClient({ redirect }: Props) {
           ? window.location.origin
           : "";
 
-      const redirectTo = `${origin}/paradise/login`;
+      const redirectTo = `${origin}${cityHref("/login")}`;
 
       const { error: authError } =
         await supabase.auth.signInWithOtp({

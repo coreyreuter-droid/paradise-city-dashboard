@@ -9,12 +9,13 @@ import BudgetCharts from "@/components/Budget/BudgetCharts";
 import type { DepartmentSummary } from "@/components/Budget/BudgetClient";
 import SectionHeader from "@/components/SectionHeader";
 import FiscalYearSelect from "@/components/FiscalYearSelect";
-import ParadiseHomeKpiStrip from "@/components/City/ParadiseHomeKpiStrip";
-import ParadiseHomeMultiYearChart from "@/components/City/ParadiseHomeMultiYearChart";
-import DepartmentsGrid from "@/components/City/ParadiseHomeDepartmentsGrid";
-import TopVendorsCard from "@/components/City/ParadiseHomeTopVendorsCard";
-import RecentTransactionsCard from "@/components/City/ParadiseHomeRecentTransactionsCard";
+import ParadiseHomeKpiStrip from "@/components/City/HomeKpiStrip";
+import ParadiseHomeMultiYearChart from "@/components/City/HomeMultiYearChart";
+import DepartmentsGrid from "@/components/City/HomeDepartmentsGrid";
+import TopVendorsCard from "@/components/City/HomeTopVendorsCard";
+import RecentTransactionsCard from "@/components/City/HomeRecentTransactionsCard";
 import { CITY_CONFIG } from "@/lib/cityConfig";
+import { cityHref } from "@/lib/cityRouting";
 import type { PortalSettings } from "@/lib/queries";
 import type {
   BudgetRow,
@@ -283,19 +284,19 @@ export default function ParadiseHomeClient({
 
               <div className="mt-4 flex flex-wrap gap-2">
                 <Link
-                  href="/paradise/budget"
+                  href={cityHref("/budget")}
                   className="inline-flex items-center justify-center rounded-md border border-transparent bg-white px-3 py-1.5 text-xs font-semibold text-slate-900 shadow-sm hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"
                 >
                   View budget details
                 </Link>
                 <Link
-                  href="/paradise/departments"
+                  href={cityHref("/departments")}
                   className="inline-flex items-center justify-center rounded-md border border-slate-300 bg-slate-900/40 px-3 py-1.5 text-xs font-semibold text-slate-50 hover:bg-slate-800/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"
                 >
                   Explore departments
                 </Link>
                 <Link
-                  href="/paradise/transactions"
+                  href={cityHref("/transactions")}
                   className="inline-flex items-center justify-center rounded-md border border-slate-300 bg-slate-900/40 px-3 py-1.5 text-xs font-semibold text-slate-50 hover:bg-slate-800/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"
                 >
                   Search transactions

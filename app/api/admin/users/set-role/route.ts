@@ -1,4 +1,4 @@
-// app/api/paradise/admin/users/invite/route.ts
+// app/api/admin/users/set-role/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { supabaseAdmin } from "@/lib/supabaseService";
@@ -24,11 +24,11 @@ export async function POST(req: NextRequest) {
     });
 
     const {
-      data: { user },
+      data: { user: caller },
       error: userError,
     } = await supabaseAuthed.auth.getUser();
 
-    if (!user || userError) {
+    if (userError || !caller) {
       return NextResponse.json(
         { error: "Invalid or expired session" },
         { status: 401 }
@@ -39,11 +39,11 @@ export async function POST(req: NextRequest) {
     const { data: profile } = await supabaseAuthed
       .from("profiles")
       .select("role")
-      .eq("id", user.id)
+      .eq("id", caller.id)
       .single();
 
-    const role = profile?.role as string | null;
-    const isSuperAdmin = role === "super_admin";
+    const callerRole = profile?.role as string | null;
+    const isSuperAdmin = callerRole === "super_admin";
 
     if (!isSuperAdmin) {
       return NextResponse.json(
@@ -52,63 +52,61 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 2) Parse input
+    // 2) Parse body
     const body = await req.json();
-    const email = (body.email as string | undefined)?.trim();
-    const desiredRole = body.role as "admin" | "viewer";
+    const userId = body.userId as string | undefined;
+    const newRole = body.role as "super_admin" | "admin" | "viewer" | null;
 
-    if (!email || !desiredRole) {
+    if (!userId || newRole === undefined) {
       return NextResponse.json(
-        { error: "Missing email or role" },
+        { error: "Invalid userId or role" },
         { status: 400 }
       );
     }
 
-    // 3) Send Supabase invite
-    const {
-      data: inviteData,
-      error: inviteError,
-    } = await supabaseAdmin.auth.admin.inviteUserByEmail(email);
-
-    if (inviteError || !inviteData?.user?.id) {
-      console.error("Invite error:", inviteError);
+    // 3) Prevent a super_admin from demoting themselves
+    if (caller.id === userId && newRole !== "super_admin") {
       return NextResponse.json(
-        { error: "Failed to send invite" },
-        { status: 500 }
+        { error: "You cannot change your own role" },
+        { status: 400 }
       );
     }
 
-    const newUser = inviteData.user;
-    const newUserId = newUser.id;
-
-    // 4) Upsert into profiles
-    const { error: upsertError } = await supabaseAdmin
+    // 4) Prevent removing the last super_admin
+    const { data: superAdmins } = await supabaseAdmin
       .from("profiles")
-      .upsert({
-        id: newUserId,
-        role: desiredRole,
-      });
+      .select("id")
+      .eq("role", "super_admin");
 
-    if (upsertError) {
-      console.error("Profile upsert error:", upsertError);
+    const isLastSuperAdmin =
+      superAdmins &&
+      superAdmins.length === 1 &&
+      superAdmins[0].id === userId;
+
+    if (isLastSuperAdmin && newRole !== "super_admin") {
       return NextResponse.json(
-        { error: "Failed to assign role" },
+        { error: "Cannot remove the last super admin" },
+        { status: 400 }
+      );
+    }
+
+    // 5) Apply role change
+    const { error: updateError } = await supabaseAdmin
+      .from("profiles")
+      .update({ role: newRole })
+      .eq("id", userId);
+
+    if (updateError) {
+      console.error("Role update error:", updateError);
+      return NextResponse.json(
+        { error: "Failed to update role" },
         { status: 500 }
       );
     }
 
-    // Return minimal user shape for UI
-    return NextResponse.json({
-      user: {
-        id: newUserId,
-        email: newUser.email ?? email,
-        role: desiredRole,
-        createdAt: newUser.created_at ?? null,
-        lastSignInAt: newUser.last_sign_in_at ?? null,
-      },
-    });
+    return NextResponse.json({ success: true });
   } catch (err: any) {
-    console.error("Invite user error:", err);
+    console.error("Set role error:", err);
     return NextResponse.json(
       { error: err?.message ?? "Unexpected server error" },
       { status: 500 }

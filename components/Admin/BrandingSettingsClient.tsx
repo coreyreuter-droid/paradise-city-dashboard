@@ -193,7 +193,9 @@ export default function BrandingSettingsClient() {
   ): Promise<string> {
     if (!file.type.startsWith("image/")) {
       throw new Error(
-        `${kind === "logo" ? "Logo" : kind === "hero" ? "Hero" : "Seal"} image must be an image file.`
+        `${
+          kind === "logo" ? "Logo" : kind === "hero" ? "Hero" : "Seal"
+        } image must be an image file.`
       );
     }
 
@@ -202,7 +204,7 @@ export default function BrandingSettingsClient() {
     formData.append("filename", file.name);
     formData.append("kind", kind);
 
-    const res = await fetch("/api/paradise/admin/hero-image", {
+    const res = await fetch("/api/admin/hero-image", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -447,11 +449,7 @@ export default function BrandingSettingsClient() {
                 placeholder="Short description shown on the public landing page."
               />
               <p className="mt-1 text-xs text-slate-500">
-                Appears in the hero section on{" "}
-                <code className="rounded bg-slate-100 px-1 py-0.5 text-[11px]">
-                  /paradise
-                </code>
-                .
+                Appears in the hero section on the public landing page.
               </p>
             </div>
 

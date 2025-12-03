@@ -4,6 +4,7 @@
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { cityHref } from "@/lib/cityRouting";
 
 type Props = {
   children: React.ReactNode;
@@ -30,10 +31,12 @@ export default function AdminGuard({ children }: Props) {
 
       if (userError || !user) {
         // Not logged in → send to login with redirect back here
-        const redirect = pathname || "/paradise/admin";
+        const redirect = pathname || cityHref("/admin");
         const params = new URLSearchParams();
         params.set("redirect", redirect);
-        router.replace(`/paradise/login?${params.toString()}`);
+        router.replace(
+          `${cityHref("/login")}?${params.toString()}`
+        );
         return;
       }
 
@@ -58,7 +61,7 @@ export default function AdminGuard({ children }: Props) {
 
       if (!isAdmin) {
         // Logged in but not admin → kick back to public portal
-        router.replace("/paradise");
+        router.replace(cityHref("/"));
         return;
       }
 
@@ -85,10 +88,10 @@ export default function AdminGuard({ children }: Props) {
   if (state === "forbidden") {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50">
-        <div className="max-w-md rounded-lg border border-red-200 bg-white px-4 py-3 text-sm text-red-700 shadow-sm">
-          Unable to verify your admin permissions. Please contact the site
-          administrator.
-        </div>
+          <div className="max-w-md rounded-lg border border-red-200 bg-white px-4 py-3 text-sm text-red-700 shadow-sm">
+            Unable to verify your admin permissions. Please contact the site
+            administrator.
+          </div>
       </div>
     );
   }

@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { cityHref } from "@/lib/cityRouting";
 
 const TABLE_SCHEMAS: Record<
   string,
@@ -440,7 +441,7 @@ export default function UploadClient() {
       const headers = rows[0].map((h) => h.trim());
       const dataRows = rows.slice(1);
 
-      // Validation + record building (same helper as before)
+      // Validation + record building
       const { records, yearsInData, issues } = validateAndBuildRecords(
         table,
         schema,
@@ -499,7 +500,7 @@ export default function UploadClient() {
         }
       }
 
-      // 🔐 NEW: use Supabase session token + server API (service role)
+      // Use Supabase session token + server API (service role)
       const {
         data: { session },
         error: sessionError,
@@ -514,7 +515,7 @@ export default function UploadClient() {
         return;
       }
 
-      const resp = await fetch("/api/paradise/admin/upload", {
+      const resp = await fetch("/api/admin/upload", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -596,7 +597,7 @@ export default function UploadClient() {
       <p className="mb-4 text-xs text-slate-500">
         You can review recent uploads in the{" "}
         <a
-          href="/paradise/admin/uploads"
+          href={cityHref("/admin/upload/history")}
           className="text-sky-700 hover:underline"
         >
           upload audit log

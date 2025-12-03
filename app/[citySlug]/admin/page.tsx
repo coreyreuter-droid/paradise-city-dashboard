@@ -1,8 +1,9 @@
-// app/paradise/admin/page.tsx
+// app/[citySlug]/admin/page.tsx
 "use client";
 
 import Link from "next/link";
 import AdminGuard from "@/components/Auth/AdminGuard";
+import { cityHref } from "@/lib/cityRouting";
 
 export default function AdminHomePage() {
   return (
@@ -24,42 +25,42 @@ export default function AdminHomePage() {
 
           <div className="space-y-2 text-sm">
             <Link
-              href="/paradise/admin/onboarding"
+              href={cityHref("/admin/onboarding")}
               className="block rounded-md border border-slate-200 bg-slate-50 px-3 py-2 font-medium text-slate-800 shadow-sm hover:bg-slate-100"
             >
               ✅ Onboarding checklist
             </Link>
 
             <Link
-              href="/paradise/admin/upload"
+              href={cityHref("/admin/upload")}
               className="block rounded-md border border-slate-200 bg-white px-3 py-2 font-medium text-slate-800 shadow-sm hover:bg-slate-50"
             >
               📤 Data uploads (budgets, actuals, transactions)
             </Link>
 
             <Link
-              href="/paradise/admin/upload/history"
+              href={cityHref("/admin/upload/history")}
               className="block rounded-md border border-slate-200 bg-white px-3 py-2 font-medium text-slate-800 shadow-sm hover:bg-slate-50"
             >
               📜 Data upload history &amp; audit log
             </Link>
 
             <Link
-              href="/paradise/admin/settings"
+              href={cityHref("/admin/settings")}
               className="block rounded-md border border-slate-200 bg-white px-3 py-2 font-medium text-slate-800 shadow-sm hover:bg-slate-50"
             >
               🎨 Branding &amp; portal settings
             </Link>
 
             <Link
-              href="/paradise/admin/users"
+              href={cityHref("/admin/users")}
               className="block rounded-md border border-slate-200 bg-white px-3 py-2 font-medium text-slate-800 shadow-sm hover:bg-slate-50"
             >
               👥 Admin users &amp; roles
             </Link>
 
             <Link
-              href="/paradise/admin/publish"
+              href={cityHref("/admin/publish")}
               className="block rounded-md border border-slate-200 bg-white px-3 py-2 font-medium text-slate-800 shadow-sm hover:bg-slate-50"
             >
               🚀 Publish / unpublish portal

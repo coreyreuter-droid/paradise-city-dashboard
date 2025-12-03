@@ -1,4 +1,4 @@
-// app/api/paradise/admin/upload/route.ts
+// app/api/admin/upload/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { supabaseAdmin } from "@/lib/supabaseService";

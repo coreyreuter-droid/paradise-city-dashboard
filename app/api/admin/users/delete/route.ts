@@ -1,4 +1,4 @@
-// app/api/paradise/admin/users/remove-admin/route.ts
+// app/api/admin/users/delete/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { supabaseAdmin } from "@/lib/supabaseService";
@@ -6,15 +6,23 @@ import { supabaseAdmin } from "@/lib/supabaseService";
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  throw new Error("Missing Supabase URL or anon key env vars");
+}
+
 export async function POST(req: NextRequest) {
   try {
     const authHeader = req.headers.get("authorization") ?? "";
     const token = authHeader.replace(/^Bearer\s+/i, "").trim();
 
     if (!token) {
-      return NextResponse.json({ error: "Missing access token" }, { status: 401 });
+      return NextResponse.json(
+        { error: "Missing access token" },
+        { status: 401 }
+      );
     }
 
+    // Caller-scoped client (uses the caller's access token)
     const supabaseAuthed = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       global: { headers: { Authorization: `Bearer ${token}` } },
       auth: { persistSession: false },
@@ -26,15 +34,26 @@ export async function POST(req: NextRequest) {
     } = await supabaseAuthed.auth.getUser();
 
     if (userError || !caller) {
-      return NextResponse.json({ error: "Invalid or expired session" }, { status: 401 });
+      return NextResponse.json(
+        { error: "Invalid or expired session" },
+        { status: 401 }
+      );
     }
 
-    // 1) Check caller's role
-    const { data: profile } = await supabaseAuthed
+    // Check caller role (must be super_admin)
+    const { data: profile, error: profileError } = await supabaseAuthed
       .from("profiles")
       .select("role")
       .eq("id", caller.id)
       .single();
+
+    if (profileError) {
+      console.error("delete user: profile error", profileError);
+      return NextResponse.json(
+        { error: "Unable to load caller profile" },
+        { status: 403 }
+      );
+    }
 
     const callerRole = profile?.role;
     const isSuperAdmin = callerRole === "super_admin";
@@ -46,7 +65,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 2) Parse input
     const body = await req.json();
     const userId = body.userId as string | undefined;
 
@@ -57,31 +75,43 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 3) Don’t let yourself remove your own admin status
+    // Don't let super_admin delete themselves
     if (caller.id === userId) {
       return NextResponse.json(
-        { error: "You cannot remove admin access from yourself" },
+        { error: "You cannot delete your own account" },
         { status: 400 }
       );
     }
 
-    // 4) Demote target user to viewer
-    const { error: updateError } = await supabaseAdmin
+    // Delete profile row first (ok if it doesn't exist)
+    const { error: profileDeleteError } = await supabaseAdmin
       .from("profiles")
-      .update({ role: "viewer" })
+      .delete()
       .eq("id", userId);
 
-    if (updateError) {
-      console.error("remove-admin update error:", updateError);
+    if (profileDeleteError) {
+      console.error(
+        "delete user: profile delete error",
+        profileDeleteError
+      );
+      // don't early-return; auth deletion is still important
+    }
+
+    // Delete Supabase Auth user using service role
+    const { error: deleteError } =
+      await supabaseAdmin.auth.admin.deleteUser(userId);
+
+    if (deleteError) {
+      console.error("delete user: auth delete error", deleteError);
       return NextResponse.json(
-        { error: "Failed to remove admin access" },
+        { error: "Failed to delete user" },
         { status: 500 }
       );
     }
 
     return NextResponse.json({ success: true });
   } catch (err: any) {
-    console.error("remove-admin error:", err);
+    console.error("delete user: unexpected error", err);
     return NextResponse.json(
       { error: err?.message ?? "Unexpected server error" },
       { status: 500 }

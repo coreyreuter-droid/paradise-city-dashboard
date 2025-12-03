@@ -4,6 +4,7 @@
 import Link from "next/link";
 import type { DepartmentSummary } from "@/components/Budget/BudgetClient";
 import { formatCurrency, formatPercent } from "@/lib/format";
+import { cityHref } from "@/lib/cityRouting";
 
 type Props = {
   year?: number;
@@ -45,19 +46,25 @@ export default function DepartmentsGrid({ year, departments }: Props) {
                 ? "text-red-700"
                 : "text-slate-700";
 
+            const deptName = d.department_name || "Unspecified";
+            const basePath = `/departments/${encodeURIComponent(
+              deptName
+            )}`;
+            const href = cityHref(
+              `${basePath}${year ? `?year=${year}` : ""}`
+            );
+
             return (
               <Link
-                key={d.department_name || "Unspecified"}
-                href={`/paradise/departments/${encodeURIComponent(
-                  d.department_name || "Unspecified"
-                )}${year ? `?year=${year}` : ""}`}
+                key={deptName}
+                href={href}
                 className="block rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-xs text-slate-700 hover:border-sky-400 hover:bg-white hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2"
               >
                 <div className="mb-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
                   Department
                 </div>
                 <div className="mb-2 text-sm font-semibold text-slate-900">
-                  {d.department_name || "Unspecified"}
+                  {deptName}
                 </div>
 
                 <div className="flex items-center justify-between text-[11px]">

@@ -1,4 +1,4 @@
-// app/api/paradise/admin/hero-image/route.ts
+// app/api/admin/hero-image/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { supabaseAdmin } from "@/lib/supabaseService";
@@ -63,8 +63,7 @@ export async function POST(req: NextRequest) {
     }
 
     const role = profile?.role as string | null;
-    const isAdmin =
-      role === "admin" || role === "super_admin";
+    const isAdmin = role === "admin" || role === "super_admin";
 
     if (!isAdmin) {
       return NextResponse.json(
@@ -86,7 +85,10 @@ export async function POST(req: NextRequest) {
 
     if (!file.type.startsWith("image/")) {
       return NextResponse.json(
-        { error: "Uploaded file must be an image (PNG/JPG/WEBP/etc.)" },
+        {
+          error:
+            "Uploaded file must be an image (PNG/JPG/WEBP/etc.)",
+        },
         { status: 400 }
       );
     }
@@ -112,9 +114,8 @@ export async function POST(req: NextRequest) {
     // 3) Upload to Storage using service role
     const bucket = "branding";
 
-    const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
-      .from(bucket)
-      .upload(path, file, {
+    const { data: uploadData, error: uploadError } =
+      await supabaseAdmin.storage.from(bucket).upload(path, file, {
         cacheControl: "3600",
         contentType: file.type,
         upsert: true,

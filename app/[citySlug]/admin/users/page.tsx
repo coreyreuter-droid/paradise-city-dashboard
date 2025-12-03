@@ -1,10 +1,11 @@
-// app/paradise/admin/users/page.tsx
+// app/[citySlug]/admin/users/page.tsx
 "use client";
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import AdminGuard from "@/components/Auth/AdminGuard";
 import { supabase } from "@/lib/supabase";
+import { cityHref } from "@/lib/cityRouting";
 
 type AdminUser = {
   id: string;
@@ -69,7 +70,7 @@ export default function AdminUsersPage() {
       setCurrentUserId(userId);
 
       try {
-        const res = await fetch("/api/paradise/admin/users", {
+        const res = await fetch("/api/admin/users", {
           headers: {
             Authorization: `Bearer ${accessToken}`,
           },
@@ -124,7 +125,9 @@ export default function AdminUsersPage() {
   // Derived metrics
   const superAdminCount = users.filter((u) => u.role === "super_admin").length;
   const adminCount = users.filter((u) => u.role === "admin").length;
-  const viewerCount = users.filter((u) => !u.role || u.role === "viewer").length;
+  const viewerCount = users.filter(
+    (u) => !u.role || u.role === "viewer"
+  ).length;
   const totalUsers = users.length;
   const noRoleCount = users.filter((u) => u.role === null).length;
 
@@ -153,7 +156,7 @@ export default function AdminUsersPage() {
   async function reloadUsers() {
     if (!authToken) return;
     try {
-      const res = await fetch("/api/paradise/admin/users", {
+      const res = await fetch("/api/admin/users", {
         headers: { Authorization: `Bearer ${authToken}` },
       });
       if (!res.ok) return;
@@ -177,7 +180,7 @@ export default function AdminUsersPage() {
     setActionError(null);
 
     try {
-      const res = await fetch("/api/paradise/admin/users/invite", {
+      const res = await fetch("/api/admin/users/invite", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -222,7 +225,7 @@ export default function AdminUsersPage() {
     setActionMessage(null);
 
     try {
-      const res = await fetch("/api/paradise/admin/users/set-role", {
+      const res = await fetch("/api/admin/users/set-role", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -262,7 +265,7 @@ export default function AdminUsersPage() {
     setActionMessage(null);
 
     try {
-      const res = await fetch("/api/paradise/admin/users/remove-admin", {
+      const res = await fetch("/api/admin/users/remove-admin", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -308,7 +311,7 @@ export default function AdminUsersPage() {
     setActionMessage(null);
 
     try {
-      const res = await fetch("/api/paradise/admin/users/delete", {
+      const res = await fetch("/api/admin/users/delete", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -342,7 +345,7 @@ export default function AdminUsersPage() {
       <div className="px-2 py-4 sm:px-4 sm:py-6">
         <div className="mb-3">
           <Link
-            href="/paradise/admin"
+            href={cityHref("/admin")}
             className="inline-flex items-center text-xs font-medium text-slate-500 hover:text-slate-800"
           >
             <span className="mr-1">←</span>

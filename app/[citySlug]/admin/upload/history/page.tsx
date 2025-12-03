@@ -1,4 +1,3 @@
-// app/paradise/admin/upload/history/page.tsx
 "use client";
 
 import Link from "next/link";
@@ -8,6 +7,7 @@ import {
   getDataUploadLogs,
   type DataUploadLogRow,
 } from "@/lib/queries";
+import { cityHref } from "@/lib/cityRouting";
 
 function formatMode(mode: DataUploadLogRow["mode"]): string {
   switch (mode) {
@@ -65,7 +65,7 @@ export default function UploadHistoryPage() {
           <div className="mb-4 flex items-center justify-between">
             <div>
               <Link
-                href="/paradise/admin"
+                href={cityHref("/admin")}
                 className="inline-flex items-center text-xs font-medium text-slate-500 hover:text-slate-800"
               >
                 <span className="mr-1">←</span>
