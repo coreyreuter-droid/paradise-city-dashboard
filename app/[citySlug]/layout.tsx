@@ -8,11 +8,13 @@ const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 type PortalSettingsRow = {
+  city_name: string | null;
+  tagline: string | null;
   primary_color: string | null;
   accent_color: string | null;
 };
 
-async function getAccentFromSettings(): Promise<string | null> {
+async function getPortalSettings(): Promise<PortalSettingsRow | null> {
   try {
     if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
       console.warn(
@@ -29,7 +31,7 @@ async function getAccentFromSettings(): Promise<string | null> {
 
     const { data, error } = await supabase
       .from("portal_settings")
-      .select("primary_color, accent_color")
+      .select("city_name, tagline, primary_color, accent_color")
       .eq("id", 1)
       .maybeSingle();
 
@@ -41,10 +43,9 @@ async function getAccentFromSettings(): Promise<string | null> {
       return null;
     }
 
-    const row = data as PortalSettingsRow | null;
-    if (!row) return null;
+    if (!data) return null;
 
-    return row.accent_color ?? row.primary_color ?? null;
+    return data as PortalSettingsRow;
   } catch (err) {
     console.error(
       "CityLayout: unexpected error loading portal_settings",
@@ -59,20 +60,29 @@ export default async function CityLayout({
 }: {
   children: ReactNode;
 }) {
-  const accentFromSettings = await getAccentFromSettings();
+  const settings = await getPortalSettings();
 
   const accent =
-    accentFromSettings ??
+    settings?.accent_color ??
+    settings?.primary_color ??
     CITY_CONFIG.accentColor ??
     CITY_CONFIG.primaryColor ??
     "#2563eb";
+
+  const displayName =
+    (settings?.city_name && settings.city_name.trim()) ||
+    CITY_CONFIG.displayName;
+
+  const tagline =
+    (settings?.tagline && settings.tagline.trim()) ||
+    CITY_CONFIG.tagline;
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col sm:flex-row">
       {/* Accessible skip link – first focusable element */}
       <a
         href="#main-content"
-        className="sr-only focus:not-sr-only focus:fixed focus:z-50 focus:top-3 focus:left-3 focus:px-4 focus:py-2 focus:rounded-md focus:bg-white focus:text-slate-900 focus:shadow-lg"
+        className="sr-only focus:not-sr-only focus:fixed focus:z-50 focus:top-4 focus:left-4 focus:rounded-md focus:bg-white focus:px-4 focus:py-2 focus:text-slate-900 focus:shadow-lg"
       >
         Skip to main content
       </a>
@@ -84,16 +94,16 @@ export default async function CityLayout({
       <main
         id="main-content"
         role="main"
-        aria-label={`${CITY_CONFIG.displayName} financial transparency content`}
+        aria-label={`${displayName} financial transparency content`}
         className="flex-1"
       >
-        {/* Portal header / hero */}
+        {/* Shared top hero/banner for all city dashboard pages */}
         <header
-          className="relative w-full border-b border-slate-200 bg-gradient-to-r from-slate-900 via-slate-900 to-slate-950 text-slate-50"
-          aria-label={`${CITY_CONFIG.displayName} portal header`}
+          className="relative w-full border-b border-slate-200 bg-slate-900 text-slate-50"
+          aria-label={`${displayName} portal header`}
         >
           {/* Decorative gradient overlay */}
-          <div className="absolute inset-0 opacity-40" aria-hidden="true">
+          <div className="absolute inset-0 opacity-40" aria-hidden={true}>
             <div
               className="h-full w-full"
               style={{
@@ -107,10 +117,10 @@ export default async function CityLayout({
               {CITY_CONFIG.slug}
             </p>
             <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl lg:text-[1.9rem]">
-              {CITY_CONFIG.displayName} financial transparency
+              {displayName} financial transparency
             </h1>
             <p className="mt-2 max-w-2xl text-sm text-slate-200/90">
-              {CITY_CONFIG.tagline}
+              {tagline}
             </p>
           </div>
         </header>
@@ -118,7 +128,7 @@ export default async function CityLayout({
         {/* Main content shell – shared card wrapper for all dashboards */}
         <div className="px-3 pb-10 pt-4 sm:px-6 sm:pt-6 lg:px-10">
           <section
-            aria-label={`${CITY_CONFIG.displayName} financial dashboards`}
+            aria-label={`${displayName} financial dashboards`}
             className="mx-auto max-w-6xl"
           >
             <div className="rounded-2xl border border-slate-200/80 bg-white/95 p-4 shadow-sm sm:p-6">

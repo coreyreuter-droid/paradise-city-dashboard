@@ -31,6 +31,8 @@ type Props = {
   budgets: BudgetRow[];
   actuals: ActualRow[];
   transactions: TransactionRow[];
+  // NEW: years from the server (optional, so we don't break other callers)
+  years?: number[];
 };
 
 function fy(value: unknown): number | null {
@@ -42,11 +44,12 @@ export default function DepartmentsDashboardClient({
   budgets,
   actuals,
   transactions,
+  years: yearsProp,
 }: Props) {
   const searchParams = useSearchParams();
 
-  // Collect available fiscal years from all three sources
-  const years = useMemo(() => {
+  // Collect available fiscal years from all three sources (fallback if yearsProp not provided)
+  const derivedYears = useMemo(() => {
     const set = new Set<number>();
 
     budgets.forEach((b) => {
@@ -66,6 +69,9 @@ export default function DepartmentsDashboardClient({
 
     return Array.from(set).sort((a, b) => b - a);
   }, [budgets, actuals, transactions]);
+
+  // Use years from the server if provided, otherwise fall back to derivedYears
+  const years = yearsProp && yearsProp.length ? yearsProp : derivedYears;
 
   const selectedYear = useMemo(() => {
     if (!years.length) return null;

@@ -10,8 +10,8 @@ export type CityConfig = {
 };
 
 export const CITY_CONFIG: CityConfig = {
-  slug: process.env.NEXT_PUBLIC_CITY_SLUG || "paradise",
-  displayName: process.env.NEXT_PUBLIC_CITY_NAME || "Paradise City",
+  slug: process.env.NEXT_PUBLIC_CITY_SLUG || "Civil  • Civic • Civilized",
+  displayName: process.env.NEXT_PUBLIC_CITY_NAME || "City Name Needs Imported",
   tagline:
     process.env.NEXT_PUBLIC_CITY_TAGLINE ||
     "Public-facing financial transparency for your community.",

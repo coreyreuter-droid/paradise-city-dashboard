@@ -111,6 +111,45 @@ function isValidISODate(value: unknown): boolean {
   );
 }
 
+// NEW: normalize common date formats to ISO (YYYY-MM-DD)
+// Accepts:
+//   - YYYY-MM-DD
+//   - MM-DD-YYYY
+//   - MM/DD/YYYY
+//   - M-D-YYYY / M/D-YYYY (single-digit month/day)
+function normalizeDateToISO(value: unknown): string | null {
+  if (typeof value === "string" && isValidISODate(value)) {
+    return value.trim();
+  }
+
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+
+  const match = /^([0-9]{1,2})[/-]([0-9]{1,2})[/-]([0-9]{4})$/.exec(trimmed);
+  if (!match) return null;
+
+  const month = Number(match[1]);
+  const day = Number(match[2]);
+  const year = Number(match[3]);
+
+  if (!isReasonableYear(year)) return null;
+  if (month < 1 || month > 12) return null;
+  if (day < 1 || day > 31) return null;
+
+  const d = new Date(Date.UTC(year, month - 1, day));
+  if (
+    d.getUTCFullYear() !== year ||
+    d.getUTCMonth() + 1 !== month ||
+    d.getUTCDate() !== day
+  ) {
+    return null;
+  }
+
+  const mm = String(month).padStart(2, "0");
+  const dd = String(day).padStart(2, "0");
+  return `${year}-${mm}-${dd}`;
+}
+
 // period as "YYYY-PP" where PP is 01–12
 function isValidPeriod(value: unknown): boolean {
   if (typeof value !== "string") return false;
@@ -247,13 +286,16 @@ function validateAndBuildRecords(
     const fy = rec["fiscal_year"];
 
     if (table === "transactions") {
-      // date
-      if (!isValidISODate(rec["date"])) {
+      // date – now accepts multiple formats and normalizes to ISO
+      const normalizedDate = normalizeDateToISO(rec["date"]);
+      if (!normalizedDate) {
         issues.push({
           row: rowNum,
           field: "date",
-          message: `Invalid date "${rec["date"]}". Expected format YYYY-MM-DD.`,
+          message: `Invalid date "${rec["date"]}". Expected format YYYY-MM-DD or MM-DD-YYYY / MM/DD/YYYY.`,
         });
+      } else {
+        rec["date"] = normalizedDate;
       }
 
       // department_name
