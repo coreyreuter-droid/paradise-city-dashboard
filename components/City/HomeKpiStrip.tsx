@@ -79,9 +79,9 @@ export default function ParadiseHomeKpiStrip({
         </div>
         <div
           className={`mt-1 text-lg font-bold ${
-            variance > 0
+            variance < 0
               ? "text-emerald-700"
-              : variance < 0
+              : variance > 0
               ? "text-red-700"
               : "text-slate-900"
           }`}

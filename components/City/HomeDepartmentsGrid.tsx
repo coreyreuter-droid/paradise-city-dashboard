@@ -40,9 +40,9 @@ export default function DepartmentsGrid({ year, departments }: Props) {
                 ? "Over budget"
                 : "Under budget";
             const varianceColor =
-              variance > 0
+              variance < 0
                 ? "text-emerald-700"
-                : variance < 0
+                : variance > 0
                 ? "text-red-700"
                 : "text-slate-700";
 

@@ -248,8 +248,9 @@ export default function DepartmentsDashboardClient({
         sortAccessor: (row) => row.percentSpent,
         headerClassName: "text-right",
         cellClassName: "text-right font-mono",
+        // FIXED: remove /100, show 1 decimal
         cell: (dept: DepartmentSummary) =>
-          formatPercent(dept.percentSpent / 100),
+          formatPercent(dept.percentSpent, 1),
       },
       {
         key: "variance",
@@ -261,9 +262,9 @@ export default function DepartmentsDashboardClient({
         cell: (dept: DepartmentSummary) => {
           const v = dept.variance;
           const color =
-            v < 0
+            v > 0
               ? "text-red-700"
-              : v > 0
+              : v < 0
               ? "text-emerald-700"
               : "text-slate-700";
           return (
@@ -420,7 +421,7 @@ export default function DepartmentsDashboardClient({
                     % of budget spent
                   </div>
                   <div className="mt-1 text-2xl font-bold text-slate-900">
-                    {formatPercent(execPct / 100)}
+                    {formatPercent(execPct, 1)}
                   </div>
                   <div className="mt-1 text-[11px] text-slate-500">
                     Based on total actuals versus total budget.
