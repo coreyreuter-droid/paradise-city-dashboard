@@ -72,11 +72,27 @@ export default function ParadiseHomeMultiYearChart({
           <BarChart data={data}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="year" />
-            <YAxis
-              tickFormatter={(v) =>
-                formatCurrency(Number(v)).replace("$", "")
+          <YAxis
+            tickFormatter={(value) => {
+              const n = Number(value);
+              if (!Number.isFinite(n)) return "";
+
+              const abs = Math.abs(n);
+
+              if (abs >= 1_000_000_000) {
+                return `${(abs / 1_000_000_000).toFixed(1)}B`;
               }
-            />
+              if (abs >= 1_000_000) {
+                return `${(abs / 1_000_000).toFixed(1)}M`;
+              }
+              if (abs >= 1_000) {
+                return `${(abs / 1_000).toFixed(1)}K`;
+              }
+
+              return n.toLocaleString("en-US", { maximumFractionDigits: 0 });
+            }}
+          />
+
             <Tooltip
               formatter={(value: any) =>
                 formatCurrency(Number(value))
