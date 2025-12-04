@@ -245,7 +245,7 @@ export default function BudgetClient({ budgets, actuals }: Props) {
       <div className="mx-auto max-w-6xl px-4 py-8">
         <SectionHeader
           eyebrow="City budget overview"
-          title="Budget vs actuals"
+          title="Budget vs Actuals"
           description="Compare adopted budgets and actual spending across departments for the selected fiscal year."
           rightSlot={
             years.length > 0 ? (

@@ -61,14 +61,6 @@ export default function BudgetByDepartmentChart({
       aria-describedby="budget-by-dept-desc"
       className="space-y-4"
     >
-      <div className="flex items-baseline justify-between gap-2">
-        <h3
-          id="budget-by-dept-heading"
-          className="text-sm font-semibold text-slate-900"
-        >
-          Budget vs actuals by department – {year}
-        </h3>
-      </div>
 
       <p id="budget-by-dept-desc" className="sr-only">
         Horizontal bar chart and data table showing adopted budget and

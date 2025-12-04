@@ -327,7 +327,7 @@ export default function TransactionsDashboardClient({
       <div className="mx-auto max-w-6xl px-4 py-8">
         <SectionHeader
           eyebrow="Transactions"
-          title="Spending detail"
+          title="Spending Detail"
           description="Search, filter, and export individual transactions for the selected fiscal year."
           rightSlot={
             years.length > 0 ? (

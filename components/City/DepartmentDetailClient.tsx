@@ -391,7 +391,7 @@ export default function DepartmentDetailClient({
     <div className="min-h-screen bg-slate-50">
       <div className="mx-auto max-w-6xl px-4 py-8">
         <SectionHeader
-          eyebrow="Department overview"
+          eyebrow="Department Overview"
           title={displayName}
           description="Multi-year trends and detailed transactions for this department."
           rightSlot={
@@ -504,7 +504,7 @@ export default function DepartmentDetailClient({
                     id="dept-multiyear-heading"
                     className="text-sm font-semibold text-slate-800"
                   >
-                    Multi-year budget vs actuals
+                    Multi-year Budget vs Actuals
                   </h2>
                   <p
                     id="dept-multiyear-desc"
@@ -661,7 +661,7 @@ export default function DepartmentDetailClient({
             <CardContainer>
               <div className="p-4">
                 <h2 className="mb-2 text-sm font-semibold text-slate-900">
-                  Top vendors ({selectedYear ?? "–"})
+                  Top Vendors ({selectedYear ?? "–"})
                 </h2>
 
                 {deptVendorSummaries.length === 0 ? (

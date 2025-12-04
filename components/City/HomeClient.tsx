@@ -276,7 +276,7 @@ export default function ParadiseHomeClient({
                 {tagline}
               </p>
               <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">
-                {cityName} financial transparency
+                {cityName} Financial Transparency
               </h1>
               <p className="mt-2 text-sm text-slate-100/80">
                 {heroMessage}
@@ -344,7 +344,7 @@ export default function ParadiseHomeClient({
         {/* Snapshot header */}
         <SectionHeader
           eyebrow="Overview"
-          title="Budget & spending snapshot"
+          title="Budget & Spending Snapshot"
           description="Citywide totals, department comparisons, year-over-year trends, and recent transactions for the selected fiscal year."
           rightSlot={
             years.length > 0 ? (
@@ -384,13 +384,13 @@ export default function ParadiseHomeClient({
         <div className="grid gap-6 lg:grid-cols-[2fr,1.3fr]">
           <CardContainer>
             <section
-              aria-label="Budget vs actuals by department"
+              aria-label="Budget vs Actuals by Department"
               className="space-y-3"
             >
               <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
                 <div>
                   <h2 className="text-sm font-semibold text-slate-800">
-                    Budget vs actuals by department
+                    Budget vs Actuals by Department
                   </h2>
                   <p className="text-xs text-slate-500">
                     Top departments by budget and their
@@ -417,7 +417,7 @@ export default function ParadiseHomeClient({
                 id="home-multiyear-heading"
                 className="text-sm font-semibold text-slate-800"
               >
-                Multi-year budget vs actuals
+                Multi-year Budget vs Actuals
               </h2>
               <p className="text-xs text-slate-500">
                 Citywide budget and actual spending across

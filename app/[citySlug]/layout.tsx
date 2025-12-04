@@ -117,7 +117,7 @@ export default async function CityLayout({
               {CITY_CONFIG.slug}
             </p>
             <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl lg:text-[1.9rem]">
-              {displayName} financial transparency
+              {displayName} Financial Transparency
             </h1>
             <p className="mt-2 max-w-2xl text-sm text-slate-200/90">
               {tagline}

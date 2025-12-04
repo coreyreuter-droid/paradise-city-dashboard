@@ -61,12 +61,7 @@ export default function ParadiseHomeMultiYearChart({
       aria-describedby="home-multi-year-desc"
       className="space-y-3"
     >
-      <h3
-        id="home-multi-year-heading"
-        className="text-sm font-semibold text-slate-900"
-      >
-        Multi-year budget vs actuals
-      </h3>
+
       <p id="home-multi-year-desc" className="sr-only">
         Column chart and data table showing total annual budget and
         actual spending for each fiscal year.

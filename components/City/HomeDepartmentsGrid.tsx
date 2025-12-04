@@ -20,7 +20,7 @@ export default function DepartmentsGrid({ year, departments }: Props) {
     <section aria-label="Department snapshot" className="space-y-3">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold text-slate-900">
-          Departments overview{year ? ` – ${year}` : ""}
+          Departments Overview{year ? ` – ${year}` : ""}
         </h3>
       </div>
 

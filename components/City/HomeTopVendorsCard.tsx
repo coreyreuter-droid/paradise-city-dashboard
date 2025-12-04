@@ -45,7 +45,7 @@ export default function TopVendorsCard({ year, transactions }: Props) {
     <section aria-label="Top vendors by spending" className="space-y-3">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold text-slate-900">
-          Top vendors{year ? ` – ${year}` : ""}
+          Top Vendors{year ? ` – ${year}` : ""}
         </h3>
       </div>
       {vendors.length === 0 ? (

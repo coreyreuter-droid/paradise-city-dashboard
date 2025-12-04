@@ -21,10 +21,10 @@ export default function RecentTransactionsCard({
   const rows = sorted.slice(0, limit);
 
   return (
-    <section aria-label="Recent transactions" className="space-y-3">
+    <section aria-label="Recent Transactions" className="space-y-3">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold text-slate-900">
-          Recent transactions{year ? ` – ${year}` : ""}
+          Recent Transactions{year ? ` – ${year}` : ""}
         </h3>
       </div>
       {rows.length === 0 ? (

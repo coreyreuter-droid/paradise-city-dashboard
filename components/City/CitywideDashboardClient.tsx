@@ -843,7 +843,7 @@ export default function CitywideDashboardClient({
                 <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
                   <div>
                     <h2 className="text-sm font-semibold text-slate-800">
-                      Budget vs actuals by department
+                      Budget vs Actuals by Department
                     </h2>
                     <p className="text-xs text-slate-500">
                       Fiscal year {yearLabel}. Departments sorted by largest
@@ -879,7 +879,7 @@ export default function CitywideDashboardClient({
                 <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
                   <div>
                     <h2 className="text-sm font-semibold text-slate-800">
-                      Citywide budget vs actuals and categories
+                      Citywide Budget vs Actuals & Categories
                     </h2>
                     <p className="text-xs text-slate-500">
                       Citywide view of budget, actuals, and top spending
@@ -976,7 +976,7 @@ export default function CitywideDashboardClient({
                         id="citywide-yoy-heading"
                         className="text-sm font-semibold text-slate-800"
                       >
-                        Citywide budget vs actuals over time
+                        Citywide Budget vs Actuals Over Time
                       </h2>
                       <p
                         id="citywide-yoy-desc"
@@ -1103,7 +1103,7 @@ export default function CitywideDashboardClient({
                 <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
                   <div>
                     <h2 className="text-sm font-semibold text-slate-800">
-                      Department variance by year
+                      Department Variance by Year
                     </h2>
                     <p className="text-xs text-slate-500">
                       For each department and fiscal year, shows whether
@@ -1229,7 +1229,7 @@ export default function CitywideDashboardClient({
                   <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
                     <div>
                       <h2 className="text-sm font-semibold text-slate-800">
-                        Top vendors ({yearLabel})
+                        Top Vendors ({yearLabel})
                       </h2>
                       <p className="text-xs text-slate-500">
                         Vendors ranked by total spending in the selected
@@ -1291,7 +1291,7 @@ export default function CitywideDashboardClient({
                   <div className="flex items-baseline justify-between gap-3">
                     <div>
                       <h2 className="text-sm font-semibold text-slate-800">
-                        Transactions overview
+                        Transactions Overview
                       </h2>
                       <p>
                         Summary of transaction volume for{" "}

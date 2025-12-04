@@ -299,7 +299,7 @@ export default function DepartmentsDashboardClient({
       <div className="mx-auto max-w-6xl px-4 py-8">
         <SectionHeader
           eyebrow="Departments"
-          title="Department overview"
+          title="Department Overview"
           description="See how each department’s budget, actual spending, and transaction volume compare for the selected fiscal year."
           rightSlot={
             years.length > 0 ? (
@@ -458,7 +458,7 @@ export default function DepartmentsDashboardClient({
             ) : (
               <div className="space-y-3">
                 <h2 className="text-sm font-semibold text-slate-900">
-                  Departments detail
+                  Department Detail
                 </h2>
                 <p className="text-xs text-slate-500">
                   This table shows each department’s budget, actual

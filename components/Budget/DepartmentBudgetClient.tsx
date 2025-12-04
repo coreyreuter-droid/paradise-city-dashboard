@@ -400,7 +400,7 @@ export default function DepartmentBudgetClient(props: Props) {
                     id="dept-budget-multi-year-heading"
                     className="text-sm font-semibold text-slate-900"
                   >
-                    Budget vs actuals by year
+                    Budget vs Actuals by Year
                   </h2>
                   <p
                     id="dept-budget-multi-year-desc"
@@ -611,7 +611,7 @@ export default function DepartmentBudgetClient(props: Props) {
             <div className="mb-3 flex items-baseline justify-between">
               <div>
                 <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
-                  Top vendors ({year})
+                  Top Vendors ({year})
                 </div>
                 <p className="mt-1 text-xs text-slate-500">
                   Summarized by total actual spending for this department in the

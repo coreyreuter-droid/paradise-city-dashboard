@@ -87,7 +87,7 @@ export default function ParadiseSidebar() {
     branding?.city_name || CITY_CONFIG.displayName || "Civic Transparency";
 
   const portalTagline =
-    branding?.tagline || "Public-facing financial transparency portal";
+    branding?.tagline || "Public-facing Financial Transparency Portal";
 
   const accent =
     branding?.primary_color ||
