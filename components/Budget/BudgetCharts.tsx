@@ -98,7 +98,7 @@ export default function BudgetCharts({
         </div>
 
         <div className="mt-3">
-          <div className="h-2.5 w-full overflow-hidden rounded-full bg-slate-200">
+          <div className="h-2.5 w-full overflow-hidden rounded-full bg-slate-200" >
             <div
               className="h-full rounded-full"
               style={{
@@ -157,7 +157,10 @@ export default function BudgetCharts({
         </p>
       </header>
 
-      <div style={{ height: chartHeight }}>
+      <div
+        className="w-full min-w-0 overflow-hidden"
+        style={{ height: chartHeight }}
+      >
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
             data={chartData}
@@ -168,10 +171,9 @@ export default function BudgetCharts({
               left: 8,
               bottom: 10,
             }}
-            // This is the key change: add vertical space between
-            // departments so stacks never touch.
             barCategoryGap="100%"
           >
+            
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis
               type="number"

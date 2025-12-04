@@ -67,7 +67,7 @@ export default function ParadiseHomeMultiYearChart({
         actual spending for each fiscal year.
       </p>
 
-      <div className="h-64">
+      <div className="h-64 w-full min-w-0 overflow-hidden">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data}>
             <CartesianGrid strokeDasharray="3 3" />

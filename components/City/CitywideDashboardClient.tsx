@@ -512,7 +512,7 @@ export default function CitywideDashboardClient({
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <div className="mx-auto max-w-6xl px-4 py-8">
+      <div className="mx-auto max-w-6xl px-3 py-4 sm:px-4 sm:py-6 lg:px-6 lg:py-8">
         <SectionHeader
           eyebrow="Citywide analytics"
           title="Budget, spending, and vendors"
@@ -544,7 +544,7 @@ export default function CitywideDashboardClient({
           </span>
         </nav>
 
-        <div className="space-y-6">
+        <div className="space-y-4 md:space-y-6">
           {/* High-level KPIs */}
           <CardContainer>
             <section
@@ -654,7 +654,7 @@ export default function CitywideDashboardClient({
                       </p>
                     ) : (
                       <>
-                        <div className="h-64">
+                        <div className="h-64 w-full min-w-0 overflow-hidden">
                           <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
                               <Pie
@@ -759,7 +759,7 @@ export default function CitywideDashboardClient({
                       </p>
                     ) : (
                       <>
-                        <div className="h-64">
+                        <div className="h-64 w-full min-w-0 overflow-hidden">
                           <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
                               <Pie
@@ -994,7 +994,7 @@ export default function CitywideDashboardClient({
                     </p>
                   ) : (
                     <>
-                      <div className="h-80 w-full">
+                      <div className="h-80 w-full min-w-0 overflow-hidden">
                         <ResponsiveContainer width="100%" height="100%">
                           <LineChart
                             data={yoyTrendData}

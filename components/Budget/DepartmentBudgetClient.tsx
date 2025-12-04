@@ -411,7 +411,7 @@ export default function DepartmentBudgetClient(props: Props) {
                   </p>
                 </div>
 
-                <div className="h-64">
+                <div className="h-64 w-full min-w-0 overflow-hidden">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={chartData}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} />

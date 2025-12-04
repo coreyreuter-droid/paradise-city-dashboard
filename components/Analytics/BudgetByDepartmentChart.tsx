@@ -71,16 +71,20 @@ export default function BudgetByDepartmentChart({
       </p>
 
       {/* Chart */}
-      <div className="w-full min-w-0 h-[420px] md:h-[460px]">
+      <div className="w-full min-w-0 h-[320px] sm:h-[380px] md:h-[420px] lg:h-[460px] overflow-hidden">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
             data={data}
             layout="vertical"
             margin={{ top: 8, right: 24, bottom: 8, left: 16 }}
-            barCategoryGap={5} // a bit less vertical gap
+            // More separation between departments so “stacks” don’t visually touch
+            barCategoryGap={16}
+            // Small gap between budget vs actual inside the same department
             barGap={2}
-            barSize={9} // <-- this is the one that actually works
+            // Slightly slimmer bars so category gap is more obvious
+            barSize={10}
           >
+
             <CartesianGrid strokeDasharray="3 3" horizontal={false} />
             <XAxis
               type="number"

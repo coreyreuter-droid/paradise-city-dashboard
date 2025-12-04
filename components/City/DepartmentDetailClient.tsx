@@ -516,7 +516,7 @@ export default function DepartmentDetailClient({
                 </div>
               </div>
 
-              <div className="h-[320px] w-full">
+              <div className="h-[320px] w-full min-w-0 overflow-hidden">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart
                     data={multiYearSeries}
