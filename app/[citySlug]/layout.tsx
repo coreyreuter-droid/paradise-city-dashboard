@@ -78,7 +78,7 @@ export default async function CityLayout({
     CITY_CONFIG.tagline;
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col sm:flex-row">
+    <div className="min-h-screen bg-slate-50 flex flex-col sm:flex-row overflow-x-hidden">
       {/* Accessible skip link – first focusable element */}
       <a
         href="#main-content"
