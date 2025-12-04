@@ -59,7 +59,7 @@ export default function BudgetByDepartmentChart({
       role="group"
       aria-labelledby="budget-by-dept-heading"
       aria-describedby="budget-by-dept-desc"
-      className="space-y-4"
+      className="space-y-4 w-full max-w-full"
     >
 
       <p id="budget-by-dept-desc" className="sr-only">
