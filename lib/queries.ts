@@ -43,6 +43,17 @@ export type PortalSettings = {
   project2_summary: string | null;
   project3_title: string | null;
   project3_summary: string | null;
+
+  project1_image_url: string | null;
+  project2_image_url: string | null;
+  project3_image_url: string | null;
+
+  // City stats (landing page)
+  stat_population: string | null;
+  stat_employees: string | null;
+  stat_square_miles: string | null;
+  stat_annual_budget: string | null;
+
 };
 
 

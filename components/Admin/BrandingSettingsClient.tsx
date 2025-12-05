@@ -35,6 +35,16 @@ type PortalSettings = {
   project2_summary: string | null;
   project3_title: string | null;
   project3_summary: string | null;
+
+  project1_image_url: string | null;
+  project2_image_url: string | null;
+  project3_image_url: string | null;
+
+  stat_population: string | null;
+  stat_employees: string | null;
+  stat_square_miles: string | null;
+  stat_annual_budget: string | null;
+
 };
 
 type ProjectTitleKey = "project1_title" | "project2_title" | "project3_title";
@@ -55,6 +65,14 @@ const PROJECT_SUMMARY_KEYS: ProjectSummaryKey[] = [
   "project3_summary",
 ];
 
+const PROJECT_IMAGE_KEYS = [
+  "project1_image_url",
+  "project2_image_url",
+  "project3_image_url",
+] as const;
+
+type ProjectImageKey = (typeof PROJECT_IMAGE_KEYS)[number];
+
 type LoadState = "idle" | "loading" | "ready" | "error";
 type SaveState = "idle" | "saving" | "saved" | "error";
 
@@ -69,26 +87,26 @@ const THEME_PRESETS: ThemePreset[] = [
   {
     id: "civic-classic",
     name: "Civic Classic",
-    primary: "#0F172A", // slate-900
-    accent: "#0369A1", // sky-700
+    primary: "#0F172A",
+    accent: "#0369A1",
   },
   {
     id: "evergreen",
     name: "Evergreen",
-    primary: "#064E3B", // emerald-900
-    accent: "#047857", // emerald-600
+    primary: "#064E3B",
+    accent: "#047857",
   },
   {
     id: "sunrise",
     name: "Sunrise",
-    primary: "#7C2D12", // amber/brown
-    accent: "#EA580C", // orange-600
+    primary: "#7C2D12",
+    accent: "#EA580C",
   },
   {
     id: "lakefront",
     name: "Lakefront",
-    primary: "#0C4A6E", // sky-900
-    accent: "#22C55E", // green-500
+    primary: "#0C4A6E",
+    accent: "#22C55E",
   },
 ];
 
@@ -115,6 +133,13 @@ const SELECT_FIELDS = [
   "project2_summary",
   "project3_title",
   "project3_summary",
+  "project1_image_url",
+  "project2_image_url",
+  "project3_image_url",
+  "stat_population",
+  "stat_employees",
+  "stat_square_miles",
+  "stat_annual_budget",
 ].join(", ");
 
 export default function BrandingSettingsClient() {
@@ -129,6 +154,11 @@ export default function BrandingSettingsClient() {
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [heroFile, setHeroFile] = useState<File | null>(null);
   const [sealFile, setSealFile] = useState<File | null>(null);
+  const [projectFiles, setProjectFiles] = useState<(File | null)[]>([
+    null,
+    null,
+    null,
+  ]);
 
   useEffect(() => {
     let cancelled = false;
@@ -184,6 +214,13 @@ export default function BrandingSettingsClient() {
                   project2_summary: null,
                   project3_title: null,
                   project3_summary: null,
+                  project1_image_url: null,
+                  project2_image_url: null,
+                  project3_image_url: null,
+                  stat_population: null,
+                  stat_employees: null,
+                  stat_square_miles: null,
+                  stat_annual_budget: null,
                 })
                 .select(SELECT_FIELDS)
                 .single();
@@ -265,10 +302,22 @@ export default function BrandingSettingsClient() {
     setSealFile(file);
   }
 
+  function handleProjectFileChange(
+    index: number,
+    e: ChangeEvent<HTMLInputElement>
+  ) {
+    const file = e.target.files?.[0] ?? null;
+    setProjectFiles((prev) => {
+      const next = [...prev];
+      next[index] = file;
+      return next;
+    });
+  }
+
   async function uploadImageToBucket(
     file: File,
-    bucket: "branding-assets",
-    prefix: "logos" | "heroes" | "seals"
+    bucket: "branding",
+    prefix: "logos" | "heroes" | "seals" | "projects"
   ): Promise<string> {
     const safeName = file.name
       .toLowerCase()
@@ -315,11 +364,16 @@ export default function BrandingSettingsClient() {
       let logoUrl = settings.logo_url ?? null;
       let heroUrl = settings.hero_image_url ?? null;
       let sealUrl = settings.seal_url ?? null;
+      let projectImageUrls: (string | null)[] = [
+        settings.project1_image_url ?? null,
+        settings.project2_image_url ?? null,
+        settings.project3_image_url ?? null,
+      ];
 
       if (logoFile) {
         logoUrl = await uploadImageToBucket(
           logoFile,
-          "branding-assets",
+          "branding",
           "logos"
         );
       }
@@ -327,7 +381,7 @@ export default function BrandingSettingsClient() {
       if (heroFile) {
         heroUrl = await uploadImageToBucket(
           heroFile,
-          "branding-assets",
+          "branding",
           "heroes"
         );
       }
@@ -335,9 +389,22 @@ export default function BrandingSettingsClient() {
       if (sealFile) {
         sealUrl = await uploadImageToBucket(
           sealFile,
-          "branding-assets",
+          "branding",
           "seals"
         );
+      }
+
+      // Upload any project images that were selected
+      for (let i = 0; i < projectFiles.length; i++) {
+        const file = projectFiles[i];
+        if (!file) continue;
+
+        const url = await uploadImageToBucket(
+          file,
+          "branding",
+          "projects"
+        );
+        projectImageUrls[i] = url;
       }
 
       const { data, error } = await supabase
@@ -364,6 +431,13 @@ export default function BrandingSettingsClient() {
           project2_summary: settings.project2_summary,
           project3_title: settings.project3_title,
           project3_summary: settings.project3_summary,
+          project1_image_url: projectImageUrls[0],
+          project2_image_url: projectImageUrls[1],
+          project3_image_url: projectImageUrls[2],
+          stat_population: settings.stat_population,
+          stat_employees: settings.stat_employees,
+          stat_square_miles: settings.stat_square_miles,
+          stat_annual_budget: settings.stat_annual_budget,
         })
         .eq("id", settings.id)
         .select(SELECT_FIELDS)
@@ -384,6 +458,7 @@ export default function BrandingSettingsClient() {
       setLogoFile(null);
       setHeroFile(null);
       setSealFile(null);
+      setProjectFiles([null, null, null]);
     } catch (err: any) {
       console.error("BrandingSettings: unexpected save error", err);
       setSaveState("error");
@@ -420,22 +495,6 @@ export default function BrandingSettingsClient() {
 
   if (!settings) return null;
 
-  const previewName = settings.city_name || "Your City Name";
-  const previewTagline =
-    settings.tagline || "Transparent Budget. Empowered Citizens.";
-  const previewPrimary = settings.primary_color || "#0F172A";
-  const previewAccent = settings.accent_color || "#0369A1";
-  const previewHeroMessage =
-    settings.hero_message ||
-    "Use this space to introduce your transparency portal.";
-
-  const initials = previewName
-    .split(" ")
-    .map((w) => w[0] || "")
-    .join("")
-    .slice(0, 3)
-    .toUpperCase();
-
   return (
     <div className="min-h-screen bg-slate-50 px-4 py-10">
       <div className="mx-auto max-w-5xl">
@@ -462,666 +521,644 @@ export default function BrandingSettingsClient() {
           </div>
         )}
 
-        <div className="mx-auto flex max-w-5xl flex-col gap-6 lg:flex-row">
-          {/* Form */}
-          <div className="flex-1 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h1 className="mb-2 text-lg font-semibold text-slate-900">
-              Branding &amp; Portal Settings
-            </h1>
-            <p className="mb-4 text-sm text-slate-600">
-              Configure how this CiviPortal deployment appears to residents.
-            </p>
+        {/* Single full-width form card */}
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h1 className="mb-2 text-lg font-semibold text-slate-900">
+            Branding &amp; Portal Settings
+          </h1>
+          <p className="mb-4 text-sm text-slate-600">
+            Configure how this CiviPortal deployment appears to residents.
+          </p>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Presets */}
-              <div>
-                <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Quick color presets
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {THEME_PRESETS.map((preset) => (
-                    <button
-                      key={preset.id}
-                      type="button"
-                      onClick={() => {
-                        setSettings({
-                          ...settings,
-                          primary_color: preset.primary,
-                          accent_color: preset.accent,
-                        });
-                      }}
-                      className="flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-700 hover:border-slate-300"
-                    >
-                      <span
-                        className="h-3 w-3 rounded-full"
-                        style={{ backgroundColor: preset.primary }}
-                      />
-                      <span
-                        className="h-3 w-3 rounded-full"
-                        style={{ backgroundColor: preset.accent }}
-                      />
-                      <span>{preset.name}</span>
-                    </button>
-                  ))}
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Presets */}
+            <div>
+              <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Quick color presets
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {THEME_PRESETS.map((preset) => (
+                  <button
+                    key={preset.id}
+                    type="button"
+                    onClick={() => {
+                      setSettings({
+                        ...settings,
+                        primary_color: preset.primary,
+                        accent_color: preset.accent,
+                      });
+                    }}
+                    className="flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-700 hover:border-slate-300"
+                  >
+                    <span
+                      className="h-3 w-3 rounded-full"
+                      style={{ backgroundColor: preset.primary }}
+                    />
+                    <span
+                      className="h-3 w-3 rounded-full"
+                      style={{ backgroundColor: preset.accent }}
+                    />
+                    <span>{preset.name}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* City name */}
+            <div>
+              <label className="mb-1 block text-sm font-medium text-slate-700">
+                City name
+              </label>
+              <input
+                type="text"
+                value={settings.city_name ?? ""}
+                onChange={(e) =>
+                  handleFieldChange("city_name", e.target.value)
+                }
+                className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
+                placeholder="e.g. City of Example"
+              />
+              <p className="mt-1 text-xs text-slate-500">
+                Displayed prominently in the hero and header.
+              </p>
+            </div>
+
+            {/* Tagline */}
+            <div>
+              <label className="mb-1 block text-sm font-medium text-slate-700">
+                Tagline
+              </label>
+              <input
+                type="text"
+                value={settings.tagline ?? ""}
+                onChange={(e) =>
+                  handleFieldChange("tagline", e.target.value)
+                }
+                className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
+                placeholder="e.g. Transparent Budget. Empowered Citizens."
+              />
+              <p className="mt-1 text-xs text-slate-500">
+                Short message shown under the city name.
+              </p>
+            </div>
+
+            {/* Hero message */}
+            <div>
+              <label className="mb-1 block text-sm font-medium text-slate-700">
+                Hero message (landing page)
+              </label>
+              <textarea
+                value={settings.hero_message ?? ""}
+                onChange={(e) =>
+                  handleFieldChange("hero_message", e.target.value)
+                }
+                className="min-h-[80px] w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
+                placeholder="Welcome residents. Explore your city’s budget, spending, and financial health — all in one place."
+              />
+              <p className="mt-1 text-xs text-slate-500">
+                This text appears in the public hero section on the
+                overview page.
+              </p>
+            </div>
+
+            {/* Story: City description */}
+            <div>
+              <label className="mb-1 block text-sm font-medium text-slate-700">
+                City description (About our community)
+              </label>
+              <textarea
+                value={settings.story_city_description ?? ""}
+                onChange={(e) =>
+                  handleFieldChange(
+                    "story_city_description",
+                    e.target.value
+                  )
+                }
+                rows={4}
+                className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
+                placeholder="Describe your community: population, location, and what makes it unique."
+              />
+              <p className="mt-1 text-xs text-slate-500">
+                Shown in the “About our community” card on the public
+                landing page.
+              </p>
+            </div>
+
+            {/* Story: Year achievements */}
+            <div>
+              <label className="mb-1 block text-sm font-medium text-slate-700">
+                Year-in-review accomplishments
+              </label>
+              <textarea
+                value={settings.story_year_achievements ?? ""}
+                onChange={(e) =>
+                  handleFieldChange(
+                    "story_year_achievements",
+                    e.target.value
+                  )
+                }
+                rows={4}
+                className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
+                placeholder="Summarize key accomplishments, new services, and improvements delivered this fiscal year."
+              />
+              <p className="mt-1 text-xs text-slate-500">
+                Shown in the “Year in review” card on the public landing
+                page.
+              </p>
+            </div>
+
+            {/* Story: Capital projects */}
+            <div>
+              <label className="mb-1 block text-sm font-medium text-slate-700">
+                Capital projects highlight
+              </label>
+              <textarea
+                value={settings.story_capital_projects ?? ""}
+                onChange={(e) =>
+                  handleFieldChange(
+                    "story_capital_projects",
+                    e.target.value
+                  )
+                }
+                rows={4}
+                className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
+                placeholder="Call out major capital projects completed or underway (streets, facilities, parks, utilities)."
+              />
+              <p className="mt-1 text-xs text-slate-500">
+                Shown in the “Capital projects” card on the public
+                landing page.
+              </p>
+            </div>
+
+            {/* Leadership / welcome message */}
+            <div className="border-t border-slate-200 pt-4 mt-4 space-y-3">
+              <h2 className="text-sm font-semibold text-slate-900">
+                Leadership welcome (optional)
+              </h2>
+              <p className="text-xs text-slate-500">
+                Share a short message from the mayor or city manager about the
+                city’s commitment to transparency.
+              </p>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-slate-700">
+                    Leader name
+                  </label>
+                  <input
+                    type="text"
+                    value={settings.leader_name ?? ""}
+                    onChange={(e) =>
+                      handleFieldChange("leader_name", e.target.value)
+                    }
+                    className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
+                    placeholder="e.g. Jane Doe"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-slate-700">
+                    Leader title
+                  </label>
+                  <input
+                    type="text"
+                    value={settings.leader_title ?? ""}
+                    onChange={(e) =>
+                      handleFieldChange("leader_title", e.target.value)
+                    }
+                    className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
+                    placeholder="e.g. City Manager"
+                  />
                 </div>
               </div>
 
-              {/* City name */}
               <div>
                 <label className="mb-1 block text-sm font-medium text-slate-700">
-                  City name
-                </label>
-                <input
-                  type="text"
-                  value={settings.city_name ?? ""}
-                  onChange={(e) =>
-                    handleFieldChange("city_name", e.target.value)
-                  }
-                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
-                  placeholder="e.g. City of Example"
-                />
-                <p className="mt-1 text-xs text-slate-500">
-                  Displayed prominently in the hero and header.
-                </p>
-              </div>
-
-              {/* Tagline */}
-              <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700">
-                  Tagline
-                </label>
-                <input
-                  type="text"
-                  value={settings.tagline ?? ""}
-                  onChange={(e) =>
-                    handleFieldChange("tagline", e.target.value)
-                  }
-                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
-                  placeholder="e.g. Transparent Budget. Empowered Citizens."
-                />
-                <p className="mt-1 text-xs text-slate-500">
-                  Short message shown under the city name.
-                </p>
-              </div>
-
-              {/* Hero message */}
-              <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700">
-                  Hero message (landing page)
+                  Leader message
                 </label>
                 <textarea
-                  value={settings.hero_message ?? ""}
+                  value={settings.leader_message ?? ""}
                   onChange={(e) =>
-                    handleFieldChange("hero_message", e.target.value)
-                  }
-                  className="min-h-[80px] w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
-                  placeholder="Welcome residents. Explore your city’s budget, spending, and financial health — all in one place."
-                />
-                <p className="mt-1 text-xs text-slate-500">
-                  This text appears in the public hero section on the
-                  overview page.
-                </p>
-              </div>
-
-              {/* Story: City description */}
-              <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700">
-                  City description (About our community)
-                </label>
-                <textarea
-                  value={settings.story_city_description ?? ""}
-                  onChange={(e) =>
-                    handleFieldChange(
-                      "story_city_description",
-                      e.target.value
-                    )
+                    handleFieldChange("leader_message", e.target.value)
                   }
                   rows={4}
                   className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
-                  placeholder="Describe your community: population, location, and what makes it unique."
+                  placeholder="A short welcome note about transparency, stewardship of public funds, and how residents can use this portal."
                 />
-                <p className="mt-1 text-xs text-slate-500">
-                  Shown in the “About our community” card on the public
-                  landing page.
-                </p>
               </div>
 
-              {/* Story: Year achievements */}
               <div>
                 <label className="mb-1 block text-sm font-medium text-slate-700">
-                  Year-in-review accomplishments
+                  Leader photo URL (optional)
                 </label>
-                <textarea
-                  value={settings.story_year_achievements ?? ""}
+                <input
+                  type="text"
+                  value={settings.leader_photo_url ?? ""}
                   onChange={(e) =>
-                    handleFieldChange(
-                      "story_year_achievements",
-                      e.target.value
-                    )
+                    handleFieldChange("leader_photo_url", e.target.value)
                   }
-                  rows={4}
                   className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
-                  placeholder="Summarize key accomplishments, new services, and improvements delivered this fiscal year."
+                  placeholder="https://example.com/leader.jpg"
                 />
                 <p className="mt-1 text-xs text-slate-500">
-                  Shown in the “Year in review” card on the public landing
+                  Optional photo shown next to the welcome message on the landing
                   page.
                 </p>
               </div>
+            </div>
 
-              {/* Story: Capital projects */}
-              <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700">
-                  Capital projects highlight
-                </label>
-                <textarea
-                  value={settings.story_capital_projects ?? ""}
-                  onChange={(e) =>
-                    handleFieldChange(
-                      "story_capital_projects",
-                      e.target.value
-                    )
-                  }
-                  rows={4}
-                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
-                  placeholder="Call out major capital projects completed or underway (streets, facilities, parks, utilities)."
-                />
-                <p className="mt-1 text-xs text-slate-500">
-                  Shown in the “Capital projects” card on the public
-                  landing page.
-                </p>
-              </div>
-
-              {/* Leadership / welcome message */}
-              <div className="border-t border-slate-200 pt-4 mt-4 space-y-3">
-                <h2 className="text-sm font-semibold text-slate-900">
-                  Leadership welcome (optional)
-                </h2>
-                <p className="text-xs text-slate-500">
-                  Share a short message from the mayor or city manager about the
-                  city’s commitment to transparency.
-                </p>
-
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <label className="mb-1 block text-sm font-medium text-slate-700">
-                      Leader name
-                    </label>
-                    <input
-                      type="text"
-                      value={settings.leader_name ?? ""}
-                      onChange={(e) =>
-                        handleFieldChange("leader_name", e.target.value)
-                      }
-                      className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
-                      placeholder="e.g. Jane Doe"
-                    />
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-sm font-medium text-slate-700">
-                      Leader title
-                    </label>
-                    <input
-                      type="text"
-                      value={settings.leader_title ?? ""}
-                      onChange={(e) =>
-                        handleFieldChange("leader_title", e.target.value)
-                      }
-                      className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
-                      placeholder="e.g. City Manager"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="mb-1 block text-sm font-medium text-slate-700">
-                    Leader message
-                  </label>
-                  <textarea
-                    value={settings.leader_message ?? ""}
-                    onChange={(e) =>
-                      handleFieldChange("leader_message", e.target.value)
-                    }
-                    rows={4}
-                    className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
-                    placeholder="A short welcome note about transparency, stewardship of public funds, and how residents can use this portal."
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-1 block text-sm font-medium text-slate-700">
-                    Leader photo URL (optional)
-                  </label>
-                  <input
-                    type="text"
-                    value={settings.leader_photo_url ?? ""}
-                    onChange={(e) =>
-                      handleFieldChange("leader_photo_url", e.target.value)
-                    }
-                    className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
-                    placeholder="https://example.com/leader.jpg"
-                  />
-                  <p className="mt-1 text-xs text-slate-500">
-                    Optional photo shown next to the welcome message on the landing
-                    page.
-                  </p>
-                </div>
-              </div>
-
-{/* Featured projects */}
+{/* City stats */}
 <div className="border-t border-slate-200 pt-4 mt-4 space-y-3">
   <h2 className="text-sm font-semibold text-slate-900">
-    Featured projects (optional)
+    City stats (optional)
   </h2>
   <p className="text-xs text-slate-500">
-    Highlight 1–3 major capital or community projects. These appear in
-    a projects section on the landing page.
+    Key figures that help residents understand the size and scale of
+    your community.
   </p>
 
-  {PROJECT_TITLE_KEYS.map((titleKey, idx) => {
-    const summaryKey = PROJECT_SUMMARY_KEYS[idx];
-    const titleValue = settings[titleKey] ?? "";
-    const summaryValue = settings[summaryKey] ?? "";
+  <div className="grid gap-4 sm:grid-cols-2">
+    <div>
+      <label className="mb-1 block text-sm font-medium text-slate-700">
+        Population
+      </label>
+      <input
+        type="text"
+        value={settings.stat_population ?? ""}
+        onChange={(e) =>
+          handleFieldChange("stat_population", e.target.value)
+        }
+        className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
+        placeholder="e.g. 54,231"
+      />
+    </div>
 
-    return (
-      <div
-        key={titleKey}
-        className="rounded-md border border-slate-200 bg-slate-50/60 p-3 space-y-2"
-      >
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
-          Project {idx + 1}
-        </p>
-        <div>
-          <label className="mb-1 block text-xs font-medium text-slate-700">
-            Title
-          </label>
-          <input
-            type="text"
-            value={titleValue}
-            onChange={(e) =>
-              handleFieldChange(titleKey, e.target.value)
-            }
-            className="w-full rounded-md border border-slate-300 px-3 py-2 text-xs text-slate-900 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
-            placeholder="e.g. New Community Center"
-          />
-        </div>
-        <div>
-          <label className="mb-1 block text-xs font-medium text-slate-700">
-            Summary
-          </label>
-          <textarea
-            value={summaryValue}
-            onChange={(e) =>
-              handleFieldChange(summaryKey, e.target.value)
-            }
-            rows={3}
-            className="w-full rounded-md border border-slate-300 px-3 py-2 text-xs text-slate-900 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
-            placeholder="Briefly describe the project, what it delivers, and its impact on residents."
-          />
-        </div>
-      </div>
-    );
-  })}
+    <div>
+      <label className="mb-1 block text-sm font-medium text-slate-700">
+        City employees
+      </label>
+      <input
+        type="text"
+        value={settings.stat_employees ?? ""}
+        onChange={(e) =>
+          handleFieldChange("stat_employees", e.target.value)
+        }
+        className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
+        placeholder="e.g. 312"
+      />
+    </div>
+
+    <div>
+      <label className="mb-1 block text-sm font-medium text-slate-700">
+        Area (square miles)
+      </label>
+      <input
+        type="text"
+        value={settings.stat_square_miles ?? ""}
+        onChange={(e) =>
+          handleFieldChange("stat_square_miles", e.target.value)
+        }
+        className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
+        placeholder="e.g. 35.8"
+      />
+    </div>
+
+    <div>
+      <label className="mb-1 block text-sm font-medium text-slate-700">
+        Annual budget (all funds)
+      </label>
+      <input
+        type="text"
+        value={settings.stat_annual_budget ?? ""}
+        onChange={(e) =>
+          handleFieldChange("stat_annual_budget", e.target.value)
+        }
+        className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
+        placeholder="e.g. 98300000"
+      />
+      <p className="mt-1 text-xs text-slate-500">
+        Enter as a whole number (e.g. 98300000). It will be formatted as
+        currency on the public site.
+      </p>
+    </div>
+  </div>
 </div>
 
+            {/* Featured projects */}
+            <div className="border-t border-slate-200 pt-4 mt-4 space-y-3">
+              <h2 className="text-sm font-semibold text-slate-900">
+                Featured projects (optional)
+              </h2>
+              <p className="text-xs text-slate-500">
+                Highlight 1–3 major capital or community projects. These appear in
+                a projects section on the landing page.
+              </p>
 
-              {/* Colors */}
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="mb-1 block text-sm font-medium text-slate-700">
-                    Primary color (hex)
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      value={settings.primary_color ?? ""}
-                      onChange={(e) =>
-                        handleFieldChange(
-                          "primary_color",
-                          e.target.value
-                        )
-                      }
-                      className="flex-1 rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
-                      placeholder="#0F172A"
-                    />
-                    <input
-                      type="color"
-                      value={settings.primary_color ?? "#0F172A"}
-                      onChange={(e) =>
-                        handleFieldChange(
-                          "primary_color",
-                          e.target.value
-                        )
-                      }
-                      aria-label="Pick primary color"
-                      className="h-9 w-10 cursor-pointer rounded border border-slate-300 bg-white"
-                    />
-                  </div>
-                  <p className="mt-1 text-xs text-slate-500">
-                    Used for headers, key text, and high-emphasis elements.
-                  </p>
-                </div>
+              {PROJECT_TITLE_KEYS.map((titleKey, idx) => {
+                const summaryKey = PROJECT_SUMMARY_KEYS[idx];
+                const imageKey: ProjectImageKey = PROJECT_IMAGE_KEYS[idx];
 
-                <div>
-                  <label className="mb-1 block text-sm font-medium text-slate-700">
-                    Accent color (hex)
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      value={settings.accent_color ?? ""}
-                      onChange={(e) =>
-                        handleFieldChange(
-                          "accent_color",
-                          e.target.value
-                        )
-                      }
-                      className="flex-1 rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
-                      placeholder="#0369A1"
-                    />
-                    <input
-                      type="color"
-                      value={settings.accent_color ?? "#0369A1"}
-                      onChange={(e) =>
-                        handleFieldChange(
-                          "accent_color",
-                          e.target.value
-                        )
-                      }
-                      aria-label="Pick accent color"
-                      className="h-9 w-10 cursor-pointer rounded border border-slate-300 bg-white"
-                    />
-                  </div>
-                  <p className="mt-1 text-xs text-slate-500">
-                    Used for highlights, buttons, and charts.
-                  </p>
-                </div>
-              </div>
+                const titleValue = settings[titleKey] ?? "";
+                const summaryValue = settings[summaryKey] ?? "";
+                const imageValue = settings[imageKey] ?? "";
 
-              {/* Logo URL + upload */}
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-1">
-                  <label className="mb-1 block text-sm font-medium text-slate-700">
-                    Logo image URL
-                  </label>
-                  <input
-                    type="text"
-                    value={settings.logo_url ?? ""}
-                    onChange={(e) =>
-                      handleFieldChange("logo_url", e.target.value)
-                    }
-                    className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
-                    placeholder="https://example.com/logo.png"
-                  />
-                  <p className="mt-1 text-xs text-slate-500">
-                    Main logo shown in the hero and sidebar. Uploading a file
-                    below will overwrite this URL when you save.
-                  </p>
-                </div>
-
-                <div className="space-y-1 rounded-md bg-slate-50 p-3 text-xs text-slate-600">
-                  <p className="font-semibold">
-                    Upload logo image (PNG/JPG/WEBP)
-                  </p>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleLogoFileChange}
-                    className="mt-1 text-xs"
-                  />
-                  {logoFile && (
-                    <p className="mt-1 text-xs text-slate-500">
-                      Selected: {logoFile.name} (will be uploaded when you
-                      click{" "}
-                      <span className="font-semibold">Save settings</span>)
+                return (
+                  <div
+                    key={titleKey}
+                    className="rounded-md border border-slate-200 bg-slate-50/60 p-3 space-y-2"
+                  >
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+                      Project {idx + 1}
                     </p>
-                  )}
-                </div>
-              </div>
 
-              {/* Hero image + upload */}
-              <div className="space-y-2">
-                <div>
-                  <label className="mb-1 block text-sm font-medium text-slate-700">
-                    Hero image URL
-                  </label>
+                    {/* Title */}
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-slate-700">
+                        Title
+                      </label>
+                      <input
+                        type="text"
+                        value={titleValue}
+                        onChange={(e) =>
+                          handleFieldChange(titleKey, e.target.value)
+                        }
+                        className="w-full rounded-md border border-slate-300 px-3 py-2 text-xs text-slate-900 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
+                        placeholder="e.g. New Community Center"
+                      />
+                    </div>
+
+                    {/* Summary */}
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-slate-700">
+                        Summary
+                      </label>
+                      <textarea
+                        value={summaryValue}
+                        onChange={(e) =>
+                          handleFieldChange(summaryKey, e.target.value)
+                        }
+                        rows={3}
+                        className="w-full rounded-md border border-slate-300 px-3 py-2 text-xs text-slate-900 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
+                        placeholder="Briefly describe the project, what it delivers, and its impact on residents."
+                      />
+                    </div>
+
+                    {/* Image URL */}
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-slate-700">
+                        Image URL (optional)
+                      </label>
+                      <input
+                        type="text"
+                        value={imageValue}
+                        onChange={(e) =>
+                          handleFieldChange(imageKey, e.target.value)
+                        }
+                        className="w-full rounded-md border border-slate-300 px-3 py-2 text-xs text-slate-900 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
+                        placeholder="https://example.com/project.jpg"
+                      />
+                      <p className="mt-1 text-[11px] text-slate-500">
+                        Optional image shown at the top of this project card on the
+                        landing page.
+                      </p>
+                    </div>
+
+                    {/* Project image upload */}
+                    <div className="space-y-1 rounded-md bg-slate-50 p-2 text-[11px] text-slate-600">
+                      <p className="font-semibold">
+                        Upload project image (PNG/JPG/WEBP)
+                      </p>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleProjectFileChange(idx, e)}
+                        className="mt-1 text-[11px]"
+                      />
+                      {projectFiles[idx] && (
+                        <p className="mt-1 text-[11px] text-slate-500">
+                          Selected: {projectFiles[idx]?.name} (will be uploaded when you
+                          click{" "}
+                          <span className="font-semibold">Save settings</span>)
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Colors */}
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label className="mb-1 block text-sm font-medium text-slate-700">
+                  Primary color (hex)
+                </label>
+                <div className="flex items-center gap-2">
                   <input
                     type="text"
-                    value={settings.hero_image_url ?? ""}
+                    value={settings.primary_color ?? ""}
                     onChange={(e) =>
                       handleFieldChange(
-                        "hero_image_url",
+                        "primary_color",
                         e.target.value
                       )
                     }
-                    className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
-                    placeholder="https://example.com/hero.jpg"
+                    className="flex-1 rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
+                    placeholder="#0F172A"
                   />
-                  <p className="mt-1 text-xs text-slate-500">
-                    Large hero background on the overview page. Uploading a
-                    file below will overwrite this URL when you save.
-                  </p>
-                </div>
-                <div className="space-y-1 rounded-md bg-slate-50 p-3 text-xs text-slate-600">
-                  <p className="font-semibold">
-                    Upload hero image (PNG/JPG/WEBP)
-                  </p>
                   <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleHeroFileChange}
-                    className="mt-1 text-xs"
+                    type="color"
+                    value={settings.primary_color ?? "#0F172A"}
+                    onChange={(e) =>
+                      handleFieldChange(
+                        "primary_color",
+                        e.target.value
+                      )
+                    }
+                    aria-label="Pick primary color"
+                    className="h-9 w-10 cursor-pointer rounded border border-slate-300 bg-white"
                   />
-                  {heroFile && (
-                    <p className="mt-1 text-xs text-slate-500">
-                      Selected: {heroFile.name} (will be uploaded when you
-                      click{" "}
-                      <span className="font-semibold">Save settings</span>)
-                    </p>
-                  )}
                 </div>
+                <p className="mt-1 text-xs text-slate-500">
+                  Used for headers, key text, and high-emphasis elements.
+                </p>
               </div>
 
-              {/* Seal URL + upload */}
-              <div className="space-y-2">
-                <div>
-                  <label className="mb-1 block text-sm font-medium text-slate-700">
-                    City seal URL (optional)
-                  </label>
+              <div>
+                <label className="mb-1 block text-sm font-medium text-slate-700">
+                  Accent color (hex)
+                </label>
+                <div className="flex items-center gap-2">
                   <input
                     type="text"
-                    value={settings.seal_url ?? ""}
+                    value={settings.accent_color ?? ""}
                     onChange={(e) =>
-                      handleFieldChange("seal_url", e.target.value)
+                      handleFieldChange(
+                        "accent_color",
+                        e.target.value
+                      )
                     }
-                    className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
-                    placeholder="https://example.com/seal.png"
+                    className="flex-1 rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
+                    placeholder="#0369A1"
                   />
-                  <p className="mt-1 text-xs text-slate-500">
-                    Optional city seal displayed alongside the logo in some
-                    layouts.
-                  </p>
-                </div>
-                <div className="space-y-1 rounded-md bg-slate-50 p-3 text-xs text-slate-600">
-                  <p className="font-semibold">
-                    Upload city seal (PNG/JPG/WEBP)
-                  </p>
                   <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleSealFileChange}
-                    className="mt-1 text-xs"
-                  />
-                  {sealFile && (
-                    <p className="mt-1 text-xs text-slate-500">
-                      Selected: {sealFile.name} (will be uploaded when you
-                      click{" "}
-                      <span className="font-semibold">Save settings</span>)
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              {imageError && (
-                <p className="text-xs text-red-600">{imageError}</p>
-              )}
-
-              <div className="pt-2">
-                <button
-                  type="submit"
-                  disabled={saveState === "saving"}
-                  className="inline-flex items-center rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-slate-800 disabled:opacity-50"
-                >
-                  {saveState === "saving"
-                    ? "Saving…"
-                    : "Save branding settings"}
-                </button>
-              </div>
-            </form>
-          </div>
-
-          {/* Preview */}
-          <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Portal preview
-            </p>
-
-            <div className="overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
-              {/* Header */}
-              <div className="flex items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 py-3">
-                <div className="flex items-center gap-3">
-                  {settings.logo_url ? (
-                    <div className="flex h-9 w-24 items-center justify-center rounded-md bg-white">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={settings.logo_url}
-                        alt={`${previewName} logo`}
-                        className="max-h-8 w-auto object-contain"
-                      />
-                    </div>
-                  ) : (
-                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-900 text-xs font-bold uppercase text-white">
-                      {initials || "CP"}
-                    </div>
-                  )}
-                  <div>
-                    <p className="text-sm font-semibold text-slate-900">
-                      {previewName}
-                    </p>
-                    <p className="text-xs text-slate-500">
-                      {previewTagline}
-                    </p>
-                  </div>
-                </div>
-                {settings.seal_url && (
-                  <div className="hidden h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white p-0.5 sm:flex">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={settings.seal_url}
-                      alt={`${previewName} seal`}
-                      className="h-full w-full rounded-full object-contain"
-                    />
-                  </div>
-                )}
-              </div>
-
-              {/* Hero-like preview */}
-              <div className="space-y-3 px-4 py-3 text-xs text-slate-600">
-                <div className="overflow-hidden rounded-lg border border-slate-200">
-                  <div
-                    className="relative h-24 w-full"
-                    style={
-                      settings.hero_image_url
-                        ? {
-                            backgroundImage: `url(${settings.hero_image_url})`,
-                            backgroundSize: "cover",
-                            backgroundPosition: "center",
-                          }
-                        : {
-                            backgroundImage: `linear-gradient(135deg, ${previewPrimary}, ${previewAccent})`,
-                          }
+                    type="color"
+                    value={settings.accent_color ?? "#0369A1"}
+                    onChange={(e) =>
+                      handleFieldChange(
+                        "accent_color",
+                        e.target.value
+                      )
                     }
-                  >
-                    <div className="absolute inset-0 bg-black/25" />
-                    <div className="relative flex h-full flex-col justify-center px-3">
-                      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-100">
-                        Landing hero
-                      </p>
-                      <p className="text-[13px] text-slate-50">
-                        {previewHeroMessage}
-                      </p>
-                    </div>
-                  </div>
+                    aria-label="Pick accent color"
+                    className="h-9 w-10 cursor-pointer rounded border border-slate-300 bg-white"
+                  />
                 </div>
-
-                <div className="flex flex-wrap items-center gap-3">
-                  <div className="flex items-center gap-2 text-xs">
-                    <span
-                      className="h-4 w-4 rounded-full border border-slate-200"
-                      style={{ backgroundColor: previewPrimary }}
-                    />
-                    <span className="font-medium text-slate-700">
-                      Primary
-                    </span>
-                    <span className="font-mono text-slate-500">
-                      {previewPrimary}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs">
-                    <span
-                      className="h-4 w-4 rounded-full border border-slate-200"
-                      style={{ backgroundColor: previewAccent }}
-                    />
-                    <span className="font-medium text-slate-700">
-                      Accent
-                    </span>
-                    <span className="font-mono text-slate-500">
-                      {previewAccent}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="mt-1 space-y-1 text-xs text-slate-500">
-                  <p>
-                    Logo:{" "}
-                    {settings.logo_url ? (
-                      <span className="font-mono">
-                        {settings.logo_url}
-                      </span>
-                    ) : (
-                      <span className="italic text-slate-400">
-                        not set
-                      </span>
-                    )}
-                  </p>
-                  <p>
-                    Hero image:{" "}
-                    {settings.hero_image_url ? (
-                      <span className="font-mono">
-                        {settings.hero_image_url}
-                      </span>
-                    ) : (
-                      <span className="italic text-slate-400">
-                        not set
-                      </span>
-                    )}
-                  </p>
-                  <p>
-                    City seal:{" "}
-                    {settings.seal_url ? (
-                      <span className="font-mono">
-                        {settings.seal_url}
-                      </span>
-                    ) : (
-                      <span className="italic text-slate-400">
-                        not set
-                      </span>
-                    )}
-                  </p>
-                </div>
+                <p className="mt-1 text-xs text-slate-500">
+                  Used for highlights, buttons, and charts.
+                </p>
               </div>
             </div>
-          </div>
+
+            {/* Logo URL + upload */}
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1">
+                <label className="mb-1 block text-sm font-medium text-slate-700">
+                  Logo image URL
+                </label>
+                <input
+                  type="text"
+                  value={settings.logo_url ?? ""}
+                  onChange={(e) =>
+                    handleFieldChange("logo_url", e.target.value)
+                  }
+                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
+                  placeholder="https://example.com/logo.png"
+                />
+                <p className="mt-1 text-xs text-slate-500">
+                  Main logo shown in the hero and sidebar. Uploading a file
+                  below will overwrite this URL when you save.
+                </p>
+              </div>
+
+              <div className="space-y-1 rounded-md bg-slate-50 p-3 text-xs text-slate-600">
+                <p className="font-semibold">
+                  Upload logo image (PNG/JPG/WEBP)
+                </p>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleLogoFileChange}
+                  className="mt-1 text-xs"
+                />
+                {logoFile && (
+                  <p className="mt-1 text-xs text-slate-500">
+                    Selected: {logoFile.name} (will be uploaded when you
+                    click{" "}
+                    <span className="font-semibold">Save settings</span>)
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Hero image + upload */}
+            <div className="space-y-2">
+              <div>
+                <label className="mb-1 block text-sm font-medium text-slate-700">
+                  Hero image URL
+                </label>
+                <input
+                  type="text"
+                  value={settings.hero_image_url ?? ""}
+                  onChange={(e) =>
+                    handleFieldChange(
+                      "hero_image_url",
+                      e.target.value
+                    )
+                  }
+                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
+                  placeholder="https://example.com/hero.jpg"
+                />
+                <p className="mt-1 text-xs text-slate-500">
+                  Large hero background on the overview page. Uploading a
+                  file below will overwrite this URL when you save.
+                </p>
+              </div>
+              <div className="space-y-1 rounded-md bg-slate-50 p-3 text-xs text-slate-600">
+                <p className="font-semibold">
+                  Upload hero image (PNG/JPG/WEBP)
+                </p>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleHeroFileChange}
+                  className="mt-1 text-xs"
+                />
+                {heroFile && (
+                  <p className="mt-1 text-xs text-slate-500">
+                    Selected: {heroFile.name} (will be uploaded when you
+                    click{" "}
+                    <span className="font-semibold">Save settings</span>)
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Seal URL + upload */}
+            <div className="space-y-2">
+              <div>
+                <label className="mb-1 block text-sm font-medium text-slate-700">
+                  City seal URL (optional)
+                </label>
+                <input
+                  type="text"
+                  value={settings.seal_url ?? ""}
+                  onChange={(e) =>
+                    handleFieldChange("seal_url", e.target.value)
+                  }
+                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
+                  placeholder="https://example.com/seal.png"
+                />
+                <p className="mt-1 text-xs text-slate-500">
+                  Optional city seal displayed alongside the logo in some
+                  layouts.
+                </p>
+              </div>
+              <div className="space-y-1 rounded-md bg-slate-50 p-3 text-xs text-slate-600">
+                <p className="font-semibold">
+                  Upload city seal (PNG/JPG/WEBP)
+                </p>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleSealFileChange}
+                  className="mt-1 text-xs"
+                />
+                {sealFile && (
+                  <p className="mt-1 text-xs text-slate-500">
+                    Selected: {sealFile.name} (will be uploaded when you
+                    click{" "}
+                    <span className="font-semibold">Save settings</span>)
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {imageError && (
+              <p className="text-xs text-red-600">{imageError}</p>
+            )}
+
+            <div className="pt-2">
+              <button
+                type="submit"
+                disabled={saveState === "saving"}
+                className="inline-flex items-center rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-slate-800 disabled:opacity-50"
+              >
+                {saveState === "saving"
+                  ? "Saving…"
+                  : "Save branding settings"}
+              </button>
+            </div>
+          </form>
         </div>
       </div>
     </div>
