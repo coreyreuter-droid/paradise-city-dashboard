@@ -71,38 +71,9 @@ const TABLE_SCHEMAS: Record<
   },
 };
 
-function buildTemplateCsv(table: string): string | null {
-  const schema = TABLE_SCHEMAS[table];
-  if (!schema) return null;
-
-  const headers = schema.required;
-
-  const exampleRow = headers.map((h) => {
-    if (h === "fiscal_year") return "2024";
-    if (h === "period") return "2024-01"; // year-period format
-    if (h === "date") return "2024-07-01"; // strict YYYY-MM-DD
-    if (h === "amount") return "12345.67";
-    if (h === "fund_code") return "100";
-    if (h === "fund_name") return "General Fund";
-    if (h === "department_code") return "PW";
-    if (h === "department_name") return "Public Works";
-    if (h === "category")
-      return table === "revenues" ? "Sales Tax" : "Supplies & Materials";
-    if (h === "account_code") return "5000";
-    if (h === "account_name") return "Supplies";
-    if (h === "vendor") return "ACME Supply Co.";
-    if (h === "description") return "Example description";
-    // Fallback: just echo something non-empty so validators pass
-    return h.toUpperCase();
-  });
-
-  // Header row + one example row
-  return [headers.join(","), exampleRow.join(",")].join("\n");
-}
-
 type ValidationIssue = {
-  row: number | null; // 1-based, incl. header if relevant; null = file-level
-  field?: string;
+  row: number | null;
+  field: string | null;
   message: string;
 };
 
@@ -118,88 +89,61 @@ function isValidISODate(value: unknown): boolean {
   if (typeof value !== "string") return false;
   const trimmed = value.trim();
   if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return false;
-  const d = new Date(trimmed);
-  if (Number.isNaN(d.getTime())) return false;
-  const [y, m, day] = trimmed.split("-").map(Number);
-  return (
-    d.getUTCFullYear() === y &&
-    d.getUTCMonth() + 1 === m &&
-    d.getUTCDate() === day
-  );
+
+  const [yearStr, monthStr, dayStr] = trimmed.split("-");
+  const year = Number(yearStr);
+  const month = Number(monthStr);
+  const day = Number(dayStr);
+
+  if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) {
+    return false;
+  }
+  if (month < 1 || month > 12) return false;
+  if (day < 1 || day > 31) return false;
+
+  const dt = new Date(trimmed + "T00:00:00Z");
+  if (Number.isNaN(dt.getTime())) return false;
+
+  // Ensure it didn't auto-correct (e.g. 2024-02-31 -> 2024-03-02)
+  const iso = dt.toISOString().slice(0, 10);
+  return iso === trimmed;
 }
 
-// normalize common date formats to ISO (YYYY-MM-DD)
-// Accepts:
-//   - YYYY-MM-DD
-//   - MM-DD-YYYY
-//   - MM/DD/YYYY
-//   - M-D-YYYY / M/D-YYYY (single-digit month/day)
-function normalizeDateToISO(value: unknown): string | null {
-  if (typeof value === "string" && isValidISODate(value)) {
-    return value.trim();
-  }
-
-  if (typeof value !== "string") return null;
-  const trimmed = value.trim();
-
-  const match = /^([0-9]{1,2})[/-]([0-9]{1,2})[/-]([0-9]{4})$/.exec(trimmed);
-  if (!match) return null;
-
-  const month = Number(match[1]);
-  const day = Number(match[2]);
-  const year = Number(match[3]);
-
-  if (!isReasonableYear(year)) return null;
-  if (month < 1 || month > 12) return null;
-  if (day < 1 || day > 31) return null;
-
-  const d = new Date(Date.UTC(year, month - 1, day));
-  if (
-    d.getUTCFullYear() !== year ||
-    d.getUTCMonth() + 1 === month ||
-    d.getUTCDate() !== day
-  ) {
-    // NOTE: logically should be !== month, but keeping existing semantics
-  }
-
-  const d2 = new Date(Date.UTC(year, month - 1, day));
-  if (
-    d2.getUTCFullYear() !== year ||
-    d2.getUTCMonth() + 1 !== month ||
-    d2.getUTCDate() !== day
-  ) {
-    return null;
-  }
-
-  const mm = String(month).padStart(2, "0");
-  const dd = String(day).padStart(2, "0");
-  return `${year}-${mm}-${dd}`;
-}
-
-// period as "YYYY-PP" where PP is 01–12
+// period: YYYY-PP where PP is 01–12
 function isValidPeriod(value: unknown): boolean {
   if (typeof value !== "string") return false;
   const trimmed = value.trim();
-  if (!/^\d{4}-\d{1,2}$/.test(trimmed)) return false;
+  if (!/^\d{4}-\d{2}$/.test(trimmed)) return false;
+
   const [yearStr, periodStr] = trimmed.split("-");
   const year = Number(yearStr);
   const period = Number(periodStr);
+
+  if (!Number.isInteger(year) || !Number.isInteger(period)) return false;
   if (!isReasonableYear(year)) return false;
-  if (!Number.isInteger(period)) return false;
-  return period >= 1 && period <= 12;
+  if (period < 1 || period > 12) return false;
+
+  return true;
 }
 
 function isBadDeptName(value: unknown): boolean {
-  if (value === null || value === undefined) return true;
-  const s = String(value).trim().toLowerCase();
-  return BAD_DEPT_VALUES.has(s);
+  if (typeof value !== "string") return true;
+  const normalized = value.trim().toLowerCase();
+  if (!normalized) return true;
+  return BAD_DEPT_VALUES.has(normalized);
 }
 
-/**
- * Parse CSV rows into records and run all validation.
- * - headers: array of header names from the first row
- * - dataRows: array of string[] for each data row
- */
+function parseNumber(value: string): number | null {
+  const cleaned = value.replace(/[$,]/g, "").trim();
+  if (!cleaned) return null;
+  const n = Number(cleaned);
+  return Number.isFinite(n) ? n : null;
+}
+
+function normalizeHeader(header: string): string {
+  return header.trim();
+}
+
 function validateAndBuildRecords(
   table: string,
   schema: { required: string[]; numeric: string[] },
@@ -235,111 +179,77 @@ function validateAndBuildRecords(
   if (missingRequired.length > 0) {
     issues.push({
       row: null,
-      message: `CSV is missing required column(s) for ${table}: ${missingRequired.join(
+      field: null,
+      message: `Missing required column(s): ${missingRequired.join(
         ", "
-      )}.`,
+      )}. Please add these columns to your CSV.`,
     });
   }
 
-  // STRICT: no extra/unexpected columns beyond schema.required
-  const unexpected = headers.filter((h) => !schema.required.includes(h));
-  if (unexpected.length > 0) {
-    issues.push({
-      row: null,
-      message: `CSV contains unexpected column(s) for ${table}: ${unexpected.join(
-        ", "
-      )}. Headers must match exactly: ${schema.required.join(", ")}.`,
-    });
-  }
+  // Validate no unexpected non-empty header names
+  headers.forEach((h) => {
+    const normalized = h.trim();
+    if (!normalized) return; // allow blank trailing columns
+    if (
+      !schema.required.includes(normalized) &&
+      !schema.numeric.includes(normalized)
+    ) {
+      // We allow extra columns; we just note they will be ignored
+      issues.push({
+        row: null,
+        field: normalized,
+        message: `Extra column "${normalized}" will be ignored during upload.`,
+      });
+    }
+  });
 
-  // If header-level issues exist, stop early
-  if (issues.length > 0) {
-    return { records: [], yearsInData: [], issues };
-  }
-
-  // 2) Build records and row-level validation
   const records: Record<string, any>[] = [];
   const yearSet = new Set<number>();
 
-  dataRows.forEach((cols, idx) => {
-    const rowNum = idx + 2; // 1-based, +1 for header
+  dataRows.forEach((row, idx) => {
+    const rowNum = idx + 2; // account for header row
     const rec: Record<string, any> = {};
 
-    headers.forEach((h, i) => {
-      const raw = cols[i] ?? "";
-      const trimmed = raw.trim();
-
-      // Treat truly empty as null
-      if (trimmed === "") {
-        rec[h] = null;
-        return;
-      }
-
-      if (schema.numeric.includes(h)) {
-        // allow "4,500.00"
-        const num = Number(trimmed.replace(/,/g, ""));
-        if (Number.isNaN(num)) {
-          rec[h] = null;
-          issues.push({
-            row: rowNum,
-            field: h,
-            message: `Invalid numeric value "${raw}" in column "${h}".`,
-          });
-        } else {
-          rec[h] = num;
-        }
-      } else {
-        rec[h] = trimmed;
-      }
+    headers.forEach((rawHeader, colIndex) => {
+      const header = normalizeHeader(rawHeader);
+      const value = row[colIndex] ?? "";
+      rec[header] = value;
     });
 
-    // Required value checks
-    const missingValueCols = schema.required.filter(
-      (col) =>
-        rec[col] === null ||
-        rec[col] === undefined ||
-        String(rec[col]).trim() === ""
-    );
-    if (missingValueCols.length > 0) {
-      issues.push({
-        row: rowNum,
-        message: `Missing required value(s) in column(s): ${missingValueCols.join(
-          ", "
-        )}.`,
-      });
+    // Numeric conversions
+    for (const numericCol of schema.numeric) {
+      const raw = rec[numericCol];
+      if (raw === undefined || raw === null || raw === "") {
+        issues.push({
+          row: rowNum,
+          field: numericCol,
+          message: `Numeric column "${numericCol}" is empty.`,
+        });
+        continue;
+      }
+      const parsed = parseNumber(String(raw));
+      if (parsed === null) {
+        issues.push({
+          row: rowNum,
+          field: numericCol,
+          message: `Value "${raw}" in column "${numericCol}" is not a valid number.`,
+        });
+      } else {
+        rec[numericCol] = parsed;
+      }
     }
 
+    // Type-specific validations
     const fy = rec["fiscal_year"];
 
     if (table === "transactions") {
-      // date – now accepts multiple formats and normalizes to ISO
-      const normalizedDate = normalizeDateToISO(rec["date"]);
-      if (!normalizedDate) {
+      // date
+      if (!isValidISODate(rec["date"])) {
         issues.push({
           row: rowNum,
           field: "date",
-          message: `Invalid date "${rec["date"]}". Expected format YYYY-MM-DD or MM-DD-YYYY / MM/DD/YYYY.`,
-        });
-      } else {
-        rec["date"] = normalizedDate;
-      }
-
-      // department_name
-      if (isBadDeptName(rec["department_name"])) {
-        issues.push({
-          row: rowNum,
-          field: "department_name",
           message:
-            "department_name is required and cannot be blank or 'NA'.",
-        });
-      }
-
-      // vendor
-      if (isBadDeptName(rec["vendor"])) {
-        issues.push({
-          row: rowNum,
-          field: "vendor",
-          message: "vendor is required and cannot be blank or 'NA'.",
+            'Invalid date format. Expected strict "YYYY-MM-DD" (e.g. "2024-07-01").',
         });
       }
 
@@ -388,14 +298,16 @@ function validateAndBuildRecords(
       } else {
         yearSet.add(fy as number);
       }
+    }
 
-      // amount must be non-negative
+    // amount non-negative
+    if (rec["amount"] !== undefined) {
       const amt = rec["amount"];
-      if (typeof amt !== "number" || Number.isNaN(amt)) {
+      if (typeof amt !== "number" || !Number.isFinite(amt)) {
         issues.push({
           row: rowNum,
           field: "amount",
-          message: `Invalid amount "${amt}". Expected a numeric value.`,
+          message: `Invalid amount "${amt}".`,
         });
       } else if (amt < 0) {
         issues.push({
@@ -404,27 +316,39 @@ function validateAndBuildRecords(
           message: `Negative amount "${amt}" is not allowed for ${table}.`,
         });
       }
+    }
 
-      // period format for actuals and revenues
-      if (table === "actuals" || table === "revenues") {
-        if (!isValidPeriod(rec["period"])) {
-          issues.push({
-            row: rowNum,
-            field: "period",
-            message:
-              'Invalid period value. Expected format "YYYY-PP" where PP is 01–12 (e.g. "2024-01").',
-          });
-        }
+    // period format for actuals and revenues
+    if (table === "actuals" || table === "revenues") {
+      if (!isValidPeriod(rec["period"])) {
+        issues.push({
+          row: rowNum,
+          field: "period",
+          message:
+            'Invalid period value. Expected format "YYYY-PP" where PP is 01–12 (e.g. "2024-01").',
+        });
       }
     }
 
     records.push(rec);
   });
 
-  return { records, yearsInData: Array.from(yearSet), issues };
+  return {
+    records,
+    yearsInData: Array.from(yearSet).sort((a, b) => a - b),
+    issues,
+  };
 }
 
 type Mode = "append" | "replace_year" | "replace_table";
+
+type PreflightSummary = {
+  table: string;
+  rowCount: number;
+  yearsInData: number[];
+  mode: Mode;
+  replaceYear: number | null;
+};
 
 export default function UploadClient() {
   // --- Upload state ---
@@ -437,6 +361,12 @@ export default function UploadClient() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [messageIsError, setMessageIsError] = useState(false);
+
+  const [preflight, setPreflight] = useState<PreflightSummary | null>(null);
+  const [pendingRecords, setPendingRecords] = useState<
+    Record<string, any>[] | null
+  >(null);
+  const [pendingYearsInData, setPendingYearsInData] = useState<number[]>([]);
 
   // --- CSV preview state ---
   const [previewHeaders, setPreviewHeaders] = useState<string[] | null>(
@@ -459,7 +389,7 @@ export default function UploadClient() {
     setMessageIsError(false);
   }
 
-  async function handleUpload() {
+  async function handlePrepareUpload() {
     if (!file) {
       setError("Please select a CSV file before uploading.");
       return;
@@ -502,6 +432,7 @@ export default function UploadClient() {
       const rows = text
         .trim()
         .split("\n")
+        .filter((line) => line.length > 0)
         .map((line) => line.split(","));
 
       if (rows.length < 2) {
@@ -572,6 +503,46 @@ export default function UploadClient() {
         }
       }
 
+      // Build preflight summary and wait for user confirmation before uploading
+      setPreflight({
+        table,
+        rowCount: records.length,
+        yearsInData,
+        mode,
+        replaceYear: targetYear,
+      });
+      setPendingRecords(records);
+      setPendingYearsInData(yearsInData);
+      setInfo(
+        "Review the upload summary below, then confirm to start the upload."
+      );
+    } catch (err: any) {
+      console.error(err);
+      setError("Failed to process CSV: " + (err?.message || "Unknown error"));
+    }
+
+    setLoading(false);
+  }
+
+  async function handleConfirmUpload() {
+    if (!preflight || !pendingRecords || pendingRecords.length === 0) {
+      setError(
+        "No upload is prepared. Choose a file, generate the summary, and try again."
+      );
+      return;
+    }
+
+    if (!file) {
+      setError(
+        "The selected file is no longer available. Please choose the CSV again."
+      );
+      return;
+    }
+
+    setLoading(true);
+    setMessage(null);
+
+    try {
       // Use Supabase session token + server API (service role)
       const {
         data: { session },
@@ -594,12 +565,12 @@ export default function UploadClient() {
           Authorization: `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
-          table,
-          mode,
-          replaceYear: targetYear,
-          records,
+          table: preflight.table,
+          mode: preflight.mode,
+          replaceYear: preflight.replaceYear,
+          records: pendingRecords,
           filename: file.name,
-          yearsInData,
+          yearsInData: pendingYearsInData,
         }),
       });
 
@@ -616,6 +587,13 @@ export default function UploadClient() {
       }
 
       setInfo(result?.message || "Upload completed successfully.");
+      // Reset confirmation-related state
+      setPreflight(null);
+      setPendingRecords(null);
+      setPendingYearsInData([]);
+      setReplaceTableConfirmed(false);
+      setReplaceYear("");
+      setReplaceYearConfirm("");
     } catch (err: any) {
       console.error(err);
       setError("Upload failed: " + (err?.message || "Unknown error"));
@@ -654,28 +632,25 @@ export default function UploadClient() {
         )
       : [];
 
-  // --- Main upload UI ---
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-      <h1 className="mb-2 text-xl font-semibold text-slate-900">
-        Admin CSV Upload
-      </h1>
-      <p className="mb-1 text-sm text-slate-500">
-        Upload new data for <strong>budgets</strong>,{" "}
-        <strong>actuals</strong>, <strong>transactions</strong>, or{" "}
-        <strong>revenues</strong>. CSV column headers must match the
-        expected schema exactly, and all required fields must have values.
-      </p>
-      <p className="mb-4 text-xs text-slate-500">
-        You can review recent uploads in the{" "}
+    <div className="max-w-4xl rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="mb-4 flex items-center justify-between gap-2">
+        <div>
+          <h1 className="text-lg font-semibold text-slate-900">
+            Upload data
+          </h1>
+          <p className="mt-1 text-sm text-slate-600">
+            Upload CSV files for budgets, actuals, transactions, or
+            revenues. Use the template to ensure columns match exactly.
+          </p>
+        </div>
         <a
-          href={cityHref("/admin/upload/history")}
-          className="text-sky-700 hover:underline"
+          href={cityHref("paradise-city", "/admin/upload/history")}
+          className="text-sm font-medium text-slate-700 underline-offset-4 hover:underline"
         >
-          upload audit log
+          View upload history
         </a>
-        .
-      </p>
+      </div>
 
       {/* Table selector */}
       <div className="mb-4">
@@ -694,15 +669,14 @@ export default function UploadClient() {
         </select>
         <div className="mt-1 flex items-center justify-between gap-2">
           <p className="text-xs text-slate-500">
-            Required columns for <span className="font-mono">{table}</span>:{" "}
-            <span className="font-mono">{requiredCols.join(", ")}</span>
+            Make sure your CSV columns match the template for this table.
           </p>
           <button
             type="button"
             onClick={handleDownloadTemplate}
-            className="shrink-0 rounded-md border border-slate-300 bg-white px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50"
+            className="rounded-md border border-slate-300 px-3 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50"
           >
-            Download {table} template
+            Download template
           </button>
         </div>
       </div>
@@ -719,14 +693,12 @@ export default function UploadClient() {
               name="mode"
               value="append"
               checked={mode === "append"}
-              onChange={() => {
-                setMode("append");
-              }}
+              onChange={() => setMode("append")}
             />
             <span>
               <span className="font-medium">Append</span>{" "}
-              <span className="text-xs text-slate-500">
-                Add new rows, keep existing data.
+              <span className="text-slate-600">
+                – Add new rows. Existing data is not changed.
               </span>
             </span>
           </label>
@@ -737,103 +709,104 @@ export default function UploadClient() {
               name="mode"
               value="replace_year"
               checked={mode === "replace_year"}
-              onChange={() => {
-                setMode("replace_year");
-              }}
+              onChange={() => setMode("replace_year")}
             />
             <span>
-              <span className="font-medium text-amber-800">
-                Replace this fiscal year only
-              </span>{" "}
-              <span className="text-xs text-slate-500">
-                Delete existing rows for a single fiscal year, then insert
-                CSV.
+              <span className="font-medium">Replace this fiscal year only</span>{" "}
+              <span className="text-slate-600">
+                – Delete existing rows for a single fiscal year, then insert
+                rows from this file.
               </span>
             </span>
           </label>
 
-          {mode === "replace_year" && (
-            <>
-              <div className="ml-6 mt-1 flex items-center gap-2">
-                <span className="text-xs text-slate-600">
-                  Fiscal year to replace:
-                </span>
+          <label className="flex items-center gap-2">
+            <input
+              type="radio"
+              name="mode"
+              value="replace_table"
+              checked={mode === "replace_table"}
+              onChange={() => setMode("replace_table")}
+            />
+            <span>
+              <span className="font-medium">Replace entire table</span>{" "}
+              <span className="text-slate-600">
+                – Delete ALL existing rows in this table, then insert rows from
+                this file.
+              </span>
+            </span>
+          </label>
+        </div>
+
+        {mode === "replace_year" && (
+          <div className="mt-3 rounded-md border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900">
+            <p className="font-semibold">Replace this fiscal year only</p>
+            <p className="mt-1">
+              All existing rows for a single fiscal year will be deleted before
+              inserting rows from this file.
+            </p>
+            <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center">
+              <div className="flex items-center gap-2">
+                <label htmlFor="replaceYear" className="text-xs font-medium">
+                  Fiscal year to replace
+                </label>
                 <input
-                  type="number"
+                  id="replaceYear"
+                  type="text"
+                  inputMode="numeric"
                   value={replaceYear}
                   onChange={(e) => setReplaceYear(e.target.value)}
                   className="w-24 rounded-md border border-slate-300 px-2 py-1 text-xs"
-                  placeholder="2024"
+                  aria-describedby="replace-year-help"
                 />
               </div>
-              <div className="ml-6 mt-2 space-y-1">
-                <p className="text-xs text-amber-800">
-                  This will delete existing rows for that fiscal year in "
-                  {table}" and then upload rows from this CSV.
-                </p>
-                <label className="flex items-center gap-2 text-xs text-slate-700">
-                  <span>
-                    Type{" "}
-                    <span className="font-mono font-semibold">
-                      {replaceYear || "YEAR"}
-                    </span>{" "}
-                    to confirm:
-                  </span>
-                  <input
-                    type="text"
-                    value={replaceYearConfirm}
-                    onChange={(e) => setReplaceYearConfirm(e.target.value)}
-                    className="w-24 rounded-md border border-slate-300 px-2 py-1 text-xs"
-                  />
+              <div className="flex flex-1 flex-col gap-1">
+                <label
+                  htmlFor="replaceYearConfirm"
+                  className="text-xs font-medium"
+                >
+                  Confirm fiscal year
                 </label>
+                <input
+                  id="replaceYearConfirm"
+                  type="text"
+                  value={replaceYearConfirm}
+                  onChange={(e) => setReplaceYearConfirm(e.target.value)}
+                  className="w-full rounded-md border border-slate-300 px-2 py-1 text-xs"
+                  placeholder="Type the same fiscal year again to confirm"
+                />
               </div>
-            </>
-          )}
+            </div>
+            <p id="replace-year-help" className="mt-1 text-xs">
+              Example: if you enter <span className="font-mono">2024</span>,
+              all existing rows with{" "}
+              <span className="font-mono">fiscal_year = 2024</span> will be
+              deleted first.
+            </p>
+          </div>
+        )}
 
-          <label className="mt-1 flex flex-col gap-1">
-            <span className="flex items-center gap-2">
+        {mode === "replace_table" && (
+          <div className="mt-3 rounded-md border border-red-300 bg-red-50 p-3 text-xs text-red-900">
+            <p className="font-semibold">Danger: replace entire table</p>
+            <p className="mt-1">
+              This will permanently delete all existing rows in the{" "}
+              <span className="font-mono">{table}</span> table before inserting
+              rows from this file.
+            </p>
+            <label className="mt-2 flex items-center gap-2">
               <input
-                type="radio"
-                name="mode"
-                value="replace_table"
-                checked={mode === "replace_table"}
-                onChange={() => {
-                  setMode("replace_table");
-                }}
+                type="checkbox"
+                checked={replaceTableConfirmed}
+                onChange={(e) => setReplaceTableConfirmed(e.target.checked)}
               />
               <span>
-                <span className="font-medium text-red-700">
-                  Replace entire table
-                </span>{" "}
-                <span className="text-xs text-slate-500">
-                  <strong>Danger:</strong> Clear all rows in this table before
-                  inserting the CSV.
-                </span>
+                I understand this will delete all existing data in the{" "}
+                <span className="font-mono">{table}</span> table.
               </span>
-            </span>
-
-            {mode === "replace_table" && (
-              <div className="ml-6 mt-1 rounded-md border border-red-200 bg-red-50 px-3 py-2">
-                <p className="text-xs font-bold text-red-800">
-                  WARNING: THIS WILL DELETE ALL EXISTING ROWS IN THE "{table}"
-                  TABLE FOR ALL YEARS. THIS CANNOT BE UNDONE.
-                </p>
-                <label className="mt-2 flex items-center gap-2 text-xs text-red-800">
-                  <input
-                    type="checkbox"
-                    checked={replaceTableConfirmed}
-                    onChange={(e) =>
-                      setReplaceTableConfirmed(e.target.checked)
-                    }
-                  />
-                  <span className="font-semibold">
-                    YES, I UNDERSTAND. REPLACE ALL DATA IN "{table}".
-                  </span>
-                </label>
-              </div>
-            )}
-          </label>
-        </div>
+            </label>
+          </div>
+        )}
       </div>
 
       {/* File picker + preview */}
@@ -842,7 +815,7 @@ export default function UploadClient() {
           CSV file
         </label>
 
-        <label className="flex cursor-pointer items-center justify-between rounded-md border border-dashed border-slate-300 bg-slate-50 px-3 py-3 text-sm hover:border-slate-400">
+        <label className="flex cursor-pointer items-center justify-between gap-3 rounded-md border border-dashed border-slate-300 bg-slate-50 px-3 py-3 text-sm hover:border-slate-400">
           <div className="flex flex-col">
             <span className="font-medium text-slate-800">
               {file ? file.name : "Click to choose a CSV file"}
@@ -852,19 +825,21 @@ export default function UploadClient() {
             </span>
           </div>
           <span className="rounded-md border border-slate-300 bg-white px-3 py-1 text-xs font-medium text-slate-700">
-            Browse…
+            Browse
           </span>
           <input
             type="file"
             accept=".csv"
-            className="hidden"
+            className="sr-only"
             onChange={async (e) => {
               const f = e.target.files?.[0] ?? null;
               setFile(f);
-              setMessage(null);
               setPreviewHeaders(null);
               setPreviewRows(null);
               setPreviewMessage(null);
+              setPreflight(null);
+              setPendingRecords(null);
+              setPendingYearsInData([]);
 
               if (!f) return;
 
@@ -893,10 +868,12 @@ export default function UploadClient() {
                     `Showing first ${dataRows.length} of ${totalDataRows} row(s).`
                   );
                 } else {
-                  setPreviewMessage(`Found ${totalDataRows} row(s).`);
+                  setPreviewMessage(
+                    `${totalDataRows} row(s) detected in this file.`
+                  );
                 }
               } catch (err) {
-                console.error("Preview read error:", err);
+                console.error("Preview parse error:", err);
                 setPreviewMessage(
                   "Could not read file for preview. You can still attempt upload."
                 );
@@ -940,16 +917,13 @@ export default function UploadClient() {
             </thead>
             <tbody>
               {previewRows.map((row, idx) => (
-                <tr
-                  key={idx}
-                  className={idx % 2 === 0 ? "bg-white" : "bg-slate-50"}
-                >
-                  {previewHeaders.map((h, colIdx) => (
+                <tr key={idx} className="border-t border-slate-200">
+                  {row.map((cell, cellIdx) => (
                     <td
-                      key={colIdx}
-                      className="whitespace-nowrap px-2 py-1 align-top text-slate-800"
+                      key={cellIdx}
+                      className="whitespace-nowrap px-2 py-1 text-slate-800"
                     >
-                      {(row[colIdx] ?? "").trim().slice(0, 80)}
+                      {cell}
                     </td>
                   ))}
                 </tr>
@@ -963,13 +937,104 @@ export default function UploadClient() {
         <p className="mb-4 text-xs text-slate-500">{previewMessage}</p>
       )}
 
+      {preflight && (
+        <section
+          aria-label="Upload summary"
+          className="mb-4 mt-2 rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-800"
+        >
+          <h2 className="mb-2 text-sm font-semibold text-slate-900">
+            Upload summary
+          </h2>
+          <dl className="grid gap-2 sm:grid-cols-2">
+            <div>
+              <dt className="text-xs font-medium text-slate-500">
+                Target table
+              </dt>
+              <dd className="text-sm">{preflight.table}</dd>
+            </div>
+            <div>
+              <dt className="text-xs font-medium text-slate-500">
+                Rows to upload
+              </dt>
+              <dd className="text-sm">
+                {preflight.rowCount.toLocaleString()}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-xs font-medium text-slate-500">
+                Fiscal years detected
+              </dt>
+              <dd className="text-sm">
+                {preflight.yearsInData.length === 0
+                  ? "None"
+                  : preflight.yearsInData
+                      .slice()
+                      .sort((a, b) => a - b)
+                      .join(", ")}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-xs font-medium text-slate-500">
+                Upload mode
+              </dt>
+              <dd className="text-sm">
+                {preflight.mode === "append" &&
+                  "Append: add new rows without deleting existing data."}
+                {preflight.mode === "replace_year" &&
+                  `Replace year: delete all rows for fiscal year ${preflight.replaceYear} and insert these rows.`}
+                {preflight.mode === "replace_table" &&
+                  "Replace table: delete ALL rows in this table and insert these rows."}
+              </dd>
+            </div>
+          </dl>
+          {preflight.mode === "replace_table" && (
+            <p className="mt-2 text-xs font-semibold text-red-700">
+              Warning: This will permanently delete all existing data in the{" "}
+              {preflight.table} table.
+            </p>
+          )}
+          {preflight.mode === "replace_year" && (
+            <p className="mt-2 text-xs text-amber-700">
+              All existing rows for fiscal year {preflight.replaceYear} will be
+              deleted before inserting the new data.
+            </p>
+          )}
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={handleConfirmUpload}
+              disabled={loading}
+              className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50"
+            >
+              {loading ? "Uploading..." : "Confirm upload"}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setPreflight(null);
+                setPendingRecords(null);
+                setPendingYearsInData([]);
+              }}
+              disabled={loading}
+              className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+            >
+              Back
+            </button>
+          </div>
+        </section>
+      )}
+
       {/* Upload button */}
       <button
-        onClick={handleUpload}
+        onClick={handlePrepareUpload}
         disabled={loading}
         className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50"
       >
-        {loading ? "Uploading..." : "Upload CSV"}
+        {loading
+          ? "Processing..."
+          : preflight
+          ? "Recalculate summary"
+          : "Review & confirm upload"}
       </button>
 
       {/* Status message */}
@@ -985,4 +1050,30 @@ export default function UploadClient() {
       )}
     </div>
   );
+}
+
+function buildTemplateCsv(table: string): string | null {
+  const schema = TABLE_SCHEMAS[table];
+  if (!schema) return null;
+
+  const headers = schema.required;
+
+  const exampleRow = headers.map((h) => {
+    if (h === "fiscal_year") return "2024";
+    if (h === "period") return "2024-01"; // year-period format
+    if (h === "date") return "2024-07-01"; // strict YYYY-MM-DD
+    if (h === "amount") return "12345.67";
+    if (h === "fund_code") return "100";
+    if (h === "fund_name") return "General Fund";
+    if (h === "department_code") return "PW";
+    if (h === "department_name") return "Public Works";
+    if (h === "category") return "Salaries";
+    if (h === "account_code") return "5000";
+    if (h === "account_name") return "Wages";
+    if (h === "vendor") return "Example Vendor Inc.";
+    if (h === "description") return "Example description of transaction";
+    return h;
+  });
+
+  return [headers.join(","), exampleRow.join(",")].join("\n");
 }
