@@ -23,8 +23,13 @@ export type PortalSettings = {
   logo_url: string | null;
   hero_message: string | null;
   hero_image_url: string | null;
-  seal_url: string | null; // NEW
+  seal_url: string | null;
+  story_city_description: string | null;
+  story_year_achievements: string | null;
+  story_capital_projects: string | null;
 };
+
+
 
 export async function getPortalSettings(): Promise<PortalSettings | null> {
   const { data, error } = await supabase

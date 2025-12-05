@@ -9,14 +9,16 @@ import { supabase } from "@/lib/supabase";
 import { CITY_SLUG, cityHref } from "@/lib/cityRouting";
 
 const navItems = [
-  { path: "/", label: "Overview" },
+  { path: "/", label: "Home" },
+  { path: "/overview", label: "Overview" },
   { path: "/analytics", label: "Analytics" },
   { path: "/budget", label: "Budget" },
   { path: "/departments", label: "Departments" },
   { path: "/revenues", label: "Revenues" },
-  { path: "/vendors", label: "Vendors" },
   { path: "/transactions", label: "Transactions" },
 ];
+
+
 
 type PortalBranding = {
   city_name: string | null;

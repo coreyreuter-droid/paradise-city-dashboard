@@ -86,7 +86,8 @@ export default function ParadiseHomeClient({
     return parsed;
   }, [searchParams, years]);
 
-  const yearLabel = selectedYear ?? (years.length > 0 ? years[0] : undefined);
+  const yearLabel =
+    selectedYear ?? (years.length > 0 ? years[0] : undefined);
 
   // Year-scoped slices
   const budgetsForYear = useMemo(
@@ -214,18 +215,17 @@ export default function ParadiseHomeClient({
     portalSettings?.hero_message ||
     "Explore how public dollars are budgeted and spent.";
 
-  const heroImageUrl = portalSettings?.hero_image_url;
+  const heroImageUrl = portalSettings?.hero_image_url || null;
   const heroBackground =
-    portalSettings?.background_color || "#020617"; // slate-950-ish fallback
+    (portalSettings as any)?.background_color || "#020617"; // slate-950-ish fallback
   const heroOverlay = "rgba(15, 23, 42, 0.65)"; // slate-900/65
-
 
   return (
     <div className="mx-auto max-w-6xl space-y-6 px-3 py-6 sm:px-4 sm:py-8">
       {/* HERO */}
       <section
         aria-label={`${cityName} financial transparency introduction`}
-        className="relative overflow-hidden rounded-2xl border border-slate-900/10 bg-slate-900 text-slate-50 shadow-sm sm:px-6 sm:py-8 md:px-8 md:py-10 px-4 py-6"
+        className="relative overflow-hidden rounded-2xl border border-slate-900/10 bg-slate-900 text-slate-50 shadow-sm px-4 py-6 sm:px-6 sm:py-8 md:px-8 md:py-10"
         style={{ backgroundColor: heroBackground }}
       >
         {heroImageUrl && (
@@ -233,6 +233,7 @@ export default function ParadiseHomeClient({
             className="pointer-events-none absolute inset-0 opacity-25"
             aria-hidden="true"
           >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={heroImageUrl}
               alt=""
@@ -341,8 +342,8 @@ export default function ParadiseHomeClient({
                   Budget vs Actuals by Department
                 </h2>
                 <p className="text-xs text-slate-500">
-                  Top departments by budget and their corresponding
-                  spending for{" "}
+                  Top departments by budget and their corresponding spending
+                  for{" "}
                   {yearLabel ?? "the selected year"}.
                 </p>
               </div>
@@ -374,8 +375,7 @@ export default function ParadiseHomeClient({
               Multi-year Budget vs Actuals
             </h2>
             <p className="text-xs text-slate-500">
-              Citywide budget and actual spending across recent fiscal
-              years.
+              Citywide budget and actual spending across recent fiscal years.
             </p>
             <ParadiseHomeMultiYearChart
               budgets={budgets}

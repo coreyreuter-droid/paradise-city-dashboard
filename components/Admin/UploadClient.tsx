@@ -645,7 +645,7 @@ export default function UploadClient() {
           </p>
         </div>
         <a
-          href={cityHref("paradise-city", "/admin/upload/history")}
+          href={cityHref("/admin/upload/history")}
           className="text-sm font-medium text-slate-700 underline-offset-4 hover:underline"
         >
           View upload history
