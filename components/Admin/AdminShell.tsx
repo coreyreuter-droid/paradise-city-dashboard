@@ -63,80 +63,72 @@ export default function AdminShell({
         </div>
       </header>
 
-      {/* Main layout */}
-      <div className="mx-auto flex max-w-6xl gap-6 px-4 py-6">
-        {/* Sidebar nav */}
-        <aside className="hidden w-56 shrink-0 md:block">
-          <nav aria-label="Admin navigation" className="space-y-4 text-sm">
-            <div>
-              <p className="px-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+      {/* Main content (full width, no inner sidebar) */}
+      <div className="mx-auto max-w-6xl px-4 py-6">
+        <section
+          aria-label={title}
+          className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"
+        >
+          {/* Header + actions */}
+          <header className="mb-3 flex flex-wrap items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
                 Admin
               </p>
-              <ul className="mt-2 space-y-1">
-                {NAV_ITEMS.map((item) => {
-                  const href = cityHref(item.href);
-                  const active = isActive(item.href);
-
-                  const base =
-                    "flex items-center justify-between rounded-xl px-3 py-2 text-xs font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-50";
-
-                  const activeClasses =
-                    "bg-slate-900 text-white shadow-sm";
-                  const inactiveClasses =
-                    "text-slate-600 hover:bg-slate-100 hover:text-slate-900";
-
-                  return (
-                    <li key={item.href}>
-                      <Link
-                        href={href}
-                        aria-current={active ? "page" : undefined}
-                        className={`${base} ${
-                          active ? activeClasses : inactiveClasses
-                        }`}
-                      >
-                        <span className="truncate">{item.label}</span>
-                        {active && (
-                          <span className="ml-2 h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                        )}
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          </nav>
-        </aside>
-
-        {/* Main content */}
-        <main className="w-full">
-          <section
-            aria-label={title}
-            className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"
-          >
-            <header className="mb-4 flex flex-wrap items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-                  Admin
+              <h2 className="mt-1 truncate text-sm font-semibold text-slate-900 sm:text-base">
+                {title}
+              </h2>
+              {description && (
+                <p className="mt-1 text-xs text-slate-500">
+                  {description}
                 </p>
-                <h2 className="mt-1 truncate text-sm font-semibold text-slate-900 sm:text-base">
-                  {title}
-                </h2>
-                {description && (
-                  <p className="mt-1 text-xs text-slate-500">
-                    {description}
-                  </p>
-                )}
-              </div>
-              {actions && (
-                <div className="flex flex-wrap items-center gap-2">
-                  {actions}
-                </div>
               )}
-            </header>
+            </div>
+            {actions && (
+              <div className="flex flex-wrap items-center gap-2">
+                {actions}
+              </div>
+            )}
+          </header>
 
-            <div>{children}</div>
-          </section>
-        </main>
+          {/* Admin section navigation – top tabs */}
+          <nav
+            aria-label="Admin navigation"
+            className="mb-4 border-b border-slate-200"
+          >
+            <ul className="-mb-px flex gap-1 overflow-x-auto text-xs">
+              {NAV_ITEMS.map((item) => {
+                const href = cityHref(item.href);
+                const active = isActive(item.href);
+
+                const base =
+                  "whitespace-nowrap rounded-t-lg px-3 py-2 font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white";
+
+                const activeClasses =
+                  "border-b-2 border-slate-900 bg-slate-50 text-slate-900";
+                const inactiveClasses =
+                  "border-b-2 border-transparent text-slate-500 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900";
+
+                return (
+                  <li key={item.href}>
+                    <Link
+                      href={href}
+                      aria-current={active ? "page" : undefined}
+                      className={`${base} ${
+                        active ? activeClasses : inactiveClasses
+                      }`}
+                    >
+                      {item.label}
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </nav>
+
+          {/* Page content */}
+          <div>{children}</div>
+        </section>
       </div>
     </div>
   );

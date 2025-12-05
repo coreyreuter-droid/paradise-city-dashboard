@@ -17,11 +17,7 @@ import RecentTransactionsCard from "@/components/City/HomeRecentTransactionsCard
 import { CITY_CONFIG } from "@/lib/cityConfig";
 import { cityHref } from "@/lib/cityRouting";
 import type { PortalSettings } from "@/lib/queries";
-import type {
-  BudgetRow,
-  ActualRow,
-  TransactionRow,
-} from "@/lib/types";
+import type { BudgetRow, ActualRow, TransactionRow } from "@/lib/types";
 import { formatCurrency } from "@/lib/format";
 
 type Props = {
@@ -196,6 +192,8 @@ export default function ParadiseHomeClient({
     };
   }, [departmentsForYear, txForYear]);
 
+  const execPctDisplay = `${Math.round(execPct * 100)}%`;
+
   // Branding / hero config
   const accentColor =
     portalSettings?.accent_color ||
@@ -217,15 +215,17 @@ export default function ParadiseHomeClient({
 
   const heroImageUrl = portalSettings?.hero_image_url || null;
   const heroBackground =
-    (portalSettings as any)?.background_color || "#020617"; // slate-950-ish fallback
+    portalSettings?.background_color || "#020617"; // slate-950-ish fallback
   const heroOverlay = "rgba(15, 23, 42, 0.65)"; // slate-900/65
+
+  const hasBudgetData = totalBudget > 0;
 
   return (
     <div className="mx-auto max-w-6xl space-y-6 px-3 py-6 sm:px-4 sm:py-8">
       {/* HERO */}
       <section
         aria-label={`${cityName} financial transparency introduction`}
-        className="relative overflow-hidden rounded-2xl border border-slate-900/10 bg-slate-900 text-slate-50 shadow-sm px-4 py-6 sm:px-6 sm:py-8 md:px-8 md:py-10"
+        className="relative overflow-hidden rounded-2xl border border-slate-900/10 bg-slate-900 px-4 py-6 text-slate-50 shadow-sm sm:px-6 sm:py-8 md:px-8 md:py-10"
         style={{ backgroundColor: heroBackground }}
       >
         {heroImageUrl && (
@@ -266,7 +266,7 @@ export default function ParadiseHomeClient({
               >
                 View budget details
               </Link>
-              <Link
+            <Link
                 href={cityHref("/departments")}
                 className="inline-flex items-center justify-center rounded-full border border-slate-300/60 bg-slate-900/40 px-3 py-1.5 text-xs font-semibold text-slate-50 hover:bg-slate-800/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"
               >
@@ -275,20 +275,59 @@ export default function ParadiseHomeClient({
             </div>
           </div>
 
-          {/* Right: mini year & totals */}
-          <div className="flex flex-col items-end gap-3 text-xs text-slate-100">
-            <div className="rounded-lg bg-slate-900/60 px-3 py-2 text-right text-xs text-slate-200 shadow-sm">
-              <div className="font-semibold">
-                {yearLabel
-                  ? `Fiscal year ${yearLabel}`
-                  : "Latest fiscal year"}
-              </div>
-              <div className="mt-1">
-                Managing{" "}
+          {/* Right: summarized year snapshot */}
+          <div className="flex w-full max-w-xs flex-col gap-3 text-xs text-slate-100 md:items-end">
+            <div className="rounded-lg bg-slate-900/60 px-3 py-2 text-xs text-slate-200 shadow-sm">
+              <div className="flex items-center justify-between gap-2">
                 <span className="font-semibold">
-                  {formatCurrency(totalBudget)}
-                </span>{" "}
-                in adopted budget.
+                  {yearLabel
+                    ? `Fiscal year ${yearLabel}`
+                    : "Latest fiscal year"}
+                </span>
+                {hasBudgetData && (
+                  <span className="inline-flex items-center rounded-full bg-slate-800 px-2 py-0.5 text-[10px] font-semibold text-emerald-200">
+                    {execPctDisplay} spent
+                  </span>
+                )}
+              </div>
+              {hasBudgetData ? (
+                <div className="mt-1 space-y-0.5">
+                  <p>
+                    Budget:&nbsp;
+                    <span className="font-semibold">
+                      {formatCurrency(totalBudget)}
+                    </span>
+                  </p>
+                  <p>
+                    Spent to date:&nbsp;
+                    <span className="font-semibold">
+                      {formatCurrency(totalActuals)}
+                    </span>
+                  </p>
+                </div>
+              ) : (
+                <p className="mt-1 text-slate-300/80">
+                  Waiting for budget data to be uploaded.
+                </p>
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-200">
+              <div className="rounded-md bg-slate-900/60 px-2 py-2 text-center">
+                <p className="text-[10px] uppercase tracking-[0.16em] text-slate-400">
+                  Departments
+                </p>
+                <p className="mt-0.5 text-sm font-semibold text-slate-50">
+                  {deptCount}
+                </p>
+              </div>
+              <div className="rounded-md bg-slate-900/60 px-2 py-2 text-center">
+                <p className="text-[10px] uppercase tracking-[0.16em] text-slate-400">
+                  Transactions
+                </p>
+                <p className="mt-0.5 text-sm font-semibold text-slate-50">
+                  {txCount.toLocaleString()}
+                </p>
               </div>
             </div>
           </div>

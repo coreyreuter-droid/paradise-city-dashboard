@@ -30,20 +30,19 @@ export type PortalSettings = {
   story_year_achievements: string | null;
   story_capital_projects: string | null;
 
-  // Leadership section
+  // Leadership
   leader_name: string | null;
   leader_title: string | null;
   leader_message: string | null;
   leader_photo_url: string | null;
 
-  // Featured projects (up to 3)
+  // Featured projects
   project1_title: string | null;
   project1_summary: string | null;
   project2_title: string | null;
   project2_summary: string | null;
   project3_title: string | null;
   project3_summary: string | null;
-
   project1_image_url: string | null;
   project2_image_url: string | null;
   project3_image_url: string | null;
@@ -54,7 +53,15 @@ export type PortalSettings = {
   stat_square_miles: string | null;
   stat_annual_budget: string | null;
 
+  // Content visibility toggles
+  show_leadership: boolean | null;
+  show_story: boolean | null;
+  show_year_review: boolean | null;
+  show_capital_projects: boolean | null;
+  show_stats: boolean | null;
+  show_projects: boolean | null;
 };
+
 
 
 
