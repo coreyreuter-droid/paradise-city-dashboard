@@ -135,7 +135,7 @@ export default function SectionHeader({
       <div className="max-w-2xl">
         {eyebrow && (
           <p
-            className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500"
+            className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500"
             style={accentStyle}
           >
             {eyebrow}

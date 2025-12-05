@@ -111,7 +111,7 @@ export default function BudgetCharts({
               aria-hidden="true"
             />
           </div>
-          <div className="mt-1 flex justify-between text-[11px] text-slate-500">
+          <div className="mt-1 flex justify-between text-xs text-slate-500">
             <span>0%</span>
             <span>100%</span>
           </div>
@@ -238,7 +238,7 @@ export default function BudgetCharts({
       </div>
 
       {/* Simple color legend */}
-      <div className="flex items-center gap-3 text-[11px] text-slate-600">
+      <div className="flex items-center gap-3 text-xs text-slate-600">
         <span className="inline-flex items-center gap-1">
           <span className="inline-block h-2 w-4 rounded-sm bg-slate-300" />
           <span>Budget</span>
@@ -264,7 +264,7 @@ export default function BudgetCharts({
       {/* Accessible tabular representation */}
       <div className="overflow-x-auto">
         <table className="mt-2 min-w-full border border-slate-200 text-xs">
-          <thead className="bg-slate-50 text-[11px] font-semibold uppercase tracking-wide text-slate-600">
+          <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-600">
             <tr>
               <th
                 scope="col"

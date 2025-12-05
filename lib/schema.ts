@@ -14,7 +14,7 @@ export type ActualRow = {
 };
 
 export type BudgetRow = {
-  fiscal_year: number;
+  fiscal_year: number;              // e.g. 2024
   fund_code: string | null;
   fund_name: string | null;
   department_code: string | null;
@@ -22,7 +22,20 @@ export type BudgetRow = {
   category: string | null;
   account_code: string | null;
   account_name: string | null;
-  amount: number;
+  amount: number;                   // positive budget dollars
+};
+
+export type RevenueRow = {
+  fiscal_year: number;              // e.g. 2024
+  period: string;                   // e.g. "2024-01" or "2024-1"
+  fund_code: string | null;
+  fund_name: string | null;
+  department_code: string | null;
+  department_name: string | null;
+  category: string | null;          // revenue source (Sales Tax, Fees, Grants, etc.)
+  account_code: string | null;
+  account_name: string | null;
+  amount: number;                   // positive revenue dollars
 };
 
 export type TransactionRow = {

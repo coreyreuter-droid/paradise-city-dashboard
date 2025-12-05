@@ -62,7 +62,7 @@ export default function TopVendorsCard({ year, transactions }: Props) {
                   {formatCurrency(v.total)}
                 </span>
               </div>
-              <div className="flex items-center justify-between text-[11px] text-slate-500">
+              <div className="flex items-center justify-between text-xs text-slate-500">
                 <span>
                   {v.count.toLocaleString("en-US")} transaction
                   {v.count === 1 ? "" : "s"}

@@ -257,7 +257,7 @@ export default function BudgetClient({ budgets, actuals }: Props) {
         {/* Breadcrumb */}
         <nav
           aria-label="Breadcrumb"
-          className="mb-4 px-1 text-[11px] text-slate-500"
+          className="mb-4 px-1 text-xs text-slate-500"
         >
           <ol className="flex items-center gap-1">
             <li>
@@ -312,31 +312,31 @@ export default function BudgetClient({ budgets, actuals }: Props) {
                 className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
               >
                 <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
-                  <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                  <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                     Total budget
                   </div>
                   <div className="mt-1 text-lg font-semibold text-slate-900">
                     {formatCurrency(totals.budget)}
                   </div>
-                  <div className="mt-1 text-[11px] text-slate-500">
+                  <div className="mt-1 text-xs text-slate-500">
                     Sum of department-level adopted budgets.
                   </div>
                 </div>
 
                 <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
-                  <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                  <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                     Total actuals
                   </div>
                   <div className="mt-1 text-lg font-semibold text-slate-900">
                     {formatCurrency(totals.actuals)}
                   </div>
-                  <div className="mt-1 text-[11px] text-slate-500">
+                  <div className="mt-1 text-xs text-slate-500">
                     All spending recorded against these departments.
                   </div>
                 </div>
 
                 <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
-                  <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                  <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                     Variance (budget - actuals)
                   </div>
                   <div
@@ -351,19 +351,19 @@ export default function BudgetClient({ budgets, actuals }: Props) {
                   >
                     {formatCurrency(totals.variance)}
                   </div>
-                  <div className="mt-1 text-[11px] text-slate-500">
+                  <div className="mt-1 text-xs text-slate-500">
                     Positive means the city is currently under budget.
                   </div>
                 </div>
 
                 <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
-                  <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                  <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                     % of budget spent
                   </div>
                   <div className="mt-1 text-lg font-semibold text-slate-900">
                     {formatPercent(totals.execPct, 1)}
                   </div>
-                  <div className="mt-1 text-[11px] text-slate-500">
+                  <div className="mt-1 text-xs text-slate-500">
                     Share of adopted budget that has been spent this
                     year.
                   </div>

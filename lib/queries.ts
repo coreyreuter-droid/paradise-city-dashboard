@@ -4,7 +4,12 @@
 // All shapes come from ./schema (canonical table schemas).
 
 import { supabase } from "./supabase";
-import type { ActualRow, BudgetRow, TransactionRow } from "./schema";
+import type {
+  ActualRow,
+  BudgetRow,
+  TransactionRow,
+  RevenueRow,
+} from "./schema";
 
 // ---- Portal settings ----
 
@@ -36,7 +41,6 @@ export async function getPortalSettings(): Promise<PortalSettings | null> {
   if (!data || data.length === 0) return null;
   return data[0] as PortalSettings;
 }
-
 
 // ---- Internal pagination helper ----
 
@@ -99,6 +103,10 @@ export async function getAllTransactions(): Promise<TransactionRow[]> {
   return fetchAllRows<TransactionRow>("transactions");
 }
 
+export async function getAllRevenues(): Promise<RevenueRow[]> {
+  return fetchAllRows<RevenueRow>("revenues");
+}
+
 export type DepartmentBudgetActual = {
   department_name: string;
   budget: number;
@@ -147,6 +155,17 @@ export async function getActualsForYear(
   fiscalYear: number
 ): Promise<ActualRow[]> {
   return fetchAllRows<ActualRow>("actuals", (q) =>
+    q.eq("fiscal_year", fiscalYear)
+  );
+}
+
+/**
+ * Raw revenues for a fiscal year.
+ */
+export async function getRevenuesForYear(
+  fiscalYear: number
+): Promise<RevenueRow[]> {
+  return fetchAllRows<RevenueRow>("revenues", (q) =>
     q.eq("fiscal_year", fiscalYear)
   );
 }
@@ -426,6 +445,31 @@ export async function getTransactionYears(): Promise<number[]> {
   });
 
   // Sort newest first (matches typical UI expectation)
+  return Array.from(set).sort((a, b) => b - a);
+}
+
+/**
+ * Get distinct fiscal years from revenues table.
+ * Used by Revenue Explorer (once we build it).
+ */
+export async function getRevenueYears(): Promise<number[]> {
+  const { data, error } = await supabase
+    .from("revenues")
+    .select("fiscal_year")
+    .limit(10000);
+
+  if (error) {
+    console.error("Error fetching revenue years", error);
+    return [];
+  }
+
+  const set = new Set<number>();
+
+  (data ?? []).forEach((row: any) => {
+    const year = Number(row.fiscal_year);
+    if (Number.isFinite(year)) set.add(year);
+  });
+
   return Array.from(set).sort((a, b) => b - a);
 }
 

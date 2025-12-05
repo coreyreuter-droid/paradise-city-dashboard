@@ -342,7 +342,7 @@ export default function TransactionsDashboardClient({
         {/* Breadcrumb */}
         <nav
           aria-label="Breadcrumb"
-          className="mb-4 px-1 text-[11px] text-slate-500"
+          className="mb-4 px-1 text-xs text-slate-500"
         >
           <ol className="flex items-center gap-1">
             <li>
@@ -441,7 +441,7 @@ export default function TransactionsDashboardClient({
               </div>
 
               {/* Active filters summary */}
-              <div className="flex flex-col gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] text-slate-600 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-col gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   {activeFilters.length === 0 ? (
                     <span>
@@ -468,7 +468,7 @@ export default function TransactionsDashboardClient({
                 <button
                   type="button"
                   onClick={handleClearFilters}
-                  className="self-start rounded-md border border-slate-300 bg-white px-2 py-1 text-[11px] font-medium text-slate-700 shadow-sm hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-1"
+                  className="self-start rounded-md border border-slate-300 bg-white px-2 py-1 text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-1"
                 >
                   Clear all filters
                 </button>
@@ -531,7 +531,7 @@ export default function TransactionsDashboardClient({
 
               {/* Pagination */}
               {totalPages > 1 && (
-                <div className="mt-3 flex flex-col items-center justify-between gap-2 border-t border-slate-200 pt-3 text-[11px] text-slate-600 sm:flex-row">
+                <div className="mt-3 flex flex-col items-center justify-between gap-2 border-t border-slate-200 pt-3 text-xs text-slate-600 sm:flex-row">
                   <div>
                     Showing{" "}
                     <span className="font-semibold">

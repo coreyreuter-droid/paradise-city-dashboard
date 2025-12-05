@@ -514,7 +514,7 @@ export default function DepartmentBudgetClient(props: Props) {
             {/* Right column: current year metrics */}
             <div className="space-y-3">
               <CardContainer>
-                <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
                   Current year snapshot ({year})
                 </div>
                 <dl className="mt-3 space-y-3 text-xs">
@@ -540,14 +540,14 @@ export default function DepartmentBudgetClient(props: Props) {
               </CardContainer>
 
               <CardContainer>
-                <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
                   Variance ({year})
                 </div>
                 <div className="mt-1 text-xs text-slate-500">
                   Positive variance indicates spending over the adopted budget.
                 </div>
                 <div
-                  className={`mt-2 inline-flex items-baseline rounded-full px-2 py-1 text-[11px] font-medium ${
+                  className={`mt-2 inline-flex items-baseline rounded-full px-2 py-1 text-xs font-medium ${
                     variance > 0
                       ? "bg-red-50 text-red-700"
                       : variance < 0
@@ -580,7 +580,7 @@ export default function DepartmentBudgetClient(props: Props) {
               </CardContainer>
 
               <CardContainer>
-                <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
                   Budget execution ({year})
                 </div>
                 <div className="mt-1 text-2xl font-bold text-slate-900">
@@ -610,7 +610,7 @@ export default function DepartmentBudgetClient(props: Props) {
           <CardContainer>
             <div className="mb-3 flex items-baseline justify-between">
               <div>
-                <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
                   Top Vendors ({year})
                 </div>
                 <p className="mt-1 text-xs text-slate-500">
@@ -689,7 +689,7 @@ export default function DepartmentBudgetClient(props: Props) {
         {activeTab === "transactions" && (
           <CardContainer>
             <div className="mb-3">
-              <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+              <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
                 Transactions ({year})
               </div>
               <p className="mt-1 text-xs text-slate-500">

@@ -60,33 +60,33 @@ export default function DepartmentsGrid({ year, departments }: Props) {
                 href={href}
                 className="block rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-xs text-slate-700 hover:border-sky-400 hover:bg-white hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2"
               >
-                <div className="mb-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+                <div className="mb-1 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
                   Department
                 </div>
                 <div className="mb-2 text-sm font-semibold text-slate-900">
                   {deptName}
                 </div>
 
-                <div className="flex items-center justify-between text-[11px]">
+                <div className="flex items-center justify-between text-xs">
                   <span className="text-slate-500">Budget</span>
                   <span className="font-mono">
                     {formatCurrency(d.budget)}
                   </span>
                 </div>
-                <div className="flex items-center justify-between text-[11px]">
+                <div className="flex items-center justify-between text-xs">
                   <span className="text-slate-500">Actuals</span>
                   <span className="font-mono">
                     {formatCurrency(d.actuals)}
                   </span>
                 </div>
-                <div className="mt-1 flex items-center justify-between text-[11px]">
+                <div className="mt-1 flex items-center justify-between text-xs">
                   <span className="text-slate-500">% spent</span>
                   <span className="font-mono">
                     {formatPercent(d.percentSpent, 1)}
                   </span>
                 </div>
 
-                <div className="mt-1 flex items-center justify-between text-[11px]">
+                <div className="mt-1 flex items-center justify-between text-xs">
                   <span className="text-slate-500">Status</span>
                   <span className={`font-semibold ${varianceColor}`}>
                     {varianceLabel}

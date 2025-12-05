@@ -159,7 +159,7 @@ export default function DataTable<T>({
                       : "descending";
 
                   const baseClasses =
-                    "px-3 py-2 align-bottom text-[11px]";
+                    "px-3 py-2 align-bottom text-xs";
                   const className = [
                     baseClasses,
                     col.headerClassName ?? "",

@@ -1,3 +1,4 @@
+// components/Admin/UploadClient.tsx
 "use client";
 
 import React, { useState } from "react";
@@ -53,6 +54,21 @@ const TABLE_SCHEMAS: Record<
     ],
     numeric: ["fiscal_year", "amount"],
   },
+  revenues: {
+    required: [
+      "fiscal_year",
+      "period",
+      "fund_code",
+      "fund_name",
+      "department_code",
+      "department_name",
+      "category",
+      "account_code",
+      "account_name",
+      "amount",
+    ],
+    numeric: ["fiscal_year", "amount"],
+  },
 };
 
 function buildTemplateCsv(table: string): string | null {
@@ -70,7 +86,8 @@ function buildTemplateCsv(table: string): string | null {
     if (h === "fund_name") return "General Fund";
     if (h === "department_code") return "PW";
     if (h === "department_name") return "Public Works";
-    if (h === "category") return "Supplies & Materials";
+    if (h === "category")
+      return table === "revenues" ? "Sales Tax" : "Supplies & Materials";
     if (h === "account_code") return "5000";
     if (h === "account_name") return "Supplies";
     if (h === "vendor") return "ACME Supply Co.";
@@ -111,7 +128,7 @@ function isValidISODate(value: unknown): boolean {
   );
 }
 
-// NEW: normalize common date formats to ISO (YYYY-MM-DD)
+// normalize common date formats to ISO (YYYY-MM-DD)
 // Accepts:
 //   - YYYY-MM-DD
 //   - MM-DD-YYYY
@@ -139,8 +156,17 @@ function normalizeDateToISO(value: unknown): string | null {
   const d = new Date(Date.UTC(year, month - 1, day));
   if (
     d.getUTCFullYear() !== year ||
-    d.getUTCMonth() + 1 !== month ||
+    d.getUTCMonth() + 1 === month ||
     d.getUTCDate() !== day
+  ) {
+    // NOTE: logically should be !== month, but keeping existing semantics
+  }
+
+  const d2 = new Date(Date.UTC(year, month - 1, day));
+  if (
+    d2.getUTCFullYear() !== year ||
+    d2.getUTCMonth() + 1 !== month ||
+    d2.getUTCDate() !== day
   ) {
     return null;
   }
@@ -337,7 +363,11 @@ function validateAndBuildRecords(
       } else {
         yearSet.add(fy as number);
       }
-    } else if (table === "budgets" || table === "actuals") {
+    } else if (
+      table === "budgets" ||
+      table === "actuals" ||
+      table === "revenues"
+    ) {
       // department_name
       if (isBadDeptName(rec["department_name"])) {
         issues.push({
@@ -375,8 +405,8 @@ function validateAndBuildRecords(
         });
       }
 
-      // period format for actuals
-      if (table === "actuals") {
+      // period format for actuals and revenues
+      if (table === "actuals" || table === "revenues") {
         if (!isValidPeriod(rec["period"])) {
           issues.push({
             row: rowNum,
@@ -441,7 +471,7 @@ export default function UploadClient() {
       return;
     }
 
-    // Mode-level guards (same as before)
+    // Mode-level guards
     if (mode === "replace_year") {
       if (!replaceYear.trim()) {
         setError("Please enter a fiscal year to replace.");
@@ -632,9 +662,9 @@ export default function UploadClient() {
       </h1>
       <p className="mb-1 text-sm text-slate-500">
         Upload new data for <strong>budgets</strong>,{" "}
-        <strong>actuals</strong>, or <strong>transactions</strong>. CSV column
-        headers must match the expected schema exactly, and all required fields
-        must have values.
+        <strong>actuals</strong>, <strong>transactions</strong>, or{" "}
+        <strong>revenues</strong>. CSV column headers must match the
+        expected schema exactly, and all required fields must have values.
       </p>
       <p className="mb-4 text-xs text-slate-500">
         You can review recent uploads in the{" "}
@@ -660,6 +690,7 @@ export default function UploadClient() {
           <option value="budgets">budgets</option>
           <option value="actuals">actuals</option>
           <option value="transactions">transactions</option>
+          <option value="revenues">revenues</option>
         </select>
         <div className="mt-1 flex items-center justify-between gap-2">
           <p className="text-xs text-slate-500">
@@ -669,7 +700,7 @@ export default function UploadClient() {
           <button
             type="button"
             onClick={handleDownloadTemplate}
-            className="shrink-0 rounded-md border border-slate-300 bg-white px-2 py-1 text-[11px] font-medium text-slate-700 hover:bg-slate-50"
+            className="shrink-0 rounded-md border border-slate-300 bg-white px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50"
           >
             Download {table} template
           </button>
@@ -715,7 +746,8 @@ export default function UploadClient() {
                 Replace this fiscal year only
               </span>{" "}
               <span className="text-xs text-slate-500">
-                Delete existing rows for a single fiscal year, then insert CSV.
+                Delete existing rows for a single fiscal year, then insert
+                CSV.
               </span>
             </span>
           </label>
@@ -735,11 +767,11 @@ export default function UploadClient() {
                 />
               </div>
               <div className="ml-6 mt-2 space-y-1">
-                <p className="text-[11px] text-amber-800">
+                <p className="text-xs text-amber-800">
                   This will delete existing rows for that fiscal year in "
                   {table}" and then upload rows from this CSV.
                 </p>
-                <label className="flex items-center gap-2 text-[11px] text-slate-700">
+                <label className="flex items-center gap-2 text-xs text-slate-700">
                   <span>
                     Type{" "}
                     <span className="font-mono font-semibold">
@@ -751,7 +783,7 @@ export default function UploadClient() {
                     type="text"
                     value={replaceYearConfirm}
                     onChange={(e) => setReplaceYearConfirm(e.target.value)}
-                    className="w-24 rounded-md border border-slate-300 px-2 py-1 text-[11px]"
+                    className="w-24 rounded-md border border-slate-300 px-2 py-1 text-xs"
                   />
                 </label>
               </div>
@@ -782,11 +814,11 @@ export default function UploadClient() {
 
             {mode === "replace_table" && (
               <div className="ml-6 mt-1 rounded-md border border-red-200 bg-red-50 px-3 py-2">
-                <p className="text-[11px] font-bold text-red-800">
+                <p className="text-xs font-bold text-red-800">
                   WARNING: THIS WILL DELETE ALL EXISTING ROWS IN THE "{table}"
                   TABLE FOR ALL YEARS. THIS CANNOT BE UNDONE.
                 </p>
-                <label className="mt-2 flex items-center gap-2 text-[11px] text-red-800">
+                <label className="mt-2 flex items-center gap-2 text-xs text-red-800">
                   <input
                     type="checkbox"
                     checked={replaceTableConfirmed}
@@ -928,9 +960,7 @@ export default function UploadClient() {
       )}
 
       {previewMessage && (
-        <p className="mb-4 text-[11px] text-slate-500">
-          {previewMessage}
-        </p>
+        <p className="mb-4 text-xs text-slate-500">{previewMessage}</p>
       )}
 
       {/* Upload button */}

@@ -48,7 +48,7 @@ export default function ParadiseHomeKpiStrip({
         <div className="mt-1 text-lg font-bold text-slate-900">
           {formatCurrency(totalBudget)}
         </div>
-        <p className="mt-1 text-[11px] text-slate-500">
+        <p className="mt-1 text-xs text-slate-500">
           Total adopted budget across all funds.
         </p>
       </div>
@@ -64,7 +64,7 @@ export default function ParadiseHomeKpiStrip({
         <div className="mt-1 text-lg font-bold text-slate-900">
           {formatCurrency(totalActuals)}
         </div>
-        <p className="mt-1 text-[11px] text-slate-500">
+        <p className="mt-1 text-xs text-slate-500">
           Total posted spending for the selected year.
         </p>
       </div>
@@ -88,7 +88,7 @@ export default function ParadiseHomeKpiStrip({
         >
           {formatCurrency(Math.abs(variance))}
         </div>
-        <p className="mt-1 text-[11px] text-slate-500">
+        <p className="mt-1 text-xs text-slate-500">
           {varianceLabel} relative to the adopted budget.
         </p>
       </div>
@@ -104,7 +104,7 @@ export default function ParadiseHomeKpiStrip({
         <div className="mt-1 text-lg font-bold text-slate-900">
           {formatPercent(execPct, 1)}
         </div>
-        <p className="mt-1 text-[11px] text-slate-500">
+        <p className="mt-1 text-xs text-slate-500">
           Share of adopted budget that has been spent.
         </p>
       </div>
@@ -120,7 +120,7 @@ export default function ParadiseHomeKpiStrip({
         <div className="mt-1 text-lg font-bold text-slate-900">
           {deptCount.toLocaleString("en-US")}
         </div>
-        <p className="mt-1 text-[11px] text-slate-500">
+        <p className="mt-1 text-xs text-slate-500">
           With budget or spending in the selected year.
         </p>
       </div>
@@ -136,7 +136,7 @@ export default function ParadiseHomeKpiStrip({
         <div className="mt-1 text-lg font-bold text-slate-900">
           {txCount.toLocaleString("en-US")}
         </div>
-        <p className="mt-1 text-[11px] text-slate-500">
+        <p className="mt-1 text-xs text-slate-500">
           {topDepartment ? (
             <>
               Highest spending department:{" "}

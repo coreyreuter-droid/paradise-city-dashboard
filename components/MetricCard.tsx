@@ -29,7 +29,7 @@ export default function MetricCard({
     >
       <div className="flex items-start justify-between gap-3">
         <div className="space-y-1">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500 sm:text-[11px]">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500 sm:text-xs">
             {label}
           </p>
           <p className="text-lg font-semibold text-slate-900 sm:text-xl lg:text-2xl">
@@ -38,7 +38,7 @@ export default function MetricCard({
               : value}
           </p>
           {sublabel && (
-            <p className="max-w-xs text-[11px] leading-snug text-slate-500 sm:text-xs">
+            <p className="max-w-xs text-xs leading-snug text-slate-500 sm:text-xs">
               {sublabel}
             </p>
           )}

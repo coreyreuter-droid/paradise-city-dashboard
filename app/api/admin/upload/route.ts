@@ -12,8 +12,10 @@ if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
 
 type Mode = "append" | "replace_year" | "replace_table";
 
+type UploadTable = "budgets" | "actuals" | "transactions" | "revenues";
+
 type UploadPayload = {
-  table: "budgets" | "actuals" | "transactions";
+  table: UploadTable;
   mode: Mode;
   replaceYear?: number | null;
   records: Record<string, any>[];
@@ -84,7 +86,14 @@ export async function POST(req: NextRequest) {
     // 3) Validate payload
     const body = (await req.json()) as UploadPayload;
 
-    if (!body.table || !["budgets", "actuals", "transactions"].includes(body.table)) {
+    const allowedTables: UploadTable[] = [
+      "budgets",
+      "actuals",
+      "transactions",
+      "revenues",
+    ];
+
+    if (!body.table || !allowedTables.includes(body.table)) {
       return NextResponse.json(
         { error: "Invalid or missing table name" },
         { status: 400 }
@@ -108,8 +117,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const table = body.table;
-    const mode = body.mode;
+    const table: UploadTable = body.table;
+    const mode: Mode = body.mode;
     const replaceYear =
       typeof body.replaceYear === "number" ? body.replaceYear : null;
     const yearsInData = Array.isArray(body.yearsInData)

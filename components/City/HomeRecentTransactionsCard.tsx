@@ -39,7 +39,7 @@ export default function RecentTransactionsCard({
               className="flex items-start justify-between gap-2 border-b border-slate-100 pb-1.5 last:border-b-0"
             >
               <div className="flex-1">
-                <div className="flex items-center gap-2 text-[11px] text-slate-500">
+                <div className="flex items-center gap-2 text-xs text-slate-500">
                   <span className="font-mono">
                     {formatDate(tx.date)}
                   </span>
@@ -57,7 +57,7 @@ export default function RecentTransactionsCard({
                   )}
                 </div>
                 {tx.description && (
-                  <div className="text-[11px] text-slate-500">
+                  <div className="text-xs text-slate-500">
                     {tx.description}
                   </div>
                 )}

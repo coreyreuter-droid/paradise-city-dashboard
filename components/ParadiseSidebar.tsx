@@ -13,6 +13,8 @@ const navItems = [
   { path: "/analytics", label: "Analytics" },
   { path: "/budget", label: "Budget" },
   { path: "/departments", label: "Departments" },
+  { path: "/revenues", label: "Revenues" },
+  { path: "/vendors", label: "Vendors" },
   { path: "/transactions", label: "Transactions" },
 ];
 
@@ -115,8 +117,8 @@ export default function ParadiseSidebar() {
         <p
           className={
             variant === "desktop"
-              ? "px-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500"
-              : "px-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500"
+              ? "px-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500"
+              : "px-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500"
           }
         >
           Dashboard
@@ -161,7 +163,7 @@ export default function ParadiseSidebar() {
                 {/* Nested department label under Departments when viewing a specific dept */}
                 {isDepartmentsItem && currentDepartmentLabel && (
                   <div className="mt-1 pl-6 pr-3">
-                    <div className="truncate text-[11px] text-slate-500">
+                    <div className="truncate text-xs text-slate-500">
                       <span className="mr-1 text-slate-400">›</span>
                       {currentDepartmentLabel}
                     </div>
@@ -178,8 +180,8 @@ export default function ParadiseSidebar() {
         <p
           className={
             variant === "desktop"
-              ? "px-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500"
-              : "px-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500"
+              ? "px-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500"
+              : "px-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500"
           }
         >
           Admin
@@ -236,7 +238,7 @@ export default function ParadiseSidebar() {
             <div className="truncate text-sm font-semibold text-slate-900">
               {portalTitle}
             </div>
-            <div className="truncate text-[11px] text-slate-500">
+            <div className="truncate text-xs text-slate-500">
               {portalTagline}
             </div>
           </div>
@@ -291,7 +293,7 @@ export default function ParadiseSidebar() {
                   <div className="truncate text-sm font-semibold text-slate-900">
                     {portalTitle}
                   </div>
-                  <div className="truncate text-[11px] text-slate-500">
+                  <div className="truncate text-xs text-slate-500">
                     {portalTagline}
                   </div>
                 </div>
@@ -315,7 +317,7 @@ export default function ParadiseSidebar() {
               <div className="mt-6 border-t border-slate-100 pt-3">
                 <div className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2">
                   <div>
-                    <p className="text-[11px] text-slate-500">
+                    <p className="text-xs text-slate-500">
                       Powered by{" "}
                       <span className="font-semibold text-slate-800">
                         CiviPortal
@@ -362,7 +364,7 @@ export default function ParadiseSidebar() {
             <div className="truncate text-sm font-semibold text-slate-900">
               {portalTitle}
             </div>
-            <div className="truncate text-[11px] text-slate-500">
+            <div className="truncate text-xs text-slate-500">
               {portalTagline}
             </div>
           </div>
@@ -377,7 +379,7 @@ export default function ParadiseSidebar() {
         <div className="mt-auto border-t border-slate-100 pt-3">
           <div className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2">
             <div>
-              <p className="text-[11px] text-slate-500">
+              <p className="text-xs text-slate-500">
                 Powered by{" "}
                 <span className="font-semibold text-slate-800">
                   CiviPortal

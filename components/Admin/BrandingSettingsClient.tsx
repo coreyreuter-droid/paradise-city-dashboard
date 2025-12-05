@@ -390,7 +390,7 @@ export default function BrandingSettingsClient() {
                   </button>
                 ))}
               </div>
-              <p className="mt-1 text-[11px] text-slate-500">
+              <p className="mt-1 text-xs text-slate-500">
                 Presets update the colors (and sometimes hero message). Save
                 to apply changes to the public portal.
               </p>
@@ -523,7 +523,7 @@ export default function BrandingSettingsClient() {
                   className="mt-1 text-xs"
                 />
                 {logoFile && (
-                  <p className="mt-1 text-[11px] text-slate-500">
+                  <p className="mt-1 text-xs text-slate-500">
                     Selected: {logoFile.name} (will be uploaded when you click{" "}
                     <span className="font-semibold">Save settings</span>)
                   </p>
@@ -564,7 +564,7 @@ export default function BrandingSettingsClient() {
                   className="mt-1 text-xs"
                 />
                 {heroFile && (
-                  <p className="mt-1 text-[11px] text-slate-500">
+                  <p className="mt-1 text-xs text-slate-500">
                     Selected: {heroFile.name} (will be uploaded when you click{" "}
                     <span className="font-semibold">Save settings</span>)
                   </p>
@@ -604,7 +604,7 @@ export default function BrandingSettingsClient() {
                   className="mt-1 text-xs"
                 />
                 {sealFile && (
-                  <p className="mt-1 text-[11px] text-slate-500">
+                  <p className="mt-1 text-xs text-slate-500">
                     Selected: {sealFile.name} (will be uploaded when you click{" "}
                     <span className="font-semibold">Save settings</span>)
                   </p>
@@ -656,7 +656,7 @@ export default function BrandingSettingsClient() {
                 <p className="text-sm font-semibold text-slate-900">
                   {previewName}
                 </p>
-                <p className="text-[11px] text-slate-500">
+                <p className="text-xs text-slate-500">
                   {previewTagline}
                 </p>
               </div>
@@ -666,7 +666,7 @@ export default function BrandingSettingsClient() {
             <div className="space-y-3 px-4 py-3 text-xs text-slate-600">
               <div className="rounded-lg border border-slate-200 bg-white p-3">
                 <p
-                  className="mb-1 text-[11px] font-semibold uppercase tracking-wide"
+                  className="mb-1 text-xs font-semibold uppercase tracking-wide"
                   style={{ color: previewAccent }}
                 >
                   Landing hero
@@ -677,7 +677,7 @@ export default function BrandingSettingsClient() {
               </div>
 
               <div className="flex flex-wrap items-center gap-3">
-                <div className="flex items-center gap-2 text-[11px]">
+                <div className="flex items-center gap-2 text-xs">
                   <span
                     className="h-4 w-4 rounded-full border border-slate-200"
                     style={{ backgroundColor: previewPrimary }}
@@ -689,7 +689,7 @@ export default function BrandingSettingsClient() {
                     {previewPrimary}
                   </span>
                 </div>
-                <div className="flex items-center gap-2 text-[11px]">
+                <div className="flex items-center gap-2 text-xs">
                   <span
                     className="h-4 w-4 rounded-full border border-slate-200"
                     style={{ backgroundColor: previewAccent }}
@@ -703,7 +703,7 @@ export default function BrandingSettingsClient() {
                 </div>
               </div>
 
-              <div className="mt-1 space-y-1 text-[11px] text-slate-500">
+              <div className="mt-1 space-y-1 text-xs text-slate-500">
                 <p>
                   Logo:{" "}
                   {settings.logo_url ? (
