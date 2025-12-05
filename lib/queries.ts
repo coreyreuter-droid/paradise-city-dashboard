@@ -24,10 +24,27 @@ export type PortalSettings = {
   hero_message: string | null;
   hero_image_url: string | null;
   seal_url: string | null;
+
+  // Story blocks
   story_city_description: string | null;
   story_year_achievements: string | null;
   story_capital_projects: string | null;
+
+  // Leadership section
+  leader_name: string | null;
+  leader_title: string | null;
+  leader_message: string | null;
+  leader_photo_url: string | null;
+
+  // Featured projects (up to 3)
+  project1_title: string | null;
+  project1_summary: string | null;
+  project2_title: string | null;
+  project2_summary: string | null;
+  project3_title: string | null;
+  project3_summary: string | null;
 };
+
 
 
 

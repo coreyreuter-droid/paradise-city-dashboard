@@ -19,10 +19,41 @@ type PortalSettings = {
   hero_image_url: string | null;
   hero_message: string | null;
   seal_url: string | null;
+
   story_city_description: string | null;
   story_year_achievements: string | null;
   story_capital_projects: string | null;
+
+  leader_name: string | null;
+  leader_title: string | null;
+  leader_message: string | null;
+  leader_photo_url: string | null;
+
+  project1_title: string | null;
+  project1_summary: string | null;
+  project2_title: string | null;
+  project2_summary: string | null;
+  project3_title: string | null;
+  project3_summary: string | null;
 };
+
+type ProjectTitleKey = "project1_title" | "project2_title" | "project3_title";
+type ProjectSummaryKey =
+  | "project1_summary"
+  | "project2_summary"
+  | "project3_summary";
+
+const PROJECT_TITLE_KEYS: ProjectTitleKey[] = [
+  "project1_title",
+  "project2_title",
+  "project3_title",
+];
+
+const PROJECT_SUMMARY_KEYS: ProjectSummaryKey[] = [
+  "project1_summary",
+  "project2_summary",
+  "project3_summary",
+];
 
 type LoadState = "idle" | "loading" | "ready" | "error";
 type SaveState = "idle" | "saving" | "saved" | "error";
@@ -61,6 +92,31 @@ const THEME_PRESETS: ThemePreset[] = [
   },
 ];
 
+const SELECT_FIELDS = [
+  "id",
+  "city_name",
+  "tagline",
+  "primary_color",
+  "accent_color",
+  "logo_url",
+  "hero_image_url",
+  "hero_message",
+  "seal_url",
+  "story_city_description",
+  "story_year_achievements",
+  "story_capital_projects",
+  "leader_name",
+  "leader_title",
+  "leader_message",
+  "leader_photo_url",
+  "project1_title",
+  "project1_summary",
+  "project2_title",
+  "project2_summary",
+  "project3_title",
+  "project3_summary",
+].join(", ");
+
 export default function BrandingSettingsClient() {
   const [settings, setSettings] = useState<PortalSettings | null>(
     null
@@ -97,22 +153,7 @@ export default function BrandingSettingsClient() {
       try {
         const { data, error } = await supabase
           .from("portal_settings")
-          .select(
-            [
-              "id",
-              "city_name",
-              "tagline",
-              "primary_color",
-              "accent_color",
-              "logo_url",
-              "hero_image_url",
-              "hero_message",
-              "seal_url",
-              "story_city_description",
-              "story_year_achievements",
-              "story_capital_projects",
-            ].join(", ")
-          )
+          .select(SELECT_FIELDS)
           .single();
 
         if (error) {
@@ -133,23 +174,18 @@ export default function BrandingSettingsClient() {
                   story_city_description: null,
                   story_year_achievements: null,
                   story_capital_projects: null,
+                  leader_name: null,
+                  leader_title: null,
+                  leader_message: null,
+                  leader_photo_url: null,
+                  project1_title: null,
+                  project1_summary: null,
+                  project2_title: null,
+                  project2_summary: null,
+                  project3_title: null,
+                  project3_summary: null,
                 })
-                .select(
-                  [
-                    "id",
-                    "city_name",
-                    "tagline",
-                    "primary_color",
-                    "accent_color",
-                    "logo_url",
-                    "hero_image_url",
-                    "hero_message",
-                    "seal_url",
-                    "story_city_description",
-                    "story_year_achievements",
-                    "story_capital_projects",
-                  ].join(", ")
-                )
+                .select(SELECT_FIELDS)
                 .single();
 
             if (insertError || !inserted) {
@@ -318,24 +354,19 @@ export default function BrandingSettingsClient() {
           story_city_description: settings.story_city_description,
           story_year_achievements: settings.story_year_achievements,
           story_capital_projects: settings.story_capital_projects,
+          leader_name: settings.leader_name,
+          leader_title: settings.leader_title,
+          leader_message: settings.leader_message,
+          leader_photo_url: settings.leader_photo_url,
+          project1_title: settings.project1_title,
+          project1_summary: settings.project1_summary,
+          project2_title: settings.project2_title,
+          project2_summary: settings.project2_summary,
+          project3_title: settings.project3_title,
+          project3_summary: settings.project3_summary,
         })
         .eq("id", settings.id)
-        .select(
-          [
-            "id",
-            "city_name",
-            "tagline",
-            "primary_color",
-            "accent_color",
-            "logo_url",
-            "hero_image_url",
-            "hero_message",
-            "seal_url",
-            "story_city_description",
-            "story_year_achievements",
-            "story_capital_projects",
-          ].join(", ")
-        )
+        .select(SELECT_FIELDS)
         .single();
 
       if (error || !data) {
@@ -430,7 +461,6 @@ export default function BrandingSettingsClient() {
             {message}
           </div>
         )}
-
 
         <div className="mx-auto flex max-w-5xl flex-col gap-6 lg:flex-row">
           {/* Form */}
@@ -601,6 +631,139 @@ export default function BrandingSettingsClient() {
                   landing page.
                 </p>
               </div>
+
+              {/* Leadership / welcome message */}
+              <div className="border-t border-slate-200 pt-4 mt-4 space-y-3">
+                <h2 className="text-sm font-semibold text-slate-900">
+                  Leadership welcome (optional)
+                </h2>
+                <p className="text-xs text-slate-500">
+                  Share a short message from the mayor or city manager about the
+                  city’s commitment to transparency.
+                </p>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="mb-1 block text-sm font-medium text-slate-700">
+                      Leader name
+                    </label>
+                    <input
+                      type="text"
+                      value={settings.leader_name ?? ""}
+                      onChange={(e) =>
+                        handleFieldChange("leader_name", e.target.value)
+                      }
+                      className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
+                      placeholder="e.g. Jane Doe"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-sm font-medium text-slate-700">
+                      Leader title
+                    </label>
+                    <input
+                      type="text"
+                      value={settings.leader_title ?? ""}
+                      onChange={(e) =>
+                        handleFieldChange("leader_title", e.target.value)
+                      }
+                      className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
+                      placeholder="e.g. City Manager"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-slate-700">
+                    Leader message
+                  </label>
+                  <textarea
+                    value={settings.leader_message ?? ""}
+                    onChange={(e) =>
+                      handleFieldChange("leader_message", e.target.value)
+                    }
+                    rows={4}
+                    className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
+                    placeholder="A short welcome note about transparency, stewardship of public funds, and how residents can use this portal."
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-slate-700">
+                    Leader photo URL (optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={settings.leader_photo_url ?? ""}
+                    onChange={(e) =>
+                      handleFieldChange("leader_photo_url", e.target.value)
+                    }
+                    className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
+                    placeholder="https://example.com/leader.jpg"
+                  />
+                  <p className="mt-1 text-xs text-slate-500">
+                    Optional photo shown next to the welcome message on the landing
+                    page.
+                  </p>
+                </div>
+              </div>
+
+{/* Featured projects */}
+<div className="border-t border-slate-200 pt-4 mt-4 space-y-3">
+  <h2 className="text-sm font-semibold text-slate-900">
+    Featured projects (optional)
+  </h2>
+  <p className="text-xs text-slate-500">
+    Highlight 1–3 major capital or community projects. These appear in
+    a projects section on the landing page.
+  </p>
+
+  {PROJECT_TITLE_KEYS.map((titleKey, idx) => {
+    const summaryKey = PROJECT_SUMMARY_KEYS[idx];
+    const titleValue = settings[titleKey] ?? "";
+    const summaryValue = settings[summaryKey] ?? "";
+
+    return (
+      <div
+        key={titleKey}
+        className="rounded-md border border-slate-200 bg-slate-50/60 p-3 space-y-2"
+      >
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+          Project {idx + 1}
+        </p>
+        <div>
+          <label className="mb-1 block text-xs font-medium text-slate-700">
+            Title
+          </label>
+          <input
+            type="text"
+            value={titleValue}
+            onChange={(e) =>
+              handleFieldChange(titleKey, e.target.value)
+            }
+            className="w-full rounded-md border border-slate-300 px-3 py-2 text-xs text-slate-900 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
+            placeholder="e.g. New Community Center"
+          />
+        </div>
+        <div>
+          <label className="mb-1 block text-xs font-medium text-slate-700">
+            Summary
+          </label>
+          <textarea
+            value={summaryValue}
+            onChange={(e) =>
+              handleFieldChange(summaryKey, e.target.value)
+            }
+            rows={3}
+            className="w-full rounded-md border border-slate-300 px-3 py-2 text-xs text-slate-900 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
+            placeholder="Briefly describe the project, what it delivers, and its impact on residents."
+          />
+        </div>
+      </div>
+    );
+  })}
+</div>
+
 
               {/* Colors */}
               <div className="grid gap-4 sm:grid-cols-2">

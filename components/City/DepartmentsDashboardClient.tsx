@@ -318,12 +318,13 @@ export default function DepartmentsDashboardClient({
         >
           <ol className="flex items-center gap-1">
             <li>
-              <Link
-                href={cityHref("/")}
-                className="hover:text-slate-800"
-              >
-                Overview
-              </Link>
+      <Link
+        href={cityHref("/overview")}
+        className="hover:text-slate-800"
+      >
+        Home
+      </Link>
+
             </li>
             <li aria-hidden="true" className="text-slate-400">
               ›

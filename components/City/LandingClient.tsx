@@ -41,6 +41,28 @@ export default function LandingClient({ portalSettings }: Props) {
     portalSettings?.story_capital_projects ??
     "Share key capital projects completed or underway—streets, facilities, parks, and infrastructure.";
 
+  const leaderName = portalSettings?.leader_name?.trim() || "";
+  const leaderTitle = portalSettings?.leader_title?.trim() || "";
+  const leaderMessage = portalSettings?.leader_message?.trim() || "";
+  const leaderPhotoUrl = portalSettings?.leader_photo_url?.trim() || "";
+
+  const hasLeaderBlock = !!(leaderName || leaderTitle || leaderMessage);
+
+  const projects = [
+    {
+      title: portalSettings?.project1_title?.trim() || "",
+      summary: portalSettings?.project1_summary?.trim() || "",
+    },
+    {
+      title: portalSettings?.project2_title?.trim() || "",
+      summary: portalSettings?.project2_summary?.trim() || "",
+    },
+    {
+      title: portalSettings?.project3_title?.trim() || "",
+      summary: portalSettings?.project3_summary?.trim() || "",
+    },
+  ].filter((p) => p.title || p.summary);
+
   return (
     <div className="mx-auto max-w-6xl space-y-6 px-3 py-6 sm:px-4 sm:py-8">
       {/* HERO */}
@@ -223,6 +245,90 @@ export default function LandingClient({ portalSettings }: Props) {
           </div>
         </section>
       </CardContainer>
+
+      {/* Leadership welcome */}
+      {hasLeaderBlock && (
+        <CardContainer>
+          <section
+            aria-label="Leadership message"
+            className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-slate-50/80 p-4 sm:flex-row sm:items-start sm:p-5"
+          >
+            {leaderPhotoUrl && (
+              <div className="flex-shrink-0">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={leaderPhotoUrl}
+                  alt={leaderName || "City leader"}
+                  className="h-16 w-16 rounded-full border border-slate-200 object-cover sm:h-20 sm:w-20"
+                />
+              </div>
+            )}
+            <div className="space-y-1">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                Leadership message
+              </p>
+              {(leaderName || leaderTitle) && (
+                <p className="text-sm font-semibold text-slate-900">
+                  {leaderName}
+                  {leaderTitle && (
+                    <span className="font-normal text-slate-600">
+                      {leaderName ? " — " : ""}
+                      {leaderTitle}
+                    </span>
+                  )}
+                </p>
+              )}
+              {leaderMessage && (
+                <p className="text-sm leading-relaxed text-slate-700">
+                  {leaderMessage}
+                </p>
+              )}
+            </div>
+          </section>
+        </CardContainer>
+      )}
+
+      {/* Featured projects */}
+      {projects.length > 0 && (
+        <CardContainer>
+          <section
+            aria-label="Featured city projects"
+            className="space-y-3"
+          >
+            <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <h2 className="text-sm font-semibold text-slate-900">
+                  Featured projects
+                </h2>
+                <p className="text-xs text-slate-600">
+                  A selection of major capital and community projects your
+                  city has delivered or is working on.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-3">
+              {projects.map((project, idx) => (
+                <article
+                  key={idx}
+                  className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+                >
+                  {project.title && (
+                    <h3 className="text-sm font-semibold text-slate-900">
+                      {project.title}
+                    </h3>
+                  )}
+                  {project.summary && (
+                    <p className="mt-2 text-sm leading-relaxed text-slate-700">
+                      {project.summary}
+                    </p>
+                  )}
+                </article>
+              ))}
+            </div>
+          </section>
+        </CardContainer>
+      )}
     </div>
   );
 }

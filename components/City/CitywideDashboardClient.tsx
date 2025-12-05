@@ -532,12 +532,13 @@ export default function CitywideDashboardClient({
           aria-label="Breadcrumb"
           className="mb-4 flex items-center gap-1 px-1 text-xs text-slate-500"
         >
-          <Link
-            href={cityHref("/")}
-            className="hover:text-slate-800"
-          >
-            Overview
-          </Link>
+      <Link
+        href={cityHref("/overview")}
+        className="hover:text-slate-800"
+      >
+        Home
+      </Link>
+
           <span className="text-slate-400">›</span>
           <span className="font-medium text-slate-700">
             Analytics

@@ -18,10 +18,15 @@ export default function CityShell({
   tagline,
   children,
 }: Props) {
-  const pathname = usePathname();
-  const basePath = `/${CITY_CONFIG.slug}`;
+const pathname = usePathname();
+const basePath = `/${CITY_CONFIG.slug}`;
 
-  const isLanding = pathname === basePath;
+const isLanding =
+  pathname === basePath ||
+  pathname === `${basePath}/` ||
+  pathname === `/${CITY_CONFIG.slug}` ||
+  pathname === `/${CITY_CONFIG.slug}/`;
+
 
   // For the Home landing page: NO shared dashboard header/shell.
   if (isLanding) {
