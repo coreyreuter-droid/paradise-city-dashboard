@@ -1,11 +1,10 @@
 // app/[citySlug]/admin/users/page.tsx
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import AdminGuard from "@/components/Auth/AdminGuard";
+import AdminShell from "@/components/Admin/AdminShell";
 import { supabase } from "@/lib/supabase";
-import { cityHref } from "@/lib/cityRouting";
 
 type AdminUser = {
   id: string;
@@ -18,6 +17,12 @@ type AdminUser = {
 type LoadState = "idle" | "loading" | "loaded" | "error";
 type RoleFilter = "all" | "super_admin" | "admin" | "viewer" | "none";
 type AssignableRole = "super_admin" | "admin" | "viewer";
+type CurrentRole = "super_admin" | "admin" | "viewer" | null;
+
+type UsersResponse = {
+  users: AdminUser[];
+  currentRole: CurrentRole;
+};
 
 export default function AdminUsersPage() {
   const [state, setState] = useState<LoadState>("idle");
@@ -29,6 +34,7 @@ export default function AdminUsersPage() {
 
   const [authToken, setAuthToken] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [currentRole, setCurrentRole] = useState<CurrentRole>(null);
 
   // Invite form state (super_admin only)
   const [inviteEmail, setInviteEmail] = useState("");
@@ -43,7 +49,50 @@ export default function AdminUsersPage() {
   const [removingUserId, setRemovingUserId] = useState<string | null>(null);
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
 
-  // Initial load of users + token + current user id
+  const isLoading = state === "loading";
+
+  // Helper: reload users from API using token
+  async function reloadUsers(tokenOverride?: string) {
+    const token = tokenOverride ?? authToken;
+    if (!token) {
+      setError("No active session");
+      setState("error");
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/admin/users", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const body = (await res.json().catch(() => null)) as
+        | UsersResponse
+        | { error?: string }
+        | null;
+
+      if (!res.ok) {
+        const msg =
+          (body && "error" in (body as any) && (body as any).error) ||
+          `Failed to load users (HTTP ${res.status.toString()})`;
+        setError(msg);
+        setState("error");
+        return;
+      }
+
+      const data = body as UsersResponse;
+      setUsers(data.users ?? []);
+      setCurrentRole(data.currentRole ?? null);
+      setState("loaded");
+    } catch (err: any) {
+      console.error("AdminUsersPage: reloadUsers error", err);
+      setError(err?.message ?? "Unexpected error loading users.");
+      setState("error");
+    }
+  }
+
+  // Initial load: get session → token → current user → load users
   useEffect(() => {
     let cancelled = false;
 
@@ -53,52 +102,50 @@ export default function AdminUsersPage() {
       setActionMessage(null);
       setActionError(null);
 
-      const { data: sessionData } = await supabase.auth.getSession();
-      const session = sessionData.session;
-      const accessToken = session?.access_token ?? null;
-      const userId = session?.user?.id ?? null;
-
-      if (!accessToken || !userId) {
-        if (!cancelled) {
-          setError("No active session");
-          setState("error");
-        }
-        return;
-      }
-
-      setAuthToken(accessToken);
-      setCurrentUserId(userId);
-
       try {
-        const res = await fetch("/api/admin/users", {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        });
+        const {
+          data: { session },
+          error: sessionError,
+        } = await supabase.auth.getSession();
 
-        if (!res.ok) {
-          const body = await res.json().catch(() => null);
-          const msg =
-            body?.error ||
-            `Failed to load users (HTTP ${res.status.toString()})`;
+        if (sessionError) {
+          console.error("AdminUsersPage: getSession error", sessionError);
           if (!cancelled) {
-            setError(msg);
+            setError("Failed to load session.");
             setState("error");
           }
           return;
         }
 
-        const body = (await res.json()) as {
-          users?: AdminUser[];
-          currentRole?: string | null;
-        };
+        if (!session) {
+          if (!cancelled) {
+            setError("No active session");
+            setState("error");
+          }
+          return;
+        }
+
+        const accessToken = session.access_token;
+        const userId = session.user?.id ?? null;
+
+        if (!accessToken || !userId) {
+          if (!cancelled) {
+            setError("No active session");
+            setState("error");
+          }
+          return;
+        }
+
         if (cancelled) return;
 
-        setUsers(body.users ?? []);
-        setState("loaded");
+        setAuthToken(accessToken);
+        setCurrentUserId(userId);
+
+        await reloadUsers(accessToken);
       } catch (err: any) {
+        console.error("AdminUsersPage: initial load error", err);
         if (!cancelled) {
-          setError(err?.message ?? "Unexpected error loading users");
+          setError(err?.message ?? "Unexpected error loading users.");
           setState("error");
         }
       }
@@ -109,18 +156,8 @@ export default function AdminUsersPage() {
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const currentUser = useMemo(
-    () =>
-      currentUserId
-        ? users.find((u) => u.id === currentUserId) ?? null
-        : null,
-    [users, currentUserId]
-  );
-
-  const isSuperAdmin = currentUser?.role === "super_admin";
-  const canManageUsers = isSuperAdmin;
 
   // Derived metrics
   const superAdminCount = users.filter((u) => u.role === "super_admin").length;
@@ -140,11 +177,9 @@ export default function AdminUsersPage() {
       // role filter
       if (roleFilter === "super_admin" && role !== "super_admin") return false;
       if (roleFilter === "admin" && role !== "admin") return false;
-      if (
-        roleFilter === "viewer" &&
-        !(role === "viewer" || u.role === null)
-      )
+      if (roleFilter === "viewer" && !(role === "viewer" || u.role === null)) {
         return false;
+      }
       if (roleFilter === "none" && u.role !== null) return false;
 
       if (!q) return true;
@@ -153,24 +188,31 @@ export default function AdminUsersPage() {
     });
   }, [users, search, roleFilter]);
 
-  async function reloadUsers() {
-    if (!authToken) return;
-    try {
-      const res = await fetch("/api/admin/users", {
-        headers: { Authorization: `Bearer ${authToken}` },
-      });
-      if (!res.ok) return;
-      const body = (await res.json()) as { users?: AdminUser[] };
-      setUsers(body.users ?? []);
-    } catch {
-      // ignore, page will still show last known data
-    }
+  const canInvite = currentRole === "super_admin";
+  const isSuperAdmin = currentRole === "super_admin";
+
+  function formatDate(value: string | null): string {
+    if (!value) return "—";
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return value;
+    return d.toLocaleString();
   }
 
-  async function handleInviteSubmit(e: React.FormEvent) {
+  function roleLabel(role: string | null): string {
+    if (!role || role === "viewer") return "Viewer";
+    if (role === "admin") return "Admin";
+    if (role === "super_admin") return "Super admin";
+    return role;
+  }
+
+  async function handleInvite(e: React.FormEvent) {
     e.preventDefault();
     if (!authToken) {
       setInviteError("No active session");
+      return;
+    }
+    if (!inviteEmail.trim()) {
+      setInviteError("Enter an email address.");
       return;
     }
 
@@ -196,7 +238,8 @@ export default function AdminUsersPage() {
 
       if (!res.ok) {
         setInviteError(
-          body?.error || "Failed to send invite. Check email and try again."
+          (body as any)?.error ||
+            "Failed to send invite. Check email and try again."
         );
         return;
       }
@@ -206,15 +249,14 @@ export default function AdminUsersPage() {
       setActionMessage("Invite sent and role assigned.");
       await reloadUsers();
     } catch (err: any) {
-      setInviteError(
-        err?.message ?? "Unexpected error while sending invite."
-      );
+      console.error("AdminUsersPage: invite error", err);
+      setInviteError(err?.message ?? "Unexpected error while sending invite.");
     } finally {
       setInviteLoading(false);
     }
   }
 
-  async function handleChangeRole(userId: string, newRole: AssignableRole) {
+  async function handleSetRole(userId: string, newRole: AssignableRole | null) {
     if (!authToken) {
       setActionError("No active session");
       return;
@@ -237,15 +279,14 @@ export default function AdminUsersPage() {
       const body = await res.json().catch(() => null);
 
       if (!res.ok) {
-        setActionError(
-          body?.error || "Failed to update role. Please try again."
-        );
+        setActionError((body as any)?.error || "Failed to update role.");
         return;
       }
 
       setActionMessage("Role updated.");
       await reloadUsers();
     } catch (err: any) {
+      console.error("AdminUsersPage: set-role error", err);
       setActionError(
         err?.message ?? "Unexpected error while updating role."
       );
@@ -278,8 +319,7 @@ export default function AdminUsersPage() {
 
       if (!res.ok) {
         setActionError(
-          body?.error ||
-            "Failed to remove admin access. Please try again."
+          (body as any)?.error || "Failed to remove admin access."
         );
         return;
       }
@@ -287,6 +327,7 @@ export default function AdminUsersPage() {
       setActionMessage("Admin access removed.");
       await reloadUsers();
     } catch (err: any) {
+      console.error("AdminUsersPage: remove-admin error", err);
       setActionError(
         err?.message ?? "Unexpected error while removing admin."
       );
@@ -324,7 +365,7 @@ export default function AdminUsersPage() {
 
       if (!res.ok) {
         setActionError(
-          body?.error || "Failed to delete user. Please try again."
+          (body as any)?.error || "Failed to delete user account."
         );
         return;
       }
@@ -332,6 +373,7 @@ export default function AdminUsersPage() {
       setActionMessage("User deleted.");
       await reloadUsers();
     } catch (err: any) {
+      console.error("AdminUsersPage: delete error", err);
       setActionError(
         err?.message ?? "Unexpected error while deleting user."
       );
@@ -342,172 +384,190 @@ export default function AdminUsersPage() {
 
   return (
     <AdminGuard>
-      <div className="px-2 py-4 sm:px-4 sm:py-6">
-        <div className="mb-3">
-          <Link
-            href={cityHref("/admin")}
-            className="inline-flex items-center text-xs font-medium text-slate-500 hover:text-slate-800"
-          >
-            <span className="mr-1">←</span>
-            Back to admin home
-          </Link>
-        </div>
-
-        <div className="mb-4 space-y-1">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-            Admin
-          </p>
-          <h1 className="text-lg font-semibold text-slate-900">
-            Admin users
-          </h1>
-          <p className="text-sm text-slate-600">
-            Super admins can invite new users and manage roles for this
-            deployment. Admins have read-only access to this list.
-          </p>
-        </div>
-
-        {canManageUsers && (
-          <div className="mb-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-            <div className="mb-2 flex items-center justify-between">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">
-                Invite user
-              </p>
-              <span className="rounded-full bg-purple-50 px-2 py-0.5 text-[11px] font-medium text-purple-800">
-                Super admin only
-              </span>
-            </div>
-            <form
-              onSubmit={handleInviteSubmit}
-              className="flex flex-col gap-2 sm:flex-row sm:items-center"
-            >
-              <input
-                type="email"
-                required
-                value={inviteEmail}
-                onChange={(e) => setInviteEmail(e.target.value)}
-                placeholder="user@example.gov"
-                className="h-9 flex-1 rounded-md border border-slate-200 bg-white px-2 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300"
-              />
-              <select
-                value={inviteRole}
-                onChange={(e) =>
-                  setInviteRole(e.target.value as AssignableRole)
-                }
-                className="h-9 rounded-md border border-slate-200 bg-white px-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-300"
-              >
-                <option value="admin">Admin</option>
-                <option value="viewer">Viewer</option>
-              </select>
-              <button
-                type="submit"
-                disabled={inviteLoading}
-                className="inline-flex h-9 items-center justify-center rounded-md bg-slate-900 px-3 text-xs font-medium text-white shadow-sm hover:bg-slate-800 disabled:opacity-60"
-              >
-                {inviteLoading ? "Sending…" : "Send invite"}
-              </button>
-            </form>
-            {inviteError && (
-              <p className="mt-2 text-xs text-red-600">{inviteError}</p>
-            )}
-            {!inviteError && actionMessage && (
-              <p className="mt-2 text-xs text-emerald-700">
-                {actionMessage}
-              </p>
-            )}
-          </div>
-        )}
-
-        {actionError && (
-          <div className="mb-4 rounded-lg border border-red-200 bg-white px-3 py-2 text-xs text-red-700 shadow-sm">
-            {actionError}
-          </div>
-        )}
-
-        {/* Summary + filters */}
-        {state === "loaded" && (
-          <div className="mb-4 flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-3 shadow-sm sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex flex-wrap gap-2 text-xs">
-              <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 font-medium text-slate-800">
+      <AdminShell
+        title="Users & roles"
+        description="Invite staff, assign roles, and remove access when people leave."
+      >
+        <div className="space-y-4 text-sm text-slate-700">
+          {/* Top summary */}
+          <div className="grid gap-3 rounded-xl border border-slate-200 bg-slate-50/80 p-4 text-xs sm:grid-cols-4">
+            <div>
+              <p className="text-[0.75rem] font-medium uppercase tracking-[0.18em] text-slate-500">
                 Total users
-                <span className="ml-1 rounded-full bg-slate-800 px-1.5 py-0.5 text-[10px] font-semibold text-white">
-                  {totalUsers}
-                </span>
-              </span>
-              <span className="inline-flex items-center rounded-full bg-purple-50 px-2.5 py-1 font-medium text-purple-800">
-                Super admins
-                <span className="ml-1 rounded-full bg-purple-700 px-1.5 py-0.5 text-[10px] font-semibold text-white">
-                  {superAdminCount}
-                </span>
-              </span>
-              <span className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 font-medium text-emerald-800">
-                Admins
-                <span className="ml-1 rounded-full bg-emerald-700 px-1.5 py-0.5 text-[10px] font-semibold text-white">
-                  {adminCount}
-                </span>
-              </span>
-              <span className="inline-flex items-center rounded-full bg-slate-50 px-2.5 py-1 font-medium text-slate-700">
-                Viewers
-                <span className="ml-1 rounded-full bg-slate-600 px-1.5 py-0.5 text-[10px] font-semibold text-white">
-                  {viewerCount}
-                </span>
-              </span>
-              {noRoleCount > 0 && (
-                <span className="inline-flex items-center rounded-full bg-amber-50 px-2.5 py-1 font-medium text-amber-800">
-                  Missing role
-                  <span className="ml-1 rounded-full bg-amber-600 px-1.5 py-0.5 text-[10px] font-semibold text-white">
-                    {noRoleCount}
-                  </span>
-                </span>
-              )}
+              </p>
+              <p className="mt-1 text-base font-semibold text-slate-900">
+                {totalUsers}
+              </p>
             </div>
+            <div>
+              <p className="text-[0.75rem] font-medium uppercase tracking-[0.18em] text-slate-500">
+                Super admins
+              </p>
+              <p className="mt-1 text-base font-semibold text-slate-900">
+                {superAdminCount}
+              </p>
+            </div>
+            <div>
+              <p className="text-[0.75rem] font-medium uppercase tracking-[0.18em] text-slate-500">
+                Admins
+              </p>
+              <p className="mt-1 text-base font-semibold text-slate-900">
+                {adminCount}
+              </p>
+            </div>
+            <div>
+              <p className="text-[0.75rem] font-medium uppercase tracking-[0.18em] text-slate-500">
+                Viewers / no role
+              </p>
+              <p className="mt-1 text-base font-semibold text-slate-900">
+                {viewerCount}{" "}
+                <span className="text-xs font-normal text-slate-500">
+                  ({noRoleCount} without explicit role)
+                </span>
+              </p>
+            </div>
+          </div>
 
-            <div className="flex flex-wrap items-center gap-2">
+          {/* Search + filter */}
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div className="flex flex-1 flex-col gap-2">
+              <label className="text-xs font-medium text-slate-700">
+                Search by email
+              </label>
               <input
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search by email…"
-                className="h-8 rounded-md border border-slate-200 bg-white px-2 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300"
+                placeholder="e.g. finance director"
+                className="h-9 w-full rounded-md border border-slate-200 bg-white px-2 text-sm text-slate-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
               />
+            </div>
+            <div className="flex flex-col gap-2 sm:w-56">
+              <label className="text-xs font-medium text-slate-700">
+                Filter by role
+              </label>
               <select
                 value={roleFilter}
-                onChange={(e) =>
-                  setRoleFilter(e.target.value as RoleFilter)
-                }
-                className="h-8 rounded-md border border-slate-200 bg-white px-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-300"
+                onChange={(e) => setRoleFilter(e.target.value as RoleFilter)}
+                className="h-9 w-full rounded-md border border-slate-200 bg-white px-2 text-sm text-slate-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
               >
                 <option value="all">All roles</option>
-                <option value="super_admin">Super admins only</option>
-                <option value="admin">Admins only</option>
-                <option value="viewer">Viewers only</option>
-                <option value="none">Missing role</option>
+                <option value="super_admin">Super admins</option>
+                <option value="admin">Admins</option>
+                <option value="viewer">Viewers / no role</option>
+                <option value="none">No role assigned</option>
               </select>
             </div>
           </div>
-        )}
 
-        {state === "loading" && (
-          <div className="rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600 shadow-sm">
-            Loading users…
+          {/* Invite form */}
+          <div className="rounded-xl border border-slate-200 bg-white p-4 text-xs shadow-sm">
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <div>
+                <p className="text-sm font-semibold text-slate-900">
+                  Invite a new user
+                </p>
+                <p className="text-xs text-slate-500">
+                  They&apos;ll receive an email with a link to sign in. You can
+                  change their role later.
+                </p>
+              </div>
+              <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-[0.75rem] font-medium uppercase tracking-[0.16em] text-slate-600">
+                {isSuperAdmin ? "Super admin" : "Read-only"}
+              </span>
+            </div>
+
+            {canInvite ? (
+              <form
+                onSubmit={handleInvite}
+                className="flex flex-col gap-2 sm:flex-row sm:items-center"
+              >
+                <div className="flex-1">
+                  <label className="mb-1 block text-xs font-medium text-slate-700">
+                    Work email
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    value={inviteEmail}
+                    onChange={(e) => setInviteEmail(e.target.value)}
+                    placeholder="name@city.gov"
+                    className="h-9 w-full rounded-md border border-slate-200 bg-white px-2 text-sm text-slate-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+                  />
+                </div>
+                <div className="sm:w-40">
+                  <label className="mb-1 block text-xs font-medium text-slate-700">
+                    Initial role
+                  </label>
+                  <select
+                    value={inviteRole}
+                    onChange={(e) =>
+                      setInviteRole(e.target.value as AssignableRole)
+                    }
+                    className="h-9 w-full rounded-md border border-slate-200 bg-white px-2 text-sm text-slate-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+                  >
+                    <option value="admin">Admin</option>
+                    <option value="viewer">Viewer</option>
+                  </select>
+                </div>
+                <div className="pt-1 sm:pt-0">
+                  <button
+                    type="submit"
+                    disabled={inviteLoading}
+                    className="inline-flex h-9 items-center rounded-md bg-slate-900 px-3 py-2 text-xs font-medium text-white shadow-sm hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+                  >
+                    {inviteLoading ? "Sending…" : "Send invite"}
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <p className="text-xs text-slate-500">
+                Only super admins can invite new users. Contact a super admin if
+                you need someone added.
+              </p>
+            )}
+
+            {inviteError && (
+              <p className="mt-2 text-xs text-red-600">{inviteError}</p>
+            )}
           </div>
-        )}
 
-        {state === "error" && (
-          <div className="rounded-lg border border-red-200 bg-white px-4 py-3 text-sm text-red-700 shadow-sm">
-            {error ?? "Failed to load users."}
-          </div>
-        )}
+          {/* Global action feedback */}
+          {(actionMessage || actionError) && (
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs">
+              {actionMessage && (
+                <p className="font-medium text-emerald-700">
+                  {actionMessage}
+                </p>
+              )}
+              {actionError && (
+                <p className="text-red-600">{actionError}</p>
+              )}
+            </div>
+          )}
 
-        {state === "loaded" && (
-          <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-            {filteredUsers.length === 0 ? (
+          {/* Users table */}
+          <div className="rounded-xl border border-slate-200 bg-white text-xs shadow-sm">
+            {isLoading && (
+              <div className="px-4 py-6 text-sm text-slate-600">
+                Loading users…
+              </div>
+            )}
+
+            {!isLoading && error && (
+              <div className="px-4 py-6 text-sm text-red-600">{error}</div>
+            )}
+
+            {!isLoading && !error && filteredUsers.length === 0 && (
               <div className="px-4 py-6 text-sm text-slate-500">
                 No users match the current filters.
               </div>
-            ) : (
+            )}
+
+            {!isLoading && !error && filteredUsers.length > 0 && (
               <div className="max-h-[480px] overflow-auto">
-                <table className="min-w-full text-left text-sm">
-                  <thead className="sticky top-0 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                <table className="min-w-full text-left text-xs">
+                  <thead className="sticky top-0 bg-slate-50 text-[0.75rem] uppercase tracking-[0.16em] text-slate-500">
                     <tr>
                       <th className="px-4 py-2 font-semibold">Email</th>
                       <th className="px-4 py-2 font-semibold">Role</th>
@@ -515,124 +575,103 @@ export default function AdminUsersPage() {
                         Last sign-in
                       </th>
                       <th className="px-4 py-2 font-semibold">Created</th>
-                      {canManageUsers && (
-                        <th className="px-4 py-2 font-semibold">
-                          Actions
-                        </th>
-                      )}
+                      <th className="px-4 py-2 font-semibold">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody>
                     {filteredUsers.map((u) => {
-                      const effectiveRole =
-                        (u.role ?? "viewer") as AssignableRole | "viewer";
                       const isSelf = u.id === currentUserId;
+                      const role = (u.role ?? "viewer") as AssignableRole | "viewer";
+                      const isSuper = role === "super_admin";
+                      const isOnlySuper =
+                        isSuper && superAdminCount === 1;
 
-                      let pillClasses =
-                        "inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium uppercase tracking-wide ";
-                      let label = "";
-
-                      if (effectiveRole === "super_admin") {
-                        pillClasses +=
-                          "border-purple-200 bg-purple-50 text-purple-800";
-                        label = "Super admin";
-                      } else if (effectiveRole === "admin") {
-                        pillClasses +=
-                          "border-emerald-200 bg-emerald-50 text-emerald-800";
-                        label = "Admin";
-                      } else {
-                        pillClasses +=
-                          "border-slate-200 bg-slate-50 text-slate-700";
-                        label = "Viewer";
-                      }
-
-                      const isBusyForRow =
-                        updatingUserId === u.id ||
-                        removingUserId === u.id ||
-                        deletingUserId === u.id;
+                      const canChangeRole =
+                        !isOnlySuper && !isSelf && isSuperAdmin;
+                      const canRemoveAdmin =
+                        !isOnlySuper && !isSelf && isSuperAdmin;
+                      const canDelete =
+                        !isOnlySuper && !isSelf && isSuperAdmin;
 
                       return (
-                        <tr key={u.id} className="hover:bg-slate-50/70">
-                          <td className="px-4 py-2 text-slate-900">
-                            {u.email ?? "—"}
-                            {isSelf && (
-                              <span className="ml-1 rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-600">
-                                You
+                        <tr
+                          key={u.id}
+                          className="border-t border-slate-100 hover:bg-slate-50"
+                        >
+                          <td className="px-4 py-2 align-top text-slate-900">
+                            <div className="flex flex-col gap-0.5">
+                              <span className="text-xs">
+                                {u.email ?? "—"}
+                              </span>
+                              <span className="text-[0.75rem] text-slate-500">
+                                {isSelf ? "This is you" : u.id}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-2 align-top text-slate-900">
+                            {canChangeRole ? (
+                              <select
+                                value={u.role ?? "viewer"}
+                                onChange={(e) =>
+                                  handleSetRole(
+                                    u.id,
+                                    e.target.value as AssignableRole
+                                  )
+                                }
+                                disabled={updatingUserId === u.id}
+                                className="h-8 rounded-md border border-slate-200 bg-white px-2 text-xs text-slate-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+                              >
+                                <option value="super_admin">Super admin</option>
+                                <option value="admin">Admin</option>
+                                <option value="viewer">Viewer</option>
+                              </select>
+                            ) : (
+                              <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-[0.75rem] font-medium text-slate-700">
+                                {roleLabel(u.role)}
                               </span>
                             )}
                           </td>
-                          <td className="px-4 py-2">
-                            {!canManageUsers ? (
-                              <span className={pillClasses}>{label}</span>
-                            ) : (
-                              <div className="flex items-center gap-2">
-                                <select
-                                  disabled={isSelf || isBusyForRow}
-                                  value={effectiveRole}
-                                  onChange={(e) =>
-                                    handleChangeRole(
-                                      u.id,
-                                      e.target.value as AssignableRole
-                                    )
-                                  }
-                                  className="h-8 rounded-md border border-slate-200 bg-white px-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-300"
-                                >
-                                  <option value="super_admin">
-                                    Super admin
-                                  </option>
-                                  <option value="admin">Admin</option>
-                                  <option value="viewer">Viewer</option>
-                                </select>
-                              </div>
-                            )}
+                          <td className="px-4 py-2 align-top text-slate-700">
+                            {formatDate(u.lastSignInAt)}
                           </td>
-                          <td className="px-4 py-2 text-xs text-slate-500">
-                            {u.lastSignInAt
-                              ? new Date(u.lastSignInAt).toLocaleString()
-                              : "—"}
+                          <td className="px-4 py-2 align-top text-slate-700">
+                            {formatDate(u.createdAt)}
                           </td>
-                          <td className="px-4 py-2 text-xs text-slate-500">
-                            {u.createdAt
-                              ? new Date(u.createdAt).toLocaleDateString()
-                              : "—"}
-                          </td>
-                          {canManageUsers && (
-                            <td className="px-4 py-2 text-xs text-slate-500">
-                              {!isSelf && (
-                                <div className="flex flex-wrap gap-2">
-                                  {(effectiveRole === "admin" ||
-                                    effectiveRole === "super_admin") && (
-                                    <button
-                                      type="button"
-                                      onClick={() =>
-                                        handleRemoveAdmin(u.id)
-                                      }
-                                      disabled={isBusyForRow}
-                                      className="inline-flex items-center rounded-md border border-slate-200 px-2 py-1 text-[11px] font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
-                                    >
-                                      {removingUserId === u.id
-                                        ? "Updating…"
-                                        : "Remove admin access"}
-                                    </button>
-                                  )}
-                                  {isSuperAdmin && (
-                                    <button
-                                      type="button"
-                                      onClick={() =>
-                                        handleDeleteUser(u.id)
-                                      }
-                                      disabled={isBusyForRow}
-                                      className="inline-flex items-center rounded-md border border-red-200 px-2 py-1 text-[11px] font-medium text-red-700 hover:bg-red-50 disabled:opacity-60"
-                                    >
-                                      {deletingUserId === u.id
-                                        ? "Deleting…"
-                                        : "Delete user"}
-                                    </button>
-                                  )}
-                                </div>
+                          <td className="px-4 py-2 align-top">
+                            <div className="flex flex-wrap gap-2 text-[0.75rem]">
+                              {isSelf && (
+                                <span className="rounded-full bg-slate-100 px-2 py-1 text-slate-600">
+                                  You
+                                </span>
                               )}
-                            </td>
-                          )}
+
+                              {canRemoveAdmin && role !== "viewer" && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveAdmin(u.id)}
+                                  disabled={removingUserId === u.id}
+                                  className="rounded-full border border-slate-300 px-2 py-1 text-[0.75rem] font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+                                >
+                                  {removingUserId === u.id
+                                    ? "Removing…"
+                                    : "Remove admin"}
+                                </button>
+                              )}
+
+                              {canDelete && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteUser(u.id)}
+                                  disabled={deletingUserId === u.id}
+                                  className="rounded-full border border-red-200 px-2 py-1 text-[0.75rem] font-medium text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+                                >
+                                  {deletingUserId === u.id
+                                    ? "Deleting…"
+                                    : "Delete"}
+                                </button>
+                              )}
+                            </div>
+                          </td>
                         </tr>
                       );
                     })}
@@ -641,8 +680,8 @@ export default function AdminUsersPage() {
               </div>
             )}
           </div>
-        )}
-      </div>
+        </div>
+      </AdminShell>
     </AdminGuard>
   );
 }

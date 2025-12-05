@@ -142,7 +142,7 @@ export default function BudgetByDepartmentChart({
       </div>
 
       {/* Legend */}
-      <div className="flex flex-wrap items-center gap-4 text-[11px] text-slate-600">
+      <div className="flex flex-wrap items-center gap-4 text-xs text-slate-600">
         <div className="flex items-center gap-1">
           <span className="inline-block h-2 w-3 rounded bg-slate-300" />
           <span>Budget</span>
@@ -161,7 +161,7 @@ export default function BudgetByDepartmentChart({
       {showTable && (
         <div className="overflow-x-auto">
           <table className="min-w-full border border-slate-200 text-xs">
-            <thead className="bg-slate-50 text-[11px] font-semibold uppercase tracking-wide text-slate-600">
+            <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-600">
               <tr>
                 <th scope="col" className="px-3 py-2 text-left">
                   Department

@@ -2,10 +2,11 @@
 "use client";
 
 import Link from "next/link";
-import AdminGuard from "@/components/Auth/AdminGuard";
 import { useEffect, useState } from "react";
+import AdminGuard from "@/components/Auth/AdminGuard";
 import { supabase } from "@/lib/supabase";
 import { cityHref } from "@/lib/cityRouting";
+import AdminShell from "@/components/Admin/AdminShell";
 
 type HealthStatus = "loading" | "pass" | "warn" | "fail";
 
@@ -27,13 +28,15 @@ export default function OnboardingPage() {
   });
 
   useEffect(() => {
-    async function runHealthCheck() {
+    let cancelled = false;
+
+    async function runChecks() {
       const results: CheckResults = {
         budgets: "pass",
         actuals: "pass",
         transactions: "pass",
         portalSettings: "pass",
-        publish: "loading",
+        publish: "pass",
       };
 
       // Budgets
@@ -68,160 +71,157 @@ export default function OnboardingPage() {
         results.portalSettings = "fail";
         results.publish = "fail";
       } else {
-        // Basic portal settings presence check
-        results.portalSettings = ps.city_name ? "pass" : "warn";
-        // Publish
+        if (!ps.city_name) {
+          results.portalSettings = "warn";
+        }
         results.publish = ps.is_published ? "pass" : "warn";
       }
 
-      setChecks(results);
+      if (!cancelled) {
+        setChecks(results);
+      }
     }
 
-    runHealthCheck();
+    runChecks();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const statusCircle = (status: HealthStatus) => {
-    if (status === "loading")
+    if (status === "loading") {
       return (
-        <div className="h-3 w-3 rounded-full bg-slate-400 animate-pulse" />
+        <div className="h-3 w-3 animate-pulse rounded-full bg-slate-300" />
       );
-    if (status === "pass")
+    }
+    if (status === "pass") {
       return <div className="h-3 w-3 rounded-full bg-emerald-500" />;
-    if (status === "fail")
+    }
+    if (status === "fail") {
       return <div className="h-3 w-3 rounded-full bg-red-600" />;
+    }
     return <div className="h-3 w-3 rounded-full bg-amber-400" />;
   };
 
   return (
     <AdminGuard>
-      <div className="min-h-screen bg-slate-50 px-4 py-10">
-        <div className="mx-auto max-w-3xl">
-          <div className="mb-4">
-            <Link
-              href={cityHref("/admin")}
-              className="inline-flex items-center text-xs font-medium text-slate-500 hover:text-slate-800"
-            >
-              <span className="mr-1">←</span>
-              Back to admin home
-            </Link>
-          </div>
-
-          <h1 className="mb-1 text-2xl font-bold text-slate-900">
-            Onboarding Checklist
-          </h1>
-          <p className="mb-6 text-sm text-slate-600">
+      <AdminShell
+        title="Onboarding checklist"
+        description="Quick health check of your data, branding, and publish status before public launch."
+      >
+        <div className="space-y-4 text-sm text-slate-700">
+          <p className="text-xs text-slate-600">
             Complete each step below to prepare your city’s CiviPortal for
             public launch.
           </p>
 
-          <div className="space-y-4">
-            {/* STEP 1 — Budgets */}
-            <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-              <div className="flex items-center gap-3">
-                {statusCircle(checks.budgets)}
-                <div>
-                  <p className="font-semibold text-slate-900">
-                    Upload Budgets
-                  </p>
-                  <p className="text-xs text-slate-500">
-                    Fiscal year budgets data
-                  </p>
-                </div>
+          {/* STEP 1 — Budgets */}
+          <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="flex items-center gap-3">
+              {statusCircle(checks.budgets)}
+              <div>
+                <p className="font-semibold text-slate-900">
+                  Budget data
+                </p>
+                <p className="text-xs text-slate-500">
+                  At least one year of budgets loaded
+                </p>
               </div>
-              <Link
-                href={cityHref("/admin/upload?table=budgets")}
-                className="rounded-md bg-slate-900 px-3 py-1 text-sm text-white hover:bg-slate-800"
-              >
-                Upload
-              </Link>
             </div>
+            <Link
+              href={cityHref("/admin/upload?table=budgets")}
+              className="rounded-md bg-slate-900 px-3 py-2 text-xs font-medium text-white hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+            >
+              Upload
+            </Link>
+          </div>
 
-            {/* STEP 2 — Actuals */}
-            <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-              <div className="flex items-center gap-3">
-                {statusCircle(checks.actuals)}
-                <div>
-                  <p className="font-semibold text-slate-900">
-                    Upload Actuals
-                  </p>
-                  <p className="text-xs text-slate-500">
-                    YTD or monthly actuals
-                  </p>
-                </div>
+          {/* STEP 2 — Actuals */}
+          <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="flex items-center gap-3">
+              {statusCircle(checks.actuals)}
+              <div>
+                <p className="font-semibold text-slate-900">
+                  Actuals data
+                </p>
+                <p className="text-xs text-slate-500">
+                  At least one year of actuals loaded
+                </p>
               </div>
-              <Link
-                href={cityHref("/admin/upload?table=actuals")}
-                className="rounded-md bg-slate-900 px-3 py-1 text-sm text-white hover:bg-slate-800"
-              >
-                Upload
-              </Link>
             </div>
+            <Link
+              href={cityHref("/admin/upload?table=actuals")}
+              className="rounded-md bg-slate-900 px-3 py-2 text-xs font-medium text-white hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+            >
+              Upload
+            </Link>
+          </div>
 
-            {/* STEP 3 — Transactions */}
-            <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-              <div className="flex items-center gap-3">
-                {statusCircle(checks.transactions)}
-                <div>
-                  <p className="font-semibold text-slate-900">
-                    Upload Transactions
-                  </p>
-                  <p className="text-xs text-slate-500">
-                    Vendor-level spending
-                  </p>
-                </div>
+          {/* STEP 3 — Transactions */}
+          <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="flex items-center gap-3">
+              {statusCircle(checks.transactions)}
+              <div>
+                <p className="font-semibold text-slate-900">
+                  Transaction-level detail
+                </p>
+                <p className="text-xs text-slate-500">
+                  Line-item transactions loaded for at least one year
+                </p>
               </div>
-              <Link
-                href={cityHref("/admin/upload?table=transactions")}
-                className="rounded-md bg-slate-900 px-3 py-1 text-sm text-white hover:bg-slate-800"
-              >
-                Upload
-              </Link>
             </div>
+            <Link
+              href={cityHref("/admin/upload?table=transactions")}
+              className="rounded-md bg-slate-900 px-3 py-2 text-xs font-medium text-white hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+            >
+              Upload
+            </Link>
+          </div>
 
-            {/* STEP 4 — Branding */}
-            <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-              <div className="flex items-center gap-3">
-                {statusCircle(checks.portalSettings)}
-                <div>
-                  <p className="font-semibold text-slate-900">
-                    Branding & Settings
-                  </p>
-                  <p className="text-xs text-slate-500">
-                    Logo, colors & tagline
-                  </p>
-                </div>
+          {/* STEP 4 — Branding */}
+          <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="flex items-center gap-3">
+              {statusCircle(checks.portalSettings)}
+              <div>
+                <p className="font-semibold text-slate-900">
+                  Branding & settings
+                </p>
+                <p className="text-xs text-slate-500">
+                  Logo, colors & tagline
+                </p>
               </div>
-              <Link
-                href={cityHref("/admin/settings")}
-                className="rounded-md bg-slate-900 px-3 py-1 text-sm text-white hover:bg-slate-800"
-              >
-                Edit
-              </Link>
             </div>
+            <Link
+              href={cityHref("/admin/settings")}
+              className="rounded-md bg-slate-900 px-3 py-2 text-xs font-medium text-white hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+            >
+              Edit
+            </Link>
+          </div>
 
-            {/* STEP 5 — Publish */}
-            <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-              <div className="flex items-center gap-3">
-                {statusCircle(checks.publish)}
-                <div>
-                  <p className="font-semibold text-slate-900">
-                    Publish Portal
-                  </p>
-                  <p className="text-xs text-slate-500">
-                    Make portal visible to the public
-                  </p>
-                </div>
+          {/* STEP 5 — Publish */}
+          <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="flex items-center gap-3">
+              {statusCircle(checks.publish)}
+              <div>
+                <p className="font-semibold text-slate-900">
+                  Publish status
+                </p>
+                <p className="text-xs text-slate-500">
+                  Choose whether the portal is visible to the public
+                </p>
               </div>
-              <Link
-                href={cityHref("/admin/publish")}
-                className="rounded-md bg-emerald-600 px-3 py-1 text-sm text-white hover:bg-emerald-500"
-              >
-                Go
-              </Link>
             </div>
+            <Link
+              href={cityHref("/admin/publish")}
+              className="rounded-md bg-emerald-600 px-3 py-2 text-xs font-medium text-white hover:bg-emerald-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+            >
+              Go
+            </Link>
           </div>
         </div>
-      </div>
+      </AdminShell>
     </AdminGuard>
   );
 }

@@ -314,7 +314,7 @@ export default function DepartmentsDashboardClient({
         {/* Breadcrumb */}
         <nav
           aria-label="Breadcrumb"
-          className="mb-4 flex items-center gap-1 px-1 text-[11px] text-slate-500"
+          className="mb-4 flex items-center gap-1 px-1 text-xs text-slate-500"
         >
           <ol className="flex items-center gap-1">
             <li>
@@ -365,44 +365,44 @@ export default function DepartmentsDashboardClient({
 
               <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3">
-                  <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                  <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
                     Departments
                   </div>
                   <div className="mt-1 text-2xl font-bold text-slate-900">
                     {deptCount.toLocaleString("en-US")}
                   </div>
-                  <div className="mt-1 text-[11px] text-slate-500">
+                  <div className="mt-1 text-xs text-slate-500">
                     With budget, spending, or transactions in{" "}
                     {yearLabel ?? "–"}.
                   </div>
                 </div>
 
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3">
-                  <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                  <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
                     Total budget
                   </div>
                   <div className="mt-1 text-2xl font-bold text-slate-900">
                     {formatCurrency(totalBudget)}
                   </div>
-                  <div className="mt-1 text-[11px] text-slate-500">
+                  <div className="mt-1 text-xs text-slate-500">
                     Sum of department-level adopted budgets.
                   </div>
                 </div>
 
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3">
-                  <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                  <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
                     Total actuals
                   </div>
                   <div className="mt-1 text-2xl font-bold text-slate-900">
                     {formatCurrency(totalActuals)}
                   </div>
-                  <div className="mt-1 text-[11px] text-slate-500">
+                  <div className="mt-1 text-xs text-slate-500">
                     All recorded spending for these departments.
                   </div>
                 </div>
 
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3">
-                  <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                  <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
                     Variance (actuals - budget)
                   </div>
                   <div
@@ -417,31 +417,31 @@ export default function DepartmentsDashboardClient({
                   >
                     {formatCurrency(variance)}
                   </div>
-                  <div className="mt-1 text-[11px] text-slate-500">
+                  <div className="mt-1 text-xs text-slate-500">
                     Negative means departments are under budget overall.
                   </div>
                 </div>
 
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3">
-                  <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                  <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
                     % of budget spent
                   </div>
                   <div className="mt-1 text-2xl font-bold text-slate-900">
                     {formatPercent(execPct, 1)}
                   </div>
-                  <div className="mt-1 text-[11px] text-slate-500">
+                  <div className="mt-1 text-xs text-slate-500">
                     Based on total actuals versus total budget.
                   </div>
                 </div>
 
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3">
-                  <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                  <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
                     Transactions
                   </div>
                   <div className="mt-1 text-2xl font-bold text-slate-900">
                     {totalTx.toLocaleString("en-US")}
                   </div>
-                  <div className="mt-1 text-[11px] text-slate-500">
+                  <div className="mt-1 text-xs text-slate-500">
                     Posted for {yearLabel ?? "–"}.
                   </div>
                 </div>

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import AdminGuard from "@/components/Auth/AdminGuard";
+import AdminShell from "@/components/Admin/AdminShell";
 
 type PublishState = "loading" | "published" | "unpublished" | "error";
 
@@ -15,30 +16,35 @@ export default function PublishPage() {
     let cancelled = false;
 
     async function load() {
-      const { data, error } = await supabase
-        .from("portal_settings")
-        .select("is_published")
-        .maybeSingle();
+      try {
+        const { data, error } = await supabase
+          .from("portal_settings")
+          .select("is_published")
+          .maybeSingle();
 
-      if (cancelled) return;
+        if (cancelled) return;
 
-      if (error) {
-        console.error("PublishPage: load portal_settings error", error);
-        setState("error");
-        setMessage("Failed to load current publish status.");
-        return;
+        if (error) {
+          console.error("PublishPage: load error", error);
+          setState("error");
+          setMessage("Failed to load publish status.");
+          return;
+        }
+
+        if (!data) {
+          setState("error");
+          setMessage("No portal settings row found.");
+          return;
+        }
+
+        setState(data.is_published ? "published" : "unpublished");
+      } catch (err: any) {
+        if (!cancelled) {
+          console.error("PublishPage: unexpected load error", err);
+          setState("error");
+          setMessage("Unexpected error loading publish status.");
+        }
       }
-
-      if (!data) {
-        setState("unpublished");
-        setMessage(
-          "No portal settings row exists yet. Branding & settings should be configured first."
-        );
-        return;
-      }
-
-      setState(data.is_published ? "published" : "unpublished");
-      setMessage(null);
     }
 
     load();
@@ -48,15 +54,17 @@ export default function PublishPage() {
     };
   }, []);
 
-  async function setPublished(next: boolean) {
+  async function handleToggle() {
     setSaving(true);
     setMessage(null);
 
     try {
       const { data, error } = await supabase
         .from("portal_settings")
-        .update({ is_published: next })
-        .eq("id", 1) // assuming singleton with id=1; adjust if needed
+        .update({
+          is_published: state !== "published",
+        })
+        .eq("id", 1)
         .select("is_published")
         .maybeSingle();
 
@@ -90,94 +98,85 @@ export default function PublishPage() {
   function renderStatusBadge() {
     if (state === "loading") {
       return (
-        <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
+        <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">
           Loading…
+        </span>
+      );
+    }
+
+    if (state === "error") {
+      return (
+        <span className="inline-flex items-center rounded-full bg-red-100 px-2.5 py-1 text-xs font-medium text-red-800">
+          Error
         </span>
       );
     }
 
     if (state === "published") {
       return (
-        <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-xs text-emerald-800">
+        <span className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
           Published
         </span>
       );
     }
 
-    if (state === "unpublished") {
-      return (
-        <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-800">
-          Not yet published
-        </span>
-      );
-    }
-
     return (
-      <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs text-red-800">
-        Error
+      <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">
+        Unpublished
       </span>
     );
   }
 
   return (
     <AdminGuard>
-      <div className="min-h-screen bg-slate-50 px-4 py-10">
-        <div className="mx-auto max-w-xl rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="mb-4 flex items-center justify-between">
+      <AdminShell
+        title="Publish status"
+        description="Control whether your CiviPortal is visible to the public or kept in review-only mode."
+      >
+        <div className="space-y-4 text-sm text-slate-700">
+          <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-lg font-semibold text-slate-900">
-                Publish Portal
-              </h1>
-              <p className="text-sm text-slate-600">
-                Control whether this CiviPortal deployment is visible to the public.
+              <p className="text-sm font-semibold text-slate-900">
+                Current status
+              </p>
+              <p className="text-xs text-slate-500">
+                Publishing makes your portal visible to the public at its
+                configured URL.
               </p>
             </div>
             {renderStatusBadge()}
           </div>
 
-          <div className="space-y-3 text-sm text-slate-700">
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-700">
             <p>
-              When the portal is <span className="font-semibold">unpublished</span>, you
-              can still access the admin tools but the public-facing portal should show a
-              &quot;coming soon&quot; message (once wired).
-            </p>
-            <p>
-              When the portal is <span className="font-semibold">published</span>, the
-              city&apos;s residents will be able to access dashboards and data publicly.
+              When the portal is{" "}
+              <span className="font-semibold">unpublished</span>, only
+              authenticated admins can view the dashboard. When it&apos;s{" "}
+              <span className="font-semibold">published</span>, anyone can
+              access it without logging in.
             </p>
           </div>
 
-          <div className="mt-6 flex gap-3">
+          <div>
             <button
               type="button"
-              disabled={saving || state === "published"}
-              onClick={() => setPublished(true)}
-              className="inline-flex flex-1 items-center justify-center rounded-md bg-emerald-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
+              onClick={handleToggle}
+              disabled={saving || state === "loading" || state === "error"}
+              className="inline-flex items-center rounded-md bg-slate-900 px-3 py-2 text-xs font-medium text-white shadow-sm hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
             >
-              {saving && state !== "published"
-                ? "Publishing…"
+              {saving
+                ? "Saving…"
+                : state === "published"
+                ? "Mark as Unpublished"
                 : "Mark as Published"}
-            </button>
-
-            <button
-              type="button"
-              disabled={saving || state === "unpublished"}
-              onClick={() => setPublished(false)}
-              className="inline-flex flex-1 items-center justify-center rounded-md bg-slate-900 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {saving && state !== "unpublished"
-                ? "Unpublishing…"
-                : "Mark as Unpublished"}
             </button>
           </div>
 
           {message && (
-            <p className="mt-4 text-xs text-slate-600">
-              {message}
-            </p>
+            <p className="mt-2 text-xs text-slate-600">{message}</p>
           )}
         </div>
-      </div>
+      </AdminShell>
     </AdminGuard>
   );
 }

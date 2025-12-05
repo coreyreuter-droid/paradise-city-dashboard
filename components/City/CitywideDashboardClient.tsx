@@ -530,7 +530,7 @@ export default function CitywideDashboardClient({
         {/* Breadcrumb */}
         <nav
           aria-label="Breadcrumb"
-          className="mb-4 flex items-center gap-1 px-1 text-[11px] text-slate-500"
+          className="mb-4 flex items-center gap-1 px-1 text-xs text-slate-500"
         >
           <Link
             href={cityHref("/")}
@@ -552,7 +552,7 @@ export default function CitywideDashboardClient({
               className="grid gap-4 md:grid-cols-4"
             >
               <div>
-                <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
                   Total budget ({yearLabel})
                 </div>
                 <div className="mt-1 text-2xl font-bold text-slate-900">
@@ -564,7 +564,7 @@ export default function CitywideDashboardClient({
               </div>
 
               <div>
-                <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
                   Total actuals ({yearLabel})
                 </div>
                 <div className="mt-1 text-2xl font-bold text-slate-900">
@@ -576,7 +576,7 @@ export default function CitywideDashboardClient({
               </div>
 
               <div>
-                <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
                   Variance (actuals - budget)
                 </div>
                 <div
@@ -597,7 +597,7 @@ export default function CitywideDashboardClient({
               </div>
 
               <div>
-                <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
                   % of budget spent
                 </div>
                 <div className="mt-1 text-2xl font-bold text-slate-900">
@@ -683,7 +683,7 @@ export default function CitywideDashboardClient({
 
                         <div className="overflow-x-auto">
                           <table className="mt-3 min-w-full border border-slate-200 text-xs">
-                            <thead className="bg-slate-50 text-[11px] font-semibold uppercase tracking-wide text-slate-600">
+                            <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-600">
                               <tr>
                                 <th scope="col" className="px-3 py-2 text-left">
                                   Department
@@ -790,7 +790,7 @@ export default function CitywideDashboardClient({
 
                         <div className="overflow-x-auto">
                           <table className="mt-3 min-w-full border border-slate-200 text-xs">
-                            <thead className="bg-slate-50 text-[11px] font-semibold uppercase tracking-wide text-slate-600">
+                            <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-600">
                               <tr>
                                 <th scope="col" className="px-3 py-2 text-left">
                                   Department
@@ -928,7 +928,7 @@ export default function CitywideDashboardClient({
                       </span>
                     </div>
 
-                    <div className="mt-2 text-[11px] text-slate-500">
+                    <div className="mt-2 text-xs text-slate-500">
                       Budget execution above 100% indicates total actual
                       spending higher than the adopted budget.
                     </div>
@@ -1054,7 +1054,7 @@ export default function CitywideDashboardClient({
 
                       <div className="mt-3 overflow-x-auto">
                         <table className="min-w-full border border-slate-200 text-xs">
-                          <thead className="bg-slate-50 text-[11px] font-semibold uppercase tracking-wide text-slate-600">
+                          <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-600">
                             <tr>
                               <th scope="col" className="px-3 py-2 text-left">
                                 Fiscal year
@@ -1119,7 +1119,7 @@ export default function CitywideDashboardClient({
                 ) : (
                   <div className="max-h-[420px] overflow-auto">
                     <table className="min-w-full border border-slate-200 text-left text-xs">
-                      <thead className="border-b border-slate-200 bg-slate-50 text-[11px] font-semibold uppercase tracking-wide text-slate-600">
+                      <thead className="border-b border-slate-200 bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-600">
                         <tr>
                           <th className="sticky left-0 z-10 bg-slate-50 px-2 py-2 text-left">
                             Department
@@ -1190,7 +1190,7 @@ export default function CitywideDashboardClient({
                       </tbody>
                     </table>
 
-                    <div className="mt-3 flex flex-wrap gap-3 text-[11px] text-slate-600">
+                    <div className="mt-3 flex flex-wrap gap-3 text-xs text-slate-600">
                       <div className="inline-flex items-center gap-1">
                         <span className="inline-block h-2 w-3 rounded bg-emerald-100" />
                         <span>Under budget</span>
@@ -1271,7 +1271,7 @@ export default function CitywideDashboardClient({
                             <span className="font-mono">
                               {formatCurrency(vendor.total)}
                             </span>
-                            <span className="text-[11px] text-slate-500">
+                            <span className="text-xs text-slate-500">
                               {formatPercent(vendor.percent)}
                             </span>
                           </div>
@@ -1299,7 +1299,7 @@ export default function CitywideDashboardClient({
                       </p>
                     </div>
                     <div className="text-right">
-                      <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                      <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
                         Transactions
                       </div>
                       <div className="mt-1 text-2xl font-bold text-slate-900">

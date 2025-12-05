@@ -407,7 +407,7 @@ export default function DepartmentDetailClient({
         {/* Breadcrumb */}
         <nav
           aria-label="Breadcrumb"
-          className="mb-4 flex items-center gap-1 px-1 text-[11px] text-slate-500"
+          className="mb-4 flex items-center gap-1 px-1 text-xs text-slate-500"
         >
           <Link
             href={cityHref("/")}
@@ -431,7 +431,7 @@ export default function DepartmentDetailClient({
         {/* Metrics */}
         <div className="mb-6 grid gap-4 md:grid-cols-4">
           <CardContainer>
-            <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+            <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
               Total Budget ({selectedYear ?? "–"})
             </div>
             <div className="mt-1 text-2xl font-bold text-slate-900">
@@ -440,7 +440,7 @@ export default function DepartmentDetailClient({
           </CardContainer>
 
           <CardContainer>
-            <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+            <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
               Total Actuals ({selectedYear ?? "–"})
             </div>
             <div className="mt-1 text-2xl font-bold text-slate-900">
@@ -453,7 +453,7 @@ export default function DepartmentDetailClient({
           </CardContainer>
 
           <CardContainer>
-            <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+            <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
               Variance ({selectedYear ?? "–"})
             </div>
             <div
@@ -480,7 +480,7 @@ export default function DepartmentDetailClient({
           </CardContainer>
 
           <CardContainer>
-            <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+            <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
               Transactions ({selectedYear ?? "–"})
             </div>
             <div className="mt-1 text-2xl font-bold text-slate-900">
@@ -580,7 +580,7 @@ export default function DepartmentDetailClient({
               {multiYearSeries.length > 0 && (
                 <div className="overflow-x-auto">
                   <table className="mt-2 min-w-full border border-slate-200 text-xs">
-                    <thead className="bg-slate-50 text-[11px] font-semibold uppercase tracking-wide text-slate-600">
+                    <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-600">
                       <tr>
                         <th
                           scope="col"
@@ -696,7 +696,7 @@ export default function DepartmentDetailClient({
                               }}
                             />
                           </div>
-                          <span className="w-12 text-right text-[11px] text-slate-500">
+                          <span className="w-12 text-right text-xs text-slate-500">
                             {formatPercent(v.percent)}
                           </span>
                         </div>
@@ -743,7 +743,7 @@ export default function DepartmentDetailClient({
                               }}
                             />
                           </div>
-                          <span className="w-12 text-right text-[11px] text-slate-500">
+                          <span className="w-12 text-right text-xs text-slate-500">
                             {formatPercent(c.percent)}
                           </span>
                         </div>
@@ -770,7 +770,7 @@ export default function DepartmentDetailClient({
             {/* Header */}
             <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
                   Vendor detail
                 </p>
                 <h2
@@ -781,7 +781,7 @@ export default function DepartmentDetailClient({
                 </h2>
                 <p
                   id="vendor-detail-subtitle"
-                  className="mt-0.5 text-[11px] text-slate-500"
+                  className="mt-0.5 text-xs text-slate-500"
                 >
                   {displayName} • Fiscal year {selectedYear ?? "–"}
                 </p>
@@ -799,13 +799,13 @@ export default function DepartmentDetailClient({
             {/* Body */}
             <div className="flex-1 space-y-3 overflow-auto px-4 py-3">
               <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-                <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
                   Total spent with this vendor
                 </div>
                 <div className="mt-1 text-lg font-semibold text-slate-900">
                   {formatCurrency(vendorTotal)}
                 </div>
-                <div className="mt-1 text-[11px] text-slate-500">
+                <div className="mt-1 text-xs text-slate-500">
                   {activeVendorTx.length.toLocaleString("en-US")}{" "}
                   transaction{activeVendorTx.length === 1 ? "" : "s"}{" "}
                   for this department in {selectedYear ?? "–"}.
