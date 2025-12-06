@@ -141,7 +141,6 @@ export default function AdminOverviewPage() {
             return;
           }
 
-          // already sorted desc, so first is latest
           const latest = tableLogs[0];
 
           (next as any)[tableName] = {
@@ -282,26 +281,7 @@ export default function AdminOverviewPage() {
                   ? "Only admins can access the site until it is published."
                   : "Once portal settings are completed, you can choose when to publish the site."}
               </p>
-              {publishSummary.lastUpdatedAt && (
-                <p className="mt-2 text-[11px] text-slate-500">
-                  Last settings update:{" "}
-                  {formatDate(publishSummary.lastUpdatedAt)}
-                </p>
-              )}
-              <div className="mt-3 flex flex-wrap gap-2 text-xs">
-                <Link
-                  href={cityHref("/admin/settings")}
-                  className="font-semibold text-sky-700 underline-offset-2 hover:underline"
-                >
-                  Branding &amp; settings →
-                </Link>
-                <Link
-                  href={cityHref("/admin/publish")}
-                  className="font-semibold text-sky-700 underline-offset-2 hover:underline"
-                >
-                  Publish status →
-                </Link>
-              </div>
+
             </div>
 
             {/* Data health */}
@@ -353,7 +333,7 @@ export default function AdminOverviewPage() {
             </div>
           </section>
 
-          {/* Quick actions (existing tiles) */}
+          {/* Quick actions */}
           <section
             aria-label="Admin quick actions"
             className="space-y-3"
