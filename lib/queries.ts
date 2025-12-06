@@ -614,7 +614,9 @@ export type DataUploadLogRow = {
   row_count: number;
   fiscal_year: number | null;
   filename: string | null;
+  admin_identifier: string | null; // email or user id of uploader
 };
+
 
 export async function getDataUploadLogs(): Promise<DataUploadLogRow[]> {
   const { data, error } = await supabase

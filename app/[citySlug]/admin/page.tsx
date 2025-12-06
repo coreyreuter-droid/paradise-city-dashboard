@@ -1,142 +1,118 @@
-// components/Admin/AdminShell.tsx
+// app/[citySlug]/admin/page.tsx
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { CITY_CONFIG } from "@/lib/cityConfig";
+import AdminGuard from "@/components/Auth/AdminGuard";
+import AdminShell from "@/components/Admin/AdminShell";
 import { cityHref } from "@/lib/cityRouting";
 
-type Props = {
-  title: string;
-  description?: string;
-  children: React.ReactNode;
-  actions?: React.ReactNode;
+export default function AdminOverviewPage() {
+  return (
+    <AdminGuard>
+      <AdminShell
+        title="Admin overview"
+        description="Manage data uploads, branding, users, and publish status for this transparency portal."
+      >
+        <div className="space-y-6">
+          {/* Intro blurb */}
+          <section
+            aria-label="Admin summary"
+            className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-700 shadow-sm sm:px-5 sm:py-5"
+          >
+            <p>
+              Use the tools below to keep your portal data accurate, your
+              branding on point, and control exactly when the site is
+              visible to the public.
+            </p>
+          </section>
+
+          {/* Grouped quick actions */}
+          <section aria-label="Admin quick actions" className="space-y-3">
+            <h2 className="text-sm font-semibold text-slate-900">
+              Quick actions
+            </h2>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <AdminTile
+                title="Data & imports"
+                description="Load and monitor the core financial datasets that power this portal."
+                links={[
+                  {
+                    label: "Upload data",
+                    href: cityHref("/admin/upload"),
+                  },
+                  {
+                    label: "Upload history",
+                    href: cityHref("/admin/upload/history"),
+                  },
+                ]}
+              />
+              <AdminTile
+                title="Branding & visibility"
+                description="Control how the portal looks and when it is visible to the public."
+                links={[
+                  {
+                    label: "Branding & settings",
+                    href: cityHref("/admin/settings"),
+                  },
+                  {
+                    label: "Publish status",
+                    href: cityHref("/admin/publish"),
+                  },
+                ]}
+              />
+              <AdminTile
+                title="Access & setup"
+                description="Manage who can log in and track remaining setup tasks."
+                links={[
+                  {
+                    label: "Users & roles",
+                    href: cityHref("/admin/users"),
+                  },
+                  {
+                    label: "Onboarding checklist",
+                    href: cityHref("/admin/onboarding"),
+                  },
+                ]}
+              />
+            </div>
+          </section>
+        </div>
+      </AdminShell>
+    </AdminGuard>
+  );
+}
+
+type TileLink = {
+  label: string;
+  href: string;
 };
 
-const NAV_ITEMS: { href: string; label: string }[] = [
-  { href: "/admin", label: "Overview" },
-  { href: "/admin/upload", label: "Data upload" },
-  { href: "/admin/upload/history", label: "Upload history" },
-  { href: "/admin/settings", label: "Branding & settings" },
-  { href: "/admin/users", label: "Users & roles" },
-  { href: "/admin/onboarding", label: "Onboarding checklist" },
-  { href: "/admin/publish", label: "Publish status" },
-];
+type TileProps = {
+  title: string;
+  description: string;
+  links: TileLink[];
+};
 
-export default function AdminShell({
-  title,
-  description,
-  children,
-  actions,
-}: Props) {
-  const pathname = usePathname();
-
-  const isActive = (href: string) => {
-    const full = cityHref(href);
-    return pathname === full || pathname.startsWith(full + "/");
-  };
-
+function AdminTile({ title, description, links }: TileProps) {
   return (
-    <div className="min-h-screen bg-slate-50">
-      {/* Top bar */}
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
-          <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-              {CITY_CONFIG.displayName}
-            </p>
-            <h1 className="truncate text-base font-semibold text-slate-900">
-              Admin portal
-            </h1>
-            <p className="mt-0.5 line-clamp-1 text-xs text-slate-500">
-              Manage data, branding, and access for your CiviPortal site.
-            </p>
-          </div>
-          <div className="flex items-center gap-2 text-xs">
-            <Link
-              href={cityHref("/")}
-              className="inline-flex items-center rounded-full border border-slate-200 px-3 py-2 font-medium text-slate-700 shadow-sm hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
-            >
-              View public site
-            </Link>
-          </div>
-        </div>
-      </header>
+    <div className="flex h-full flex-col rounded-2xl border border-slate-200 bg-white px-4 py-4 text-left text-sm text-slate-700 shadow-sm transition hover:border-slate-300 hover:shadow-md focus-within:ring-2 focus-within:ring-sky-500 focus-within:ring-offset-2">
 
-      {/* Main layout */}
-      <div className="mx-auto flex max-w-6xl gap-6 px-4 py-6">
-        {/* Sidebar nav */}
-        <aside className="hidden w-56 shrink-0 md:block">
-          <nav aria-label="Admin navigation" className="space-y-4 text-sm">
-            <div>
-              <p className="px-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-                Admin
-              </p>
-              <ul className="mt-2 space-y-1">
-                {NAV_ITEMS.map((item) => {
-                  const href = cityHref(item.href);
-                  const active = isActive(item.href);
-
-                  const base =
-                    "flex items-center justify-between rounded-xl px-3 py-2 text-xs font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-50";
-
-                  const activeClasses =
-                    "bg-slate-900 text-white shadow-sm";
-                  const inactiveClasses =
-                    "text-slate-600 hover:bg-slate-100 hover:text-slate-900";
-
-                  return (
-                    <li key={item.href}>
-                      <Link
-                        href={href}
-                        aria-current={active ? "page" : undefined}
-                        className={`${base} ${
-                          active ? activeClasses : inactiveClasses
-                        }`}
-                      >
-                        <span className="truncate">{item.label}</span>
-                        {active && (
-                          <span className="ml-2 h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                        )}
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          </nav>
-        </aside>
-
-        {/* Main content */}
-        <main className="w-full">
-          <section
-            aria-label={title}
-            className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"
+      <div className="mt-1 text-sm font-semibold text-slate-900">
+        {title}
+      </div>
+      <p className="mt-1 text-xs text-slate-600 flex-1">
+        {description}
+      </p>
+      <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-xs">
+        {links.map((link) => (
+          <Link
+            key={link.href}
+            href={link.href}
+            className="font-semibold text-sky-700 underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2"
           >
-            <header className="mb-4 flex flex-wrap items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-                  Admin
-                </p>
-                <h2 className="mt-1 truncate text-sm font-semibold text-slate-900 sm:text-base">
-                  {title}
-                </h2>
-                {description && (
-                  <p className="mt-1 text-xs text-slate-500">
-                    {description}
-                  </p>
-                )}
-              </div>
-              {actions && (
-                <div className="flex flex-wrap items-center gap-2">
-                  {actions}
-                </div>
-              )}
-            </header>
-
-            <div>{children}</div>
-          </section>
-        </main>
+            {link.label} →
+          </Link>
+        ))}
       </div>
     </div>
   );

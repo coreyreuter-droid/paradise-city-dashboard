@@ -8,6 +8,7 @@ import {
   getAvailableFiscalYears,
   getTransactionsForYear,
   getRevenuesForYear,
+  getDataUploadLogs,
 } from "@/lib/queries";
 import type {
   BudgetRow,
@@ -19,32 +20,43 @@ import type { PortalSettings } from "@/lib/queries";
 
 export const revalidate = 0;
 
-// Helper to normalize year values
-function toYear(v: unknown): number | null {
-  const n = Number(v);
-  return Number.isFinite(n) ? n : null;
-}
-
 type SearchParams = {
   [key: string]: string | string[] | undefined;
 };
 
+function toYear(value: unknown): number | null {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+type PageProps = {
+  params: { citySlug: string };
+  searchParams?: SearchParams;
+};
+
 export default async function CityOverviewPage({
   searchParams,
-}: {
-  searchParams: Promise<SearchParams>;
-  params: { citySlug: string };
-}) {
-  const resolvedSearchParams = await searchParams;
+}: PageProps) {
+  const sp = searchParams ?? {};
 
-  // 1) Fetch budgets, actuals, portal settings, and available fiscal years
-  const [budgetsRaw, actualsRaw, settings, availableYearsFromBudgets] =
-    await Promise.all([
-      getAllBudgets(),
-      getAllActuals(),
-      getPortalSettings(),
-      getAvailableFiscalYears(),
-    ]);
+  // 1) Fetch core data + upload logs
+  const [
+    budgetsRaw,
+    actualsRaw,
+    settings,
+    availableYearsFromBudgets,
+    transactionsAndRevenuesContext,
+    uploadLogsRaw,
+  ] = await Promise.all([
+    getAllBudgets(),
+    getAllActuals(),
+    getPortalSettings(),
+    getAvailableFiscalYears(),
+    // placeholder for selectedYear-dependent calls; we only
+    // use this tuple after we know the year
+    Promise.resolve<[TransactionRow[], RevenueRow[]]>([[], []]),
+    getDataUploadLogs(),
+  ]);
 
   const portalSettings = settings as PortalSettings | null;
 
@@ -58,7 +70,7 @@ export default async function CityOverviewPage({
           {cityName} overview is not yet published
         </h1>
         <p className="mt-3 text-sm text-slate-600">
-          City staff are preparing financial data for this portal. Once
+          Staff are preparing financial data for this portal. Once
           it&apos;s ready, the budget and spending overview will be
           available here.
         </p>
@@ -69,21 +81,22 @@ export default async function CityOverviewPage({
   const budgets = (budgetsRaw ?? []) as BudgetRow[];
   const actuals = (actualsRaw ?? []) as ActualRow[];
 
-  // 2) Build unified list of fiscal years (budgets + actuals + explicit list)
+  // 2) Build unified fiscal year list: budgets + actuals + explicit list
   const yearSet = new Set<number>();
 
   (availableYearsFromBudgets ?? []).forEach((y) => {
-    if (Number.isFinite(y)) yearSet.add(Number(y));
+    const n = toYear(y);
+    if (n !== null) yearSet.add(n);
   });
 
   budgets.forEach((b) => {
-    const y = toYear((b as any).fiscal_year);
-    if (y !== null) yearSet.add(y);
+    const n = toYear((b as any).fiscal_year);
+    if (n !== null) yearSet.add(n);
   });
 
   actuals.forEach((a) => {
-    const y = toYear((a as any).fiscal_year);
-    if (y !== null) yearSet.add(y);
+    const n = toYear((a as any).fiscal_year);
+    if (n !== null) yearSet.add(n);
   });
 
   const years = Array.from(yearSet).sort((a, b) => b - a); // newest first
@@ -92,7 +105,7 @@ export default async function CityOverviewPage({
   let selectedYear: number | undefined = undefined;
 
   if (years.length > 0) {
-    const rawParam = resolvedSearchParams?.year;
+    const rawParam = sp.year;
     const param =
       typeof rawParam === "string"
         ? rawParam
@@ -129,6 +142,69 @@ export default async function CityOverviewPage({
     );
   }
 
+// 5) Compute data freshness summary from upload logs
+const uploadLogs = (uploadLogsRaw ?? []) as any[];
+
+type FreshnessEntry = {
+  table: string;
+  fiscalYear: number | null;
+  rowCount: number | null;
+  lastUploadAt: string | null;
+};
+
+type DataFreshnessSummary = {
+  budgets?: FreshnessEntry | null;
+  actuals?: FreshnessEntry | null;
+  transactions?: FreshnessEntry | null;
+  revenues?: FreshnessEntry | null;
+};
+
+const tables: Array<keyof DataFreshnessSummary> = [
+  "budgets",
+  "actuals",
+  "transactions",
+  "revenues",
+];
+
+const dataFreshness: DataFreshnessSummary = {};
+
+tables.forEach((tableName) => {
+  const tableLogs = uploadLogs.filter(
+    (log) => log?.table_name === tableName
+  );
+
+  if (!tableLogs.length) {
+    (dataFreshness as any)[tableName] = null;
+    return;
+  }
+
+  // sort descending by created_at
+  const latest = tableLogs.sort((a, b) => {
+    return (
+      new Date(b.created_at).getTime() -
+      new Date(a.created_at).getTime()
+    );
+  })[0];
+
+  (dataFreshness as any)[tableName] = {
+    table: tableName,
+    fiscalYear:
+      typeof latest?.fiscal_year === "number"
+        ? latest.fiscal_year
+        : latest?.fiscal_year
+        ? Number(latest.fiscal_year)
+        : null,
+    rowCount:
+      typeof latest?.row_count === "number"
+        ? latest.row_count
+        : latest?.row_count
+        ? Number(latest.row_count)
+        : null,
+    lastUploadAt: latest?.created_at ?? null,
+  } satisfies FreshnessEntry;
+});
+
+
   return (
     <ParadiseHomeClient
       budgets={budgets}
@@ -137,6 +213,7 @@ export default async function CityOverviewPage({
       availableYears={years}
       portalSettings={portalSettings}
       revenueTotal={revenueTotal}
+      dataFreshness={dataFreshness}
     />
   );
 }

@@ -23,6 +23,20 @@ import type {
 } from "@/lib/types";
 import { formatCurrency } from "@/lib/format";
 
+type FreshnessEntry = {
+  table: string;
+  fiscalYear: number | null;
+  rowCount: number | null;
+  lastUploadAt: string | null;
+};
+
+type DataFreshnessSummary = {
+  budgets?: FreshnessEntry | null;
+  actuals?: FreshnessEntry | null;
+  transactions?: FreshnessEntry | null;
+  revenues?: FreshnessEntry | null;
+};
+
 type Props = {
   budgets: BudgetRow[];
   actuals: ActualRow[];
@@ -30,11 +44,23 @@ type Props = {
   availableYears: number[];
   portalSettings: PortalSettings | null;
   revenueTotal?: number | null;
+  dataFreshness?: DataFreshnessSummary;
 };
 
 function fy(value: unknown): number | null {
   const n = Number(value);
   return Number.isFinite(n) ? n : null;
+}
+
+function formatFreshnessDate(iso: string | null): string | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
 }
 
 export default function ParadiseHomeClient({
@@ -44,6 +70,7 @@ export default function ParadiseHomeClient({
   availableYears,
   portalSettings,
   revenueTotal,
+  dataFreshness,
 }: Props) {
   const searchParams = useSearchParams();
 
@@ -234,6 +261,31 @@ export default function ParadiseHomeClient({
 
   const hasAnyDataForSelectedYear =
     hasBudgetData || transactionsForYear.length > 0;
+
+  // Build data freshness string
+  const freshnessText = useMemo(() => {
+    if (!dataFreshness) return null;
+
+    const parts: string[] = [];
+
+    const push = (
+      label: string,
+      entry: FreshnessEntry | null | undefined
+    ) => {
+      if (!entry || !entry.lastUploadAt) return;
+      const date = formatFreshnessDate(entry.lastUploadAt);
+      if (!date) return;
+      parts.push(`${label}: ${date}`);
+    };
+
+    push("Budgets", dataFreshness.budgets);
+    push("Actuals", dataFreshness.actuals);
+    push("Transactions", dataFreshness.transactions);
+    push("Revenues", dataFreshness.revenues);
+
+    if (!parts.length) return null;
+    return parts.join(" · ");
+  }, [dataFreshness]);
 
   return (
     <div className="mx-auto max-w-6xl space-y-6 px-3 py-6 sm:px-4 sm:py-8">
@@ -434,6 +486,12 @@ export default function ParadiseHomeClient({
                 .
               </p>
             )}
+
+            {freshnessText && (
+              <p className="mt-2 text-[11px] text-slate-500">
+                Data last updated — {freshnessText}
+              </p>
+            )}
           </CardContainer>
 
           {/* Row 1: Budget vs actuals by department + multi-year chart */}
@@ -462,12 +520,11 @@ export default function ParadiseHomeClient({
                   </Link>
                 </div>
 
-<BudgetCharts
-  year={selectedYear ?? new Date().getFullYear()}
-  departments={departmentsForYear}
-  layout="stacked"
-/>
-
+                <BudgetCharts
+                  year={selectedYear ?? new Date().getFullYear()}
+                  departments={departmentsForYear}
+                  layout="stacked"
+                />
               </section>
             </CardContainer>
 
