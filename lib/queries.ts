@@ -53,6 +53,9 @@ export type PortalSettings = {
   stat_square_miles: string | null;
   stat_annual_budget: string | null;
 
+  // publish state
+  is_published: boolean | null;
+
   // Content visibility toggles
   show_leadership: boolean | null;
   show_story: boolean | null;

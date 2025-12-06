@@ -1,10 +1,12 @@
 // components/Admin/AdminShell.tsx
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { CITY_CONFIG } from "@/lib/cityConfig";
 import { cityHref } from "@/lib/cityRouting";
+import { supabase } from "@/lib/supabase";
 
 type Props = {
   title: string;
@@ -30,11 +32,42 @@ export default function AdminShell({
   actions,
 }: Props) {
   const pathname = usePathname();
+  const [publishState, setPublishState] = useState<
+    "unknown" | "published" | "draft"
+  >("unknown");
 
   const isActive = (href: string) => {
     const full = cityHref(href);
     return pathname === full || pathname.startsWith(full + "/");
   };
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadPublishState() {
+      const { data, error } = await supabase
+        .from("portal_settings")
+        .select("is_published")
+        .maybeSingle();
+
+      if (cancelled) return;
+
+      if (error || !data) {
+        setPublishState("unknown");
+        return;
+      }
+
+      setPublishState(
+        data.is_published === false ? "draft" : "published"
+      );
+    }
+
+    loadPublishState();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -69,6 +102,17 @@ export default function AdminShell({
           aria-label={title}
           className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"
         >
+          {/* Draft mode banner */}
+          {publishState === "draft" && (
+            <div className="mb-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-800">
+              <span className="font-semibold">Draft mode.</span>{" "}
+              This portal is currently hidden from the public. Switch it to{" "}
+              <span className="font-semibold">Published</span> from{" "}
+              <span className="font-semibold">Branding &amp; settings</span>{" "}
+              when you&apos;re ready to launch.
+            </div>
+          )}
+
           {/* Header + actions */}
           <header className="mb-3 flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0">

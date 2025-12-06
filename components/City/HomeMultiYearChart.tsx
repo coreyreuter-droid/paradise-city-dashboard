@@ -54,6 +54,25 @@ export default function ParadiseHomeMultiYearChart({
     );
   }
 
+  const yTickFormatter = (value: number) => {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return "";
+
+    const abs = Math.abs(n);
+
+    if (abs >= 1_000_000_000) {
+      return `${(abs / 1_000_000_000).toFixed(1)}B`;
+    }
+    if (abs >= 1_000_000) {
+      return `${(abs / 1_000_000).toFixed(1)}M`;
+    }
+    if (abs >= 1_000) {
+      return `${(abs / 1_000).toFixed(1)}K`;
+    }
+
+    return n.toLocaleString("en-US", { maximumFractionDigits: 0 });
+  };
+
   return (
     <figure
       role="group"
@@ -61,7 +80,6 @@ export default function ParadiseHomeMultiYearChart({
       aria-describedby="home-multi-year-desc"
       className="space-y-3"
     >
-
       <p id="home-multi-year-desc" className="sr-only">
         Column chart and data table showing total annual budget and
         actual spending for each fiscal year.
@@ -69,46 +87,50 @@ export default function ParadiseHomeMultiYearChart({
 
       <div className="h-56 w-full min-w-0 overflow-hidden sm:h-64">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="year" />
-          <YAxis
-            tickFormatter={(value) => {
-              const n = Number(value);
-              if (!Number.isFinite(n)) return "";
-
-              const abs = Math.abs(n);
-
-              if (abs >= 1_000_000_000) {
-                return `${(abs / 1_000_000_000).toFixed(1)}B`;
-              }
-              if (abs >= 1_000_000) {
-                return `${(abs / 1_000_000).toFixed(1)}M`;
-              }
-              if (abs >= 1_000) {
-                return `${(abs / 1_000).toFixed(1)}K`;
-              }
-
-              return n.toLocaleString("en-US", { maximumFractionDigits: 0 });
-            }}
-          />
-
-            <Tooltip
-              formatter={(value: any) =>
-                formatCurrency(Number(value))
-              }
+          <BarChart data={data} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+            <XAxis
+              dataKey="year"
+              tickLine={false}
+              axisLine={{ stroke: "#cbd5f5" }}
+              tick={{ fontSize: 11, fill: "#475569" }}
             />
-            <Legend />
-            {/* add color back in */}
+            <YAxis
+              tickFormatter={yTickFormatter}
+              tickLine={false}
+              axisLine={{ stroke: "#cbd5f5" }}
+              tick={{ fontSize: 11, fill: "#475569" }}
+            />
+            <Tooltip
+              formatter={(value: any, name: any) => [
+                formatCurrency(Number(value)),
+                name === "budget" ? "Budget" : "Actuals",
+              ]}
+              labelFormatter={(label: any) => `Fiscal year ${label}`}
+              wrapperClassName="text-xs"
+              contentStyle={{
+                borderRadius: 8,
+                borderColor: "#e2e8f0",
+                boxShadow: "0 8px 16px rgba(15,23,42,0.12)",
+              }}
+            />
+            <Legend
+              verticalAlign="top"
+              align="right"
+              wrapperStyle={{ fontSize: 11 }}
+            />
+            {/* Actuals first so it overlays nicely */}
             <Bar
               dataKey="actuals"
               name="Actuals"
               fill="#0f766e"
+              radius={[4, 4, 0, 0]}
             />
             <Bar
               dataKey="budget"
               name="Budget"
               fill="#4b5563"
+              radius={[4, 4, 0, 0]}
             />
           </BarChart>
         </ResponsiveContainer>
@@ -134,7 +156,7 @@ export default function ParadiseHomeMultiYearChart({
             {data.map((row) => (
               <tr
                 key={row.year}
-                className="border-t border-slate-200"
+                className="border-t border-slate-200 even:bg-slate-50/40"
               >
                 <th
                   scope="row"

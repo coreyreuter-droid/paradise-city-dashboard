@@ -1,4 +1,4 @@
-// components/City/ParadiseHomeKpiStrip.tsx
+// components/City/HomeKpiStrip.tsx
 "use client";
 
 import { formatCurrency, formatPercent } from "@/lib/format";
@@ -24,131 +24,155 @@ export default function ParadiseHomeKpiStrip({
   topDepartment,
   accentColor,
 }: Props) {
-  const labelStyle = accentColor ? { color: accentColor } : undefined;
-  const varianceLabel =
-    variance === 0
-      ? "On budget"
-      : variance > 0
-      ? "Over budget"
-      : "Under budget";
+  const execPctDisplay = `${Math.round(execPct * 100)}%`;
+  const isUnderBudget = variance < 0;
+  const isOverBudget = variance > 0;
+
+  const varianceLabel = isUnderBudget
+    ? "Under budget"
+    : isOverBudget
+    ? "Over budget"
+    : "On budget";
+
+  const varianceHelp =
+    "Difference between adopted budget and posted spending for the selected year.";
+
+  const accentStyle = accentColor
+    ? { backgroundColor: accentColor }
+    : undefined;
+  const labelStyle = accentColor
+    ? { color: accentColor }
+    : undefined;
 
   return (
     <section
-      aria-label="Key citywide financial metrics"
-      className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6"
+      aria-label="Key budget and spending indicators"
+      className="space-y-3"
     >
-      {/* Total budget */}
-      <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
-        <div
-          className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500"
-          style={labelStyle}
-        >
-          Adopted budget
-        </div>
-        <div className="mt-1 text-lg font-bold text-slate-900">
-          {formatCurrency(totalBudget)}
-        </div>
-        <p className="mt-1 text-xs text-slate-500">
-          Total adopted budget across all funds.
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-sm font-semibold text-slate-900">
+          Key indicators
+        </h2>
+        <p className="text-xs text-slate-500">
+          Citywide totals and high-level metrics for the selected fiscal year.
         </p>
       </div>
 
-      {/* Total actuals */}
-      <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
-        <div
-          className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500"
-          style={labelStyle}
-        >
-          Actual spending
+      <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+        {/* Total budget */}
+        <div className="flex flex-col rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
+          <div
+            className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500"
+            style={labelStyle}
+          >
+            Adopted budget
+          </div>
+          <div className="mt-1 text-lg font-bold text-slate-900">
+            {totalBudget > 0 ? formatCurrency(totalBudget) : "—"}
+          </div>
+          <p className="mt-1 text-xs text-slate-500">
+            All funds adopted for the selected fiscal year.
+          </p>
         </div>
-        <div className="mt-1 text-lg font-bold text-slate-900">
-          {formatCurrency(totalActuals)}
-        </div>
-        <p className="mt-1 text-xs text-slate-500">
-          Total posted spending for the selected year.
-        </p>
-      </div>
 
-      {/* Variance */}
-      <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
-        <div
-          className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500"
-          style={labelStyle}
-        >
-          Variance
+        {/* Total actuals */}
+        <div className="flex flex-col rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
+          <div
+            className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500"
+            style={labelStyle}
+          >
+            Posted spending
+          </div>
+          <div className="mt-1 text-lg font-bold text-slate-900">
+            {totalActuals > 0 ? formatCurrency(totalActuals) : "—"}
+          </div>
+          <p className="mt-1 text-xs text-slate-500">
+            Total expenses posted to date for the same year.
+          </p>
         </div>
-        <div
-          className={`mt-1 text-lg font-bold ${
-            variance < 0
-              ? "text-emerald-700"
-              : variance > 0
-              ? "text-red-700"
-              : "text-slate-900"
-          }`}
-        >
-          {formatCurrency(Math.abs(variance))}
-        </div>
-        <p className="mt-1 text-xs text-slate-500">
-          {varianceLabel} relative to the adopted budget.
-        </p>
-      </div>
 
-      {/* Budget execution */}
-      <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
-        <div
-          className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500"
-          style={labelStyle}
-        >
-          Budget execution
+        {/* Variance */}
+        <div className="flex flex-col rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
+          <div
+            className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500"
+            style={labelStyle}
+          >
+            {varianceLabel}
+          </div>
+          <div
+            className={`mt-1 text-lg font-bold ${
+              isUnderBudget
+                ? "text-emerald-700"
+                : isOverBudget
+                ? "text-red-700"
+                : "text-slate-900"
+            }`}
+          >
+            {totalBudget > 0 || totalActuals > 0
+              ? formatCurrency(Math.abs(variance))
+              : "—"}
+          </div>
+          <p className="mt-1 text-xs text-slate-500">{varianceHelp}</p>
         </div>
-        <div className="mt-1 text-lg font-bold text-slate-900">
-          {formatPercent(execPct, 1)}
-        </div>
-        <p className="mt-1 text-xs text-slate-500">
-          Share of adopted budget that has been spent.
-        </p>
-      </div>
 
-      {/* Departments */}
-      <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
-        <div
-          className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500"
-          style={labelStyle}
-        >
-          Departments
-        </div>
-        <div className="mt-1 text-lg font-bold text-slate-900">
-          {deptCount.toLocaleString("en-US")}
-        </div>
-        <p className="mt-1 text-xs text-slate-500">
-          With budget or spending in the selected year.
-        </p>
-      </div>
-
-      {/* Transactions + top department */}
-      <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
-        <div
-          className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500"
-          style={labelStyle}
-        >
-          Transactions
-        </div>
-        <div className="mt-1 text-lg font-bold text-slate-900">
-          {txCount.toLocaleString("en-US")}
-        </div>
-        <p className="mt-1 text-xs text-slate-500">
-          {topDepartment ? (
-            <>
-              Highest spending department:{" "}
-              <span className="font-semibold">
-                {topDepartment}
+        {/* Execution + counts */}
+        <div className="flex flex-col rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
+          <div className="flex items-center justify-between gap-2">
+            <div
+              className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500"
+              style={labelStyle}
+            >
+              Execution &amp; activity
+            </div>
+            {accentColor && (
+              <span
+                className="inline-flex items-center justify-center rounded-full px-2 py-0.5 text-[10px] font-semibold text-white"
+                style={accentStyle}
+              >
+                {execPctDisplay}
               </span>
-              .
-            </>
-          ) : (
-            "Highest spending department will appear here once data is available."
+            )}
+          </div>
+
+          {!accentColor && (
+            <div className="mt-1 text-sm font-semibold text-slate-900">
+              {execPctDisplay} of budget spent
+            </div>
           )}
-        </p>
+
+          <div className="mt-2 grid grid-cols-2 gap-2 text-[11px] text-slate-700">
+            <div className="rounded-md bg-white/80 px-2 py-1.5">
+              <div className="text-[10px] uppercase tracking-[0.12em] text-slate-500">
+                Departments
+              </div>
+              <div className="mt-0.5 text-sm font-semibold text-slate-900">
+                {deptCount}
+              </div>
+            </div>
+            <div className="rounded-md bg-white/80 px-2 py-1.5">
+              <div className="text-[10px] uppercase tracking-[0.12em] text-slate-500">
+                Transactions
+              </div>
+              <div className="mt-0.5 text-sm font-semibold text-slate-900">
+                {txCount.toLocaleString()}
+              </div>
+            </div>
+          </div>
+
+          <p className="mt-2 text-[11px] text-slate-500">
+            {topDepartment ? (
+              <>
+                Highest spending department:{" "}
+                <span className="font-semibold">
+                  {topDepartment}
+                </span>
+                .
+              </>
+            ) : (
+              "Highest spending department will appear here once data is available."
+            )}
+          </p>
+        </div>
       </div>
     </section>
   );

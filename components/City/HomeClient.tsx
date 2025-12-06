@@ -110,6 +110,11 @@ export default function ParadiseHomeClient({
     [transactions, selectedYear]
   );
 
+  const hasAnyDataForSelectedYear =
+    budgetsForYear.length > 0 ||
+    actualsForYear.length > 0 ||
+    txForYear.length > 0;
+
   // Department summaries
   const departmentsForYear: DepartmentSummary[] = useMemo(() => {
     const budgetByDept = new Map<string, number>();
@@ -193,6 +198,7 @@ export default function ParadiseHomeClient({
   }, [departmentsForYear, txForYear]);
 
   const execPctDisplay = `${Math.round(execPct * 100)}%`;
+  const hasBudgetData = totalBudget > 0;
 
   // Branding / hero config
   const accentColor =
@@ -217,8 +223,6 @@ export default function ParadiseHomeClient({
   const heroBackground =
     portalSettings?.background_color || "#020617"; // slate-950-ish fallback
   const heroOverlay = "rgba(15, 23, 42, 0.65)"; // slate-900/65
-
-  const hasBudgetData = totalBudget > 0;
 
   return (
     <div className="mx-auto max-w-6xl space-y-6 px-3 py-6 sm:px-4 sm:py-8">
@@ -266,7 +270,7 @@ export default function ParadiseHomeClient({
               >
                 View budget details
               </Link>
-            <Link
+              <Link
                 href={cityHref("/departments")}
                 className="inline-flex items-center justify-center rounded-full border border-slate-300/60 bg-slate-900/40 px-3 py-1.5 text-xs font-semibold text-slate-50 hover:bg-slate-800/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"
               >
@@ -347,123 +351,159 @@ export default function ParadiseHomeClient({
         }
       />
 
-      {/* KPI Strip */}
-      <CardContainer>
-        {yearLabel && (
-          <div className="mb-3 text-xs text-slate-600">
-            Citywide totals for fiscal year{" "}
-            <span className="font-semibold">{yearLabel}</span>.
+      {/* If no data for the selected year, show a clear empty state and bail out */}
+      {!hasAnyDataForSelectedYear ? (
+        <>
+          <CardContainer>
+            <section
+              aria-label="No data available for selected fiscal year"
+              className="space-y-2"
+            >
+              <h2 className="text-sm font-semibold text-slate-900">
+                Data not yet available for this fiscal year
+              </h2>
+              <p className="text-sm leading-relaxed text-slate-700">
+                There are no budgets, actuals, or transactions loaded for{" "}
+                {yearLabel ? `fiscal year ${yearLabel}` : "the selected year"}
+                . Try choosing a different fiscal year from the menu above, or
+                check back after new data is published.
+              </p>
+            </section>
+          </CardContainer>
+
+          <div className="pb-4 pt-1 text-center text-xs text-slate-400">
+            Powered by{" "}
+            <span className="font-semibold text-slate-600">
+              CiviPortal
+            </span>
+            {" · "}
+            <span className="text-slate-500">
+              {cityName} – awaiting financial data for this year.
+            </span>
           </div>
-        )}
+        </>
+      ) : (
+        <>
+          {/* KPI Strip */}
+          <CardContainer>
+            {yearLabel && (
+              <div className="mb-3 text-xs text-slate-600">
+                Citywide totals for fiscal year{" "}
+                <span className="font-semibold">{yearLabel}</span>.
+              </div>
+            )}
 
-        <ParadiseHomeKpiStrip
-          totalBudget={totalBudget}
-          totalActuals={totalActuals}
-          variance={variance}
-          execPct={execPct}
-          deptCount={deptCount}
-          txCount={txCount}
-          topDepartment={topDepartment}
-          accentColor={accentColor}
-        />
-      </CardContainer>
+            <ParadiseHomeKpiStrip
+              totalBudget={totalBudget}
+              totalActuals={totalActuals}
+              variance={variance}
+              execPct={execPct}
+              deptCount={deptCount}
+              txCount={txCount}
+              topDepartment={topDepartment}
+              accentColor={accentColor}
+            />
+          </CardContainer>
 
-      {/* Row 1: Budget vs actuals by department + multi-year chart */}
-      <div className="grid gap-6 lg:grid-cols-[2fr,1.3fr]">
-        <CardContainer>
-          <section
-            aria-label="Budget vs Actuals by Department"
-            className="space-y-3"
-          >
-            <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-              <div>
-                <h2 className="text-sm font-semibold text-slate-800">
-                  Budget vs Actuals by Department
+          {/* Row 1: Budget vs actuals by department + multi-year chart */}
+          <div className="grid gap-6 lg:grid-cols-[2fr,1.3fr]">
+            <CardContainer>
+              <section
+                aria-label="Budget vs Actuals by Department"
+                className="space-y-3"
+              >
+                <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+                  <div>
+                    <h2 className="text-sm font-semibold text-slate-800">
+                      Budget vs Actuals by Department
+                    </h2>
+                    <p className="text-xs text-slate-500">
+                      Top departments by budget and their corresponding
+                      spending for{" "}
+                      {yearLabel ?? "the selected year"}.
+                    </p>
+                  </div>
+                  <Link
+                    href={cityHref("/departments")}
+                    className="mt-1 text-xs font-semibold text-slate-700 underline-offset-2 hover:underline"
+                  >
+                    View all departments
+                  </Link>
+                </div>
+
+                <BudgetCharts
+                  year={yearLabel ?? new Date().getFullYear()}
+                  departments={departmentsForYear}
+                  layout="stacked"
+                />
+              </section>
+            </CardContainer>
+
+            <CardContainer>
+              <section
+                aria-labelledby="home-multiyear-heading"
+                className="space-y-2"
+              >
+                <h2
+                  id="home-multiyear-heading"
+                  className="text-sm font-semibold text-slate-800"
+                >
+                  Multi-year Budget vs Actuals
                 </h2>
                 <p className="text-xs text-slate-500">
-                  Top departments by budget and their corresponding spending
-                  for{" "}
-                  {yearLabel ?? "the selected year"}.
+                  Citywide budget and actual spending across recent fiscal
+                  years.
                 </p>
-              </div>
-              <Link
-                href={cityHref("/departments")}
-                className="mt-1 text-xs font-semibold text-slate-700 underline-offset-2 hover:underline"
-              >
-                View all departments
-              </Link>
-            </div>
-
-            <BudgetCharts
-              year={yearLabel ?? new Date().getFullYear()}
-              departments={departmentsForYear}
-              layout="stacked"
-            />
-          </section>
-        </CardContainer>
-
-        <CardContainer>
-          <section
-            aria-labelledby="home-multiyear-heading"
-            className="space-y-2"
-          >
-            <h2
-              id="home-multiyear-heading"
-              className="text-sm font-semibold text-slate-800"
-            >
-              Multi-year Budget vs Actuals
-            </h2>
-            <p className="text-xs text-slate-500">
-              Citywide budget and actual spending across recent fiscal years.
-            </p>
-            <ParadiseHomeMultiYearChart
-              budgets={budgets}
-              actuals={actuals}
-            />
-          </section>
-        </CardContainer>
-      </div>
-
-      {/* Row 2: recent transactions + departments + vendors */}
-      <div className="grid gap-6 lg:grid-cols-[1.4fr,1.6fr]">
-        <CardContainer>
-          <RecentTransactionsCard
-            year={yearLabel ?? undefined}
-            transactions={txForYear}
-            limit={6}
-          />
-        </CardContainer>
-
-        <CardContainer>
-          <div className="space-y-4">
-            <DepartmentsGrid
-              year={yearLabel ?? undefined}
-              departments={departmentsForYear}
-            />
-            <TopVendorsCard
-              year={yearLabel ?? undefined}
-              transactions={txForYear}
-            />
+                <ParadiseHomeMultiYearChart
+                  budgets={budgets}
+                  actuals={actuals}
+                />
+              </section>
+            </CardContainer>
           </div>
-        </CardContainer>
-      </div>
 
-      {/* Footer */}
-      <div className="pb-4 pt-1 text-center text-xs text-slate-400">
-        Powered by{" "}
-        <span className="font-semibold text-slate-600">
-          CiviPortal
-        </span>
-        {" · "}
-        <span className="text-slate-500">
-          {cityName} –{" "}
-          {totalBudget > 0
-            ? `Managing ${formatCurrency(
-                totalBudget
-              )} in adopted budget`
-            : "Awaiting budget data"}
-        </span>
-      </div>
+          {/* Row 2: recent transactions + departments + vendors */}
+          <div className="grid gap-6 lg:grid-cols-[1.4fr,1.6fr]">
+            <CardContainer>
+              <RecentTransactionsCard
+                year={yearLabel ?? undefined}
+                transactions={txForYear}
+                limit={6}
+              />
+            </CardContainer>
+
+            <CardContainer>
+              <div className="space-y-4">
+                <DepartmentsGrid
+                  year={yearLabel ?? undefined}
+                  departments={departmentsForYear}
+                />
+                <TopVendorsCard
+                  year={yearLabel ?? undefined}
+                  transactions={txForYear}
+                />
+              </div>
+            </CardContainer>
+          </div>
+
+          {/* Footer */}
+          <div className="pb-4 pt-1 text-center text-xs text-slate-400">
+            Powered by{" "}
+            <span className="font-semibold text-slate-600">
+              CiviPortal
+            </span>
+            {" · "}
+            <span className="text-slate-500">
+              {cityName} –{" "}
+              {totalBudget > 0
+                ? `Managing ${formatCurrency(
+                    totalBudget
+                  )} in adopted budget`
+                : "Awaiting budget data"}
+            </span>
+          </div>
+        </>
+      )}
     </div>
   );
 }

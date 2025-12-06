@@ -13,6 +13,7 @@ import type {
   ActualRow,
   TransactionRow,
 } from "@/lib/types";
+import type { PortalSettings } from "@/lib/queries";
 
 export const revalidate = 0;
 
@@ -42,6 +43,26 @@ export default async function CityOverviewPage({
       getPortalSettings(),
       getAvailableFiscalYears(),
     ]);
+
+  const portalSettings = settings as PortalSettings | null;
+
+  // NEW: gate overview if not published
+  if (portalSettings && portalSettings.is_published === false) {
+    const cityName = portalSettings.city_name || "Your City";
+
+    return (
+      <div className="mx-auto max-w-3xl px-4 py-16 text-center sm:py-24">
+        <h1 className="text-xl font-semibold text-slate-900 sm:text-2xl">
+          {cityName} overview is not yet published
+        </h1>
+        <p className="mt-3 text-sm text-slate-600">
+          City staff are preparing financial data for this portal. Once
+          it&apos;s ready, the budget and spending overview will be
+          available here.
+        </p>
+      </div>
+    );
+  }
 
   const budgets = (budgetsRaw ?? []) as BudgetRow[];
   const actuals = (actualsRaw ?? []) as ActualRow[];
@@ -100,7 +121,7 @@ export default async function CityOverviewPage({
       actuals={actuals}
       transactions={transactions}
       availableYears={years}
-      portalSettings={settings}
+      portalSettings={portalSettings}
     />
   );
 }

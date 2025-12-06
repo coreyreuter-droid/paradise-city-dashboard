@@ -53,6 +53,9 @@ type PortalSettings = {
   show_capital_projects: boolean | null;
   show_stats: boolean | null;
   show_projects: boolean | null;
+
+  // publish state
+  is_published: boolean | null;
 };
 
 type ProjectTitleKey = "project1_title" | "project2_title" | "project3_title";
@@ -155,6 +158,7 @@ const SELECT_FIELDS = [
   "show_capital_projects",
   "show_stats",
   "show_projects",
+  "is_published",
 ].join(", ");
 
 export default function BrandingSettingsClient() {
@@ -244,6 +248,7 @@ export default function BrandingSettingsClient() {
                 show_capital_projects: true,
                 show_stats: true,
                 show_projects: true,
+                is_published: false, // new portals start in draft
               })
               .select(SELECT_FIELDS)
               .single();
@@ -469,6 +474,7 @@ export default function BrandingSettingsClient() {
           show_capital_projects: settings.show_capital_projects,
           show_stats: settings.show_stats,
           show_projects: settings.show_projects,
+          is_published: settings.is_published ?? false,
         })
         .eq("id", settings.id)
         .select(SELECT_FIELDS)
@@ -534,6 +540,8 @@ export default function BrandingSettingsClient() {
       saveState === "error" ||
       saveState === "saved");
 
+  const published = settings.is_published !== false;
+
   return (
     <div className="min-h-screen bg-slate-50 px-4 pt-10 pb-24">
       <div className="mx-auto max-w-5xl">
@@ -555,6 +563,44 @@ export default function BrandingSettingsClient() {
           <p className="mb-4 text-sm text-slate-600">
             Configure how this CiviPortal deployment appears to residents.
           </p>
+
+          {/* Publish status */}
+          <div className="mb-4 rounded-md border border-slate-200 bg-slate-50 px-3 py-3 text-xs text-slate-700">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+                  Publish status
+                </p>
+                <p className="mt-1 text-xs text-slate-600">
+                  When published, your landing page and overview are visible to
+                  the public. When in draft, only admins can access the portal.
+                </p>
+              </div>
+              <label className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-800 shadow-sm">
+                <span
+                  className={`inline-flex h-2.5 w-2.5 rounded-full ${
+                    published ? "bg-emerald-500" : "bg-amber-400"
+                  }`}
+                />
+                <span>
+                  {published
+                    ? "Published – visible to public"
+                    : "Draft – hidden from public"}
+                </span>
+                <input
+                  type="checkbox"
+                  className="sr-only"
+                  checked={published}
+                  onChange={(e) =>
+                    handleFieldChange(
+                      "is_published",
+                      (e.target.checked as PortalSettings["is_published"])
+                    )
+                  }
+                />
+              </label>
+            </div>
+          </div>
 
           <form
             id="branding-settings-form"

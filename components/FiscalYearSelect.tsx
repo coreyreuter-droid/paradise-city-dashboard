@@ -1,3 +1,4 @@
+// components/FiscalYearSelect.tsx
 "use client";
 
 import { useMemo } from "react";
@@ -12,6 +13,13 @@ type Props = {
   label?: string;
 };
 
+/**
+ * Behavior:
+ * - Highest year is ALWAYS the default.
+ * - No "Latest" pseudo-option.
+ * - If few years (≤ 4): show pills.
+ * - If many years: dropdown.
+ */
 export default function FiscalYearSelect({
   options,
   label = "Fiscal year",
@@ -20,49 +28,74 @@ export default function FiscalYearSelect({
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const currentYearParam = searchParams.get("year");
-  const currentValue = currentYearParam ?? "latest";
-
   const sortedYears = useMemo(
-    () => [...options].sort((a, b) => b - a),
+    () => [...options].sort((a, b) => b - a), // Descending: newest first
     [options]
   );
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLSelectElement>
-  ) => {
-    const value = e.target.value;
-    const params = new URLSearchParams(
-      searchParams.toString()
-    );
+  const highestYear =
+    sortedYears.length > 0 ? String(sortedYears[0]) : null;
 
-    // Reset pagination whenever year changes
-    params.delete("page");
+  const currentParam = searchParams.get("year");
+  const currentValue =
+    currentParam && sortedYears.includes(Number(currentParam))
+      ? currentParam
+      : highestYear;
 
-    if (value === "latest") {
-      // Use "latest" as the default = no explicit year param
-      params.delete("year");
-    } else {
-      params.set("year", value);
-    }
+  const setYear = (value: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("page"); // Reset pagination
 
-    const qs = params.toString();
-    router.push(qs ? `${pathname}?${qs}` : pathname);
+    params.set("year", value);
+
+    router.push(`${pathname}?${params.toString()}`);
   };
 
+  const showPills = sortedYears.length > 0 && sortedYears.length <= 4;
+
+  if (showPills) {
+    return (
+      <div className="inline-flex flex-col items-end gap-1 text-right">
+        <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+          {label}
+        </span>
+        <div className="inline-flex items-center gap-1 rounded-full bg-slate-100 p-0.5">
+          {sortedYears.map((year) => {
+            const value = String(year);
+            const active = currentValue === value;
+            return (
+              <button
+                key={year}
+                type="button"
+                onClick={() => setYear(value)}
+                className={`rounded-full px-2 py-1 text-[11px] font-medium ${
+                  active
+                    ? "bg-white text-slate-900 shadow-sm"
+                    : "text-slate-600 hover:bg-white/60"
+                }`}
+              >
+                {year}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  // Dropdown fallback for many years
   return (
     <div className="inline-block w-full max-w-xs">
       <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
         {label}
       </label>
       <select
-        value={currentValue}
-        onChange={handleChange}
+        value={currentValue ?? ""}
+        onChange={(e) => setYear(e.target.value)}
         className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
       >
-        <option value="latest">Latest</option>
         {sortedYears.map((year) => (
-          <option key={year} value={year.toString()}>
+          <option key={year} value={String(year)}>
             {year}
           </option>
         ))}

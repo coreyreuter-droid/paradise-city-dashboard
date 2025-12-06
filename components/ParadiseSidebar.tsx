@@ -18,8 +18,6 @@ const navItems = [
   { path: "/transactions", label: "Transactions" },
 ];
 
-
-
 type PortalBranding = {
   city_name: string | null;
   tagline: string | null;
@@ -34,25 +32,65 @@ export default function ParadiseSidebar() {
   const [branding, setBranding] = useState<PortalBranding | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
 
+  // NEW: whether dashboard nav should be visible (published OR admin)
+  const [showDashboardNav, setShowDashboardNav] = useState(true);
+
   useEffect(() => {
     let cancelled = false;
 
-    async function loadBranding() {
-      const { data, error } = await supabase
+    async function loadSidebarState() {
+      // 1) Load branding (same as before)
+      const { data: brandingData } = await supabase
         .from("portal_settings")
         .select(
-          "city_name, tagline, primary_color, accent_color, logo_url"
+          "city_name, tagline, primary_color, accent_color, logo_url, is_published"
         )
         .maybeSingle();
 
       if (cancelled) return;
 
-      if (!error && data) {
-        setBranding(data as PortalBranding);
+      if (brandingData) {
+        const { city_name, tagline, primary_color, accent_color, logo_url } =
+          brandingData;
+        setBranding({
+          city_name,
+          tagline,
+          primary_color,
+          accent_color,
+          logo_url,
+        });
       }
+
+      // 2) Determine if viewer is admin/super_admin
+      let isAdmin = false;
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (session?.user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", session.user.id)
+          .maybeSingle();
+
+        if (
+          profile &&
+          (profile.role === "admin" || profile.role === "super_admin")
+        ) {
+          isAdmin = true;
+        }
+      }
+
+      // 3) Determine publish state
+      const isPublished =
+        brandingData && brandingData.is_published === false ? false : true;
+
+      // 4) Public only sees dashboard nav when published; admins always see it
+      setShowDashboardNav(isPublished || isAdmin);
     }
 
-    loadBranding();
+    loadSidebarState();
 
     return () => {
       cancelled = true;
@@ -115,67 +153,70 @@ export default function ParadiseSidebar() {
 
   const renderNavList = (variant: "desktop" | "mobile") => (
     <>
-      <div>
-        <p
-          className={
-            variant === "desktop"
-              ? "px-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500"
-              : "px-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500"
-          }
-        >
-          Dashboard
-        </p>
-        <ul className="mt-2 space-y-1">
-          {navItems.map((item) => {
-            const href = cityHref(item.path);
-            const active = isActive(item.path);
-            const isDepartmentsItem = item.path === "/departments";
-
-            const baseClasses =
-              "group flex items-center gap-2 rounded-xl px-3 py-2 text-sm transition";
-
-            const activeClasses =
+      {/* Dashboard group – now conditional */}
+      {showDashboardNav && (
+        <div>
+          <p
+            className={
               variant === "desktop"
-                ? "bg-slate-900 text-white shadow-sm"
-                : "bg-slate-900 text-white shadow-sm";
-            const inactiveClasses =
-              variant === "desktop"
-                ? "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
-                : "text-slate-600 hover:bg-slate-100 hover:text-slate-900";
+                ? "px-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500"
+                : "px-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500"
+            }
+          >
+            Dashboard
+          </p>
+          <ul className="mt-2 space-y-1">
+            {navItems.map((item) => {
+              const href = cityHref(item.path);
+              const active = isActive(item.path);
+              const isDepartmentsItem = item.path === "/departments";
 
-            return (
-              <li key={item.path}>
-                <Link
-                  href={href}
-                  onClick={variant === "mobile" ? closeMobile : undefined}
-                  className={`${baseClasses} ${
-                    active ? activeClasses : inactiveClasses
-                  }`}
-                >
-                  <span
-                    className={`inline-block h-1.5 w-1.5 rounded-full transition ${
-                      active
-                        ? "bg-white"
-                        : "bg-slate-300 group-hover:bg-slate-500"
+              const baseClasses =
+                "group flex items-center gap-2 rounded-xl px-3 py-2 text-sm transition";
+
+              const activeClasses =
+                variant === "desktop"
+                  ? "bg-slate-900 text-white shadow-sm"
+                  : "bg-slate-900 text-white shadow-sm";
+              const inactiveClasses =
+                variant === "desktop"
+                  ? "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                  : "text-slate-600 hover:bg-slate-100 hover:text-slate-900";
+
+              return (
+                <li key={item.path}>
+                  <Link
+                    href={href}
+                    onClick={variant === "mobile" ? closeMobile : undefined}
+                    className={`${baseClasses} ${
+                      active ? activeClasses : inactiveClasses
                     }`}
-                  />
-                  <span className="truncate">{item.label}</span>
-                </Link>
+                  >
+                    <span
+                      className={`inline-block h-1.5 w-1.5 rounded-full transition ${
+                        active
+                          ? "bg-white"
+                          : "bg-slate-300 group-hover:bg-slate-500"
+                      }`}
+                    />
+                    <span className="truncate">{item.label}</span>
+                  </Link>
 
-                {/* Nested department label under Departments when viewing a specific dept */}
-                {isDepartmentsItem && currentDepartmentLabel && (
-                  <div className="mt-1 pl-6 pr-3">
-                    <div className="truncate text-xs text-slate-500">
-                      <span className="mr-1 text-slate-400">›</span>
-                      {currentDepartmentLabel}
+                  {/* Nested department label under Departments when viewing a specific dept */}
+                  {isDepartmentsItem && currentDepartmentLabel && (
+                    <div className="mt-1 pl-6 pr-3">
+                      <div className="truncate text-xs text-slate-500">
+                        <span className="mr-1 text-slate-400">›</span>
+                        {currentDepartmentLabel}
+                      </div>
                     </div>
-                  </div>
-                )}
-              </li>
-            );
-          })}
-        </ul>
-      </div>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
 
       {/* Admin nav – single entry point to Admin home */}
       <div className="mt-6">
