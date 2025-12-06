@@ -1,4 +1,3 @@
-// components/City/CitywideDashboardClient.tsx
 "use client";
 
 import { useMemo } from "react";
@@ -532,13 +531,12 @@ export default function CitywideDashboardClient({
           aria-label="Breadcrumb"
           className="mb-4 flex items-center gap-1 px-1 text-xs text-slate-500"
         >
-      <Link
-        href={cityHref("/overview")}
-        className="hover:text-slate-800"
-      >
-        Home
-      </Link>
-
+          <Link
+            href={cityHref("/overview")}
+            className="hover:text-slate-800"
+          >
+            Home
+          </Link>
           <span className="text-slate-400">›</span>
           <span className="font-medium text-slate-700">
             Analytics
@@ -552,7 +550,7 @@ export default function CitywideDashboardClient({
               aria-label="Citywide budget and spending summary"
               className="grid gap-4 md:grid-cols-4"
             >
-              <div>
+              <div className="min-w-0">
                 <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
                   Total budget ({yearLabel})
                 </div>
@@ -564,7 +562,7 @@ export default function CitywideDashboardClient({
                 </div>
               </div>
 
-              <div>
+              <div className="min-w-0">
                 <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
                   Total actuals ({yearLabel})
                 </div>
@@ -576,7 +574,7 @@ export default function CitywideDashboardClient({
                 </div>
               </div>
 
-              <div>
+              <div className="min-w-0">
                 <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
                   Variance (actuals - budget)
                 </div>
@@ -597,7 +595,7 @@ export default function CitywideDashboardClient({
                 </div>
               </div>
 
-              <div>
+              <div className="min-w-0">
                 <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
                   % of budget spent
                 </div>
@@ -622,7 +620,7 @@ export default function CitywideDashboardClient({
 
           <div className="grid gap-6 lg:grid-cols-3">
             {/* Left side: pies + dept chart + P&L + trend + matrix */}
-            <div className="space-y-6 lg:col-span-2">
+            <div className="space-y-6 min-w-0 lg:col-span-2">
               {/* Distribution pies */}
               <div className="grid gap-4 md:grid-cols-2">
                 <CardContainer>
@@ -842,7 +840,7 @@ export default function CitywideDashboardClient({
               {/* Budget vs actuals by department */}
               <CardContainer>
                 <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-                  <div>
+                  <div className="min-w-0">
                     <h2 className="text-sm font-semibold text-slate-800">
                       Budget vs Actuals by Department
                     </h2>
@@ -878,7 +876,7 @@ export default function CitywideDashboardClient({
               {/* Citywide P&L and top categories */}
               <CardContainer>
                 <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-                  <div>
+                  <div className="min-w-0">
                     <h2 className="text-sm font-semibold text-slate-800">
                       Citywide Budget vs Actuals & Categories
                     </h2>
@@ -893,7 +891,7 @@ export default function CitywideDashboardClient({
                 </div>
 
                 <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2 text-xs">
+                  <div className="space-y-2 text-xs min-w-0">
                     <div className="flex items-center justify-between">
                       <span className="text-slate-600">Budget</span>
                       <span className="font-mono text-slate-900">
@@ -935,7 +933,7 @@ export default function CitywideDashboardClient({
                     </div>
                   </div>
 
-                  <div>
+                  <div className="min-w-0">
                     <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
                       Top spending categories
                     </h3>
@@ -972,7 +970,7 @@ export default function CitywideDashboardClient({
                   className="space-y-3"
                 >
                   <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-                    <div>
+                    <div className="min-w-0">
                       <h2
                         id="citywide-yoy-heading"
                         className="text-sm font-semibold text-slate-800"
@@ -1102,7 +1100,7 @@ export default function CitywideDashboardClient({
               {/* Citywide YOY variance matrix */}
               <CardContainer>
                 <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-                  <div>
+                  <div className="min-w-0">
                     <h2 className="text-sm font-semibold text-slate-800">
                       Department Variance by Year
                     </h2>
@@ -1118,7 +1116,7 @@ export default function CitywideDashboardClient({
                     No department/year variance data available.
                   </p>
                 ) : (
-                  <div className="max-h-[420px] overflow-auto">
+                  <div className="max-h-[420px] overflow-y-auto overflow-x-auto">
                     <table className="min-w-full border border-slate-200 text-left text-xs">
                       <thead className="border-b border-slate-200 bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-600">
                         <tr>
@@ -1220,7 +1218,7 @@ export default function CitywideDashboardClient({
             </div>
 
             {/* Right side: vendors + transactions summary + guidance */}
-            <div className="space-y-6">
+            <div className="space-y-6 min-w-0">
               {/* Vendors summary */}
               <CardContainer>
                 <section
@@ -1228,7 +1226,7 @@ export default function CitywideDashboardClient({
                   className="space-y-3"
                 >
                   <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-                    <div>
+                    <div className="min-w-0">
                       <h2 className="text-sm font-semibold text-slate-800">
                         Top Vendors ({yearLabel})
                       </h2>
@@ -1290,7 +1288,7 @@ export default function CitywideDashboardClient({
                   className="space-y-2 text-xs text-slate-600"
                 >
                   <div className="flex items-baseline justify-between gap-3">
-                    <div>
+                    <div className="min-w-0">
                       <h2 className="text-sm font-semibold text-slate-800">
                         Transactions Overview
                       </h2>

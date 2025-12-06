@@ -1,4 +1,3 @@
-// components/Analytics/BudgetByDepartmentChart.tsx
 "use client";
 
 import React, { useMemo } from "react";
@@ -59,9 +58,8 @@ export default function BudgetByDepartmentChart({
       role="group"
       aria-labelledby="budget-by-dept-heading"
       aria-describedby="budget-by-dept-desc"
-      className="space-y-4 w-full max-w-full"
+      className="space-y-4 w-full max-w-full min-w-0"
     >
-
       <p id="budget-by-dept-desc" className="sr-only">
         Horizontal bar chart and data table showing adopted budget and
         actual spending for each department in fiscal year {year},
@@ -84,7 +82,6 @@ export default function BudgetByDepartmentChart({
             // Slightly slimmer bars so category gap is more obvious
             barSize={10}
           >
-
             <CartesianGrid strokeDasharray="3 3" horizontal={false} />
             <XAxis
               type="number"
