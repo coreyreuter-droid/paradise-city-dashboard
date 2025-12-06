@@ -1,10 +1,13 @@
 // app/[citySlug]/revenues/page.tsx
 import RevenuesDashboardClient from "@/components/City/RevenuesDashboardClient";
+import UnpublishedMessage from "@/components/City/UnpublishedMessage";
 import {
   getRevenueYears,
   getRevenuesForYear,
+  getPortalSettings,
 } from "@/lib/queries";
 import type { RevenueRow } from "@/lib/types";
+import type { PortalSettings } from "@/lib/queries";
 
 export const revalidate = 0;
 
@@ -14,33 +17,49 @@ type SearchParamsShape = {
 };
 
 type PageProps = {
+  params: { citySlug: string };
   searchParams: SearchParamsShape | Promise<SearchParamsShape>;
 };
 
-export default async function RevenuesPage(props: PageProps) {
-  const searchParams = await props.searchParams;
+function pickFirst(value: string | string[] | undefined) {
+  if (typeof value === "string") return value;
+  if (Array.isArray(value) && value.length > 0) return value[0];
+  return undefined;
+}
 
-  // 1) Years available from revenues table
-  const years = await getRevenueYears();
-  const defaultYear = years[0] ?? null;
+export default async function RevenuesPage({
+  searchParams,
+}: PageProps) {
+  const resolvedSearchParams = await searchParams;
 
-  // 2) Selected year from URL or fall back to latest
-  const yearParam = searchParams.year
-    ? Number(searchParams.year)
-    : undefined;
+  const [yearsRaw, settings] = await Promise.all([
+    getRevenueYears(),
+    getPortalSettings(),
+  ]);
 
-  const selectedYear =
-    yearParam && years.includes(yearParam)
-      ? yearParam
-      : defaultYear;
+  const portalSettings = settings as PortalSettings | null;
 
-  // 3) Source query from URL
-  const sourceQuery = searchParams.q ?? "";
+  if (portalSettings && portalSettings.is_published === false) {
+    return <UnpublishedMessage settings={portalSettings} />;
+  }
 
-  // 4) Fetch all revenue records for the selected year
+  const years = (yearsRaw ?? []).slice().sort((a, b) => b - a);
+
+  let selectedYear: number | null = null;
+  if (years.length > 0) {
+    const yearParam = pickFirst(resolvedSearchParams.year);
+    const parsedYear = yearParam ? Number(yearParam) : NaN;
+    selectedYear =
+      Number.isFinite(parsedYear) && years.includes(parsedYear)
+        ? parsedYear
+        : years[0];
+  }
+
+  const sourceQuery = pickFirst(resolvedSearchParams.q) ?? null;
+
   let revenues: RevenueRow[] = [];
   if (selectedYear != null) {
-    revenues = await getRevenuesForYear(selectedYear);
+    revenues = (await getRevenuesForYear(selectedYear)) ?? [];
   }
 
   return (

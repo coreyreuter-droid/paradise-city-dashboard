@@ -14,7 +14,7 @@ type Props = {
   accentColor?: string;
 };
 
-export default function ParadiseHomeKpiStrip({
+export default function HomeKpiStrip({
   totalBudget,
   totalActuals,
   variance,

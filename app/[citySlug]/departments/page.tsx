@@ -1,69 +1,85 @@
-// app/paradise/departments/page.tsx
+// app/[citySlug]/departments/page.tsx
 import DepartmentsDashboardClient from "@/components/City/DepartmentsDashboardClient";
+import UnpublishedMessage from "@/components/City/UnpublishedMessage";
 import {
   getAvailableFiscalYears,
   getBudgetsForYear,
   getActualsForYear,
   getTransactionsForYear,
-} from "../../../lib/queries";
+  getPortalSettings,
+} from "@/lib/queries";
 import type {
   BudgetRow,
   ActualRow,
   TransactionRow,
-} from "../../../lib/types";
+} from "@/lib/types";
+import type { PortalSettings } from "@/lib/queries";
 
 export const revalidate = 0;
 
-type PageProps = {
-  searchParams: Promise<{
-    [key: string]: string | string[] | undefined;
-  }>;
+type SearchParamsShape = {
+  year?: string | string[];
 };
 
-export default async function DepartmentsPage(props: PageProps) {
-  const searchParams = await props.searchParams;
+type PageProps = {
+  params: { citySlug: string };
+  searchParams: SearchParamsShape | Promise<SearchParamsShape>;
+};
 
-  // All years (authoritative from budgets)
-  const yearsAsc = await getAvailableFiscalYears();
-  const years = [...yearsAsc].sort((a, b) => b - a); // newest first
+function pickFirst(
+  value: string | string[] | undefined,
+): string | undefined {
+  if (typeof value === "string") return value;
+  if (Array.isArray(value) && value.length > 0) return value[0];
+  return undefined;
+}
 
-  let selectedYear: number | undefined;
+export default async function DepartmentsPage({
+  searchParams,
+}: PageProps) {
+  const resolvedSearchParams = await searchParams;
 
-  if (years.length > 0) {
-    const param = searchParams["year"];
-    const raw =
-      typeof param === "string" ? param : Array.isArray(param) ? param[0] : "";
-    const parsed = raw ? Number(raw) : NaN;
-
-    if (Number.isFinite(parsed) && years.includes(parsed)) {
-      selectedYear = parsed;
-    } else {
-      selectedYear = years[0]; // default to latest
-    }
-  }
-
-  if (!selectedYear) {
-    // No data at all – pass empty arrays
-    return (
-      <DepartmentsDashboardClient
-        budgets={[]}
-        actuals={[]}
-        transactions={[]}
-        years={[]}
-      />
-    );
-  }
-
-  // Fetch only the selected year's data
-  const [budgetsRaw, actualsRaw, transactionsRaw] = await Promise.all([
-    getBudgetsForYear(selectedYear),
-    getActualsForYear(selectedYear),
-    getTransactionsForYear(selectedYear),
+  const [availableYearsRaw, settings] = await Promise.all([
+    getAvailableFiscalYears(),
+    getPortalSettings(),
   ]);
 
-  const budgets: BudgetRow[] = budgetsRaw ?? [];
-  const actuals: ActualRow[] = actualsRaw ?? [];
-  const transactions: TransactionRow[] = transactionsRaw ?? [];
+  const portalSettings = settings as PortalSettings | null;
+
+  if (portalSettings && portalSettings.is_published === false) {
+    return <UnpublishedMessage settings={portalSettings} />;
+  }
+
+  const years = (availableYearsRaw ?? [])
+    .map((y) => Number(y))
+    .filter((y) => Number.isFinite(y))
+    .sort((a, b) => b - a);
+
+  const yearParam = pickFirst(resolvedSearchParams.year);
+  const parsedYear = yearParam ? Number(yearParam) : NaN;
+
+  const selectedYear =
+    Number.isFinite(parsedYear) && years.includes(parsedYear)
+      ? parsedYear
+      : years.length > 0
+      ? years[0]
+      : undefined;
+
+  let budgets: BudgetRow[] = [];
+  let actuals: ActualRow[] = [];
+  let transactions: TransactionRow[] = [];
+
+  if (selectedYear != null) {
+    const [budgetsRaw, actualsRaw, transactionsRaw] = await Promise.all([
+      getBudgetsForYear(selectedYear),
+      getActualsForYear(selectedYear),
+      getTransactionsForYear(selectedYear),
+    ]);
+
+    budgets = (budgetsRaw ?? []) as BudgetRow[];
+    actuals = (actualsRaw ?? []) as ActualRow[];
+    transactions = (transactionsRaw ?? []) as TransactionRow[];
+  }
 
   return (
     <DepartmentsDashboardClient

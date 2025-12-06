@@ -1,47 +1,65 @@
 // app/[citySlug]/vendors/page.tsx
 import VendorsDashboardClient from "@/components/City/VendorsDashboardClient";
+import UnpublishedMessage from "@/components/City/UnpublishedMessage";
 import {
   getTransactionYears,
   getTransactionsForYear,
+  getPortalSettings,
 } from "@/lib/queries";
 import type { TransactionRow } from "@/lib/types";
+import type { PortalSettings } from "@/lib/queries";
 
 export const revalidate = 0;
 
-// Next 16 can pass searchParams as a Promise, so allow both.
 type SearchParamsShape = {
   year?: string;
   q?: string;
 };
 
 type PageProps = {
+  params: { citySlug: string };
   searchParams: SearchParamsShape | Promise<SearchParamsShape>;
 };
 
-export default async function VendorsPage(props: PageProps) {
-  const searchParams = await props.searchParams;
+function pickFirst(value: string | string[] | undefined) {
+  if (typeof value === "string") return value;
+  if (Array.isArray(value) && value.length > 0) return value[0];
+  return undefined;
+}
 
-  // 1) Years available in data
-  const years = await getTransactionYears();
-  const defaultYear = years[0] ?? null;
+export default async function VendorsPage({
+  searchParams,
+}: PageProps) {
+  const resolvedSearchParams = await searchParams;
 
-  // 2) Selected year from URL or fall back to latest
-  const yearParam = searchParams.year
-    ? Number(searchParams.year)
-    : undefined;
+  const [yearsRaw, settings] = await Promise.all([
+    getTransactionYears(),
+    getPortalSettings(),
+  ]);
 
-  const selectedYear =
-    yearParam && years.includes(yearParam)
-      ? yearParam
-      : defaultYear;
+  const portalSettings = settings as PortalSettings | null;
 
-  // 3) Vendor query from URL
-  const vendorQuery = searchParams.q ?? "";
+  if (portalSettings && portalSettings.is_published === false) {
+    return <UnpublishedMessage settings={portalSettings} />;
+  }
 
-  // 4) Fetch all transactions for the selected year
+  const years = (yearsRaw ?? []).slice().sort((a, b) => b - a);
+
+  let selectedYear: number | null = null;
+  if (years.length > 0) {
+    const yearParam = pickFirst(resolvedSearchParams.year);
+    const parsedYear = yearParam ? Number(yearParam) : NaN;
+    selectedYear =
+      Number.isFinite(parsedYear) && years.includes(parsedYear)
+        ? parsedYear
+        : years[0];
+  }
+
+  const vendorQuery = pickFirst(resolvedSearchParams.q) ?? null;
+
   let transactions: TransactionRow[] = [];
   if (selectedYear != null) {
-    transactions = await getTransactionsForYear(selectedYear);
+    transactions = (await getTransactionsForYear(selectedYear)) ?? [];
   }
 
   return (

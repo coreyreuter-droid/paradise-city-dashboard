@@ -7,11 +7,13 @@ import {
   getPortalSettings,
   getAvailableFiscalYears,
   getTransactionsForYear,
+  getRevenuesForYear,
 } from "@/lib/queries";
 import type {
   BudgetRow,
   ActualRow,
   TransactionRow,
+  RevenueRow,
 } from "@/lib/types";
 import type { PortalSettings } from "@/lib/queries";
 
@@ -46,7 +48,7 @@ export default async function CityOverviewPage({
 
   const portalSettings = settings as PortalSettings | null;
 
-  // NEW: gate overview if not published
+  // Gate overview if not published
   if (portalSettings && portalSettings.is_published === false) {
     const cityName = portalSettings.city_name || "Your City";
 
@@ -67,11 +69,11 @@ export default async function CityOverviewPage({
   const budgets = (budgetsRaw ?? []) as BudgetRow[];
   const actuals = (actualsRaw ?? []) as ActualRow[];
 
-  // 2) Build the unified list of fiscal years (budgets + actuals + explicit list)
+  // 2) Build unified list of fiscal years (budgets + actuals + explicit list)
   const yearSet = new Set<number>();
 
   (availableYearsFromBudgets ?? []).forEach((y) => {
-    if (Number.isFinite(y)) yearSet.add(y);
+    if (Number.isFinite(y)) yearSet.add(Number(y));
   });
 
   budgets.forEach((b) => {
@@ -107,12 +109,24 @@ export default async function CityOverviewPage({
     }
   }
 
-  // 4) Fetch ONLY the transactions for the selected year (not all years)
+  // 4) Fetch ONLY the transactions + revenues for the selected year
   let transactions: TransactionRow[] = [];
+  let revenueTotal: number | null = null;
 
   if (selectedYear !== undefined) {
+    const [transactionsRaw, revenuesRaw] = await Promise.all([
+      getTransactionsForYear(selectedYear),
+      getRevenuesForYear(selectedYear),
+    ]);
+
     transactions =
-      ((await getTransactionsForYear(selectedYear)) ?? []) as TransactionRow[];
+      ((transactionsRaw ?? []) as TransactionRow[]) ?? [];
+
+    const revenues = (revenuesRaw ?? []) as RevenueRow[];
+    revenueTotal = revenues.reduce(
+      (sum, r) => sum + Number(r.amount || 0),
+      0
+    );
   }
 
   return (
@@ -122,6 +136,7 @@ export default async function CityOverviewPage({
       transactions={transactions}
       availableYears={years}
       portalSettings={portalSettings}
+      revenueTotal={revenueTotal}
     />
   );
 }

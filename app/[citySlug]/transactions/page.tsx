@@ -1,17 +1,19 @@
-// app/paradise/transactions/page.tsx
+// app/[citySlug]/transactions/page.tsx
 import TransactionsDashboardClient from "@/components/City/TransactionsDashboardClient";
+import UnpublishedMessage from "@/components/City/UnpublishedMessage";
 import {
   getTransactionYears,
   getTransactionDepartmentsForYear,
   getTransactionsPage,
+  getPortalSettings,
 } from "@/lib/queries";
 import type { TransactionRow } from "@/lib/types";
+import type { PortalSettings } from "@/lib/queries";
 
 export const revalidate = 0;
 
 const PAGE_SIZE = 50;
 
-// Next 16 can pass searchParams as a Promise, so allow both.
 type SearchParamsShape = {
   year?: string;
   department?: string;
@@ -23,75 +25,66 @@ type PageProps = {
   searchParams: SearchParamsShape | Promise<SearchParamsShape>;
 };
 
-export default async function TransactionsPage(props: PageProps) {
-  // Support both direct object and Promise
-  const searchParams = await props.searchParams;
+function pickFirst(value: string | string[] | undefined) {
+  if (typeof value === "string") return value;
+  if (Array.isArray(value) && value.length > 0) return value[0];
+  return undefined;
+}
 
-  // 1) Years available in data
-  const years = await getTransactionYears();
-  const defaultYear = years[0];
+export default async function TransactionsPage({
+  searchParams,
+}: PageProps) {
+  const resolvedSearchParams = await searchParams;
 
-  // 2) Selected year from URL or fall back to latest
-  const yearParam = searchParams.year
-    ? Number(searchParams.year)
-    : undefined;
+  const [yearsRaw, settings] = await Promise.all([
+    getTransactionYears(),
+    getPortalSettings(),
+  ]);
 
-  const selectedYear =
-    yearParam && years.includes(yearParam)
-      ? yearParam
-      : defaultYear;
+  const portalSettings = settings as PortalSettings | null;
 
-  // 3) Department filter - "all" or specific value
-  const departmentParam = searchParams.department ?? "all";
+  if (portalSettings && portalSettings.is_published === false) {
+    return <UnpublishedMessage settings={portalSettings} />;
+  }
+
+  const years = (yearsRaw ?? []).slice().sort((a, b) => b - a);
+
+  let selectedYear: number | null = null;
+  if (years.length > 0) {
+    const yearParam = pickFirst(resolvedSearchParams.year);
+    const parsedYear = yearParam ? Number(yearParam) : NaN;
+    selectedYear =
+      Number.isFinite(parsedYear) && years.includes(parsedYear)
+        ? parsedYear
+        : years[0];
+  }
+
+  const pageParam = pickFirst(resolvedSearchParams.page);
+  const parsedPage = pageParam ? Number(pageParam) : NaN;
+  const page = Number.isFinite(parsedPage) && parsedPage > 0 ? parsedPage : 1;
+
   const department =
-    departmentParam && departmentParam !== "all"
-      ? departmentParam
-      : "all";
+    pickFirst(resolvedSearchParams.department) ?? "all";
+  const vendorQuery = pickFirst(resolvedSearchParams.q) ?? null;
 
-  // 4) Vendor/description query
-  const vendorQuery = searchParams.q ?? "";
+  let departments: string[] = [];
+  let transactions: TransactionRow[] = [];
+  let totalCount = 0;
 
-  // 5) Page (1-based)
-  const pageParam = searchParams.page
-    ? Number(searchParams.page)
-    : 1;
-  const page =
-    Number.isFinite(pageParam) && pageParam > 0
-      ? pageParam
-      : 1;
+  if (selectedYear != null) {
+    departments = await getTransactionDepartmentsForYear(selectedYear);
 
-  // 6) Paged transactions from Supabase
-  const { rows, totalCount } = await getTransactionsPage({
-    fiscalYear: selectedYear,
-    department: department === "all" ? undefined : department,
-    vendorQuery,
-    page,
-    pageSize: PAGE_SIZE,
-  });
+    const pageResult = await getTransactionsPage({
+      fiscalYear: selectedYear,
+      department,
+      vendorQuery: vendorQuery ?? undefined,
+      page,
+      pageSize: PAGE_SIZE,
+    });
 
-  const transactions: TransactionRow[] = rows ?? [];
-
-  // 7) Departments list for selected year (base from Supabase)
-  const baseDepartments =
-    selectedYear != null
-      ? await getTransactionDepartmentsForYear(selectedYear)
-      : [];
-
-  // 8) Ensure every department in the current page is present in the dropdown
-  const deptSet = new Set<string>(baseDepartments);
-
-  transactions.forEach((t) => {
-    const raw = t.department_name as string | null;
-    const name =
-      raw && raw.trim().length > 0 ? raw : "Unspecified";
-    if (!deptSet.has(name)) {
-      deptSet.add(name);
-    }
-  });
-
-  const departments = Array.from(deptSet).sort((a, b) =>
-    a.localeCompare(b)
-  );
+    transactions = pageResult.rows ?? [];
+    totalCount = pageResult.totalCount;
+  }
 
   return (
     <TransactionsDashboardClient

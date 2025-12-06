@@ -8,7 +8,6 @@ import CardContainer from "@/components/CardContainer";
 import BudgetCharts from "@/components/Budget/BudgetCharts";
 import type { DepartmentSummary } from "@/components/Budget/BudgetClient";
 import SectionHeader from "@/components/SectionHeader";
-import FiscalYearSelect from "@/components/FiscalYearSelect";
 import ParadiseHomeKpiStrip from "@/components/City/HomeKpiStrip";
 import ParadiseHomeMultiYearChart from "@/components/City/HomeMultiYearChart";
 import DepartmentsGrid from "@/components/City/HomeDepartmentsGrid";
@@ -17,7 +16,11 @@ import RecentTransactionsCard from "@/components/City/HomeRecentTransactionsCard
 import { CITY_CONFIG } from "@/lib/cityConfig";
 import { cityHref } from "@/lib/cityRouting";
 import type { PortalSettings } from "@/lib/queries";
-import type { BudgetRow, ActualRow, TransactionRow } from "@/lib/types";
+import type {
+  BudgetRow,
+  ActualRow,
+  TransactionRow,
+} from "@/lib/types";
 import { formatCurrency } from "@/lib/format";
 
 type Props = {
@@ -26,6 +29,7 @@ type Props = {
   transactions: TransactionRow[];
   availableYears: number[];
   portalSettings: PortalSettings | null;
+  revenueTotal?: number | null;
 };
 
 function fy(value: unknown): number | null {
@@ -39,6 +43,7 @@ export default function ParadiseHomeClient({
   transactions,
   availableYears,
   portalSettings,
+  revenueTotal,
 }: Props) {
   const searchParams = useSearchParams();
 
@@ -83,51 +88,53 @@ export default function ParadiseHomeClient({
   }, [searchParams, years]);
 
   const yearLabel =
-    selectedYear ?? (years.length > 0 ? years[0] : undefined);
+    selectedYear !== null ? String(selectedYear) : null;
 
-  // Year-scoped slices
   const budgetsForYear = useMemo(
     () =>
-      selectedYear != null
-        ? budgets.filter((b) => b.fiscal_year === selectedYear)
-        : budgets,
+      selectedYear === null
+        ? budgets
+        : budgets.filter((b) => b.fiscal_year === selectedYear),
     [budgets, selectedYear]
   );
 
   const actualsForYear = useMemo(
     () =>
-      selectedYear != null
-        ? actuals.filter((a) => a.fiscal_year === selectedYear)
-        : actuals,
+      selectedYear === null
+        ? actuals
+        : actuals.filter((a) => a.fiscal_year === selectedYear),
     [actuals, selectedYear]
   );
 
-  const txForYear = useMemo(
+  const transactionsForYear = useMemo(
     () =>
-      selectedYear != null
-        ? transactions.filter((t) => t.fiscal_year === selectedYear)
-        : transactions,
+      selectedYear === null
+        ? transactions
+        : transactions.filter(
+            (t) => t.fiscal_year === selectedYear
+          ),
     [transactions, selectedYear]
   );
 
-  const hasAnyDataForSelectedYear =
-    budgetsForYear.length > 0 ||
-    actualsForYear.length > 0 ||
-    txForYear.length > 0;
+  const recentTransactions = useMemo(
+    () => transactionsForYear.slice(0, 20),
+    [transactionsForYear]
+  );
 
-  // Department summaries
+  // Department-level summaries (for charts + grid)
   const departmentsForYear: DepartmentSummary[] = useMemo(() => {
     const budgetByDept = new Map<string, number>();
     const actualsByDept = new Map<string, number>();
 
     budgetsForYear.forEach((b) => {
-      const dept = b.department_name || "Uncategorized";
-      const amt = b.amount || 0;
-      budgetByDept.set(dept, (budgetByDept.get(dept) || 0) + amt);
+      if (!b.department_name) return;
+      const dept = b.department_name;
+      budgetByDept.set(dept, (budgetByDept.get(dept) || 0) + b.amount);
     });
 
     actualsForYear.forEach((a) => {
-      const dept = a.department_name || "Uncategorized";
+      if (!a.department_name) return;
+      const dept = a.department_name;
       const amt = a.amount || 0;
       actualsByDept.set(dept, (actualsByDept.get(dept) || 0) + amt);
     });
@@ -139,8 +146,9 @@ export default function ParadiseHomeClient({
     const rows: DepartmentSummary[] = allDepts.map((dept) => {
       const budget = budgetByDept.get(dept) || 0;
       const actual = actualsByDept.get(dept) || 0;
+
       const percentSpent =
-        budget === 0 ? 0 : Math.max(0, Math.min(1, actual / budget));
+        budget > 0 ? (actual / budget) * 100 : 0;
 
       return {
         department_name: dept,
@@ -174,12 +182,10 @@ export default function ParadiseHomeClient({
     );
     const variance = totalActuals - totalBudget;
     const execPct =
-      totalBudget === 0
-        ? 0
-        : Math.max(0, Math.min(1, totalActuals / totalBudget));
+      totalBudget > 0 ? totalActuals / totalBudget : 0;
 
     const deptCount = departmentsForYear.length;
-    const txCount = txForYear.length;
+    const txCount = transactionsForYear.length;
 
     const topDepartment =
       departmentsForYear.length > 0
@@ -195,7 +201,7 @@ export default function ParadiseHomeClient({
       txCount,
       topDepartment,
     };
-  }, [departmentsForYear, txForYear]);
+  }, [departmentsForYear, transactionsForYear]);
 
   const execPctDisplay = `${Math.round(execPct * 100)}%`;
   const hasBudgetData = totalBudget > 0;
@@ -208,7 +214,9 @@ export default function ParadiseHomeClient({
     CITY_CONFIG.primaryColor;
 
   const cityName =
-    portalSettings?.city_name || CITY_CONFIG.displayName || "Your City";
+    portalSettings?.city_name ||
+    CITY_CONFIG.displayName ||
+    "Your City";
 
   const tagline =
     portalSettings?.tagline ||
@@ -221,135 +229,150 @@ export default function ParadiseHomeClient({
 
   const heroImageUrl = portalSettings?.hero_image_url || null;
   const heroBackground =
-    portalSettings?.background_color || "#020617"; // slate-950-ish fallback
-  const heroOverlay = "rgba(15, 23, 42, 0.65)"; // slate-900/65
+    portalSettings?.background_color || "#020617";
+  const heroOverlay = "rgba(15, 23, 42, 0.65)";
+
+  const hasAnyDataForSelectedYear =
+    hasBudgetData || transactionsForYear.length > 0;
 
   return (
     <div className="mx-auto max-w-6xl space-y-6 px-3 py-6 sm:px-4 sm:py-8">
-      {/* HERO */}
+      {/* Hero */}
       <section
-        aria-label={`${cityName} financial transparency introduction`}
-        className="relative overflow-hidden rounded-2xl border border-slate-900/10 bg-slate-900 px-4 py-6 text-slate-50 shadow-sm sm:px-6 sm:py-8 md:px-8 md:py-10"
-        style={{ backgroundColor: heroBackground }}
+        className="overflow-hidden rounded-2xl border border-slate-900/10 bg-slate-900 text-slate-50 shadow-lg"
+        aria-labelledby="overview-hero-title"
       >
-        {heroImageUrl && (
-          <div
-            className="pointer-events-none absolute inset-0 opacity-25"
-            aria-hidden="true"
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={heroImageUrl}
-              alt=""
-              className="h-full w-full object-cover"
-            />
+        <div className="relative">
+          {heroImageUrl && (
+            <div
+              className="absolute inset-0 opacity-20"
+              aria-hidden="true"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={heroImageUrl}
+                alt=""
+                className="h-full w-full object-cover"
+              />
+              <div
+                className="absolute inset-0"
+                style={{ backgroundColor: heroOverlay }}
+              />
+            </div>
+          )}
+          {!heroImageUrl && (
             <div
               className="absolute inset-0"
-              style={{ backgroundColor: heroOverlay }}
+              style={{ backgroundColor: heroBackground }}
+              aria-hidden="true"
             />
-          </div>
-        )}
+          )}
 
-        <div className="relative flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-          {/* Left: text + CTAs */}
-          <div className="max-w-xl text-slate-50">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-300">
-              {tagline}
-            </p>
-            <h1 className="mt-2 text-xl font-semibold sm:text-2xl">
-              {cityName} Budget &amp; Spending Overview
-            </h1>
-            <p className="mt-2 text-sm text-slate-100/80">
-              {heroMessage}
-            </p>
-
-            <div className="mt-4 flex flex-wrap gap-2">
-              <Link
-                href={cityHref("/budget")}
-                className="inline-flex items-center justify-center rounded-full bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-900 shadow-sm hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"
+          <div className="relative grid gap-6 p-5 sm:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)] sm:p-7 lg:p-8">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-300">
+                Where CiviPortal was born
+              </p>
+              <h1
+                id="overview-hero-title"
+                className="mt-2 text-xl font-semibold leading-tight text-slate-50 sm:text-2xl"
               >
-                View budget details
-              </Link>
-              <Link
-                href={cityHref("/departments")}
-                className="inline-flex items-center justify-center rounded-full border border-slate-300/60 bg-slate-900/40 px-3 py-1.5 text-xs font-semibold text-slate-50 hover:bg-slate-800/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"
-              >
-                Explore departments
-              </Link>
-            </div>
-          </div>
+                {cityName} Budget &amp; Spending Overview
+              </h1>
+              <p className="mt-1 text-sm text-slate-100/90">
+                {tagline}
+              </p>
+              <p className="mt-2 text-xs text-slate-200/90 sm:max-w-md">
+                {heroMessage}
+              </p>
 
-          {/* Right: summarized year snapshot */}
-          <div className="flex w-full max-w-xs flex-col gap-3 text-xs text-slate-100 md:items-end">
-            <div className="rounded-lg bg-slate-900/60 px-3 py-2 text-xs text-slate-200 shadow-sm">
-              <div className="flex items-center justify-between gap-2">
-                <span className="font-semibold">
-                  {yearLabel
-                    ? `Fiscal year ${yearLabel}`
-                    : "Latest fiscal year"}
-                </span>
-                {hasBudgetData && (
-                  <span className="inline-flex items-center rounded-full bg-slate-800 px-2 py-0.5 text-[10px] font-semibold text-emerald-200">
-                    {execPctDisplay} spent
-                  </span>
-                )}
+              <div className="mt-4 flex flex-wrap gap-2">
+                <Link
+                  href={cityHref("/budget")}
+                  className="inline-flex items-center justify-center rounded-full bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-900 shadow-sm transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-50 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"
+                >
+                  View budget details
+                </Link>
+                <Link
+                  href={cityHref("/departments")}
+                  className="inline-flex items-center justify-center rounded-full border border-slate-100/60 bg-transparent px-3 py-1.5 text-xs font-semibold text-slate-50 shadow-sm transition hover:bg-slate-50/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-50 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"
+                >
+                  Explore departments
+                </Link>
               </div>
-              {hasBudgetData ? (
-                <div className="mt-1 space-y-0.5">
-                  <p>
-                    Budget:&nbsp;
-                    <span className="font-semibold">
-                      {formatCurrency(totalBudget)}
-                    </span>
-                  </p>
-                  <p>
-                    Spent to date:&nbsp;
-                    <span className="font-semibold">
-                      {formatCurrency(totalActuals)}
-                    </span>
+            </div>
+
+            <div className="flex flex-col justify-between gap-3 rounded-xl bg-slate-900/60 p-3 text-xs shadow-inner sm:p-4">
+              <div className="flex items-center justify-between">
+                <div className="rounded-full bg-slate-800/80 px-2 py-1 text-[10px] font-medium uppercase tracking-[0.16em] text-slate-200">
+                  Fiscal year{" "}
+                  {yearLabel ? yearLabel : "not selected"}
+                </div>
+                <div className="rounded-full bg-emerald-500/90 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-950">
+                  {hasBudgetData ? execPctDisplay : "Awaiting data"}
+                </div>
+              </div>
+
+              <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <div className="rounded-lg bg-slate-950/50 p-3">
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+                    Budget
+                  </div>
+                  <div className="mt-1 text-sm font-semibold text-slate-50">
+                    {hasBudgetData
+                      ? formatCurrency(totalBudget)
+                      : "Awaiting data"}
+                  </div>
+                  <p className="mt-1 text-[11px] text-slate-400">
+                    Citywide adopted budget for the selected
+                    fiscal year.
                   </p>
                 </div>
-              ) : (
-                <p className="mt-1 text-slate-300/80">
-                  Waiting for budget data to be uploaded.
-                </p>
-              )}
-            </div>
 
-            <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-200">
-              <div className="rounded-md bg-slate-900/60 px-2 py-2 text-center">
-                <p className="text-[10px] uppercase tracking-[0.16em] text-slate-400">
-                  Departments
-                </p>
-                <p className="mt-0.5 text-sm font-semibold text-slate-50">
-                  {deptCount}
-                </p>
+                <div className="rounded-lg bg-slate-950/50 p-3">
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+                    Spent to date
+                  </div>
+                  <div className="mt-1 text-sm font-semibold text-slate-50">
+                    {hasBudgetData
+                      ? formatCurrency(totalActuals)
+                      : "Awaiting data"}
+                  </div>
+                  <p className="mt-1 text-[11px] text-slate-400">
+                    Actual expenditures recorded against the
+                    budget so far.
+                  </p>
+                </div>
               </div>
-              <div className="rounded-md bg-slate-900/60 px-2 py-2 text-center">
-                <p className="text-[10px] uppercase tracking-[0.16em] text-slate-400">
-                  Transactions
-                </p>
-                <p className="mt-0.5 text-sm font-semibold text-slate-50">
-                  {txCount.toLocaleString()}
-                </p>
+
+              <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+                <div className="flex flex-wrap gap-2 text-[11px] text-slate-300">
+                  <span>
+                    Departments:{" "}
+                    <span className="font-semibold">
+                      {deptCount || "—"}
+                    </span>
+                  </span>
+                  <span>
+                    Transactions:{" "}
+                    <span className="font-semibold">
+                      {txCount || "—"}
+                    </span>
+                  </span>
+                </div>
+                {hasBudgetData && (
+                  <div className="text-[11px] text-slate-300">
+                    <span className="font-semibold">
+                      {execPctDisplay}
+                    </span>{" "}
+                    of budget spent so far.
+                  </div>
+                )}
               </div>
             </div>
           </div>
         </div>
       </section>
-
-      {/* Snapshot header */}
-      <SectionHeader
-        eyebrow="Overview"
-        title="Budget & Spending Snapshot"
-        description="Citywide totals, department comparisons, trends, and recent transactions for the selected fiscal year."
-        accentColor={accentColor}
-        rightSlot={
-          years.length > 0 ? (
-            <FiscalYearSelect options={years} label="Fiscal year" />
-          ) : null
-        }
-      />
 
       {/* If no data for the selected year, show a clear empty state and bail out */}
       {!hasAnyDataForSelectedYear ? (
@@ -376,10 +399,7 @@ export default function ParadiseHomeClient({
             <span className="font-semibold text-slate-600">
               CiviPortal
             </span>
-            {" · "}
-            <span className="text-slate-500">
-              {cityName} – awaiting financial data for this year.
-            </span>
+            .
           </div>
         </>
       ) : (
@@ -403,6 +423,17 @@ export default function ParadiseHomeClient({
               topDepartment={topDepartment}
               accentColor={accentColor}
             />
+
+            {revenueTotal != null && revenueTotal > 0 && (
+              <p className="mt-3 text-xs text-slate-600">
+                Total recorded revenues for{" "}
+                {yearLabel ?? "the selected year"}:{" "}
+                <span className="font-semibold">
+                  {formatCurrency(revenueTotal)}
+                </span>
+                .
+              </p>
+            )}
           </CardContainer>
 
           {/* Row 1: Budget vs actuals by department + multi-year chart */}
@@ -431,11 +462,12 @@ export default function ParadiseHomeClient({
                   </Link>
                 </div>
 
-                <BudgetCharts
-                  year={yearLabel ?? new Date().getFullYear()}
-                  departments={departmentsForYear}
-                  layout="stacked"
-                />
+<BudgetCharts
+  year={selectedYear ?? new Date().getFullYear()}
+  departments={departmentsForYear}
+  layout="stacked"
+/>
+
               </section>
             </CardContainer>
 
@@ -444,16 +476,29 @@ export default function ParadiseHomeClient({
                 aria-labelledby="home-multiyear-heading"
                 className="space-y-2"
               >
-                <h2
-                  id="home-multiyear-heading"
-                  className="text-sm font-semibold text-slate-800"
-                >
-                  Multi-year Budget vs Actuals
-                </h2>
-                <p className="text-xs text-slate-500">
-                  Citywide budget and actual spending across recent fiscal
-                  years.
-                </p>
+                <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+                  <div>
+                    <h2
+                      id="home-multiyear-heading"
+                      className="text-sm font-semibold text-slate-800"
+                    >
+                      Budget &amp; Spending Over Time
+                    </h2>
+                    <p className="text-xs text-slate-500">
+                      Compare adopted budgets and actual spending across
+                      multiple fiscal years.
+                    </p>
+                  </div>
+                  <div className="text-xs text-slate-500">
+                    Showing{" "}
+                    <span className="font-semibold">
+                      {years.length}{" "}
+                      {years.length === 1 ? "year" : "years"}
+                    </span>
+                    .
+                  </div>
+                </div>
+
                 <ParadiseHomeMultiYearChart
                   budgets={budgets}
                   actuals={actuals}
@@ -462,31 +507,32 @@ export default function ParadiseHomeClient({
             </CardContainer>
           </div>
 
-          {/* Row 2: recent transactions + departments + vendors */}
-          <div className="grid gap-6 lg:grid-cols-[1.4fr,1.6fr]">
+          {/* Row 2: Departments grid + vendors / transactions */}
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
             <CardContainer>
-              <RecentTransactionsCard
-                year={yearLabel ?? undefined}
-                transactions={txForYear}
-                limit={6}
+              <SectionHeader
+                title="Departments"
+                eyebrow="City services"
+                description="Compare budgets, actuals, and spending patterns across departments."
+              />
+              <DepartmentsGrid
+                year={selectedYear ?? years[0]}
+                departments={departmentsForYear}
               />
             </CardContainer>
 
-            <CardContainer>
-              <div className="space-y-4">
-                <DepartmentsGrid
-                  year={yearLabel ?? undefined}
-                  departments={departmentsForYear}
+            <div className="space-y-4">
+              <CardContainer>
+                <TopVendorsCard transactions={transactionsForYear} />
+              </CardContainer>
+              <CardContainer>
+                <RecentTransactionsCard
+                  transactions={recentTransactions}
                 />
-                <TopVendorsCard
-                  year={yearLabel ?? undefined}
-                  transactions={txForYear}
-                />
-              </div>
-            </CardContainer>
+              </CardContainer>
+            </div>
           </div>
 
-          {/* Footer */}
           <div className="pb-4 pt-1 text-center text-xs text-slate-400">
             Powered by{" "}
             <span className="font-semibold text-slate-600">
