@@ -96,7 +96,7 @@ export default function AdminShell({
         </div>
       </header>
 
-      {/* Main content (full width, no inner sidebar) */}
+      {/* Main content */}
       <div className="mx-auto max-w-6xl px-4 py-6">
         <section
           aria-label={title}
@@ -135,12 +135,12 @@ export default function AdminShell({
             )}
           </header>
 
-          {/* Admin section navigation – top tabs */}
+          {/* Admin section navigation – tabs, no scroll arrows */}
           <nav
             aria-label="Admin navigation"
             className="mb-4 border-b border-slate-200"
           >
-            <ul className="-mb-px flex gap-1 overflow-x-auto text-xs">
+            <ul className="-mb-px flex flex-wrap gap-1 text-xs">
               {NAV_ITEMS.map((item) => {
                 const href = cityHref(item.href);
                 const active = isActive(item.href);

@@ -327,7 +327,7 @@ export default function ParadiseHomeClient({
           <div className="relative grid gap-6 p-5 sm:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)] sm:p-7 lg:p-8">
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-300">
-                Where CiviPortal was born
+                Public financial transparency portal
               </p>
               <h1
                 id="overview-hero-title"

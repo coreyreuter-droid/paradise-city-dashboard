@@ -10,12 +10,17 @@ export type CityConfig = {
 };
 
 export const CITY_CONFIG: CityConfig = {
-  slug: process.env.NEXT_PUBLIC_CITY_SLUG || "Civil  • Civic • Civilized",
-  displayName: process.env.NEXT_PUBLIC_CITY_NAME || "City Name Needs Imported",
+  // Default slug only matters for local/dev; real cities should set the env var.
+  slug: process.env.NEXT_PUBLIC_CITY_SLUG || "paradise",
+
+  // Never show "City Name Needs Imported" in the UI again.
+  displayName: process.env.NEXT_PUBLIC_CITY_NAME || "Your City",
+
   tagline:
     process.env.NEXT_PUBLIC_CITY_TAGLINE ||
     "Public-facing financial transparency for your community.",
-  // Theme defaults – override per city via env vars
+
+  // Theme defaults – override per city via env vars.
   primaryColor:
     process.env.NEXT_PUBLIC_CITY_PRIMARY_COLOR || "#0f766e", // teal-700
   primaryTextColor:

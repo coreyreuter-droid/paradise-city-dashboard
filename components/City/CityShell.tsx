@@ -18,22 +18,21 @@ export default function CityShell({
   tagline,
   children,
 }: Props) {
-const pathname = usePathname();
-const basePath = `/${CITY_CONFIG.slug}`;
+  const pathname = usePathname();
+  const basePath = `/${CITY_CONFIG.slug}`;
 
-const isLanding =
-  pathname === basePath ||
-  pathname === `${basePath}/` ||
-  pathname === `/${CITY_CONFIG.slug}` ||
-  pathname === `/${CITY_CONFIG.slug}/`;
-
+  const isLanding =
+    pathname === basePath ||
+    pathname === `${basePath}/` ||
+    pathname === `/${CITY_CONFIG.slug}` ||
+    pathname === `/${CITY_CONFIG.slug}/`;
 
   // For the Home landing page: NO shared dashboard header/shell.
   if (isLanding) {
     return <>{children}</>;
   }
 
-  // For all other city routes: keep the existing header + card shell.
+  // For all other city routes: shared header + card shell.
   return (
     <>
       {/* Shared top hero/banner for all city dashboard pages */}
@@ -53,7 +52,7 @@ const isLanding =
 
         <div className="relative mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8 lg:px-10">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-200/80">
-            {CITY_CONFIG.slug}
+            Financial transparency dashboards
           </p>
           <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl lg:text-[1.9rem]">
             {displayName} Financial Transparency

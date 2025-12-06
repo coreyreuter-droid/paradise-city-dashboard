@@ -1,5 +1,6 @@
 // app/[citySlug]/layout.tsx
 import type { ReactNode } from "react";
+import type { Metadata } from "next";
 import ParadiseSidebar from "@/components/ParadiseSidebar";
 import { CITY_CONFIG } from "@/lib/cityConfig";
 import { createClient } from "@supabase/supabase-js";
@@ -54,6 +55,26 @@ async function getPortalSettings(): Promise<PortalSettingsRow | null> {
     );
     return null;
   }
+}
+
+// Per-city metadata so the browser tab uses the saved city/county name
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getPortalSettings();
+
+  const cityName =
+    (settings?.city_name && settings.city_name.trim()) ||
+    CITY_CONFIG.displayName;
+
+  const tagline =
+    (settings?.tagline && settings.tagline.trim()) ||
+    CITY_CONFIG.tagline;
+
+  return {
+    title: `${cityName} – Financial Transparency`,
+    description:
+      tagline ||
+      "Public-facing financial transparency for your community.",
+  };
 }
 
 export default async function CityLayout({
