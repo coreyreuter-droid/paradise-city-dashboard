@@ -122,10 +122,10 @@ export async function POST(req: NextRequest) {
     const replaceYear =
       typeof body.replaceYear === "number" ? body.replaceYear : null;
     const yearsInData = Array.isArray(body.yearsInData)
-      ? body.yearsInData
+      ? body.yearsInData.filter((y) => Number.isFinite(Number(y))).map(Number)
       : [];
 
-    // 4) Perform delete (if needed) using service-role client (bypasses RLS)
+    // Extra safety: enforce single-year behavior for replace_year
     if (mode === "replace_year") {
       if (!replaceYear) {
         return NextResponse.json(
@@ -134,6 +134,41 @@ export async function POST(req: NextRequest) {
         );
       }
 
+      if (yearsInData.length === 0) {
+        return NextResponse.json(
+          {
+            error:
+              "No fiscal years were detected in the uploaded data. For replace_year mode, all rows must include a fiscal_year.",
+          },
+          { status: 400 }
+        );
+      }
+
+      if (yearsInData.length > 1) {
+        return NextResponse.json(
+          {
+            error: `Multiple fiscal years detected in uploaded data (${yearsInData.join(
+              ", "
+            )}). For replace_year mode, the file must contain a single fiscal year.`,
+          },
+          { status: 400 }
+        );
+      }
+
+      const fileYear = yearsInData[0];
+
+      if (fileYear !== replaceYear) {
+        return NextResponse.json(
+          {
+            error: `Fiscal year mismatch. You requested replace_year for FY ${replaceYear}, but the uploaded data contains FY ${fileYear}.`,
+          },
+          { status: 400 }
+        );
+      }
+    }
+
+    // 4) Perform delete (if needed) using service-role client (bypasses RLS)
+    if (mode === "replace_year") {
       const { error: deleteError } = await supabaseAdmin
         .from(table)
         .delete()

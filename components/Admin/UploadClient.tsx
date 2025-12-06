@@ -109,6 +109,22 @@ function isValidISODate(value: unknown): boolean {
   return iso === trimmed;
 }
 
+function getUniqueFiscalYearsFromRows(rows: any[]): number[] {
+  const years = new Set<number>();
+
+  for (const row of rows) {
+    const raw = row?.fiscal_year;
+    if (raw === undefined || raw === null) continue;
+
+    const n = Number(raw);
+    if (Number.isFinite(n)) {
+      years.add(n);
+    }
+  }
+
+  return Array.from(years).sort((a, b) => a - b);
+}
+
 // period: YYYY-PP where PP is 01–12
 function isValidPeriod(value: unknown): boolean {
   if (typeof value !== "string") return false;
