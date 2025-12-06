@@ -1,4 +1,3 @@
-// components/Admin/UploadClient.tsx
 "use client";
 
 import React, { useState } from "react";
@@ -203,14 +202,16 @@ function validateAndBuildRecords(
   }
 
   // Validate no unexpected non-empty header names
+  const allowedCols = new Set<string>([
+    ...schema.required,
+    ...schema.numeric,
+  ]);
+
   headers.forEach((h) => {
     const normalized = h.trim();
     if (!normalized) return; // allow blank trailing columns
-    if (
-      !schema.required.includes(normalized) &&
-      !schema.numeric.includes(normalized)
-    ) {
-      // We allow extra columns; we just note they will be ignored
+    if (!allowedCols.has(normalized)) {
+      // Extra columns are allowed but will be ignored
       issues.push({
         row: null,
         field: normalized,
@@ -226,8 +227,12 @@ function validateAndBuildRecords(
     const rowNum = idx + 2; // account for header row
     const rec: Record<string, any> = {};
 
+    // Only copy columns that map to known fields; extras are ignored.
     headers.forEach((rawHeader, colIndex) => {
       const header = normalizeHeader(rawHeader);
+      if (!allowedCols.has(header)) {
+        return; // skip unknown columns so we don't send them to Supabase
+      }
       const value = row[colIndex] ?? "";
       rec[header] = value;
     });

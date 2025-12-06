@@ -1,47 +1,53 @@
-A. Supabase
+# CiviPortal Onboarding — New City
 
-Create a new Supabase project for the city.
+This doc is for **developers** standing up a new city on CiviPortal using **Supabase + Vercel**.
 
-Create the three tables (or run your schema SQL):
+The codebase assumes:
 
-budgets
+- One Supabase project **per city**
+- One Vercel deployment **per city**
+- Tables: `budgets`, `actuals`, `transactions`, `revenues`, `portal_settings`, `data_uploads`, `profiles`
+- Supabase Auth (email / magic link)
 
-actuals
+If any of this is missing or mis-named, the app will not behave correctly.
 
-transactions
+---
 
-Set the same columns you’re using now.
+## A. Supabase Setup
 
-Set up RLS policies if you want, or leave open for now for the anon key.
+### 1. Create a new Supabase project
 
-Use the admin upload UI to load:
+1. Go to Supabase → **New Project**
+2. Name it after the city (e.g. `springfield-budget`)
+3. Save:
+   - **Project URL**
+   - **anon public key**
+   - **service role key**
 
-budgets CSV
+You’ll need those for environment variables.
 
-actuals CSV
+---
 
-transactions CSV
+### 2. Core tables (budgets, actuals, transactions, revenues)
 
-B. Vercel (or wherever you deploy)
+Create the following tables with **exact names and columns**.
 
-Create a new project from the same GitHub repo.
+You can adjust indexes / primary keys as you like, but **do not rename or drop these columns**.
 
-Set environment variables:
+#### `budgets`
 
-NEXT_PUBLIC_SUPABASE_URL – from Supabase project
+Shape matches `BudgetRow` in `lib/schema.ts`:
 
-NEXT_PUBLIC_SUPABASE_ANON_KEY – from Supabase project
+```sql
+create table public.budgets (
+  fiscal_year      integer       not null,
+  fund_code        text,
+  fund_name        text,
+  department_code  text,
+  department_name  text,
+  category         text,
+  account_code     text,
+  account_name     text,
+  amount           numeric       not null
+);
 
-NEXT_PUBLIC_CITY_SLUG – e.g. springfield
-
-NEXT_PUBLIC_CITY_NAME – e.g. City of Springfield
-
-NEXT_PUBLIC_CITY_TAGLINE – e.g. Open budget and spending transparency
-
-Deploy.
-
-C. DNS / URL
-
-Point a domain or subdomain (e.g. budget.springfield.gov) to that Vercel project.
-
-Users hit that URL and see their city’s name, tagline, and data.

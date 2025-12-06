@@ -1,7 +1,6 @@
-// components/City/RevenuesDashboardClient.tsx
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   usePathname,
   useRouter,
@@ -163,12 +162,16 @@ export default function RevenuesDashboardClient({
     },
   ];
 
-  const handleSearchSubmit = (e: FormEvent) => {
-    e.preventDefault();
+  const applySourceSearch = () => {
     const url = buildSearchUrl(pathname, searchParams, {
       q: queryInput,
     });
     router.push(url);
+  };
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    applySourceSearch();
   };
 
   const handleClearFilters = () => {
@@ -271,7 +274,7 @@ export default function RevenuesDashboardClient({
             <div className="flex gap-2">
               <button
                 type="button"
-                onClick={handleSearchSubmit}
+                onClick={applySourceSearch}
                 className="inline-flex h-9 items-center rounded-md bg-slate-900 px-3 py-2 text-xs font-medium text-white shadow-sm hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
               >
                 Apply

@@ -1,7 +1,6 @@
-// components/FiscalYearSelect.tsx
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useId } from "react";
 import {
   usePathname,
   useRouter,
@@ -27,6 +26,7 @@ export default function FiscalYearSelect({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const selectId = useId();
 
   const sortedYears = useMemo(
     () => [...options].sort((a, b) => b - a), // Descending: newest first
@@ -59,7 +59,11 @@ export default function FiscalYearSelect({
         <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
           {label}
         </span>
-        <div className="inline-flex items-center gap-1 rounded-full bg-slate-100 p-0.5">
+        <div
+          className="inline-flex items-center gap-1 rounded-full bg-slate-100 p-0.5"
+          role="group"
+          aria-label={label}
+        >
           {sortedYears.map((year) => {
             const value = String(year);
             const active = currentValue === value;
@@ -86,10 +90,14 @@ export default function FiscalYearSelect({
   // Dropdown fallback for many years
   return (
     <div className="inline-block w-full max-w-xs">
-      <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+      <label
+        htmlFor={selectId}
+        className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500"
+      >
         {label}
       </label>
       <select
+        id={selectId}
         value={currentValue ?? ""}
         onChange={(e) => setYear(e.target.value)}
         className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"

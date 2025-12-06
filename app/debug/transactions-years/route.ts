@@ -1,14 +1,12 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
 
+// Disable this debug endpoint in production.
+// Keeping the file so imports / routes don't break, but it no longer exposes data.
 export const revalidate = 0;
 
 export async function GET() {
-  const { data, error } = await supabase
-    .from("transactions")
-    .select("fiscal_year");
-
-  console.log("DEBUG getTransactionYears:", { data, error });
-
-  return NextResponse.json({ data, error });
+  return NextResponse.json(
+    { error: "Debug endpoint disabled. Use getTransactionYears() in lib/queries instead." },
+    { status: 404 }
+  );
 }

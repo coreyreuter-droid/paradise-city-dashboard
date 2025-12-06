@@ -1,7 +1,6 @@
-// components/City/VendorsDashboardClient.tsx
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   usePathname,
   useRouter,
@@ -179,12 +178,16 @@ export default function VendorsDashboardClient({
     },
   ];
 
-  const handleVendorSearchSubmit = (e: FormEvent) => {
-    e.preventDefault();
+  const applyVendorSearch = () => {
     const url = buildSearchUrl(pathname, searchParams, {
       q: vendorInput,
     });
     router.push(url);
+  };
+
+  const handleVendorSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    applyVendorSearch();
   };
 
   const handleClearFilters = () => {
@@ -287,7 +290,7 @@ export default function VendorsDashboardClient({
             <div className="flex gap-2">
               <button
                 type="button"
-                onClick={handleVendorSearchSubmit}
+                onClick={applyVendorSearch}
                 className="inline-flex h-9 items-center rounded-md bg-slate-900 px-3 py-2 text-xs font-medium text-white shadow-sm hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
               >
                 Apply

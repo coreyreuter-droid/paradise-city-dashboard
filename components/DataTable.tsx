@@ -1,4 +1,3 @@
-// components/DataTable.tsx
 "use client";
 
 import React, { useMemo, useState, ReactNode } from "react";

@@ -1,151 +1,114 @@
-🏙 New City Setup Guide
 
-This assumes you’re deploying a new city using the same codebase, with its own Supabase project and its own deployment (Vercel or similar).
+---
 
-1. Create a new Supabase project
+### `new-city-setup.md` (full file)
 
-Go to Supabase → New Project
+```md
+# 🏙 New City Setup Guide
 
-Name it after the city (e.g. springfield-budget)
+This guide walks through standing up **a brand-new city** using this CiviPortal codebase.
 
-Note the:
+**One city = one Supabase project + one Vercel deployment.**
 
-Project URL
+Use this when you’re onboarding a new customer or spinning up a demo environment.
 
-anon public key
+---
 
-You’ll use those as env vars.
+## 1. Create the Supabase project
 
-2. Apply the database schema
+1. Go to Supabase → **New Project**
+2. Name it after the city, e.g. `springfield-budget`
+3. Save:
+   - Project URL
+   - anon public key
+   - service role key
 
-In the new Supabase project, create the tables:
+You’ll plug these into environment variables later.
 
-budgets
+---
 
-actuals
+## 2. Create the required tables
 
-transactions
+You must create the following tables with these names:
 
-Each should match the columns your app expects (what you used for Paradise). Example:
+- `budgets`
+- `actuals`
+- `revenues`
+- `transactions`
+- `portal_settings`
+- `data_uploads`
+- `profiles`
 
-budgets
+See `README-Onboarding.md` for the exact column definitions and example SQL.
 
-fiscal_year (int)
+Do **not** change table names; the app references them directly in `lib/queries.ts` and in API routes.
 
-department_name (text)
+Once tables exist, you can:
 
-amount (numeric)
+- Import CSVs for:
+  - `budgets`
+  - `actuals`
+  - `revenues`
+  - `transactions`
+- Manage branding and content through the admin UI, which writes to:
+  - `portal_settings`
+  - `data_uploads`
+  - `profiles`
 
-actuals
+---
 
-fiscal_year (int)
+## 3. Configure Supabase Auth + profiles
 
-department_name (text)
+The app uses Supabase Auth with email-based login (magic link).
 
-amount (numeric)
+1. Make sure **Email** auth is enabled in Supabase.
+2. Confirm SMTP is configured so invitation emails can be delivered.
+3. Create the `profiles` table (if you don’t already have one) to match:
 
-transactions
+   - `id` (UUID, references `auth.users.id`)
+   - `role` (text)
+   - `created_at` (timestamp)
 
-date (date or timestamptz)
+   See `README-Onboarding.md` for the SQL example.
 
-fiscal_year (int)
+4. Create your own user:
+   - Either via Supabase → Auth → **Add user**
+   - Or by hitting the `/[citySlug]/login` page and going through the magic link flow
 
-fund_name (text)
+5. Promote yourself to `super_admin`:
 
-department_name (text)
+   - Get your `auth.users.id` from Supabase.
+   - Insert a row into `profiles` with that id and `role = 'super_admin'`.
 
-vendor (text)
+The admin APIs and `AdminGuard` rely on `profiles.role` to gate access.
 
-description (text)
+---
 
-amount (numeric)
+## 4. Branding storage bucket
 
-You can either:
+Create a public Storage bucket named:
 
-Reuse the SQL you already used for Paradise, or
+- `branding`
 
-Manually create the tables from the UI to match.
+The hero image upload API (`app/api/admin/hero-image/route.ts`) writes into this bucket.
 
-3. Upload initial data
+Make sure the bucket is public so the front-end can load images without signed URLs.
 
-Use your admin upload UI in the app (once deployed) or insert via Supabase directly.
+---
 
-You need three CSVs:
+## 5. App configuration (env vars)
 
-Budgets
-
-Actuals
-
-Transactions
-
-They must match the expected headers you already standardized on in this project.
-
-4. Create a new deployment (e.g. Vercel)
-
-In Vercel, click New Project
-
-Select the same GitHub repo (paradise-city-dashboard)
-
-Name the project after the city (e.g. springfield-dashboard)
-
-5. Set environment variables for that city
-
-In that Vercel project’s settings, set:
-
-Supabase
-
-NEXT_PUBLIC_SUPABASE_URL → Supabase project URL
-
-NEXT_PUBLIC_SUPABASE_ANON_KEY → Supabase anon key
-
-City identity
-
-NEXT_PUBLIC_CITY_SLUG → e.g. springfield
-
-NEXT_PUBLIC_CITY_NAME → e.g. City of Springfield
-
-NEXT_PUBLIC_CITY_TAGLINE → e.g. Open budget and spending transparency
-
-Theme (optional but recommended)
-
-NEXT_PUBLIC_CITY_PRIMARY_COLOR → e.g. #1e3a8a
-
-NEXT_PUBLIC_CITY_PRIMARY_TEXT → e.g. #ffffff
-
-NEXT_PUBLIC_CITY_ACCENT_COLOR → e.g. #3b82f6
-
-Deploy.
-
-6. Verify the new city dashboard
-
-Once deployed:
-
-Go to the app URL (e.g. https://springfield-dashboard.vercel.app/springfield)
-
-Check:
-
-Sidebar shows the city name
-
-Tagline matches the env var
-
-Colors match the theme
-
-Budget / analytics / transactions load using the new Supabase data
-
-If something looks off, double-check:
-
-The CITY_CONFIG env vars
-
-Supabase table names + columns
-
-That you deployed with the correct envs
-
-7. (Optional) Point a real domain
-
-For production:
-
-Set up DNS → budget.city.gov or similar
-
-Point it to the Vercel project
-
-Now the city has its own public-facing budget portal
+In Vercel and/or `.env.local`, set:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=<your-supabase-url>
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<your-anon-key>
+SUPABASE_SERVICE_ROLE_KEY=<your-service-role-key>
+
+NEXT_PUBLIC_CITY_SLUG=springfield
+NEXT_PUBLIC_CITY_NAME="City of Springfield"
+NEXT_PUBLIC_CITY_TAGLINE="Open budget and spending transparency"
+
+NEXT_PUBLIC_CITY_PRIMARY_COLOR=#1e3a8a
+NEXT_PUBLIC_CITY_PRIMARY_TEXT=#ffffff
+NEXT_PUBLIC_CITY_ACCENT_COLOR=#3b82f6
