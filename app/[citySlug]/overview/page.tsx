@@ -45,16 +45,12 @@ export default async function CityOverviewPage({
     actualsRaw,
     settings,
     availableYearsFromBudgets,
-    transactionsAndRevenuesContext,
     uploadLogsRaw,
   ] = await Promise.all([
     getAllBudgets(),
     getAllActuals(),
     getPortalSettings(),
     getAvailableFiscalYears(),
-    // placeholder for selectedYear-dependent calls; we only
-    // use this tuple after we know the year
-    Promise.resolve<[TransactionRow[], RevenueRow[]]>([[], []]),
     getDataUploadLogs(),
   ]);
 
@@ -124,6 +120,7 @@ export default async function CityOverviewPage({
 
   // 4) Fetch ONLY the transactions + revenues for the selected year
   let transactions: TransactionRow[] = [];
+  let revenues: RevenueRow[] = [];
   let revenueTotal: number | null = null;
 
   if (selectedYear !== undefined) {
@@ -135,75 +132,76 @@ export default async function CityOverviewPage({
     transactions =
       ((transactionsRaw ?? []) as TransactionRow[]) ?? [];
 
-    const revenues = (revenuesRaw ?? []) as RevenueRow[];
+    revenues =
+      ((revenuesRaw ?? []) as RevenueRow[]) ?? [];
+
     revenueTotal = revenues.reduce(
       (sum, r) => sum + Number(r.amount || 0),
       0
     );
   }
 
-// 5) Compute data freshness summary from upload logs
-const uploadLogs = (uploadLogsRaw ?? []) as any[];
+  // 5) Compute data freshness summary from upload logs
+  const uploadLogs = (uploadLogsRaw ?? []) as any[];
 
-type FreshnessEntry = {
-  table: string;
-  fiscalYear: number | null;
-  rowCount: number | null;
-  lastUploadAt: string | null;
-};
+  type FreshnessEntry = {
+    table: string;
+    fiscalYear: number | null;
+    rowCount: number | null;
+    lastUploadAt: string | null;
+  };
 
-type DataFreshnessSummary = {
-  budgets?: FreshnessEntry | null;
-  actuals?: FreshnessEntry | null;
-  transactions?: FreshnessEntry | null;
-  revenues?: FreshnessEntry | null;
-};
+  type DataFreshnessSummary = {
+    budgets?: FreshnessEntry | null;
+    actuals?: FreshnessEntry | null;
+    transactions?: FreshnessEntry | null;
+    revenues?: FreshnessEntry | null;
+  };
 
-const tables: Array<keyof DataFreshnessSummary> = [
-  "budgets",
-  "actuals",
-  "transactions",
-  "revenues",
-];
+  const tables: Array<keyof DataFreshnessSummary> = [
+    "budgets",
+    "actuals",
+    "transactions",
+    "revenues",
+  ];
 
-const dataFreshness: DataFreshnessSummary = {};
+  const dataFreshness: DataFreshnessSummary = {};
 
-tables.forEach((tableName) => {
-  const tableLogs = uploadLogs.filter(
-    (log) => log?.table_name === tableName
-  );
-
-  if (!tableLogs.length) {
-    (dataFreshness as any)[tableName] = null;
-    return;
-  }
-
-  // sort descending by created_at
-  const latest = tableLogs.sort((a, b) => {
-    return (
-      new Date(b.created_at).getTime() -
-      new Date(a.created_at).getTime()
+  tables.forEach((tableName) => {
+    const tableLogs = uploadLogs.filter(
+      (log) => log?.table_name === tableName
     );
-  })[0];
 
-  (dataFreshness as any)[tableName] = {
-    table: tableName,
-    fiscalYear:
-      typeof latest?.fiscal_year === "number"
-        ? latest.fiscal_year
-        : latest?.fiscal_year
-        ? Number(latest.fiscal_year)
-        : null,
-    rowCount:
-      typeof latest?.row_count === "number"
-        ? latest.row_count
-        : latest?.row_count
-        ? Number(latest.row_count)
-        : null,
-    lastUploadAt: latest?.created_at ?? null,
-  } satisfies FreshnessEntry;
-});
+    if (!tableLogs.length) {
+      (dataFreshness as any)[tableName] = null;
+      return;
+    }
 
+    // sort descending by created_at
+    const latest = tableLogs.sort((a, b) => {
+      return (
+        new Date(b.created_at).getTime() -
+        new Date(a.created_at).getTime()
+      );
+    })[0];
+
+    (dataFreshness as any)[tableName] = {
+      table: tableName,
+      fiscalYear:
+        typeof latest?.fiscal_year === "number"
+          ? latest.fiscal_year
+          : latest?.fiscal_year
+          ? Number(latest.fiscal_year)
+          : null,
+      rowCount:
+        typeof latest?.row_count === "number"
+          ? latest.row_count
+          : latest?.row_count
+          ? Number(latest.row_count)
+          : null,
+      lastUploadAt: latest?.created_at ?? null,
+    } satisfies FreshnessEntry;
+  });
 
   return (
     <ParadiseHomeClient
@@ -212,6 +210,7 @@ tables.forEach((tableName) => {
       transactions={transactions}
       availableYears={years}
       portalSettings={portalSettings}
+      revenues={revenues}
       revenueTotal={revenueTotal}
       dataFreshness={dataFreshness}
     />

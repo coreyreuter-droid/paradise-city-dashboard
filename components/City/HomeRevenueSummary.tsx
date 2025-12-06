@@ -59,7 +59,7 @@ export default function HomeRevenueSummary({
   return (
     <section
       aria-label="Revenue snapshot"
-      className="flex h-full flex-col rounded-2xl border border-slate-200 bg-white px-4 py-4 text-left shadow-sm sm:px-5 sm:py-5"
+      className="flex h-full flex-col text-left"
     >
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -72,7 +72,7 @@ export default function HomeRevenueSummary({
           </p>
         </div>
         <span
-          className="inline-flex items-center rounded-full bg-slate-900 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.16em] text-slate-50"
+          className="inline-flex items-center rounded-full px-2 py-1 text-[10px] font-medium uppercase tracking-[0.16em] text-slate-50"
           style={accentBadgeStyle}
         >
           Revenues
@@ -111,20 +111,6 @@ export default function HomeRevenueSummary({
                 Simple total divided by 12 months to give a
                 ballpark monthly figure.
               </p>
-            </div>
-
-            {/* Context blurb */}
-            <div className="sm:col-span-2">
-              <div className="rounded-lg border border-dashed border-slate-200 bg-white px-3 py-3">
-                <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">
-                  Context
-                </div>
-                <p className="mt-1 text-xs text-slate-600">
-                  Use this alongside the budget and spending KPIs
-                  to understand how incoming revenues relate to
-                  overall financial activity for {yearLabel}.
-                </p>
-              </div>
             </div>
           </div>
         ) : (

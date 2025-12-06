@@ -13,6 +13,7 @@ import ParadiseHomeMultiYearChart from "@/components/City/HomeMultiYearChart";
 import DepartmentsGrid from "@/components/City/HomeDepartmentsGrid";
 import TopVendorsCard from "@/components/City/HomeTopVendorsCard";
 import RecentTransactionsCard from "@/components/City/HomeRecentTransactionsCard";
+import HomeRevenueSummary from "@/components/City/HomeRevenueSummary";
 import { CITY_CONFIG } from "@/lib/cityConfig";
 import { cityHref } from "@/lib/cityRouting";
 import type { PortalSettings } from "@/lib/queries";
@@ -20,6 +21,7 @@ import type {
   BudgetRow,
   ActualRow,
   TransactionRow,
+  RevenueRow,
 } from "@/lib/types";
 import { formatCurrency } from "@/lib/format";
 
@@ -43,6 +45,7 @@ type Props = {
   transactions: TransactionRow[];
   availableYears: number[];
   portalSettings: PortalSettings | null;
+  revenues?: RevenueRow[];
   revenueTotal?: number | null;
   dataFreshness?: DataFreshnessSummary;
 };
@@ -69,6 +72,7 @@ export default function ParadiseHomeClient({
   transactions,
   availableYears,
   portalSettings,
+  revenues = [],
   revenueTotal,
   dataFreshness,
 }: Props) {
@@ -476,22 +480,20 @@ export default function ParadiseHomeClient({
               accentColor={accentColor}
             />
 
-            {revenueTotal != null && revenueTotal > 0 && (
-              <p className="mt-3 text-xs text-slate-600">
-                Total recorded revenues for{" "}
-                {yearLabel ?? "the selected year"}:{" "}
-                <span className="font-semibold">
-                  {formatCurrency(revenueTotal)}
-                </span>
-                .
-              </p>
-            )}
-
             {freshnessText && (
               <p className="mt-2 text-[11px] text-slate-500">
                 Data last updated — {freshnessText}
               </p>
             )}
+          </CardContainer>
+
+          {/* Revenues overview */}
+          <CardContainer>
+            <HomeRevenueSummary
+              revenues={revenues}
+              years={years}
+              accentColor={accentColor}
+            />
           </CardContainer>
 
           {/* Row 1: Budget vs actuals by department + multi-year chart */}
