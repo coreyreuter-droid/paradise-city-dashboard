@@ -1,4 +1,3 @@
-// components/ParadiseSidebar.tsx
 "use client";
 
 import Link from "next/link";
@@ -32,14 +31,14 @@ export default function ParadiseSidebar() {
   const [branding, setBranding] = useState<PortalBranding | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  // NEW: whether dashboard nav should be visible (published OR admin)
+  // whether dashboard nav should be visible (published OR admin)
   const [showDashboardNav, setShowDashboardNav] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
 
     async function loadSidebarState() {
-      // 1) Load branding (same as before)
+      // 1) Load branding
       const { data: brandingData } = await supabase
         .from("portal_settings")
         .select(
@@ -257,131 +256,143 @@ export default function ParadiseSidebar() {
 
   return (
     <>
-      {/* MOBILE TOP BAR (sm:hidden) */}
-      <div className="flex items-center justify-between border-b border-slate-200 bg-white/95 px-3 py-2 shadow-sm sm:hidden">
-        <div className="flex items-center gap-2">
-          {branding?.logo_url ? (
-            <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-white">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={branding.logo_url}
-                alt={portalTitle}
-                className="h-full w-full object-contain"
-              />
-            </div>
-          ) : (
-            <div
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-xs font-semibold text-white shadow-sm"
-              style={{ background: accent }}
-            >
-              {initials || "C"}
-            </div>
-          )}
-          <div className="min-w-0">
-            <div className="truncate text-sm font-semibold text-slate-900">
-              {portalTitle}
-            </div>
-            <div className="truncate text-xs text-slate-500">
-              {portalTagline}
-            </div>
-          </div>
-        </div>
-
-        <button
-          type="button"
-          onClick={() => setMobileOpen((v) => !v)}
-          className="inline-flex items-center justify-center rounded-md border border-slate-200 bg-white px-2 py-1 text-slate-700 shadow-sm"
-          aria-label="Toggle navigation"
-          aria-expanded={mobileOpen}
-        >
-          <span className="sr-only">Toggle navigation</span>
-          <div className="space-y-0.5">
-            <span className="block h-0.5 w-4 rounded bg-slate-800" />
-            <span className="block h-0.5 w-4 rounded bg-slate-800" />
-            <span className="block h-0.5 w-4 rounded bg-slate-800" />
-          </div>
-        </button>
-      </div>
-
-      {/* MOBILE SLIDE-OUT NAV */}
-      {mobileOpen && (
-        <div className="fixed inset-0 z-40 sm:hidden">
-          {/* Backdrop */}
-          <div
-            className="absolute inset-0 bg-black/30"
-            onClick={closeMobile}
-          />
-          {/* Drawer */}
-          <div className="absolute inset-y-0 right-0 w-64 max-w-[80%] bg-white shadow-xl">
-            <div className="flex items-center justify-between border-b border-slate-200 px-3 py-3">
-              <div className="flex items-center gap-2">
-                {branding?.logo_url ? (
-                  <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-white">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={branding.logo_url}
-                      alt={portalTitle}
-                      className="h-full w-full object-contain"
-                    />
-                  </div>
-                ) : (
-                  <div
-                    className="flex h-8 w-8 items-center justify-center rounded-lg text-xs font-semibold text-white shadow-sm"
-                    style={{ background: accent }}
-                  >
-                    {initials || "C"}
-                  </div>
-                )}
-                <div className="min-w-0">
-                  <div className="truncate text-sm font-semibold text-slate-900">
-                    {portalTitle}
-                  </div>
-                  <div className="truncate text-xs text-slate-500">
-                    {portalTagline}
-                  </div>
-                </div>
+      {/* MOBILE HEADER + NAV (landmark) */}
+      <header
+        className="sm:hidden"
+        aria-label={`${portalTitle} mobile navigation`}
+      >
+        {/* MOBILE TOP BAR */}
+        <div className="flex items-center justify-between border-b border-slate-200 bg-white/95 px-3 py-2 shadow-sm">
+          <div className="flex items-center gap-2">
+            {branding?.logo_url ? (
+              <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-white">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={branding.logo_url}
+                  alt={portalTitle}
+                  className="h-full w-full object-contain"
+                />
               </div>
-              <button
-                type="button"
-                onClick={closeMobile}
-                className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600"
-                aria-label="Close navigation"
+            ) : (
+              <div
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-xs font-semibold text-white shadow-sm"
+                style={{ background: accent }}
               >
-                <span className="sr-only">Close</span>
-                ×
-              </button>
-            </div>
-
-            <div className="flex h-[calc(100%-3rem)] flex-col justify-between overflow-y-auto px-3 py-3">
-              <div className="space-y-6">
-                {renderNavList("mobile")}
+                {initials || "C"}
               </div>
-
-              <div className="mt-6 border-t border-slate-100 pt-3">
-                <div className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2">
-                  <div>
-                    <p className="text-xs text-slate-500">
-                      Powered by{" "}
-                      <span className="font-semibold text-slate-800">
-                        CiviPortal
-                      </span>
-                    </p>
-                  </div>
-                  <span
-                    className="inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-semibold text-white"
-                    style={{ backgroundColor: accent }}
-                  >
-                    {initials || "C"}
-                  </span>
-                </div>
+            )}
+            <div className="min-w-0">
+              <div className="truncate text-sm font-semibold text-slate-900">
+                {portalTitle}
+              </div>
+              <div className="truncate text-xs text-slate-500">
+                {portalTagline}
               </div>
             </div>
           </div>
+
+          <button
+            type="button"
+            onClick={() => setMobileOpen((v) => !v)}
+            className="inline-flex items-center justify-center rounded-md border border-slate-200 bg-white px-2 py-1 text-slate-700 shadow-sm"
+            aria-label="Toggle navigation"
+            aria-expanded={mobileOpen}
+          >
+            <span className="sr-only">Toggle navigation</span>
+            <div className="space-y-0.5">
+              <span className="block h-0.5 w-4 rounded bg-slate-800" />
+              <span className="block h-0.5 w-4 rounded bg-slate-800" />
+              <span className="block h-0.5 w-4 rounded bg-slate-800" />
+            </div>
+          </button>
         </div>
-      )}
+
+        {/* MOBILE SLIDE-OUT NAV */}
+        {mobileOpen && (
+          <div className="fixed inset-0 z-40">
+            {/* Backdrop */}
+            <div
+              className="absolute inset-0 bg-black/30"
+              onClick={closeMobile}
+            />
+            {/* Drawer */}
+            <nav
+              className="absolute inset-y-0 right-0 w-64 max-w-[80%] bg-white shadow-xl"
+              aria-label="Primary navigation"
+            >
+              <div className="flex items-center justify-between border-b border-slate-200 px-3 py-3">
+                <div className="flex items-center gap-2">
+                  {branding?.logo_url ? (
+                    <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-white">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={branding.logo_url}
+                        alt={portalTitle}
+                        className="h-full w-full object-contain"
+                      />
+                    </div>
+                  ) : (
+                    <div
+                      className="flex h-8 w-8 items-center justify-center rounded-lg text-xs font-semibold text-white shadow-sm"
+                      style={{ background: accent }}
+                    >
+                      {initials || "C"}
+                    </div>
+                  )}
+                  <div className="min-w-0">
+                    <div className="truncate text-sm font-semibold text-slate-900">
+                      {portalTitle}
+                    </div>
+                    <div className="truncate text-xs text-slate-500">
+                      {portalTagline}
+                    </div>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={closeMobile}
+                  className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600"
+                  aria-label="Close navigation"
+                >
+                  <span className="sr-only">Close</span>
+                  ×
+                </button>
+              </div>
+
+              <div className="flex h-[calc(100%-3rem)] flex-col justify-between overflow-y-auto px-3 py-3">
+                <div className="space-y-6">
+                  {renderNavList("mobile")}
+                </div>
+
+                <div className="mt-6 border-t border-slate-100 pt-3">
+                  <div className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2">
+                    <div>
+                      <p className="text-xs text-slate-500">
+                        Powered by{" "}
+                        <span className="font-semibold text-slate-800">
+                          CiviPortal
+                        </span>
+                      </p>
+                    </div>
+                    <span
+                      className="inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-semibold text-white"
+                      style={{ backgroundColor: accent }}
+                    >
+                      {initials || "C"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </nav>
+          </div>
+        )}
+      </header>
 
       {/* DESKTOP SIDEBAR (sm+ only) */}
-      <aside className="hidden w-64 flex-none border-r border-slate-200 bg-white/95 px-3 py-4 shadow-sm sm:flex sm:flex-col lg:w-72">
+      <aside
+        className="hidden w-64 flex-none border-r border-slate-200 bg-white/95 px-3 py-4 shadow-sm sm:flex sm:flex-col lg:w-72"
+        aria-label="Primary sidebar navigation"
+      >
         {/* Brand */}
         <div className="mb-5 flex items-center gap-3 px-2">
           <div>

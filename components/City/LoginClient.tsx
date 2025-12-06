@@ -137,13 +137,8 @@ export default function LoginClient({ redirect }: Props) {
             <p className="font-semibold">Check your email</p>
             <p className="mt-1">
               We sent a sign-in link to{" "}
-              <span className="font-medium">{email}</span>. Open this device’s
-              email app and click the link to finish signing in.
-            </p>
-            <p className="mt-2 text-[0.75rem] text-emerald-900/80">
-              If you don&apos;t see it, check your spam or junk folder. You can
-              close this window; the link will take you directly to the admin
-              portal.
+              <span className="font-medium">{email}</span>. Open your email on
+              this device and follow the link to finish signing in.
             </p>
           </div>
         ) : (
@@ -154,20 +149,21 @@ export default function LoginClient({ redirect }: Props) {
           >
             <div className="space-y-1">
               <label
-                htmlFor="login-email"
-                className="text-xs font-medium text-slate-800"
+                htmlFor="email"
+                className="block text-xs font-medium text-slate-700"
               >
-                Work email
+                Work email address
               </label>
               <input
-                id="login-email"
+                id="email"
+                name="email"
                 type="email"
                 autoComplete="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={isSending}
-                className="h-10 w-full rounded-md border border-slate-300 bg-white px-2 text-sm text-slate-900 shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+                className="h-10 w-full rounded-md border border-slate-300 px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
                 placeholder="you@city.gov"
               />
             </div>
@@ -175,12 +171,12 @@ export default function LoginClient({ redirect }: Props) {
             <button
               type="submit"
               disabled={isSending}
-              className="flex h-10 w-full items-center justify-center rounded-md bg-slate-900 px-3 py-2 text-xs font-medium text-white shadow-sm hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+              className="flex h-10 w-full items-center justify-center rounded-md bg-sky-600 px-3 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
             >
               {isSending ? "Sending secure link…" : "Send sign-in link"}
             </button>
 
-            {status === "error" && error && (
+            {error && (
               <p
                 role="alert"
                 className="text-xs text-red-600"
@@ -195,9 +191,9 @@ export default function LoginClient({ redirect }: Props) {
           id="login-help-text"
           className="mt-4 text-xs text-slate-500"
         >
-          Your sign-in link will only work on allowed domains configured in
-          Supabase Auth. Make sure this site&apos;s URL is added in your
-          Supabase project settings.
+          This portal uses secure, one-time links instead of passwords. If you
+          don&apos;t see the email in a few minutes, check your spam folder or
+          contact your administrator.
         </p>
       </div>
     </div>

@@ -393,7 +393,7 @@ export default function BudgetClient({ budgets, actuals }: Props) {
                         Overall budget execution
                       </p>
                       <p className="mt-1 text-2xl font-semibold text-slate-900">
-                        {formatPercent(totals.execPct / 100)}
+                        {formatPercent(totals.execPct)}
                       </p>
                       <p className="mt-1 text-xs text-slate-600">
                         {formatCurrency(totals.actuals)} of{" "}
