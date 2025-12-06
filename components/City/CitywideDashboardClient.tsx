@@ -7,16 +7,14 @@ import {
   PieChart,
   Pie,
   Cell,
-  BarChart,
-  Bar,
+  LineChart,
+  Line,
+  CartesianGrid,
   XAxis,
   YAxis,
   Tooltip,
   ResponsiveContainer,
-  CartesianGrid,
   Legend,
-  LineChart,
-  Line,
 } from "recharts";
 import type { BudgetRow, ActualRow, TransactionRow } from "@/lib/types";
 import CardContainer from "../CardContainer";
@@ -265,11 +263,6 @@ export default function CitywideDashboardClient({
   const execPctClamped = Math.max(0, Math.min(execPct, 200));
   const execPctDisplay = Math.max(0, execPct);
 
-  const hasAnyActualsForSelectedYear = deptSummaries.some(
-    (d) => d.actuals > 0
-  );
-
-  // Total transactions + top vendors for selected year
   const { transactionsForYear, topVendors, totalVendorSpend } = useMemo(() => {
     if (!selectedYear) {
       return {
@@ -510,7 +503,7 @@ export default function CitywideDashboardClient({
   const totalTransactionsCount = transactionsForYear.length;
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-50 overflow-x-hidden">
       <div className="mx-auto max-w-6xl px-3 py-4 sm:px-4 sm:py-6 lg:px-6 lg:py-8">
         <SectionHeader
           eyebrow="Citywide analytics"
@@ -653,7 +646,7 @@ export default function CitywideDashboardClient({
                       </p>
                     ) : (
                       <>
-                        <div className="h-64 w-full min-w-0 overflow-hidden">
+                        <div className="h-56 w-full min-w-0 overflow-hidden sm:h-64">
                           <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
                               <Pie
@@ -758,7 +751,7 @@ export default function CitywideDashboardClient({
                       </p>
                     ) : (
                       <>
-                        <div className="h-64 w-full min-w-0 overflow-hidden">
+                        <div className="h-56 w-full min-w-0 overflow-hidden sm:h-64">
                           <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
                               <Pie
