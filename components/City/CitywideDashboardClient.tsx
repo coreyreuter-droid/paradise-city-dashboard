@@ -505,20 +505,19 @@ export default function CitywideDashboardClient({
   return (
     <div className="min-h-screen bg-slate-50 overflow-x-hidden">
       <div className="mx-auto max-w-6xl px-3 py-4 sm:px-4 sm:py-6 lg:px-6 lg:py-8">
-<SectionHeader
-  eyebrow="Citywide analytics"
-  title="Budget, spending, and vendors"
-  description="High-level trends, department performance, and vendor-level spending across the city."
-  rightSlot={
-    years.length > 0 ? (
-      <FiscalYearSelect
-        options={years}
-        label="Fiscal year"
-      />
-    ) : null
-  }
-/>
-
+        <SectionHeader
+          eyebrow="Citywide analytics"
+          title="Budget, spending, and vendors"
+          description="High-level trends, department performance, and vendor-level spending for the selected fiscal year."
+          rightSlot={
+            years.length > 0 ? (
+              <FiscalYearSelect
+                options={years}
+                label="Fiscal year"
+              />
+            ) : null
+          }
+        />
 
         {/* Breadcrumb */}
         <nav
