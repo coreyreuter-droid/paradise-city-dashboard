@@ -50,6 +50,9 @@ export default async function DepartmentsPage({
     return <UnpublishedMessage settings={portalSettings} />;
   }
 
+  const enableTransactions =
+    portalSettings?.enable_transactions === true;
+
   const years = (availableYearsRaw ?? [])
     .map((y) => Number(y))
     .filter((y) => Number.isFinite(y))
@@ -87,6 +90,7 @@ export default async function DepartmentsPage({
       actuals={actuals}
       transactions={transactions}
       years={years}
+      enableTransactions={enableTransactions}
     />
   );
 }

@@ -8,20 +8,23 @@ type Props = {
   year?: number;
   transactions: TransactionRow[];
   limit?: number;
+  enableVendors?: boolean;
 };
 
 export default function RecentTransactionsCard({
   year,
   transactions,
   limit = 8,
+  enableVendors = true,
 }: Props) {
   const sorted = [...transactions].sort(
     (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
   );
   const rows = sorted.slice(0, limit);
+  const vendorPublished = enableVendors !== false;
 
   return (
-    <section aria-label="Recent Transactions" className="space-y-3">
+    <section aria-label="Recent transactions" className="space-y-3">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold text-slate-900">
           Recent transactions{year ? ` – ${year}` : ""}
@@ -34,15 +37,20 @@ export default function RecentTransactionsCard({
       ) : (
         <ul className="space-y-1.5">
           {rows.map((tx, idx) => {
-            const vendor =
+            const vendorName =
               tx.vendor && tx.vendor.trim().length > 0
                 ? tx.vendor.trim()
                 : "Unspecified vendor";
+
+            const vendorLabel = vendorPublished
+              ? vendorName
+              : "Vendor not published";
+
             const department = tx.department_name || null;
 
             return (
               <li
-                key={`${tx.date}-${tx.vendor}-${idx}`}
+                key={`${tx.date}-${idx}`}
                 className="flex items-start justify-between gap-2 border-b border-slate-100 pb-1.5 last:border-b-0"
               >
                 <div className="min-w-0 flex-1">
@@ -57,7 +65,7 @@ export default function RecentTransactionsCard({
                     )}
                   </div>
                   <div className="mt-0.5 truncate text-xs font-medium text-slate-800">
-                    {vendor}
+                    {vendorLabel}
                   </div>
                   {tx.description && (
                     <div className="line-clamp-2 text-xs text-slate-600">

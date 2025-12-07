@@ -63,26 +63,129 @@ export type PortalSettings = {
   show_capital_projects: boolean | null;
   show_stats: boolean | null;
   show_projects: boolean | null;
+
+  // Feature flags – module visibility
+  enable_budget: boolean | null;
+  enable_actuals: boolean | null;
+  enable_transactions: boolean | null;
+  enable_vendors: boolean | null;
+  enable_revenues: boolean | null;
 };
-
-
-
-
 
 export async function getPortalSettings(): Promise<PortalSettings | null> {
   const { data, error } = await supabase
     .from("portal_settings")
     .select("*")
     .eq("id", 1)
-    .limit(1);
+    .maybeSingle();
 
   if (error) {
     console.error("getPortalSettings error:", error);
     return null;
   }
 
-  if (!data || data.length === 0) return null;
-  return data[0] as PortalSettings;
+  if (!data) return null;
+
+  const row = data as any;
+
+  // Normalize flags with safe defaults.
+  const enable_budget: boolean =
+    row.enable_budget === null || row.enable_budget === undefined
+      ? true
+      : !!row.enable_budget;
+
+  const enable_actuals: boolean =
+    row.enable_actuals === null || row.enable_actuals === undefined
+      ? true
+      : !!row.enable_actuals;
+
+  const enable_transactions: boolean =
+    row.enable_transactions === null || row.enable_transactions === undefined
+      ? false
+      : !!row.enable_transactions;
+
+  const enable_vendors: boolean =
+    enable_transactions === true
+      ? row.enable_vendors === null || row.enable_vendors === undefined
+        ? false
+        : !!row.enable_vendors
+      : false;
+
+  const enable_revenues: boolean =
+    row.enable_revenues === null || row.enable_revenues === undefined
+      ? false
+      : !!row.enable_revenues;
+
+  return {
+    id: row.id,
+    city_name: row.city_name ?? "Your City",
+    tagline: row.tagline ?? null,
+    primary_color: row.primary_color ?? null,
+    accent_color: row.accent_color ?? null,
+    background_color: row.background_color ?? null,
+    logo_url: row.logo_url ?? null,
+    hero_message: row.hero_message ?? null,
+    hero_image_url: row.hero_image_url ?? null,
+    seal_url: row.seal_url ?? null,
+
+    story_city_description: row.story_city_description ?? null,
+    story_year_achievements: row.story_year_achievements ?? null,
+    story_capital_projects: row.story_capital_projects ?? null,
+
+    leader_name: row.leader_name ?? null,
+    leader_title: row.leader_title ?? null,
+    leader_message: row.leader_message ?? null,
+    leader_photo_url: row.leader_photo_url ?? null,
+
+    project1_title: row.project1_title ?? null,
+    project1_summary: row.project1_summary ?? null,
+    project2_title: row.project2_title ?? null,
+    project2_summary: row.project2_summary ?? null,
+    project3_title: row.project3_title ?? null,
+    project3_summary: row.project3_summary ?? null,
+    project1_image_url: row.project1_image_url ?? null,
+    project2_image_url: row.project2_image_url ?? null,
+    project3_image_url: row.project3_image_url ?? null,
+
+    stat_population: row.stat_population ?? null,
+    stat_employees: row.stat_employees ?? null,
+    stat_square_miles: row.stat_square_miles ?? null,
+    stat_annual_budget: row.stat_annual_budget ?? null,
+
+    is_published: row.is_published ?? null,
+
+    show_leadership:
+      row.show_leadership === null || row.show_leadership === undefined
+        ? true
+        : !!row.show_leadership,
+    show_story:
+      row.show_story === null || row.show_story === undefined
+        ? true
+        : !!row.show_story,
+    show_year_review:
+      row.show_year_review === null || row.show_year_review === undefined
+        ? true
+        : !!row.show_year_review,
+    show_capital_projects:
+      row.show_capital_projects === null ||
+      row.show_capital_projects === undefined
+        ? true
+        : !!row.show_capital_projects,
+    show_stats:
+      row.show_stats === null || row.show_stats === undefined
+        ? true
+        : !!row.show_stats,
+    show_projects:
+      row.show_projects === null || row.show_projects === undefined
+        ? true
+        : !!row.show_projects,
+
+    enable_budget,
+    enable_actuals,
+    enable_transactions,
+    enable_vendors,
+    enable_revenues,
+  };
 }
 
 // ---- Internal pagination helper ----
@@ -493,7 +596,7 @@ export async function getTransactionYears(): Promise<number[]> {
 
 /**
  * Get distinct fiscal years from revenues table.
- * Used by Revenue Explorer (once we build it).
+ * Used by Revenue Explorer.
  */
 export async function getRevenueYears(): Promise<number[]> {
   const { data, error } = await supabase
@@ -616,7 +719,6 @@ export type DataUploadLogRow = {
   filename: string | null;
   admin_identifier: string | null; // email or user id of uploader
 };
-
 
 export async function getDataUploadLogs(): Promise<DataUploadLogRow[]> {
   const { data, error } = await supabase

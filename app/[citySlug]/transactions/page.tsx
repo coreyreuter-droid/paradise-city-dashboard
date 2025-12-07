@@ -9,6 +9,7 @@ import {
 } from "@/lib/queries";
 import type { TransactionRow } from "@/lib/types";
 import type { PortalSettings } from "@/lib/queries";
+import { notFound } from "next/navigation";
 
 export const revalidate = 0;
 
@@ -43,9 +44,22 @@ export default async function TransactionsPage({
 
   const portalSettings = settings as PortalSettings | null;
 
+  // Publish gate: if the portal is not published, show the unpublished message.
   if (portalSettings && portalSettings.is_published === false) {
     return <UnpublishedMessage settings={portalSettings} />;
   }
+
+  // Strict module gate: Transactions require enable_transactions = true.
+  const enableTransactions = portalSettings?.enable_transactions === true;
+
+  if (portalSettings && !enableTransactions) {
+    // Transactions module does not exist for this city.
+    notFound();
+  }
+
+  // Vendor flag depends on transactions being enabled.
+  const enableVendors =
+    enableTransactions && portalSettings?.enable_vendors === true;
 
   const years = (yearsRaw ?? []).slice().sort((a, b) => b - a);
 
@@ -65,7 +79,9 @@ export default async function TransactionsPage({
 
   const department =
     pickFirst(resolvedSearchParams.department) ?? "all";
-  const vendorQuery = pickFirst(resolvedSearchParams.q) ?? null;
+
+  const rawVendorQuery = pickFirst(resolvedSearchParams.q) ?? null;
+  const vendorQuery = enableVendors ? rawVendorQuery : null;
 
   let departments: string[] = [];
   let transactions: TransactionRow[] = [];
@@ -97,6 +113,7 @@ export default async function TransactionsPage({
       departments={departments}
       departmentFilter={department}
       vendorQuery={vendorQuery}
+      enableVendors={enableVendors}
     />
   );
 }

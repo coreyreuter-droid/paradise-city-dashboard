@@ -32,6 +32,7 @@ type Props = {
   actuals: ActualRow[];
   transactions: TransactionRow[];
   years?: number[];
+  enableTransactions: boolean;
 };
 
 function fy(value: unknown): number | null {
@@ -44,6 +45,7 @@ export default function DepartmentsDashboardClient({
   actuals,
   transactions,
   years: yearsProp,
+  enableTransactions,
 }: Props) {
   const searchParams = useSearchParams();
 
@@ -198,7 +200,7 @@ export default function DepartmentsDashboardClient({
   const yearParam =
     selectedYear != null ? `?year=${selectedYear}` : "";
 
-  const columns: DataTableColumn<DepartmentSummary>[] = useMemo(
+  const baseColumns: DataTableColumn<DepartmentSummary>[] = useMemo(
     () => [
       {
         key: "department",
@@ -285,6 +287,11 @@ export default function DepartmentsDashboardClient({
     ],
     [yearParam]
   );
+
+  const columns = useMemo(() => {
+    if (enableTransactions) return baseColumns;
+    return baseColumns.filter((col) => col.key !== "txCount");
+  }, [baseColumns, enableTransactions]);
 
   return (
     <div id="main-content" className="min-h-screen bg-slate-50">
@@ -426,17 +433,19 @@ export default function DepartmentsDashboardClient({
                   </div>
                 </div>
 
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3">
-                  <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-600">
-                    Transactions
+                {enableTransactions && (
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3">
+                    <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-600">
+                      Transactions
+                    </div>
+                    <div className="mt-1 text-2xl font-bold text-slate-900">
+                      {totalTx.toLocaleString("en-US")}
+                    </div>
+                    <div className="mt-1 text-sm text-slate-600">
+                      Posted for {yearLabel ?? "–"}.
+                    </div>
                   </div>
-                  <div className="mt-1 text-2xl font-bold text-slate-900">
-                    {totalTx.toLocaleString("en-US")}
-                  </div>
-                  <div className="mt-1 text-sm text-slate-600">
-                    Posted for {yearLabel ?? "–"}.
-                  </div>
-                </div>
+                )}
               </section>
             </section>
           </CardContainer>
@@ -455,8 +464,9 @@ export default function DepartmentsDashboardClient({
                 <p className="text-sm text-slate-600">
                   This table shows each department’s budget, actual
                   spending, variance, percentage of budget spent, and
-                  the number of transactions recorded for the selected
-                  fiscal year.
+                  {enableTransactions
+                    ? " the number of transactions recorded for the selected year."
+                    : " other summary metrics for the selected year."}
                 </p>
                 <DataTable<DepartmentSummary>
                   data={summaries}

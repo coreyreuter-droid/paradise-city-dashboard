@@ -54,6 +54,13 @@ type PortalSettings = {
   show_stats: boolean | null;
   show_projects: boolean | null;
 
+  // feature flags
+  enable_budget: boolean | null;
+  enable_actuals: boolean | null;
+  enable_transactions: boolean | null;
+  enable_vendors: boolean | null;
+  enable_revenues: boolean | null;
+
   // publish state
   is_published: boolean | null;
 };
@@ -92,32 +99,37 @@ type ThemePreset = {
   name: string;
   primary: string;
   accent: string;
+  background: string;
 };
 
 const THEME_PRESETS: ThemePreset[] = [
   {
     id: "civic-classic",
     name: "Civic Classic",
-    primary: "#0F172A",
-    accent: "#0369A1",
+    primary: "#0F172A",     // dark slate header
+    accent: "#0369A1",      // sky accent
+    background: "#020617",  // very dark background
   },
   {
     id: "evergreen",
     name: "Evergreen",
-    primary: "#064E3B",
-    accent: "#047857",
+    primary: "#064E3B",     // deep green header
+    accent: "#047857",      // emerald accent
+    background: "#022C22",  // very dark green background
   },
   {
     id: "sunrise",
     name: "Sunrise",
-    primary: "#7C2D12",
-    accent: "#EA580C",
+    primary: "#7C2D12",     // warm brown header
+    accent: "#EA580C",      // orange accent
+    background: "#451A03",  // dark warm background
   },
   {
     id: "lakefront",
     name: "Lakefront",
-    primary: "#0C4A6E",
-    accent: "#22C55E",
+    primary: "#0C4A6E",     // deep blue header
+    accent: "#22C55E",      // fresh green accent
+    background: "#020617",  // dark neutral background
   },
 ];
 
@@ -158,6 +170,12 @@ const SELECT_FIELDS = [
   "show_capital_projects",
   "show_stats",
   "show_projects",
+  "is_published",
+  "enable_budget",
+  "enable_actuals",
+  "enable_transactions",
+  "enable_vendors",
+  "enable_revenues",
   "is_published",
 ].join(", ");
 
@@ -248,6 +266,12 @@ export default function BrandingSettingsClient() {
                 show_capital_projects: true,
                 show_stats: true,
                 show_projects: true,
+                // feature flags defaults
+                enable_budget: true,
+                enable_actuals: true,
+                enable_transactions: false,
+                enable_vendors: false,
+                enable_revenues: false,
                 is_published: false, // new portals start in draft
               })
               .select(SELECT_FIELDS)
@@ -474,6 +498,15 @@ export default function BrandingSettingsClient() {
           show_capital_projects: settings.show_capital_projects,
           show_stats: settings.show_stats,
           show_projects: settings.show_projects,
+          // feature flags – enforce vendors <= transactions
+          enable_budget: settings.enable_budget ?? true,
+          enable_actuals: settings.enable_actuals ?? true,
+          enable_transactions: settings.enable_transactions ?? false,
+          enable_vendors:
+            settings.enable_transactions === false
+              ? false
+              : settings.enable_vendors ?? false,
+          enable_revenues: settings.enable_revenues ?? false,
           is_published: settings.is_published ?? false,
         })
         .eq("id", settings.id)
@@ -594,10 +627,114 @@ export default function BrandingSettingsClient() {
                   onChange={(e) =>
                     handleFieldChange(
                       "is_published",
-                      (e.target.checked as PortalSettings["is_published"])
+                      e.target.checked as PortalSettings["is_published"]
                     )
                   }
                 />
+              </label>
+            </div>
+          </div>
+
+          {/* Modules & visibility */}
+          <div className="mb-4 space-y-3 border-b border-slate-200 pb-4">
+            <h2 className="text-sm font-semibold text-slate-900">
+              Modules &amp; visibility
+            </h2>
+            <p className="text-xs text-slate-500">
+              Choose which parts of the portal are published. You can start
+              with budget &amp; actuals and turn on additional modules when
+              you’re ready.
+            </p>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              {/* Budget & actuals */}
+              <label className="flex items-start gap-2 text-sm text-slate-700">
+                <input
+                  type="checkbox"
+                  className="mt-0.5 h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-500"
+                  checked={settings.enable_actuals !== false}
+                  onChange={(e) =>
+                    handleFieldChange(
+                      "enable_actuals",
+                      e.target.checked as PortalSettings["enable_actuals"]
+                    )
+                  }
+                />
+                <span className="text-xs">
+                  <span className="font-medium">Budget &amp; actuals</span>
+                  <span className="block text-[11px] text-slate-500">
+                    Show adopted budgets and spending by department/fund.
+                  </span>
+                </span>
+              </label>
+
+              {/* Transactions */}
+              <label className="flex items-start gap-2 text-sm text-slate-700">
+                <input
+                  type="checkbox"
+                  className="mt-0.5 h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-500"
+                  checked={settings.enable_transactions === true}
+                  onChange={(e) =>
+                    handleFieldChange(
+                      "enable_transactions",
+                      e.target.checked as PortalSettings["enable_transactions"]
+                    )
+                  }
+                />
+                <span className="text-xs">
+                  <span className="font-medium">Transactions</span>
+                  <span className="block text-[11px] text-slate-500">
+                    Show line-item spending (date, amount, department).
+                  </span>
+                </span>
+              </label>
+
+              {/* Vendors */}
+              <label className="flex items-start gap-2 text-sm text-slate-700 opacity-100">
+                <input
+                  type="checkbox"
+                  className="mt-0.5 h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-500"
+                  checked={
+                    settings.enable_transactions === true &&
+                    settings.enable_vendors === true
+                  }
+                  disabled={settings.enable_transactions !== true}
+                  onChange={(e) =>
+                    handleFieldChange(
+                      "enable_vendors",
+                      e.target.checked as PortalSettings["enable_vendors"]
+                    )
+                  }
+                />
+                <span className="text-xs">
+                  <span className="font-medium">Vendor names</span>
+                  <span className="block text-[11px] text-slate-500">
+                    When on, show vendor names and vendor-level summaries.
+                    Requires transactions to be enabled.
+                  </span>
+                </span>
+              </label>
+
+              {/* Revenues */}
+              <label className="flex items-start gap-2 text-sm text-slate-700">
+                <input
+                  type="checkbox"
+                  className="mt-0.5 h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-500"
+                  checked={settings.enable_revenues === true}
+                  onChange={(e) =>
+                    handleFieldChange(
+                      "enable_revenues",
+                      e.target.checked as PortalSettings["enable_revenues"]
+                    )
+                  }
+                />
+                <span className="text-xs">
+                  <span className="font-medium">Revenues</span>
+                  <span className="block text-[11px] text-slate-500">
+                    Show revenue dashboards by source (taxes, grants, fees,
+                    etc.).
+                  </span>
+                </span>
               </label>
             </div>
           </div>
@@ -622,6 +759,7 @@ export default function BrandingSettingsClient() {
                         ...settings,
                         primary_color: preset.primary,
                         accent_color: preset.accent,
+                        background_color: preset.background,
                       });
                       setDirty(true);
                     }}
@@ -634,6 +772,10 @@ export default function BrandingSettingsClient() {
                     <span
                       className="h-3 w-3 rounded-full"
                       style={{ backgroundColor: preset.accent }}
+                    />
+                    <span
+                      className="h-3 w-3 rounded-full border border-slate-300"
+                      style={{ backgroundColor: preset.background }}
                     />
                     <span>{preset.name}</span>
                   </button>

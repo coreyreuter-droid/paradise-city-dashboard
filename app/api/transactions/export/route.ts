@@ -21,6 +21,33 @@ export async function GET(req: NextRequest) {
   try {
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+    // Read feature flags from portal_settings (single-tenant assumption)
+    const { data: settingsData, error: settingsError } = await supabase
+      .from("portal_settings")
+      .select("enable_transactions, enable_vendors")
+      .eq("id", 1)
+      .maybeSingle();
+
+    if (settingsError) {
+      console.error(
+        "Export transactions: error loading portal_settings",
+        settingsError
+      );
+      return NextResponse.json(
+        { error: "Failed to load portal settings" },
+        { status: 500 }
+      );
+    }
+
+    const enableTransactions = settingsData?.enable_transactions === true;
+
+    if (!enableTransactions) {
+      // Transactions module is not published → export route should not exist.
+      return new NextResponse("Not found", { status: 404 });
+    }
+
+    const enableVendors = settingsData?.enable_vendors === true;
+
     const url = new URL(req.url);
     const params = url.searchParams;
 
@@ -37,8 +64,6 @@ export async function GET(req: NextRequest) {
     const searchQuery =
       qParam && qParam.trim().length > 0 ? qParam.trim() : null;
 
-    // Supabase PostgREST default max is 1000 rows per request.
-    // So we page in chunks of 1000 until we get a chunk smaller than PAGE_SIZE.
     const PAGE_SIZE = 1000;
     let from = 0;
     let allRows: any[] = [];
@@ -46,13 +71,15 @@ export async function GET(req: NextRequest) {
     // Defensive max to avoid someone exporting millions of rows by accident.
     const MAX_ROWS = 200_000;
 
+    // Column selection depends on vendor visibility
+    const selectColumns = enableVendors
+      ? "date, fiscal_year, fund_code, fund_name, department_code, department_name, account_code, account_name, vendor, description, amount"
+      : "date, fiscal_year, fund_code, fund_name, department_code, department_name, account_code, account_name, description, amount";
+
     while (true) {
       let query = supabase
         .from("transactions")
-        .select(
-          "date, fiscal_year, fund_code, fund_name, department_code, department_name, account_code, account_name, vendor, description, amount",
-          { head: false }
-        )
+        .select(selectColumns, { head: false })
         .range(from, from + PAGE_SIZE - 1);
 
       if (hasYearFilter) {
@@ -64,9 +91,15 @@ export async function GET(req: NextRequest) {
       }
 
       if (searchQuery) {
-        query = query.or(
-          `vendor.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%`
-        );
+        if (enableVendors) {
+          // Vendor + description search
+          query = query.or(
+            `vendor.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%`
+          );
+        } else {
+          // Only description search when vendor names are disabled
+          query = query.ilike("description", `%${searchQuery}%`);
+        }
       }
 
       const { data, error } = await query;
@@ -92,48 +125,78 @@ export async function GET(req: NextRequest) {
         break;
       }
 
-      // If we got fewer than PAGE_SIZE rows, this was the last page
       if (data.length < PAGE_SIZE) {
+        // Last page
         break;
       }
 
       from += PAGE_SIZE;
     }
 
-    // Build CSV
-    const header = [
-      "date",
-      "fiscal_year",
-      "fund_code",
-      "fund_name",
-      "department_code",
-      "department_name",
-      "account_code",
-      "account_name",
-      "vendor",
-      "description",
-      "amount",
-    ];
+    // Build CSV header
+    const header = enableVendors
+      ? [
+          "date",
+          "fiscal_year",
+          "fund_code",
+          "fund_name",
+          "department_code",
+          "department_name",
+          "account_code",
+          "account_name",
+          "vendor",
+          "description",
+          "amount",
+        ]
+      : [
+          "date",
+          "fiscal_year",
+          "fund_code",
+          "fund_name",
+          "department_code",
+          "department_name",
+          "account_code",
+          "account_name",
+          "description",
+          "amount",
+        ];
 
     const csvLines: string[] = [];
     csvLines.push(header.join(","));
 
     for (const row of allRows) {
-      csvLines.push(
-        [
-          csvSafe(row.date),
-          csvSafe(row.fiscal_year),
-          csvSafe(row.fund_code),
-          csvSafe(row.fund_name),
-          csvSafe(row.department_code),
-          csvSafe(row.department_name),
-          csvSafe(row.account_code),
-          csvSafe(row.account_name),
-          csvSafe(row.vendor),
-          csvSafe(row.description),
-          csvSafe(row.amount),
-        ].join(",")
-      );
+      if (enableVendors) {
+        csvLines.push(
+          [
+            csvSafe(row.date),
+            csvSafe(row.fiscal_year),
+            csvSafe(row.fund_code),
+            csvSafe(row.fund_name),
+            csvSafe(row.department_code),
+            csvSafe(row.department_name),
+            csvSafe(row.account_code),
+            csvSafe(row.account_name),
+            csvSafe(row.vendor),
+            csvSafe(row.description),
+            csvSafe(row.amount),
+          ].join(",")
+        );
+      } else {
+        csvLines.push(
+          [
+            csvSafe(row.date),
+            csvSafe(row.fiscal_year),
+            csvSafe(row.fund_code),
+            csvSafe(row.fund_name),
+            csvSafe(row.department_code),
+            csvSafe(row.department_name),
+            csvSafe(row.account_code),
+            csvSafe(row.account_name),
+            csvSafe(row.description),
+            csvSafe(row.amount),
+          ].join(",")
+        );
+      }
     }
 
     const hasAny = allRows.length > 0;

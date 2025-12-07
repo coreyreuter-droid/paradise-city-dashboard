@@ -32,6 +32,7 @@ type Props = {
   budgets: BudgetRow[];
   actuals: ActualRow[];
   transactions: TransactionRow[];
+  enableVendors: boolean;
 };
 
 const formatCurrency = (value: number) =>
@@ -75,6 +76,7 @@ export default function DepartmentDetailClient({
   budgets,
   actuals,
   transactions,
+  enableVendors,
 }: Props) {
   const searchParams = useSearchParams();
   const [activeVendor, setActiveVendor] = useState<string | null>(null);
@@ -232,6 +234,7 @@ export default function DepartmentDetailClient({
   );
 
   const deptVendorSummaries: DeptVendorSummary[] = useMemo(() => {
+    if (!enableVendors) return [];
     if (deptTxForYear.length === 0) return [];
 
     const byVendor = new Map<string, { total: number; count: number }>();
@@ -266,7 +269,7 @@ export default function DepartmentDetailClient({
       }))
       .sort((a, b) => b.total - a.total)
       .slice(0, 10);
-  }, [deptTxForYear]);
+  }, [deptTxForYear, enableVendors]);
 
   const deptCategorySummaries: DeptCategorySummary[] = useMemo(() => {
     if (!selectedYear) return [];
@@ -304,14 +307,16 @@ export default function DepartmentDetailClient({
   }, [deptActuals, selectedYear]);
 
   const activeVendorTx = useMemo(() => {
-    if (!activeVendor || !selectedYear) return [];
+    if (!enableVendors || !activeVendor || !selectedYear) return [];
     return deptTxForYear.filter(
       (tx) =>
-        (tx.vendor || "Unspecified") === activeVendor
+        (tx.vendor && tx.vendor.trim().length > 0
+          ? tx.vendor
+          : "Unspecified") === activeVendor
     );
-  }, [activeVendor, deptTxForYear, selectedYear]);
+  }, [activeVendor, deptTxForYear, selectedYear, enableVendors]);
 
-  const transactionColumns: DataTableColumn<TransactionRow>[] =
+  const baseTransactionColumns: DataTableColumn<TransactionRow>[] =
     useMemo(
       () => [
         {
@@ -334,10 +339,19 @@ export default function DepartmentDetailClient({
             return (
               <button
                 type="button"
-                onClick={() => setActiveVendor(name)}
-                className="whitespace-nowrap text-sky-700 hover:underline"
+                onClick={() =>
+                  enableVendors
+                    ? setActiveVendor(name)
+                    : undefined
+                }
+                className={
+                  enableVendors
+                    ? "whitespace-nowrap text-sky-700 hover:underline"
+                    : "whitespace-nowrap text-slate-700"
+                }
+                aria-disabled={!enableVendors}
               >
-                {name}
+                {enableVendors ? name : "Hidden"}
               </button>
             );
           },
@@ -366,8 +380,14 @@ export default function DepartmentDetailClient({
             formatCurrency(Number(row.amount || 0)),
         },
       ],
-      []
+      [enableVendors]
     );
+
+  const transactionColumns = useMemo(() => {
+    if (enableVendors) return baseTransactionColumns;
+    // Strip vendor column entirely when vendor names are disabled.
+    return baseTransactionColumns.filter((col) => col.key !== "vendor");
+  }, [baseTransactionColumns, enableVendors]);
 
   const vendorTotal = useMemo(
     () =>
@@ -384,7 +404,11 @@ export default function DepartmentDetailClient({
         <SectionHeader
           eyebrow="Department Overview"
           title={displayName}
-          description="Multi-year trends and detailed transactions for this department."
+          description={
+            enableVendors
+              ? "Multi-year trends and detailed transactions for this department."
+              : "Multi-year trends and detailed transactions for this department. Vendor names are disabled for this city."
+          }
           rightSlot={
             deptYears.length > 0 ? (
               <FiscalYearSelect
@@ -456,7 +480,9 @@ export default function DepartmentDetailClient({
                   : "text-slate-900"
               }`}
             >
-              {formatCurrency(Math.abs(selectedYearTotals.variance))}
+              {formatCurrency(
+                Math.abs(selectedYearTotals.variance)
+              )}
             </div>
             <div className="mt-1 text-sm text-slate-600">
               {selectedYearTotals.variance >= 0
@@ -647,55 +673,57 @@ export default function DepartmentDetailClient({
 
           {/* Right: vendors + categories */}
           <div className="space-y-6">
-            {/* Vendors */}
-            <CardContainer>
-              <div className="p-4">
-                <h2 className="mb-2 text-sm font-semibold text-slate-900">
-                  Top Vendors ({selectedYear ?? "–"})
-                </h2>
+            {/* Vendors – only when vendor module is enabled */}
+            {enableVendors && (
+              <CardContainer>
+                <div className="p-4">
+                  <h2 className="mb-2 text-sm font-semibold text-slate-900">
+                    Top Vendors ({selectedYear ?? "–"})
+                  </h2>
 
-                {deptVendorSummaries.length === 0 ? (
-                  <p className="text-sm text-slate-600">
-                    No vendor spending found for the selected year.
-                  </p>
-                ) : (
-                  <div className="space-y-1.5 text-sm">
-                    {deptVendorSummaries.map((v) => (
-                      <div key={v.name}>
-                        <div className="flex items-center justify-between gap-2">
-                          <button
-                            type="button"
-                            onClick={() => setActiveVendor(v.name)}
-                            className="truncate pr-2 text-left text-sky-700 hover:underline"
-                          >
-                            {v.name}
-                          </button>
-                          <span className="whitespace-nowrap font-mono">
-                            {formatCurrency(v.total)}
-                          </span>
-                        </div>
-                        <div className="mt-1 flex items-center gap-2">
-                          <div className="h-1.5 flex-1 rounded-full bg-slate-100">
-                            <div
-                              className="h-1.5 rounded-full bg-sky-500"
-                              style={{
-                                width: `${Math.max(
-                                  2,
-                                  Math.min(v.percent, 100)
-                                )}%`,
-                              }}
-                            />
+                  {deptVendorSummaries.length === 0 ? (
+                    <p className="text-sm text-slate-600">
+                      No vendor spending found for the selected year.
+                    </p>
+                  ) : (
+                    <div className="space-y-1.5 text-sm">
+                      {deptVendorSummaries.map((v) => (
+                        <div key={v.name}>
+                          <div className="flex items-center justify-between gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setActiveVendor(v.name)}
+                              className="truncate pr-2 text-left text-sky-700 hover:underline"
+                            >
+                              {v.name}
+                            </button>
+                            <span className="whitespace-nowrap font-mono">
+                              {formatCurrency(v.total)}
+                            </span>
                           </div>
-                          <span className="w-12 text-right text-xs text-slate-600">
-                            {formatPercent(v.percent)}
-                          </span>
+                          <div className="mt-1 flex items-center gap-2">
+                            <div className="h-1.5 flex-1 rounded-full bg-slate-100">
+                              <div
+                                className="h-1.5 rounded-full bg-sky-500"
+                                style={{
+                                  width: `${Math.max(
+                                    2,
+                                    Math.min(v.percent, 100)
+                                  )}%`,
+                                }}
+                              />
+                            </div>
+                            <span className="w-12 text-right text-xs text-slate-600">
+                              {formatPercent(v.percent)}
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </CardContainer>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </CardContainer>
+            )}
 
             {/* Categories */}
             <CardContainer>
@@ -747,8 +775,8 @@ export default function DepartmentDetailClient({
         </div>
       </div>
 
-      {/* Vendor detail slideout */}
-      {activeVendor && (
+      {/* Vendor detail slideout – only when vendor module is enabled */}
+      {enableVendors && activeVendor && (
         <div className="fixed inset-0 z-[9999] flex justify-end bg-black/40 backdrop-blur-sm">
           <div
             className="flex h-full w-full max-w-md flex-col bg-white shadow-2xl"

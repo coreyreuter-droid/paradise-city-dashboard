@@ -13,6 +13,7 @@ import type {
   TransactionRow,
 } from "@/lib/types";
 import type { PortalSettings } from "@/lib/queries";
+import { notFound } from "next/navigation";
 
 export const revalidate = 0; // always hit Supabase; change if you want caching
 
@@ -31,9 +32,28 @@ export default async function AnalyticsPage({}: PageProps) {
 
   const portalSettings = settings as PortalSettings | null;
 
+  // If the portal itself is not published, show the unpublished message.
   if (portalSettings && portalSettings.is_published === false) {
     return <UnpublishedMessage settings={portalSettings} />;
   }
+
+  // Strict module gating: Analytics depends on Actuals.
+  const enableActuals =
+    portalSettings?.enable_actuals === null ||
+    portalSettings?.enable_actuals === undefined
+      ? true
+      : !!portalSettings.enable_actuals;
+
+  if (portalSettings && !enableActuals) {
+    // City does not publish Actuals → Analytics does not exist.
+    notFound();
+  }
+
+  const enableTransactions =
+    portalSettings?.enable_transactions === true;
+
+  const enableVendors =
+    enableTransactions && portalSettings?.enable_vendors === true;
 
   const budgets: BudgetRow[] = budgetsRaw ?? [];
   const actuals: ActualRow[] = actualsRaw ?? [];
@@ -44,6 +64,8 @@ export default async function AnalyticsPage({}: PageProps) {
       budgets={budgets}
       actuals={actuals}
       transactions={transactions}
+      enableTransactions={enableTransactions}
+      enableVendors={enableVendors}
     />
   );
 }

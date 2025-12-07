@@ -28,6 +28,7 @@ type Props = {
   departments: string[];
   departmentFilter: string | null;
   vendorQuery: string | null;
+  enableVendors: boolean;
 };
 
 function buildSearchUrl(
@@ -82,7 +83,10 @@ function csvSafe(value: unknown): string {
   return str;
 }
 
-function buildPageCsv(rows: TransactionRow[]): string {
+function buildPageCsv(
+  rows: TransactionRow[],
+  enableVendors: boolean
+): string {
   const header = [
     "Date",
     "Fiscal year",
@@ -91,23 +95,33 @@ function buildPageCsv(rows: TransactionRow[]): string {
     "Department",
     "Account code",
     "Account name",
-    "Vendor",
+    ...(enableVendors ? ["Vendor"] : []),
     "Description",
     "Amount",
   ];
 
-  const body = rows.map((t) => [
-    csvSafe(t.date),
-    csvSafe(t.fiscal_year),
-    csvSafe(t.fund_code),
-    csvSafe(t.fund_name),
-    csvSafe(t.department_name),
-    csvSafe(t.account_code),
-    csvSafe(t.account_name),
-    csvSafe(t.vendor),
-    csvSafe(t.description),
-    csvSafe(t.amount),
-  ]);
+  const body = rows.map((t) => {
+    const base = [
+      csvSafe(t.date),
+      csvSafe(t.fiscal_year),
+      csvSafe(t.fund_code),
+      csvSafe(t.fund_name),
+      csvSafe(t.department_name),
+      csvSafe(t.account_code),
+      csvSafe(t.account_name),
+    ];
+
+    const vendorPart = enableVendors
+      ? [csvSafe(t.vendor)]
+      : [];
+
+    const rest = [
+      csvSafe(t.description),
+      csvSafe(t.amount),
+    ];
+
+    return [...base, ...vendorPart, ...rest];
+  });
 
   return [header.join(","), ...body.map((r) => r.join(","))].join("\n");
 }
@@ -122,6 +136,7 @@ export default function TransactionsDashboardClient({
   departments,
   departmentFilter,
   vendorQuery,
+  enableVendors,
 }: Props) {
   const pathname = usePathname();
   const router = useRouter();
@@ -148,11 +163,15 @@ export default function TransactionsDashboardClient({
     if (effectiveDeptFilter && effectiveDeptFilter !== "all") {
       filters.push(`Department: ${effectiveDeptFilter}`);
     }
-    if (vendorQuery && vendorQuery.trim().length > 0) {
+    if (
+      enableVendors &&
+      vendorQuery &&
+      vendorQuery.trim().length > 0
+    ) {
       filters.push(`Vendor contains “${vendorQuery.trim()}”`);
     }
     return filters;
-  }, [selectedYear, effectiveDeptFilter, vendorQuery]);
+  }, [selectedYear, effectiveDeptFilter, vendorQuery, enableVendors]);
 
   // /api/transactions/export?year=...&department=...&q=...
   const exportAllHref = useMemo(() => {
@@ -163,17 +182,22 @@ export default function TransactionsDashboardClient({
     if (effectiveDeptFilter && effectiveDeptFilter !== "all") {
       params.set("department", effectiveDeptFilter);
     }
-    if (vendorQuery && vendorQuery.trim().length > 0) {
+    if (
+      enableVendors &&
+      vendorQuery &&
+      vendorQuery.trim().length > 0
+    ) {
       params.set("q", vendorQuery.trim());
     }
     const qs = params.toString();
     return qs
       ? `/api/transactions/export?${qs}`
       : `/api/transactions/export`;
-  }, [selectedYear, effectiveDeptFilter, vendorQuery]);
+  }, [selectedYear, effectiveDeptFilter, vendorQuery, enableVendors]);
 
   const handleSearchSubmit = (e: FormEvent) => {
     e.preventDefault();
+    if (!enableVendors) return; // vendor search disabled
     const url = buildSearchUrl(pathname, searchParams, {
       q: vendorInput,
       page: "1",
@@ -210,7 +234,7 @@ export default function TransactionsDashboardClient({
 
   const handleDownloadPageCsv = () => {
     if (transactions.length === 0) return;
-    const csv = buildPageCsv(transactions);
+    const csv = buildPageCsv(transactions, enableVendors);
     const blob = new Blob([csv], {
       type: "text/csv;charset=utf-8;",
     });
@@ -224,7 +248,7 @@ export default function TransactionsDashboardClient({
     URL.revokeObjectURL(url);
   };
 
-  const columns: DataTableColumn<TransactionRow>[] = useMemo(
+  const baseColumns: DataTableColumn<TransactionRow>[] = useMemo(
     () => [
       {
         key: "date",
@@ -319,6 +343,12 @@ export default function TransactionsDashboardClient({
     [selectedYear]
   );
 
+  const columns = useMemo(() => {
+    if (enableVendors) return baseColumns;
+    // Strip vendor column completely when vendor names are disabled.
+    return baseColumns.filter((col) => col.key !== "vendor");
+  }, [baseColumns, enableVendors]);
+
   const yearLabel =
     selectedYear ?? (years.length > 0 ? years[0] : undefined);
 
@@ -328,7 +358,11 @@ export default function TransactionsDashboardClient({
         <SectionHeader
           eyebrow="Transactions"
           title="Spending Detail"
-          description="Search, filter, and export individual transactions for the selected fiscal year."
+          description={
+            enableVendors
+              ? "Search, filter, and export individual transactions for the selected fiscal year."
+              : "Search and export individual transactions for the selected fiscal year. Vendor names have been disabled for this city."
+          }
           rightSlot={
             years.length > 0 ? (
               <FiscalYearSelect
@@ -377,8 +411,10 @@ export default function TransactionsDashboardClient({
                     Filters
                   </h2>
                   <p className="text-sm text-slate-600">
-                    Narrow the list of transactions by department and
-                    vendor. Fiscal year is controlled in the header.
+                    Narrow the list of transactions by department
+                    {enableVendors
+                      ? " and vendor. Fiscal year is controlled in the header."
+                      : ". Fiscal year is controlled in the header. Vendor search is disabled for this city."}
                   </p>
                 </div>
 
@@ -406,37 +442,39 @@ export default function TransactionsDashboardClient({
                     </select>
                   </div>
 
-                  {/* Vendor search */}
-                  <form
-                    onSubmit={handleSearchSubmit}
-                    className="flex w-full min-w-[220px] flex-col gap-1 sm:w-64"
-                    aria-label="Vendor search"
-                  >
-                    <label
-                      htmlFor="vendor-search"
-                      className="text-xs font-medium text-slate-700"
+                  {/* Vendor search – only when vendors are enabled */}
+                  {enableVendors && (
+                    <form
+                      onSubmit={handleSearchSubmit}
+                      className="flex w-full min-w-[220px] flex-col gap-1 sm:w-64"
+                      aria-label="Vendor search"
                     >
-                      Vendor contains
-                    </label>
-                    <div className="flex gap-2">
-                      <input
-                        id="vendor-search"
-                        type="search"
-                        value={vendorInput}
-                        onChange={(e) =>
-                          setVendorInput(e.target.value)
-                        }
-                        className="flex-1 rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-900 shadow-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
-                        placeholder="e.g. Utilities Inc"
-                      />
-                      <button
-                        type="submit"
-                        className="rounded-md border border-sky-600 bg-sky-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-1"
+                      <label
+                        htmlFor="vendor-search"
+                        className="text-xs font-medium text-slate-700"
                       >
-                        Apply
-                      </button>
-                    </div>
-                  </form>
+                        Vendor contains
+                      </label>
+                      <div className="flex gap-2">
+                        <input
+                          id="vendor-search"
+                          type="search"
+                          value={vendorInput}
+                          onChange={(e) =>
+                            setVendorInput(e.target.value)
+                          }
+                          className="flex-1 rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-900 shadow-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                          placeholder="e.g. Utilities Inc"
+                        />
+                        <button
+                          type="submit"
+                          className="rounded-md border border-sky-600 bg-sky-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-1"
+                        >
+                          Apply
+                        </button>
+                      </div>
+                    </form>
+                  )}
                 </div>
               </div>
 

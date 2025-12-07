@@ -12,6 +12,9 @@ type Props = {
   txCount: number;
   topDepartment: string | null;
   accentColor?: string;
+
+  // NEW — strict feature gating
+  enableTransactions: boolean;
 };
 
 export default function HomeKpiStrip({
@@ -23,6 +26,7 @@ export default function HomeKpiStrip({
   txCount,
   topDepartment,
   accentColor,
+  enableTransactions,
 }: Props) {
   const execPctDisplay = `${Math.round(execPct * 100)}%`;
   const isUnderBudget = variance < 0;
@@ -58,6 +62,7 @@ export default function HomeKpiStrip({
         </p>
       </div>
 
+      {/* Grid auto-adjusts because we remove the Transactions card */}
       <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
         {/* Total budget */}
         <div className="flex flex-col rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
@@ -141,6 +146,7 @@ export default function HomeKpiStrip({
           )}
 
           <div className="mt-2 grid grid-cols-2 gap-2 text-[11px] text-slate-700">
+            {/* Always show departments */}
             <div className="rounded-md bg-white/80 px-2 py-1.5">
               <div className="text-[10px] uppercase tracking-[0.12em] text-slate-500">
                 Departments
@@ -149,14 +155,18 @@ export default function HomeKpiStrip({
                 {deptCount}
               </div>
             </div>
-            <div className="rounded-md bg-white/80 px-2 py-1.5">
-              <div className="text-[10px] uppercase tracking-[0.12em] text-slate-500">
-                Transactions
+
+            {/* Transactions — ONLY IF MODULE IS ENABLED */}
+            {enableTransactions && (
+              <div className="rounded-md bg-white/80 px-2 py-1.5">
+                <div className="text-[10px] uppercase tracking-[0.12em] text-slate-500">
+                  Transactions
+                </div>
+                <div className="mt-0.5 text-sm font-semibold text-slate-900">
+                  {txCount.toLocaleString()}
+                </div>
               </div>
-              <div className="mt-0.5 text-sm font-semibold text-slate-900">
-                {txCount.toLocaleString()}
-              </div>
-            </div>
+            )}
           </div>
 
           <p className="mt-2 text-[11px] text-slate-500">

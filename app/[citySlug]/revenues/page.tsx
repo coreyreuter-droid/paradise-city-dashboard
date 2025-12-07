@@ -8,6 +8,7 @@ import {
 } from "@/lib/queries";
 import type { RevenueRow } from "@/lib/types";
 import type { PortalSettings } from "@/lib/queries";
+import { notFound } from "next/navigation";
 
 export const revalidate = 0;
 
@@ -39,8 +40,17 @@ export default async function RevenuesPage({
 
   const portalSettings = settings as PortalSettings | null;
 
+  // Publish gate: if the portal is not published, show the unpublished message.
   if (portalSettings && portalSettings.is_published === false) {
     return <UnpublishedMessage settings={portalSettings} />;
+  }
+
+  // Strict module gate: Revenues require enable_revenues = true.
+  const enableRevenues = portalSettings?.enable_revenues === true;
+
+  if (portalSettings && !enableRevenues) {
+    // Revenues module does not exist for this city.
+    notFound();
   }
 
   const years = (yearsRaw ?? []).slice().sort((a, b) => b - a);

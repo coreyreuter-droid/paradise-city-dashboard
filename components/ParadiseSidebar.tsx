@@ -1,3 +1,4 @@
+// components/ParadiseSidebar.tsx
 "use client";
 
 import Link from "next/link";
@@ -23,6 +24,10 @@ type PortalBranding = {
   primary_color: string | null;
   accent_color: string | null;
   logo_url: string | null;
+
+  enable_actuals: boolean;
+  enable_transactions: boolean;
+  enable_revenues: boolean;
 };
 
 export default function ParadiseSidebar() {
@@ -38,55 +43,106 @@ export default function ParadiseSidebar() {
     let cancelled = false;
 
     async function loadSidebarState() {
-      // 1) Load branding
-      const { data: brandingData } = await supabase
+      // 1) Load branding + flags
+      const { data, error } = await supabase
         .from("portal_settings")
         .select(
-          "city_name, tagline, primary_color, accent_color, logo_url, is_published"
+          [
+            "city_name",
+            "tagline",
+            "primary_color",
+            "accent_color",
+            "logo_url",
+            "is_published",
+            "enable_actuals",
+            "enable_transactions",
+            "enable_revenues",
+          ].join(", ")
         )
         .maybeSingle();
 
       if (cancelled) return;
 
+      if (error) {
+        console.error("ParadiseSidebar: error loading portal_settings", error);
+      }
+
+      const brandingData = data as any | null;
+
       if (brandingData) {
-        const { city_name, tagline, primary_color, accent_color, logo_url } =
-          brandingData;
-        setBranding({
+        const enable_actuals: boolean =
+          brandingData.enable_actuals === null ||
+          brandingData.enable_actuals === undefined
+            ? true
+            : !!brandingData.enable_actuals;
+
+        const enable_transactions: boolean =
+          brandingData.enable_transactions === null ||
+          brandingData.enable_transactions === undefined
+            ? false
+            : !!brandingData.enable_transactions;
+
+        const enable_revenues: boolean =
+          brandingData.enable_revenues === null ||
+          brandingData.enable_revenues === undefined
+            ? false
+            : !!brandingData.enable_revenues;
+
+        const {
           city_name,
           tagline,
           primary_color,
           accent_color,
           logo_url,
+        } = brandingData;
+
+        setBranding({
+          city_name: city_name ?? null,
+          tagline: tagline ?? null,
+          primary_color: primary_color ?? null,
+          accent_color: accent_color ?? null,
+          logo_url: logo_url ?? null,
+          enable_actuals,
+          enable_transactions,
+          enable_revenues,
         });
-      }
 
-      // 2) Determine if viewer is admin/super_admin
-      let isAdmin = false;
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+        // 3) Determine publish state
+        const isPublished =
+          brandingData && brandingData.is_published === false
+            ? false
+            : true;
 
-      if (session?.user) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", session.user.id)
-          .maybeSingle();
+        // 2) Determine if viewer is admin/super_admin
+        let isAdmin = false;
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
 
-        if (
-          profile &&
-          (profile.role === "admin" || profile.role === "super_admin")
-        ) {
-          isAdmin = true;
+        if (session?.user) {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("role")
+            .eq("id", session.user.id)
+            .maybeSingle();
+
+          if (
+            profile &&
+            (profile.role === "admin" ||
+              profile.role === "super_admin")
+          ) {
+            isAdmin = true;
+          }
         }
+
+        // Public only sees dashboard nav when published; admins always see it
+        if (!cancelled) {
+          setShowDashboardNav(isPublished || isAdmin);
+        }
+      } else {
+        // No branding row; still allow admins nav by default.
+        setShowDashboardNav(true);
       }
-
-      // 3) Determine publish state
-      const isPublished =
-        brandingData && brandingData.is_published === false ? false : true;
-
-      // 4) Public only sees dashboard nav when published; admins always see it
-      setShowDashboardNav(isPublished || isAdmin);
     }
 
     loadSidebarState();
@@ -99,7 +155,7 @@ export default function ParadiseSidebar() {
   const isActive = (path: string) => {
     const full = cityHref(path);
 
-    // Overview: only active on exact /<slug>
+    // Home: only active on exact /<slug>
     if (path === "/") {
       return pathname === full;
     }
@@ -145,16 +201,106 @@ export default function ParadiseSidebar() {
 
   const adminHomeHref = cityHref("/admin");
   const adminActive =
-    pathname === adminHomeHref ||
-    pathname.startsWith(adminHomeHref + "/");
+    pathname === adminHomeHref || pathname.startsWith(adminHomeHref + "/");
 
   const closeMobile = () => setMobileOpen(false);
 
-  const renderNavList = (variant: "desktop" | "mobile") => (
-    <>
-      {/* Dashboard group – now conditional */}
-      {showDashboardNav && (
-        <div>
+  const renderNavList = (variant: "desktop" | "mobile") => {
+    const enableActuals = branding?.enable_actuals !== false;
+    const enableTransactions = branding?.enable_transactions === true;
+    const enableRevenues = branding?.enable_revenues === true;
+
+    return (
+      <>
+        {/* Dashboard group – now conditional */}
+        {showDashboardNav && (
+          <div>
+            <p
+              className={
+                variant === "desktop"
+                  ? "px-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500"
+                  : "px-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500"
+              }
+            >
+              Dashboard
+            </p>
+            <ul className="mt-2 space-y-1">
+              {navItems.map((item) => {
+                // Strict feature gating on nav visibility
+                if (
+                  (item.path === "/analytics" ||
+                    item.path === "/departments") &&
+                  !enableActuals
+                ) {
+                  return null;
+                }
+
+                if (
+                  item.path === "/transactions" &&
+                  !enableTransactions
+                ) {
+                  return null;
+                }
+
+                if (item.path === "/revenues" && !enableRevenues) {
+                  return null;
+                }
+
+                // Budget is always on by design; Home/Overview unaffected by flags.
+
+                const href = cityHref(item.path);
+                const active = isActive(item.path);
+                const isDepartmentsItem = item.path === "/departments";
+
+                const baseClasses =
+                  "group flex items-center gap-2 rounded-xl px-3 py-2 text-sm transition";
+
+                const activeClasses =
+                  variant === "desktop"
+                    ? "bg-slate-900 text-white shadow-sm"
+                    : "bg-slate-900 text-white shadow-sm";
+                const inactiveClasses =
+                  variant === "desktop"
+                    ? "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900";
+
+                return (
+                  <li key={item.path}>
+                    <Link
+                      href={href}
+                      onClick={variant === "mobile" ? closeMobile : undefined}
+                      className={`${baseClasses} ${
+                        active ? activeClasses : inactiveClasses
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-1.5 w-1.5 rounded-full transition ${
+                          active
+                            ? "bg-white"
+                            : "bg-slate-300 group-hover:bg-slate-500"
+                        }`}
+                      />
+                      <span className="truncate">{item.label}</span>
+                    </Link>
+
+                    {/* Nested department label under Departments when viewing a specific dept */}
+                    {isDepartmentsItem && currentDepartmentLabel && (
+                      <div className="mt-1 pl-6 pr-3">
+                        <div className="truncate text-xs text-slate-500">
+                          <span className="mr-1 text-slate-400">›</span>
+                          {currentDepartmentLabel}
+                        </div>
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
+
+        {/* Admin nav – single entry point to Admin home */}
+        <div className="mt-6">
           <p
             className={
               variant === "desktop"
@@ -162,97 +308,34 @@ export default function ParadiseSidebar() {
                 : "px-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500"
             }
           >
-            Dashboard
+            Admin
           </p>
           <ul className="mt-2 space-y-1">
-            {navItems.map((item) => {
-              const href = cityHref(item.path);
-              const active = isActive(item.path);
-              const isDepartmentsItem = item.path === "/departments";
-
-              const baseClasses =
-                "group flex items-center gap-2 rounded-xl px-3 py-2 text-sm transition";
-
-              const activeClasses =
-                variant === "desktop"
-                  ? "bg-slate-900 text-white shadow-sm"
-                  : "bg-slate-900 text-white shadow-sm";
-              const inactiveClasses =
-                variant === "desktop"
-                  ? "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
-                  : "text-slate-600 hover:bg-slate-100 hover:text-slate-900";
-
-              return (
-                <li key={item.path}>
-                  <Link
-                    href={href}
-                    onClick={variant === "mobile" ? closeMobile : undefined}
-                    className={`${baseClasses} ${
-                      active ? activeClasses : inactiveClasses
-                    }`}
-                  >
-                    <span
-                      className={`inline-block h-1.5 w-1.5 rounded-full transition ${
-                        active
-                          ? "bg-white"
-                          : "bg-slate-300 group-hover:bg-slate-500"
-                      }`}
-                    />
-                    <span className="truncate">{item.label}</span>
-                  </Link>
-
-                  {/* Nested department label under Departments when viewing a specific dept */}
-                  {isDepartmentsItem && currentDepartmentLabel && (
-                    <div className="mt-1 pl-6 pr-3">
-                      <div className="truncate text-xs text-slate-500">
-                        <span className="mr-1 text-slate-400">›</span>
-                        {currentDepartmentLabel}
-                      </div>
-                    </div>
-                  )}
-                </li>
-              );
-            })}
+            <li>
+              <Link
+                href={adminHomeHref}
+                onClick={variant === "mobile" ? closeMobile : undefined}
+                className={`group flex items-center gap-2 rounded-xl px-3 py-2 text-xs transition ${
+                  adminActive
+                    ? "bg-slate-900 text-white shadow-sm"
+                    : "text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+                }`}
+              >
+                <span
+                  className={`inline-block h-1 w-1 rounded-full transition ${
+                    adminActive
+                      ? "bg-white"
+                      : "bg-slate-300 group-hover:bg-slate-500"
+                  }`}
+                />
+                <span className="truncate">Admin home</span>
+              </Link>
+            </li>
           </ul>
         </div>
-      )}
-
-      {/* Admin nav – single entry point to Admin home */}
-      <div className="mt-6">
-        <p
-          className={
-            variant === "desktop"
-              ? "px-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500"
-              : "px-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500"
-          }
-        >
-          Admin
-        </p>
-        <ul className="mt-2 space-y-1">
-          <li>
-            <Link
-              href={adminHomeHref}
-              onClick={variant === "mobile" ? closeMobile : undefined}
-              className={`group flex items-center gap-2 rounded-xl px-3 py-2 text-xs transition ${
-                adminActive
-                  ? "bg-slate-900 text-white shadow-sm"
-                  : "text-slate-500 hover:bg-slate-100 hover:text-slate-900"
-              }`}
-            >
-              <span
-                className={`inline-block h-1 w-1 rounded-full transition ${
-                  adminActive
-                    ? "bg-white"
-                    : "bg-slate-300 group-hover:bg-slate-500"
-                }`}
-              />
-              <span className="truncate">Admin home</span>
-            </Link>
-          </li>
-        </ul>
-      </div>
-    </>
-  );
+      </>
+    );
+  };
 
   return (
     <header

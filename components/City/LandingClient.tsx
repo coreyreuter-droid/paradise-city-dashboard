@@ -27,7 +27,7 @@ export default function LandingClient({ portalSettings }: Props) {
 
   const heroImageUrl = portalSettings?.hero_image_url || null;
   const heroBackground =
-    portalSettings?.background_color || "#020617"; // slate-950 fallback
+    portalSettings?.background_color || "#020617";
   const heroOverlay = "rgba(15, 23, 42, 0.65)";
   const sealUrl = portalSettings?.seal_url || null;
 
@@ -57,7 +57,7 @@ export default function LandingClient({ portalSettings }: Props) {
       : statAnnualBudgetRaw;
   }
 
-  // Visibility toggles (default to true if null/undefined)
+  // Visibility toggles (default true)
   const showLeadership = portalSettings?.show_leadership !== false;
   const showStory = portalSettings?.show_story !== false;
   const showYearReview = portalSettings?.show_year_review !== false;
@@ -65,6 +65,19 @@ export default function LandingClient({ portalSettings }: Props) {
     portalSettings?.show_capital_projects !== false;
   const showStats = portalSettings?.show_stats !== false;
   const showProjects = portalSettings?.show_projects !== false;
+
+  // Feature flags
+  const enableActuals =
+    portalSettings?.enable_actuals === null ||
+    portalSettings?.enable_actuals === undefined
+      ? true
+      : !!portalSettings.enable_actuals;
+
+  const enableTransactions =
+    portalSettings?.enable_transactions === true;
+
+  const enableRevenues =
+    portalSettings?.enable_revenues === true;
 
   const leaderName = portalSettings?.leader_name?.trim() || "";
   const leaderTitle = portalSettings?.leader_title?.trim() || "";
@@ -91,6 +104,9 @@ export default function LandingClient({ portalSettings }: Props) {
       imageUrl: portalSettings?.project3_image_url?.trim() || "",
     },
   ].filter((p) => p.title || p.summary || p.imageUrl);
+
+  const quickLinkBase =
+    "flex items-center justify-between rounded-md px-2 py-1.5 text-xs hover:bg-slate-900/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-1 focus-visible:ring-offset-slate-900";
 
   return (
     <div
@@ -160,12 +176,14 @@ export default function LandingClient({ portalSettings }: Props) {
               >
                 Go to Overview
               </Link>
-              <Link
-                href={cityHref("/analytics")}
-                className="inline-flex items-center justify-center rounded-full border border-slate-300/60 bg-slate-900/40 px-4 py-1.5 text-xs font-semibold text-slate-50 hover:bg-slate-800/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"
-              >
-                View Analytics
-              </Link>
+              {enableActuals && (
+                <Link
+                  href={cityHref("/analytics")}
+                  className="inline-flex items-center justify-center rounded-full border border-slate-300/60 bg-slate-900/40 px-4 py-1.5 text-xs font-semibold text-slate-50 hover:bg-slate-800/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"
+                >
+                  View Analytics
+                </Link>
+              )}
             </div>
           </div>
 
@@ -175,10 +193,11 @@ export default function LandingClient({ portalSettings }: Props) {
               Explore the data
             </p>
             <ul className="space-y-1.5">
+              {/* Overview – always available (no default “active” state) */}
               <li>
                 <Link
                   href={cityHref("/overview")}
-                  className="flex items-center justify-between rounded-md bg-slate-900/40 px-2 py-1.5 hover:bg-slate-800/80"
+                  className={quickLinkBase}
                 >
                   <span>Overview dashboard</span>
                   <span className="text-xs text-slate-200">
@@ -186,10 +205,12 @@ export default function LandingClient({ portalSettings }: Props) {
                   </span>
                 </Link>
               </li>
+
+              {/* Budget – always available */}
               <li>
                 <Link
                   href={cityHref("/budget")}
-                  className="flex items-center justify-between rounded-md px-2 py-1.5 hover:bg-slate-900/40"
+                  className={quickLinkBase}
                 >
                   <span>Budget Explorer</span>
                   <span className="text-xs text-slate-200">
@@ -197,39 +218,51 @@ export default function LandingClient({ portalSettings }: Props) {
                   </span>
                 </Link>
               </li>
-              <li>
-                <Link
-                  href={cityHref("/departments")}
-                  className="flex items-center justify-between rounded-md px-2 py-1.5 hover:bg-slate-900/40"
-                >
-                  <span>Departments</span>
-                  <span className="text-xs text-slate-200">
-                    Spending by service area
-                  </span>
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href={cityHref("/revenues")}
-                  className="flex items-center justify-between rounded-md px-2 py-1.5 hover:bg-slate-900/40"
-                >
-                  <span>Revenues</span>
-                  <span className="text-xs text-slate-200">
-                    Where funding comes from
-                  </span>
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href={cityHref("/transactions")}
-                  className="flex items-center justify-between rounded-md px-2 py-1.5 hover:bg-slate-900/40"
-                >
-                  <span>Transactions</span>
-                  <span className="text-xs text-slate-200">
-                    Payments &amp; vendors
-                  </span>
-                </Link>
-              </li>
+
+              {/* Departments – only if Actuals module is enabled */}
+              {enableActuals && (
+                <li>
+                  <Link
+                    href={cityHref("/departments")}
+                    className={quickLinkBase}
+                  >
+                    <span>Departments</span>
+                    <span className="text-xs text-slate-200">
+                      Spending by service area
+                    </span>
+                  </Link>
+                </li>
+              )}
+
+              {/* Revenues – only if Revenues module is enabled */}
+              {enableRevenues && (
+                <li>
+                  <Link
+                    href={cityHref("/revenues")}
+                    className={quickLinkBase}
+                  >
+                    <span>Revenues</span>
+                    <span className="text-xs text-slate-200">
+                      Where funding comes from
+                    </span>
+                  </Link>
+                </li>
+              )}
+
+              {/* Transactions – only if Transactions module is enabled */}
+              {enableTransactions && (
+                <li>
+                  <Link
+                    href={cityHref("/transactions")}
+                    className={quickLinkBase}
+                  >
+                    <span>Transactions</span>
+                    <span className="text-xs text-slate-200">
+                      Payments &amp; vendors
+                    </span>
+                  </Link>
+                </li>
+              )}
             </ul>
           </div>
         </div>

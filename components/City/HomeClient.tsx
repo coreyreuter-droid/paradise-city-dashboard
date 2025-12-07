@@ -78,6 +78,22 @@ export default function ParadiseHomeClient({
 }: Props) {
   const searchParams = useSearchParams();
 
+  // Feature flags – default behavior matches server-side normalization
+  const enableActuals =
+    portalSettings?.enable_actuals === null ||
+    portalSettings?.enable_actuals === undefined
+      ? true
+      : !!portalSettings.enable_actuals;
+
+  const enableTransactions =
+    portalSettings?.enable_transactions === true;
+
+  const enableRevenues =
+    portalSettings?.enable_revenues === true;
+
+  const enableVendors =
+    enableTransactions && portalSettings?.enable_vendors === true;
+
   const years: number[] = useMemo(() => {
     const set = new Set<number>();
 
@@ -192,7 +208,7 @@ export default function ParadiseHomeClient({
     return rows;
   }, [budgetsForYear, actualsForYear]);
 
-  // KPI rollups
+  // KPI rollups (used only where modules are enabled)
   const {
     totalBudget,
     totalActuals,
@@ -263,7 +279,8 @@ export default function ParadiseHomeClient({
   const heroOverlay = "rgba(15, 23, 42, 0.65)";
 
   const hasAnyDataForSelectedYear =
-    hasBudgetData || transactionsForYear.length > 0;
+    hasBudgetData ||
+    (enableTransactions && transactionsForYear.length > 0);
 
   const freshnessText = useMemo(() => {
     if (!dataFreshness) return null;
@@ -280,14 +297,24 @@ export default function ParadiseHomeClient({
       parts.push(`${label}: ${date}`);
     };
 
-    push("Budgets", dataFreshness.budgets);
-    push("Actuals", dataFreshness.actuals);
-    push("Transactions", dataFreshness.transactions);
-    push("Revenues", dataFreshness.revenues);
+    // Budgets are always on
+    push("Budgets", dataFreshness?.budgets);
+
+    if (enableActuals) {
+      push("Actuals", dataFreshness?.actuals);
+    }
+
+    if (enableTransactions) {
+      push("Transactions", dataFreshness?.transactions);
+    }
+
+    if (enableRevenues) {
+      push("Revenues", dataFreshness?.revenues);
+    }
 
     if (!parts.length) return null;
     return parts.join(" · ");
-  }, [dataFreshness]);
+  }, [dataFreshness, enableActuals, enableTransactions, enableRevenues]);
 
   return (
     <div
@@ -365,9 +392,11 @@ export default function ParadiseHomeClient({
                   Fiscal year{" "}
                   {yearLabel ? yearLabel : "not selected"}
                 </div>
-                <div className="rounded-full bg-emerald-500/90 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-950">
-                  {hasBudgetData ? execPctDisplay : "Awaiting data"}
-                </div>
+                {enableActuals && hasBudgetData && (
+                  <div className="rounded-full bg-emerald-500/90 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-950">
+                    {execPctDisplay}
+                  </div>
+                )}
               </div>
 
               <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -386,20 +415,22 @@ export default function ParadiseHomeClient({
                   </p>
                 </div>
 
-                <div className="rounded-lg bg-slate-950/50 p-3">
-                  <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">
-                    Spent to date
+                {enableActuals && (
+                  <div className="rounded-lg bg-slate-950/50 p-3">
+                    <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+                      Spent to date
+                    </div>
+                    <div className="mt-1 text-sm font-semibold text-slate-50">
+                      {hasBudgetData
+                        ? formatCurrency(totalActuals)
+                        : "Awaiting data"}
+                    </div>
+                    <p className="mt-1 text-[11px] text-slate-400">
+                      Actual expenditures recorded against the
+                      budget so far.
+                    </p>
                   </div>
-                  <div className="mt-1 text-sm font-semibold text-slate-50">
-                    {hasBudgetData
-                      ? formatCurrency(totalActuals)
-                      : "Awaiting data"}
-                  </div>
-                  <p className="mt-1 text-[11px] text-slate-400">
-                    Actual expenditures recorded against the
-                    budget so far.
-                  </p>
-                </div>
+                )}
               </div>
 
               <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
@@ -410,14 +441,16 @@ export default function ParadiseHomeClient({
                       {deptCount || "—"}
                     </span>
                   </span>
-                  <span>
-                    Transactions:{" "}
-                    <span className="font-semibold">
-                      {txCount || "—"}
+                  {enableTransactions && (
+                    <span>
+                      Transactions:{" "}
+                      <span className="font-semibold">
+                        {txCount || "—"}
+                      </span>
                     </span>
-                  </span>
+                  )}
                 </div>
-                {hasBudgetData && (
+                {enableActuals && hasBudgetData && (
                   <div className="text-[11px] text-slate-300">
                     <span className="font-semibold">
                       {execPctDisplay}
@@ -443,7 +476,7 @@ export default function ParadiseHomeClient({
                 Data not yet available for this fiscal year
               </h2>
               <p className="text-sm leading-relaxed text-slate-700">
-                There are no budgets, actuals, or transactions loaded for{" "}
+                There are no budgets or published spending data loaded for{" "}
                 {yearLabel ? `fiscal year ${yearLabel}` : "the selected year"}
                 . Try choosing a different fiscal year from the menu above, or
                 check back after new data is published.
@@ -461,111 +494,118 @@ export default function ParadiseHomeClient({
         </>
       ) : (
         <>
-          {/* KPI Strip */}
-          <CardContainer>
-            {yearLabel && (
-              <div className="mb-3 text-xs text-slate-600">
-                Citywide totals for fiscal year{" "}
-                <span className="font-semibold">{yearLabel}</span>.
-              </div>
-            )}
-
-            <ParadiseHomeKpiStrip
-              totalBudget={totalBudget}
-              totalActuals={totalActuals}
-              variance={variance}
-              execPct={execPct}
-              deptCount={deptCount}
-              txCount={txCount}
-              topDepartment={topDepartment}
-              accentColor={accentColor}
-            />
-
-            {freshnessText && (
-              <p className="mt-2 text-xs text-slate-600">
-                Data last updated — {freshnessText}
-              </p>
-            )}
-          </CardContainer>
-
-          {/* Revenues overview */}
-          <CardContainer>
-            <HomeRevenueSummary
-              revenues={revenues}
-              years={years}
-              accentColor={accentColor}
-            />
-          </CardContainer>
-
-          {/* Row 1: Budget vs actuals by department + multi-year chart */}
-          <div className="grid gap-6 lg:grid-cols-[2fr,1.3fr]">
+          {/* KPI Strip – only when Actuals module is enabled */}
+          {enableActuals && (
             <CardContainer>
-              <section
-                aria-label="Budget vs Actuals by Department"
-                className="space-y-3"
-              >
-                <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-                  <div>
-                    <h2 className="text-sm font-semibold text-slate-800">
-                      Budget vs Actuals by Department
-                    </h2>
-                    <p className="text-sm text-slate-600">
-                      Top departments by budget and their corresponding
-                      spending for{" "}
-                      {yearLabel ?? "the selected year"}.
-                    </p>
-                  </div>
-                  <Link
-                    href={cityHref("/departments")}
-                    className="mt-1 text-xs font-semibold text-slate-700 underline-offset-2 hover:underline"
-                  >
-                    View all departments
-                  </Link>
+              {yearLabel && (
+                <div className="mb-3 text-xs text-slate-600">
+                  Citywide totals for fiscal year{" "}
+                  <span className="font-semibold">{yearLabel}</span>.
                 </div>
+              )}
 
-                <BudgetCharts
-                  year={selectedYear ?? new Date().getFullYear()}
-                  departments={departmentsForYear}
-                  layout="stacked"
-                />
-              </section>
+              <ParadiseHomeKpiStrip
+                totalBudget={totalBudget}
+                totalActuals={totalActuals}
+                variance={variance}
+                execPct={execPct}
+                deptCount={deptCount}
+                txCount={txCount}
+                topDepartment={topDepartment}
+                accentColor={accentColor}
+                enableTransactions={enableTransactions}
+              />
+
+              {freshnessText && (
+                <p className="mt-2 text-xs text-slate-600">
+                  Data last updated — {freshnessText}
+                </p>
+              )}
             </CardContainer>
+          )}
 
+          {/* Revenues overview – only when Revenues module is enabled */}
+          {enableRevenues && (
             <CardContainer>
-              <section
-                aria-labelledby="home-multiyear-heading"
-                className="space-y-2"
-              >
-                <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-                  <div>
-                    <h2
-                      id="home-multiyear-heading"
-                      className="text-sm font-semibold text-slate-800"
+              <HomeRevenueSummary
+                revenues={revenues}
+                years={years}
+                accentColor={accentColor}
+              />
+            </CardContainer>
+          )}
+
+          {/* Row 1: Budget vs actuals by department + multi-year chart – only when Actuals are enabled */}
+          {enableActuals && (
+            <div className="grid gap-6 lg:grid-cols-[2fr,1.3fr]">
+              <CardContainer>
+                <section
+                  aria-label="Budget vs Actuals by Department"
+                  className="space-y-3"
+                >
+                  <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+                    <div>
+                      <h2 className="text-sm font-semibold text-slate-800">
+                        Budget vs Actuals by Department
+                      </h2>
+                      <p className="text-sm text-slate-600">
+                        Top departments by budget and their corresponding
+                        spending for{" "}
+                        {yearLabel ?? "the selected year"}.
+                      </p>
+                    </div>
+                    <Link
+                      href={cityHref("/departments")}
+                      className="mt-1 text-xs font-semibold text-slate-700 underline-offset-2 hover:underline"
                     >
-                      Budget &amp; Spending Over Time
-                    </h2>
-                    <p className="text-sm text-slate-600">
-                      Compare adopted budgets and actual spending across
-                      multiple fiscal years.
-                    </p>
+                      View all departments
+                    </Link>
                   </div>
-                  <div className="text-xs text-slate-600">
-                    Showing{" "}
-                    <span className="font-semibold">
-                      {years.length}{" "}
-                      {years.length === 1 ? "year" : "years"}
-                    </span>
-                    .
-                  </div>
-                </div>
 
-                <ParadiseHomeMultiYearChart
-                  budgets={budgets}
-                  actuals={actuals}
-                />
-              </section>
-            </CardContainer>
-          </div>
+                  <BudgetCharts
+                    year={selectedYear ?? new Date().getFullYear()}
+                    departments={departmentsForYear}
+                    layout="stacked"
+                  />
+                </section>
+              </CardContainer>
+
+              <CardContainer>
+                <section
+                  aria-labelledby="home-multiyear-heading"
+                  className="space-y-2"
+                >
+                  <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+                    <div>
+                      <h2
+                        id="home-multiyear-heading"
+                        className="text-sm font-semibold text-slate-800"
+                      >
+                        Budget &amp; Spending Over Time
+                      </h2>
+                      <p className="text-sm text-slate-600">
+                        Compare adopted budgets and actual spending across
+                        multiple fiscal years.
+                      </p>
+                    </div>
+                    <div className="text-xs text-slate-600">
+                      Showing{" "}
+                      <span className="font-semibold">
+                        {years.length}{" "}
+                        {years.length === 1 ? "year" : "years"}
+                      </span>
+                      .
+                    </div>
+                  </div>
+
+                  <ParadiseHomeMultiYearChart
+                    budgets={budgets}
+                    actuals={actuals}
+                  />
+                </section>
+              </CardContainer>
+            </div>
+          )}
 
           {/* Row 2: Departments grid + vendors / transactions */}
           <div className="grid gap-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
@@ -573,7 +613,11 @@ export default function ParadiseHomeClient({
               <SectionHeader
                 title="Departments"
                 eyebrow="City services"
-                description="Compare budgets, actuals, and spending patterns across departments."
+                description={
+                  enableActuals
+                    ? "Compare budgets, actuals, and spending patterns across departments."
+                    : "Compare adopted budgets across departments."
+                }
               />
               <DepartmentsGrid
                 year={selectedYear ?? years[0]}
@@ -581,16 +625,25 @@ export default function ParadiseHomeClient({
               />
             </CardContainer>
 
-            <div className="space-y-4">
-              <CardContainer>
-                <TopVendorsCard transactions={transactionsForYear} />
-              </CardContainer>
-              <CardContainer>
-                <RecentTransactionsCard
-                  transactions={recentTransactions}
-                />
-              </CardContainer>
-            </div>
+            {enableTransactions && (
+              <div className="space-y-4">
+                {enableVendors && (
+                  <CardContainer>
+                    <TopVendorsCard
+                      year={selectedYear ?? undefined}
+                      transactions={transactionsForYear}
+                    />
+                  </CardContainer>
+                )}
+                <CardContainer>
+                  <RecentTransactionsCard
+                    year={selectedYear ?? undefined}
+                    transactions={recentTransactions}
+                    enableVendors={enableVendors}
+                  />
+                </CardContainer>
+              </div>
+            )}
           </div>
 
           <div className="pb-4 pt-1 text-center text-xs text-slate-500">

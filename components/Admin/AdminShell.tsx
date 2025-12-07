@@ -15,14 +15,15 @@ type Props = {
   actions?: React.ReactNode;
 };
 
+// Use *relative* admin paths. "" means /admin (overview)
 const NAV_ITEMS: { href: string; label: string }[] = [
-  { href: "/admin", label: "Overview" },
-  { href: "/admin/upload", label: "Data upload" },
-  { href: "/admin/upload/history", label: "Upload history" },
-  { href: "/admin/settings", label: "Branding & settings" },
-  { href: "/admin/users", label: "Users & roles" },
-  { href: "/admin/onboarding", label: "Onboarding checklist" },
-  { href: "/admin/publish", label: "Publish status" },
+  { href: "", label: "Overview" },
+  { href: "upload", label: "Data upload" },
+  { href: "upload/history", label: "Upload history" },
+  { href: "settings", label: "Branding & settings" },
+  { href: "users", label: "Users & roles" },
+  { href: "onboarding", label: "Onboarding checklist" },
+  { href: "publish", label: "Publish status" },
 ];
 
 export default function AdminShell({
@@ -32,12 +33,26 @@ export default function AdminShell({
   actions,
 }: Props) {
   const pathname = usePathname();
+
   const [publishState, setPublishState] = useState<
     "unknown" | "published" | "draft"
   >("unknown");
 
-  const isActive = (href: string) => {
-    const full = cityHref(href);
+  // Normalize full URL for each tab
+  const buildFullHref = (slug: string) => {
+    if (!slug.trim()) return cityHref("/admin"); // overview
+    return cityHref(`/admin/${slug}`);
+  };
+
+  const isActive = (slug: string) => {
+    const full = buildFullHref(slug);
+
+    // Overview: only exact match
+    if (!slug.trim()) {
+      return pathname === full;
+    }
+
+    // Other tabs: exact match or nested routes under that tab
     return pathname === full || pathname.startsWith(full + "/");
   };
 
@@ -96,7 +111,7 @@ export default function AdminShell({
         </div>
       </header>
 
-      {/* Main content (skip link target) */}
+      {/* Main content */}
       <main id="main-content">
         <div className="mx-auto max-w-6xl px-4 py-6">
           <section
@@ -136,14 +151,14 @@ export default function AdminShell({
               )}
             </header>
 
-            {/* Admin section navigation – tabs, no scroll arrows */}
+            {/* Admin tabs */}
             <nav
               aria-label="Admin navigation"
               className="mb-4 border-b border-slate-200"
             >
               <ul className="-mb-px flex flex-wrap gap-1 text-xs">
                 {NAV_ITEMS.map((item) => {
-                  const href = cityHref(item.href);
+                  const hrefFull = buildFullHref(item.href);
                   const active = isActive(item.href);
 
                   const base =
@@ -155,9 +170,9 @@ export default function AdminShell({
                     "border-b-2 border-transparent text-slate-500 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900";
 
                   return (
-                    <li key={item.href}>
+                    <li key={item.href || "overview"}>
                       <Link
-                        href={href}
+                        href={hrefFull}
                         aria-current={active ? "page" : undefined}
                         className={`${base} ${
                           active ? activeClasses : inactiveClasses

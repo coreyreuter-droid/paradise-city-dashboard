@@ -1,3 +1,4 @@
+// components/City/CitywideDashboardClient.tsx
 "use client";
 
 import { useMemo } from "react";
@@ -73,6 +74,10 @@ type Props = {
   budgets: BudgetRow[];
   actuals: ActualRow[];
   transactions: TransactionRow[];
+
+  // feature flags
+  enableTransactions: boolean;
+  enableVendors: boolean;
 };
 
 const formatAxisCurrencyShort = (v: number) => {
@@ -125,6 +130,8 @@ export default function CitywideDashboardClient({
   budgets,
   actuals,
   transactions,
+  enableTransactions,
+  enableVendors,
 }: Props) {
   const searchParams = useSearchParams();
 
@@ -308,7 +315,7 @@ export default function CitywideDashboardClient({
     };
   }, [transactions, selectedYear]);
 
-  // Budget distribution (top departments + "Other") for pie
+  // Budget distribution (top departments + "Other") for pies
   const budgetDistribution = useMemo(() => {
     const base: DistributionSlice[] = deptSummaries
       .filter((d) => d.budget > 0)
@@ -320,7 +327,6 @@ export default function CitywideDashboardClient({
     return buildDistribution(base);
   }, [deptSummaries]);
 
-  // Actuals distribution (top departments + "Other") for pie
   const actualsDistribution = useMemo(() => {
     const base: DistributionSlice[] = deptSummaries
       .filter((d) => d.actuals > 0)
@@ -332,7 +338,7 @@ export default function CitywideDashboardClient({
     return buildDistribution(base);
   }, [deptSummaries]);
 
-  // Top spending categories (actuals grouped by category)
+  // Top spending categories
   const categorySummaries: CategorySummary[] = useMemo(() => {
     if (!selectedYear) return [];
     const byCategory = new Map<string, number>();
@@ -523,7 +529,7 @@ export default function CitywideDashboardClient({
         {/* Breadcrumb */}
         <nav
           aria-label="Breadcrumb"
-          className="mb-4 flex items-center gap-1 px-1 text-sm text-slate-600"
+          className="mb-4 flex itemscenter gap-1 px-1 text-sm text-slate-600"
         >
           <Link
             href={cityHref("/overview")}
@@ -890,13 +896,13 @@ export default function CitywideDashboardClient({
                         {formatCurrency(totalBudget)}
                       </span>
                     </div>
-                    <div className="flex items-center justify-between">
+                    <div className="flex itemscenter justify-between">
                       <span className="text-slate-600">Actuals</span>
                       <span className="font-mono text-slate-900">
                         {formatCurrency(totalActuals)}
                       </span>
                     </div>
-                    <div className="flex items-center justify-between">
+                    <div className="flex itemscenter justify-between">
                       <span className="text-slate-600">Variance</span>
                       <span
                         className={`font-mono ${
@@ -910,7 +916,7 @@ export default function CitywideDashboardClient({
                         {formatCurrency(variance)}
                       </span>
                     </div>
-                    <div className="flex items-center justify-between">
+                    <div className="flex itemscenter justify-between">
                       <span className="text-slate-600">
                         % of budget spent
                       </span>
@@ -1213,107 +1219,111 @@ export default function CitywideDashboardClient({
 
             {/* Right side: vendors + transactions summary + guidance */}
             <div className="space-y-6 min-w-0">
-              {/* Vendors summary */}
-              <CardContainer>
-                <section
-                  aria-label="Top vendors for the selected fiscal year"
-                  className="space-y-3"
-                >
-                  <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-                    <div className="min-w-0">
-                      <h2 className="text-sm font-semibold text-slate-800">
-                        Top Vendors ({yearLabel})
-                      </h2>
-                      <p className="text-sm text-slate-600">
-                        Vendors ranked by total spending in the selected
-                        fiscal year.
-                      </p>
-                    </div>
-                    <div className="text-sm text-slate-600">
-                      {totalVendorSpend > 0 && (
-                        <span>
-                          Total vendor spend:{" "}
-                          <span className="font-mono text-slate-900">
-                            {formatCurrency(totalVendorSpend)}
+              {/* Vendors summary – only when vendor module is enabled */}
+              {enableVendors && (
+                <CardContainer>
+                  <section
+                    aria-label="Top vendors for the selected fiscal year"
+                    className="space-y-3"
+                  >
+                    <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+                      <div className="min-w-0">
+                        <h2 className="text-sm font-semibold text-slate-800">
+                          Top Vendors ({yearLabel})
+                        </h2>
+                        <p className="text-sm text-slate-600">
+                          Vendors ranked by total spending in the selected
+                          fiscal year.
+                        </p>
+                      </div>
+                      <div className="text-sm text-slate-600">
+                        {totalVendorSpend > 0 && (
+                          <span>
+                            Total vendor spend:{" "}
+                            <span className="font-mono text-slate-900">
+                              {formatCurrency(totalVendorSpend)}
+                            </span>
                           </span>
-                        </span>
-                      )}
+                        )}
+                      </div>
                     </div>
-                  </div>
 
-                  {topVendors.length === 0 ? (
-                    <p className="text-sm text-slate-600">
-                      No vendor-level spending available for this year.
-                    </p>
-                  ) : (
-                    <div className="space-y-1.5 text-sm text-slate-700">
-                      {topVendors.map((vendor) => (
-                        <div
-                          key={vendor.name}
-                          className="flex items-center justify-between gap-3"
-                        >
-                          <div className="flex min-w-0 flex-1 items-center gap-2">
-                            <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-xs font-semibold text-slate-700">
-                              {vendor.name.charAt(0).toUpperCase()}
-                            </span>
-                            <span className="truncate pr-2">
-                              {vendor.name}
-                            </span>
-                          </div>
-                          <div className="flex flex-col items-end text-right">
-                            <span className="font-mono">
-                              {formatCurrency(vendor.total)}
-                            </span>
-                            <span className="text-xs text-slate-600">
-                              {formatPercent(vendor.percent)}
-                            </span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </section>
-              </CardContainer>
-
-              {/* Transactions summary */}
-              <CardContainer>
-                <section
-                  aria-label="Transactions summary"
-                  className="space-y-2 text-sm text-slate-600"
-                >
-                  <div className="flex items-baseline justify-between gap-3">
-                    <div className="min-w-0">
-                      <h2 className="text-sm font-semibold text-slate-800">
-                        Transactions Overview
-                      </h2>
-                      <p>
-                        Summary of transaction volume for{" "}
-                        {yearLabel}.
+                    {topVendors.length === 0 ? (
+                      <p className="text-sm text-slate-600">
+                        No vendor-level spending available for this year.
                       </p>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-600">
-                        Transactions
+                    ) : (
+                      <div className="space-y-1.5 text-sm text-slate-700">
+                        {topVendors.map((vendor) => (
+                          <div
+                            key={vendor.name}
+                            className="flex items-center justifybetween gap-3"
+                          >
+                            <div className="flex min-w-0 flex-1 items-center gap-2">
+                              <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-xs font-semibold text-slate-700">
+                                {vendor.name.charAt(0).toUpperCase()}
+                              </span>
+                              <span className="truncate pr-2">
+                                {vendor.name}
+                              </span>
+                            </div>
+                            <div className="flex flex-col items-end text-right">
+                              <span className="font-mono">
+                                {formatCurrency(vendor.total)}
+                              </span>
+                              <span className="text-xs text-slate-600">
+                                {formatPercent(vendor.percent)}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                      <div className="mt-1 text-2xl font-bold text-slate-900">
-                        {totalTransactionsCount.toLocaleString("en-US")}
-                      </div>
-                    </div>
-                  </div>
+                    )}
+                  </section>
+                </CardContainer>
+              )}
 
-                  <p>
-                    Use the{" "}
-                    <Link
-                      href={cityHref("/transactions")}
-                      className="font-medium text-sky-700 hover:underline"
-                    >
-                      Transactions
-                    </Link>{" "}
-                    page to filter by department, vendor, or keyword and
-                    export CSVs for detailed analysis.
-                  </p>
-                </section>
-              </CardContainer>
+              {/* Transactions summary – only when Transactions module is enabled */}
+              {enableTransactions && (
+                <CardContainer>
+                  <section
+                    aria-label="Transactions summary"
+                    className="space-y-2 text-sm text-slate-600"
+                  >
+                    <div className="flex items-baseline justify-between gap-3">
+                      <div className="min-w-0">
+                        <h2 className="text-sm font-semibold text-slate-800">
+                          Transactions Overview
+                        </h2>
+                        <p>
+                          Summary of transaction volume for{" "}
+                          {yearLabel}.
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-600">
+                          Transactions
+                        </div>
+                        <div className="mt-1 text-2xl font-bold text-slate-900">
+                          {totalTransactionsCount.toLocaleString("en-US")}
+                        </div>
+                      </div>
+                    </div>
+
+                    <p>
+                      Use the{" "}
+                      <Link
+                        href={cityHref("/transactions")}
+                        className="font-medium text-sky-700 hover:underline"
+                      >
+                        Transactions
+                      </Link>{" "}
+                      page to filter by department, vendor, or keyword and
+                      export CSVs for detailed analysis.
+                    </p>
+                  </section>
+                </CardContainer>
+              )}
 
               {/* Guidance card */}
               <CardContainer>
@@ -1329,7 +1339,7 @@ export default function CitywideDashboardClient({
                   <p>
                     For example, you can identify which departments are
                     responsible for the largest share of the budget, how
-                    execution compares across years, and which vendors
+                    execution compares across years, and which categories
                     account for most of your spend.
                   </p>
                   <p>
@@ -1340,8 +1350,9 @@ export default function CitywideDashboardClient({
                     >
                       Departments
                     </Link>{" "}
-                    view to see multi-year trends and department-level
-                    transactions.
+                    view to see department-level detail.
+                    {enableTransactions &&
+                      " Use the Transactions page to inspect line-item spending when enabled for your city."}
                   </p>
                 </div>
               </CardContainer>
