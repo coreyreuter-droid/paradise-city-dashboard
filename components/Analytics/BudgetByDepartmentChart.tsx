@@ -47,7 +47,7 @@ export default function BudgetByDepartmentChart({
 
   if (data.length === 0) {
     return (
-      <p className="text-sm text-slate-500">
+      <p className="text-sm text-slate-600">
         No department budget data available for {year}.
       </p>
     );
@@ -75,11 +75,8 @@ export default function BudgetByDepartmentChart({
             data={data}
             layout="vertical"
             margin={{ top: 8, right: 24, bottom: 8, left: 16 }}
-            // More separation between departments so “stacks” don’t visually touch
             barCategoryGap={16}
-            // Small gap between budget vs actual inside the same department
             barGap={2}
-            // Slightly slimmer bars so category gap is more obvious
             barSize={10}
           >
             <CartesianGrid strokeDasharray="3 3" horizontal={false} />
@@ -119,7 +116,7 @@ export default function BudgetByDepartmentChart({
             <Bar
               dataKey="budget"
               name="Budget"
-              fill="#757b84ff" // neutral gray
+              fill="#757b84ff"
               radius={[4, 4, 4, 4]}
             />
             {/* Foreground actuals bar with per-department color */}
@@ -130,7 +127,7 @@ export default function BudgetByDepartmentChart({
             >
               {data.map((row, idx) => {
                 const over = row.actuals > row.budget;
-                const fill = over ? "#dc2626" : "#16a34a"; // red vs green
+                const fill = over ? "#dc2626" : "#16a34a";
                 return <Cell key={idx} fill={fill} />;
               })}
             </Bar>
@@ -157,7 +154,7 @@ export default function BudgetByDepartmentChart({
       {/* Accessible tabular representation of the same data */}
       {showTable && (
         <div className="overflow-x-auto">
-          <table className="min-w-full border border-slate-200 text-xs">
+          <table className="min-w-full border border-slate-200 text-sm">
             <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-600">
               <tr>
                 <th scope="col" className="px-3 py-2 text-left">

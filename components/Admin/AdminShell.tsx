@@ -96,84 +96,86 @@ export default function AdminShell({
         </div>
       </header>
 
-      {/* Main content */}
-      <div className="mx-auto max-w-6xl px-4 py-6">
-        <section
-          aria-label={title}
-          className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"
-        >
-          {/* Draft mode banner */}
-          {publishState === "draft" && (
-            <div className="mb-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-800">
-              <span className="font-semibold">Draft mode.</span>{" "}
-              This portal is currently hidden from the public. Switch it to{" "}
-              <span className="font-semibold">Published</span> from{" "}
-              <span className="font-semibold">Branding &amp; settings</span>{" "}
-              when you&apos;re ready to launch.
-            </div>
-          )}
-
-          {/* Header + actions */}
-          <header className="mb-3 flex flex-wrap items-start justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-                Admin
-              </p>
-              <h2 className="mt-1 truncate text-sm font-semibold text-slate-900 sm:text-base">
-                {title}
-              </h2>
-              {description && (
-                <p className="mt-1 text-xs text-slate-500">
-                  {description}
-                </p>
-              )}
-            </div>
-            {actions && (
-              <div className="flex flex-wrap items-center gap-2">
-                {actions}
+      {/* Main content (skip link target) */}
+      <main id="main-content">
+        <div className="mx-auto max-w-6xl px-4 py-6">
+          <section
+            aria-label={title}
+            className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"
+          >
+            {/* Draft mode banner */}
+            {publishState === "draft" && (
+              <div className="mb-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-800">
+                <span className="font-semibold">Draft mode.</span>{" "}
+                This portal is currently hidden from the public. Switch it to{" "}
+                <span className="font-semibold">Published</span> from{" "}
+                <span className="font-semibold">Branding &amp; settings</span>{" "}
+                when you&apos;re ready to launch.
               </div>
             )}
-          </header>
 
-          {/* Admin section navigation – tabs, no scroll arrows */}
-          <nav
-            aria-label="Admin navigation"
-            className="mb-4 border-b border-slate-200"
-          >
-            <ul className="-mb-px flex flex-wrap gap-1 text-xs">
-              {NAV_ITEMS.map((item) => {
-                const href = cityHref(item.href);
-                const active = isActive(item.href);
+            {/* Header + actions */}
+            <header className="mb-3 flex flex-wrap items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                  Admin
+                </p>
+                <h2 className="mt-1 truncate text-sm font-semibold text-slate-900 sm:text-base">
+                  {title}
+                </h2>
+                {description && (
+                  <p className="mt-1 text-xs text-slate-500">
+                    {description}
+                  </p>
+                )}
+              </div>
+              {actions && (
+                <div className="flex flex-wrap items-center gap-2">
+                  {actions}
+                </div>
+              )}
+            </header>
 
-                const base =
-                  "whitespace-nowrap rounded-t-lg px-3 py-2 font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white";
+            {/* Admin section navigation – tabs, no scroll arrows */}
+            <nav
+              aria-label="Admin navigation"
+              className="mb-4 border-b border-slate-200"
+            >
+              <ul className="-mb-px flex flex-wrap gap-1 text-xs">
+                {NAV_ITEMS.map((item) => {
+                  const href = cityHref(item.href);
+                  const active = isActive(item.href);
 
-                const activeClasses =
-                  "border-b-2 border-slate-900 bg-slate-50 text-slate-900";
-                const inactiveClasses =
-                  "border-b-2 border-transparent text-slate-500 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900";
+                  const base =
+                    "whitespace-nowrap rounded-t-lg px-3 py-2 font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white";
 
-                return (
-                  <li key={item.href}>
-                    <Link
-                      href={href}
-                      aria-current={active ? "page" : undefined}
-                      className={`${base} ${
-                        active ? activeClasses : inactiveClasses
-                      }`}
-                    >
-                      {item.label}
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-          </nav>
+                  const activeClasses =
+                    "border-b-2 border-slate-900 bg-slate-50 text-slate-900";
+                  const inactiveClasses =
+                    "border-b-2 border-transparent text-slate-500 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900";
 
-          {/* Page content */}
-          <div>{children}</div>
-        </section>
-      </div>
+                  return (
+                    <li key={item.href}>
+                      <Link
+                        href={href}
+                        aria-current={active ? "page" : undefined}
+                        className={`${base} ${
+                          active ? activeClasses : inactiveClasses
+                        }`}
+                      >
+                        {item.label}
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </nav>
+
+            {/* Page content */}
+            <div>{children}</div>
+          </section>
+        </div>
+      </main>
     </div>
   );
 }

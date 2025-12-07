@@ -237,7 +237,6 @@ export default function CitywideDashboardClient({
       }
     );
 
-    // sort by budget desc
     summaries.sort((a, b) => b.budget - a.budget);
 
     const totalBudget = summaries.reduce(
@@ -419,7 +418,6 @@ export default function CitywideDashboardClient({
 
     if (!latestYear) return rows;
 
-    // sort by absolute variance in latest year
     rows.sort((a, b) => {
       const aLatest = a.byYear[latestYear]?.variance ?? 0;
       const bLatest = b.byYear[latestYear]?.variance ?? 0;
@@ -503,7 +501,10 @@ export default function CitywideDashboardClient({
   const totalTransactionsCount = transactionsForYear.length;
 
   return (
-    <div className="min-h-screen bg-slate-50 overflow-x-hidden">
+    <div
+      id="main-content"
+      className="min-h-screen bg-slate-50 overflow-x-hidden"
+    >
       <div className="mx-auto max-w-6xl px-3 py-4 sm:px-4 sm:py-6 lg:px-6 lg:py-8">
         <SectionHeader
           eyebrow="Citywide analytics"
@@ -522,7 +523,7 @@ export default function CitywideDashboardClient({
         {/* Breadcrumb */}
         <nav
           aria-label="Breadcrumb"
-          className="mb-4 flex items-center gap-1 px-1 text-xs text-slate-500"
+          className="mb-4 flex items-center gap-1 px-1 text-sm text-slate-600"
         >
           <Link
             href={cityHref("/overview")}
@@ -530,7 +531,7 @@ export default function CitywideDashboardClient({
           >
             Home
           </Link>
-          <span className="text-slate-400">›</span>
+          <span className="text-slate-500">›</span>
           <span className="font-medium text-slate-700">
             Analytics
           </span>
@@ -544,31 +545,31 @@ export default function CitywideDashboardClient({
               className="grid gap-4 md:grid-cols-4"
             >
               <div className="min-w-0">
-                <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+                <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-600">
                   Total budget ({yearLabel})
                 </div>
                 <div className="mt-1 text-2xl font-bold text-slate-900">
                   {formatCurrency(totalBudget)}
                 </div>
-                <div className="mt-1 text-xs text-slate-500">
+                <div className="mt-1 text-sm text-slate-600">
                   Sum of all adopted budgets across departments.
                 </div>
               </div>
 
               <div className="min-w-0">
-                <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+                <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-600">
                   Total actuals ({yearLabel})
                 </div>
                 <div className="mt-1 text-2xl font-bold text-slate-900">
                   {formatCurrency(totalActuals)}
                 </div>
-                <div className="mt-1 text-xs text-slate-500">
+                <div className="mt-1 text-sm text-slate-600">
                   All recorded spending for this fiscal year.
                 </div>
               </div>
 
               <div className="min-w-0">
-                <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+                <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-600">
                   Variance (actuals - budget)
                 </div>
                 <div
@@ -582,20 +583,20 @@ export default function CitywideDashboardClient({
                 >
                   {formatCurrency(variance)}
                 </div>
-                <div className="mt-1 text-xs text-slate-500">
+                <div className="mt-1 text-sm text-slate-600">
                   Negative indicates citywide under-spend versus adopted
                   budget.
                 </div>
               </div>
 
               <div className="min-w-0">
-                <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+                <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-600">
                   % of budget spent
                 </div>
                 <div className="mt-1 text-2xl font-bold text-slate-900">
                   {formatPercent(execPctDisplay)}
                 </div>
-                <div className="mt-1 text-xs text-slate-500">
+                <div className="mt-1 text-sm text-slate-600">
                   Overall execution of the adopted budget across all
                   departments.
                 </div>
@@ -632,16 +633,15 @@ export default function CitywideDashboardClient({
                       </h2>
                       <p
                         id="budget-distribution-desc"
-                        className="mb-2 text-xs text-slate-500"
+                        className="mb-2 text-sm text-slate-600"
                       >
                         How the adopted budget is allocated across departments
-                        for{" "}
-                        {yearLabel}.
+                        for {yearLabel}.
                       </p>
                     </div>
 
                     {budgetDistribution.length === 0 ? (
-                      <p className="text-sm text-slate-500">
+                      <p className="text-sm text-slate-600">
                         No budget data available for this year.
                       </p>
                     ) : (
@@ -674,7 +674,7 @@ export default function CitywideDashboardClient({
                         </div>
 
                         <div className="overflow-x-auto">
-                          <table className="mt-3 min-w-full border border-slate-200 text-xs">
+                          <table className="mt-3 min-w-full border border-slate-200 text-sm">
                             <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-600">
                               <tr>
                                 <th scope="col" className="px-3 py-2 text-left">
@@ -738,15 +738,14 @@ export default function CitywideDashboardClient({
                       </h2>
                       <p
                         id="actuals-distribution-desc"
-                        className="mb-2 text-xs text-slate-500"
+                        className="mb-2 text-sm text-slate-600"
                       >
-                        Where actual spending has gone so far in{" "}
-                        {yearLabel}.
+                        Where actual spending has gone so far in {yearLabel}.
                       </p>
                     </div>
 
                     {actualsDistribution.length === 0 ? (
-                      <p className="text-sm text-slate-500">
+                      <p className="text-sm text-slate-600">
                         No spending data available for this year.
                       </p>
                     ) : (
@@ -781,7 +780,7 @@ export default function CitywideDashboardClient({
                         </div>
 
                         <div className="overflow-x-auto">
-                          <table className="mt-3 min-w-full border border-slate-200 text-xs">
+                          <table className="mt-3 min-w-full border border-slate-200 text-sm">
                             <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-600">
                               <tr>
                                 <th scope="col" className="px-3 py-2 text-left">
@@ -837,13 +836,13 @@ export default function CitywideDashboardClient({
                     <h2 className="text-sm font-semibold text-slate-800">
                       Budget vs Actuals by Department
                     </h2>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-sm text-slate-600">
                       Fiscal year {yearLabel}. Departments sorted by largest
                       adopted budget.
                     </p>
                   </div>
                   {deptSummaries.length > 0 && (
-                    <div className="text-xs text-slate-500">
+                    <div className="text-sm text-slate-600">
                       Showing{" "}
                       <span className="font-semibold">
                         {deptSummaries.length}
@@ -854,7 +853,7 @@ export default function CitywideDashboardClient({
                 </div>
 
                 {deptSummaries.length === 0 ? (
-                  <p className="text-sm text-slate-500">
+                  <p className="text-sm text-slate-600">
                     No budget/actuals data available for this year.
                   </p>
                 ) : (
@@ -873,18 +872,18 @@ export default function CitywideDashboardClient({
                     <h2 className="text-sm font-semibold text-slate-800">
                       Citywide Budget vs Actuals & Categories
                     </h2>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-sm text-slate-600">
                       Citywide view of budget, actuals, and top spending
                       categories for {yearLabel}.
                     </p>
                   </div>
-                  <div className="text-xs text-slate-500">
+                  <div className="text-sm text-slate-600">
                     {yearLabel} • Citywide totals
                   </div>
                 </div>
 
                 <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2 text-xs min-w-0">
+                  <div className="space-y-2 text-sm min-w-0">
                     <div className="flex items-center justify-between">
                       <span className="text-slate-600">Budget</span>
                       <span className="font-mono text-slate-900">
@@ -920,22 +919,22 @@ export default function CitywideDashboardClient({
                       </span>
                     </div>
 
-                    <div className="mt-2 text-xs text-slate-500">
+                    <div className="mt-2 text-sm text-slate-600">
                       Budget execution above 100% indicates total actual
                       spending higher than the adopted budget.
                     </div>
                   </div>
 
                   <div className="min-w-0">
-                    <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-600">
                       Top spending categories
                     </h3>
                     {categorySummaries.length === 0 ? (
-                      <p className="text-xs text-slate-500">
+                      <p className="text-sm text-slate-600">
                         No categorized spending available for this year.
                       </p>
                     ) : (
-                      <div className="space-y-1.5 text-xs text-slate-700">
+                      <div className="space-y-1.5 text-sm text-slate-700">
                         {categorySummaries.map((cat) => (
                           <div key={cat.category}>
                             <div className="flex items-center justify-between gap-2">
@@ -972,7 +971,7 @@ export default function CitywideDashboardClient({
                       </h2>
                       <p
                         id="citywide-yoy-desc"
-                        className="text-xs text-slate-500"
+                        className="text-sm text-slate-600"
                       >
                         Multi-year citywide view of total budget, actuals, and
                         variance.
@@ -981,7 +980,7 @@ export default function CitywideDashboardClient({
                   </div>
 
                   {yoyTrendData.length === 0 ? (
-                    <p className="text-sm text-slate-500">
+                    <p className="text-sm text-slate-600">
                       No multi-year data available.
                     </p>
                   ) : (
@@ -1045,7 +1044,7 @@ export default function CitywideDashboardClient({
                       </div>
 
                       <div className="mt-3 overflow-x-auto">
-                        <table className="min-w-full border border-slate-200 text-xs">
+                        <table className="min-w-full border border-slate-200 text-sm">
                           <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-600">
                             <tr>
                               <th scope="col" className="px-3 py-2 text-left">
@@ -1097,7 +1096,7 @@ export default function CitywideDashboardClient({
                     <h2 className="text-sm font-semibold text-slate-800">
                       Department Variance by Year
                     </h2>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-sm text-slate-600">
                       For each department and fiscal year, shows whether
                       spending was above or below budget.
                     </p>
@@ -1105,82 +1104,84 @@ export default function CitywideDashboardClient({
                 </div>
 
                 {deptYearVarianceRows.length === 0 ? (
-                  <p className="text-sm text-slate-500">
+                  <p className="text-sm text-slate-600">
                     No department/year variance data available.
                   </p>
                 ) : (
-                  <div className="max-h-[420px] overflow-y-auto overflow-x-auto">
-                    <table className="min-w-full border border-slate-200 text-left text-xs">
-                      <thead className="border-b border-slate-200 bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-600">
-                        <tr>
-                          <th className="sticky left-0 z-10 bg-slate-50 px-2 py-2 text-left">
-                            Department
-                          </th>
-                          {years
-                            .slice()
-                            .sort((a, b) => a - b)
-                            .map((year) => (
-                              <th
-                                key={year}
-                                className="px-2 py-2 text-right"
-                              >
-                                {year}
-                              </th>
-                            ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {deptYearVarianceRows.map((row) => (
-                          <tr
-                            key={row.department_name}
-                            className="border-t border-slate-200"
-                          >
-                            <th
-                              scope="row"
-                              className="sticky left-0 z-10 bg-slate-50 px-2 py-2 text-left font-medium text-slate-800"
-                            >
-                              {row.department_name}
+                  <div className="overflow-x-auto">
+                    <div className="max-h-[420px] overflow-y-auto">
+                      <table className="min-w-full border border-slate-200 text-sm">
+                        <thead className="border-b border-slate-200 bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-600">
+                          <tr>
+                            <th className="sticky left-0 z-10 bg-slate-50 px-2 py-2 text-left">
+                              Department
                             </th>
                             {years
                               .slice()
                               .sort((a, b) => a - b)
-                              .map((year) => {
-                                const cell = row.byYear[year];
-                                if (!cell) {
+                              .map((year) => (
+                                <th
+                                  key={year}
+                                  className="px-2 py-2 text-right"
+                                >
+                                  {year}
+                                </th>
+                              ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {deptYearVarianceRows.map((row) => (
+                            <tr
+                              key={row.department_name}
+                              className="border-t border-slate-200"
+                            >
+                              <th
+                                scope="row"
+                                className="sticky left-0 z-10 bg-slate-50 px-2 py-2 text-left font-medium text-slate-800"
+                              >
+                                {row.department_name}
+                              </th>
+                              {years
+                                .slice()
+                                .sort((a, b) => a - b)
+                                .map((year) => {
+                                  const cell = row.byYear[year];
+                                  if (!cell) {
+                                    return (
+                                      <td
+                                        key={year}
+                                        className="px-2 py-1 text-center text-slate-300"
+                                      >
+                                        –
+                                      </td>
+                                    );
+                                  }
+
+                                  const varianceVal = cell.variance;
+                                  const pct = cell.percentSpent;
+                                  const isOver = varianceVal > 0;
+                                  const isNear =
+                                    Math.abs(pct - 100) <= 1;
+                                  const bgClass = isNear
+                                    ? "bg-slate-100 text-slate-700"
+                                    : isOver
+                                    ? "bg-red-50 text-red-700"
+                                    : "bg-emerald-50 text-emerald-700";
+
                                   return (
                                     <td
                                       key={year}
-                                      className="px-2 py-1 text-center text-slate-300"
+                                      className={`px-2 py-1 text-right ${bgClass}`}
                                     >
-                                      –
+                                      {formatCurrency(varianceVal)}
                                     </td>
                                   );
-                                }
-
-                                const varianceVal = cell.variance;
-                                const pct = cell.percentSpent;
-                                const isOver = varianceVal > 0;
-                                const isNear =
-                                  Math.abs(pct - 100) <= 1;
-                                const bgClass = isNear
-                                  ? "bg-slate-100 text-slate-700"
-                                  : isOver
-                                  ? "bg-red-50 text-red-700"
-                                  : "bg-emerald-50 text-emerald-700";
-
-                                return (
-                                  <td
-                                    key={year}
-                                    className={`px-2 py-1 text-right ${bgClass}`}
-                                  >
-                                    {formatCurrency(varianceVal)}
-                                  </td>
-                                );
-                              })}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                                })}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
 
                     <div className="mt-3 flex flex-wrap gap-3 text-xs text-slate-600">
                       <div className="inline-flex items-center gap-1">
@@ -1223,12 +1224,12 @@ export default function CitywideDashboardClient({
                       <h2 className="text-sm font-semibold text-slate-800">
                         Top Vendors ({yearLabel})
                       </h2>
-                      <p className="text-xs text-slate-500">
+                      <p className="text-sm text-slate-600">
                         Vendors ranked by total spending in the selected
                         fiscal year.
                       </p>
                     </div>
-                    <div className="text-xs text-slate-500">
+                    <div className="text-sm text-slate-600">
                       {totalVendorSpend > 0 && (
                         <span>
                           Total vendor spend:{" "}
@@ -1241,18 +1242,18 @@ export default function CitywideDashboardClient({
                   </div>
 
                   {topVendors.length === 0 ? (
-                    <p className="text-sm text-slate-500">
+                    <p className="text-sm text-slate-600">
                       No vendor-level spending available for this year.
                     </p>
                   ) : (
-                    <div className="space-y-1.5 text-xs text-slate-700">
+                    <div className="space-y-1.5 text-sm text-slate-700">
                       {topVendors.map((vendor) => (
                         <div
                           key={vendor.name}
                           className="flex items-center justify-between gap-3"
                         >
                           <div className="flex min-w-0 flex-1 items-center gap-2">
-                            <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-[10px] font-semibold text-slate-700">
+                            <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-xs font-semibold text-slate-700">
                               {vendor.name.charAt(0).toUpperCase()}
                             </span>
                             <span className="truncate pr-2">
@@ -1263,7 +1264,7 @@ export default function CitywideDashboardClient({
                             <span className="font-mono">
                               {formatCurrency(vendor.total)}
                             </span>
-                            <span className="text-xs text-slate-500">
+                            <span className="text-xs text-slate-600">
                               {formatPercent(vendor.percent)}
                             </span>
                           </div>
@@ -1278,7 +1279,7 @@ export default function CitywideDashboardClient({
               <CardContainer>
                 <section
                   aria-label="Transactions summary"
-                  className="space-y-2 text-xs text-slate-600"
+                  className="space-y-2 text-sm text-slate-600"
                 >
                   <div className="flex items-baseline justify-between gap-3">
                     <div className="min-w-0">
@@ -1291,7 +1292,7 @@ export default function CitywideDashboardClient({
                       </p>
                     </div>
                     <div className="text-right">
-                      <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+                      <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-600">
                         Transactions
                       </div>
                       <div className="mt-1 text-2xl font-bold text-slate-900">
@@ -1316,7 +1317,7 @@ export default function CitywideDashboardClient({
 
               {/* Guidance card */}
               <CardContainer>
-                <div className="space-y-2 text-xs text-slate-600">
+                <div className="space-y-2 text-sm text-slate-600">
                   <h2 className="text-sm font-semibold text-slate-800">
                     How to use this page
                   </h2>

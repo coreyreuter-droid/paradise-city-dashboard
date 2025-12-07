@@ -620,7 +620,7 @@ export default function UploadClient() {
       setError("Upload failed: " + (err?.message || "Unknown error"));
     }
 
-    setLoading(false);
+  setLoading(false);
   }
 
   function handleDownloadTemplate() {
@@ -922,35 +922,37 @@ export default function UploadClient() {
 
       {/* CSV preview table */}
       {previewHeaders && previewRows && previewRows.length > 0 && (
-        <div className="mb-4 max-h-72 overflow-auto rounded-md border border-slate-200 bg-slate-50">
-          <table className="min-w-full text-xs">
-            <thead className="bg-slate-100">
-              <tr>
-                {previewHeaders.map((h) => (
-                  <th
-                    key={h}
-                    className="whitespace-nowrap px-2 py-1 text-left font-semibold text-slate-700"
-                  >
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {previewRows.map((row, idx) => (
-                <tr key={idx} className="border-t border-slate-200">
-                  {row.map((cell, cellIdx) => (
-                    <td
-                      key={cellIdx}
-                      className="whitespace-nowrap px-2 py-1 text-slate-800"
+        <div className="mb-4 overflow-x-auto rounded-md border border-slate-200 bg-slate-50">
+          <div className="max-h-72 overflow-y-auto">
+            <table className="min-w-full text-xs">
+              <thead className="bg-slate-100">
+                <tr>
+                  {previewHeaders.map((h) => (
+                    <th
+                      key={h}
+                      className="whitespace-nowrap px-2 py-1 text-left font-semibold text-slate-700"
                     >
-                      {cell}
-                    </td>
+                      {h}
+                    </th>
                   ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {previewRows.map((row, idx) => (
+                  <tr key={idx} className="border-t border-slate-200">
+                    {row.map((cell, cellIdx) => (
+                      <td
+                        key={cellIdx}
+                        className="whitespace-nowrap px-2 py-1 text-slate-800"
+                      >
+                        {cell}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 

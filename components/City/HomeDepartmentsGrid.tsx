@@ -1,4 +1,3 @@
-// components/City/ParadiseHomeDepartmentsGrid.tsx
 "use client";
 
 import Link from "next/link";
@@ -23,7 +22,7 @@ export default function DepartmentsGrid({ year, departments }: Props) {
           <h3 className="text-sm font-semibold text-slate-900">
             Departments overview{year ? ` – ${year}` : ""}
           </h3>
-          <p className="text-[11px] text-slate-500">
+          <p className="text-sm text-slate-600">
             Top {top.length} of {totalCount || 0} departments by adopted
             budget.
           </p>
@@ -31,7 +30,7 @@ export default function DepartmentsGrid({ year, departments }: Props) {
         {totalCount > 0 && (
           <Link
             href={cityHref(`/departments${year ? `?year=${year}` : ""}`)}
-            className="text-[11px] font-semibold text-slate-700 underline-offset-2 hover:underline"
+            className="text-xs font-semibold text-slate-700 underline-offset-2 hover:underline"
           >
             View all departments
           </Link>
@@ -39,9 +38,8 @@ export default function DepartmentsGrid({ year, departments }: Props) {
       </div>
 
       {top.length === 0 ? (
-        <p className="text-xs text-slate-500">
-          No department budget or actuals data available for this
-          year.
+        <p className="text-sm text-slate-600">
+          No department budget or actuals data available for this year.
         </p>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
@@ -75,7 +73,7 @@ export default function DepartmentsGrid({ year, departments }: Props) {
               >
                 <div className="mb-2 flex items-start justify-between gap-2">
                   <div>
-                    <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+                    <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-600">
                       Department
                     </div>
                     <div className="mt-0.5 line-clamp-2 text-sm font-semibold text-slate-900">
@@ -83,7 +81,7 @@ export default function DepartmentsGrid({ year, departments }: Props) {
                     </div>
                   </div>
                   <span
-                    className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold ${varianceTone}`}
+                    className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold ${varianceTone}`}
                   >
                     {varianceLabel}
                   </span>
@@ -91,19 +89,19 @@ export default function DepartmentsGrid({ year, departments }: Props) {
 
                 <div className="mt-1 space-y-0.5">
                   <div className="flex items-center justify-between text-xs">
-                    <span className="text-slate-500">Budget</span>
+                    <span className="text-slate-600">Budget</span>
                     <span className="font-mono">
                       {formatCurrency(d.budget)}
                     </span>
                   </div>
                   <div className="flex items-center justify-between text-xs">
-                    <span className="text-slate-500">Actuals</span>
+                    <span className="text-slate-600">Actuals</span>
                     <span className="font-mono">
                       {formatCurrency(d.actuals)}
                     </span>
                   </div>
                   <div className="flex items-center justify-between text-xs">
-                    <span className="text-slate-500">% spent</span>
+                    <span className="text-slate-600">% spent</span>
                     <span className="font-mono">
                       {formatPercent(d.percentSpent, 1)}
                     </span>

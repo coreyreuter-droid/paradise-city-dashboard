@@ -1,4 +1,3 @@
-// components/City/ParadiseHomeMultiYearChart.tsx
 "use client";
 
 import {
@@ -48,7 +47,7 @@ export default function ParadiseHomeMultiYearChart({
 
   if (data.length === 0) {
     return (
-      <p className="text-sm text-slate-500">
+      <p className="text-sm text-slate-600">
         No multi-year data available yet.
       </p>
     );
@@ -119,7 +118,6 @@ export default function ParadiseHomeMultiYearChart({
               align="right"
               wrapperStyle={{ fontSize: 11 }}
             />
-            {/* Actuals first so it overlays nicely */}
             <Bar
               dataKey="actuals"
               name="Actuals"
@@ -138,7 +136,7 @@ export default function ParadiseHomeMultiYearChart({
 
       {/* Accessible tabular representation */}
       <div className="overflow-x-auto">
-        <table className="min-w-full border border-slate-200 text-xs">
+        <table className="min-w-full border border-slate-200 text-sm">
           <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-600">
             <tr>
               <th scope="col" className="px-3 py-2 text-left">

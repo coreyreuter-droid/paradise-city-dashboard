@@ -1,3 +1,4 @@
+// components/City/RevenuesDashboardClient.tsx
 "use client";
 
 import { useMemo, useState } from "react";
@@ -183,7 +184,10 @@ export default function RevenuesDashboardClient({
   };
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6 px-3 py-6 sm:px-4 sm:py-8">
+    <div
+      id="main-content"
+      className="mx-auto max-w-6xl space-y-6 px-3 py-6 sm:px-4 sm:py-8"
+    >
       <SectionHeader
         eyebrow="Revenues"
         title="Revenue by source"
@@ -198,43 +202,43 @@ export default function RevenuesDashboardClient({
       <CardContainer>
         <section aria-label="Revenue summary" className="space-y-4">
           <div className="grid gap-3 sm:grid-cols-3">
-            <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3 text-xs">
-              <p className="font-semibold uppercase tracking-[0.14em] text-slate-500">
+            <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3 text-sm">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-600">
                 Fiscal year
               </p>
               <p className="mt-1 text-base font-semibold text-slate-900">
                 {yearLabel ?? "Latest"}
               </p>
-              <p className="mt-1 text-xs text-slate-500">
+              <p className="mt-1 text-sm text-slate-600">
                 Revenue records grouped by source.
               </p>
             </div>
-            <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3 text-xs">
-              <p className="font-semibold uppercase tracking-[0.14em] text-slate-500">
+            <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3 text-sm">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-600">
                 Revenue sources
               </p>
               <p className="mt-1 text-base font-semibold text-slate-900">
                 {totalSources.toLocaleString("en-US")}
               </p>
-              <p className="mt-1 text-xs text-slate-500">
+              <p className="mt-1 text-sm text-slate-600">
                 Sources with at least one record this year.
               </p>
             </div>
-            <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3 text-xs">
-              <p className="font-semibold uppercase tracking-[0.14em] text-slate-500">
+            <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3 text-sm">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-600">
                 Total revenue (filtered)
               </p>
               <p className="mt-1 text-base font-semibold text-slate-900">
                 {formatCurrency(totalRevenue)}
               </p>
-              <p className="mt-1 text-xs text-slate-500">
+              <p className="mt-1 text-sm text-slate-600">
                 Sum of all records in the current view.
               </p>
             </div>
           </div>
 
           {topSource && (
-            <p className="text-xs text-slate-600">
+            <p className="text-sm text-slate-600">
               Top revenue source:{" "}
               <span className="font-semibold text-slate-900">
                 {topSource}
@@ -291,9 +295,9 @@ export default function RevenuesDashboardClient({
 
           {/* Active filter summary */}
           {sourceQuery && sourceQuery.trim().length > 0 && (
-            <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+            <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
               <span className="font-semibold">Active filters:</span>{" "}
-              <span className="ml-1 inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5">
+              <span className="ml-1 inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-xs">
                 <span>Source contains “{sourceQuery.trim()}”</span>
               </span>
             </div>

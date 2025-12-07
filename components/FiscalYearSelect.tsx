@@ -56,7 +56,7 @@ export default function FiscalYearSelect({
   if (showPills) {
     return (
       <div className="inline-flex flex-col items-end gap-1 text-right">
-        <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+        <span className="text-xs font-semibold uppercase tracking-wide text-slate-600">
           {label}
         </span>
         <div
@@ -72,10 +72,10 @@ export default function FiscalYearSelect({
                 key={year}
                 type="button"
                 onClick={() => setYear(value)}
-                className={`rounded-full px-2 py-1 text-[11px] font-medium ${
+                className={`rounded-full px-2 py-1 text-xs font-medium ${
                   active
                     ? "bg-white text-slate-900 shadow-sm"
-                    : "text-slate-600 hover:bg-white/60"
+                    : "text-slate-700 hover:bg-white/60"
                 }`}
               >
                 {year}
@@ -92,7 +92,7 @@ export default function FiscalYearSelect({
     <div className="inline-block w-full max-w-xs">
       <label
         htmlFor={selectId}
-        className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500"
+        className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-600"
       >
         {label}
       </label>

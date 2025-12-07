@@ -31,7 +31,6 @@ type Props = {
   budgets: BudgetRow[];
   actuals: ActualRow[];
   transactions: TransactionRow[];
-  // NEW: years from the server (optional, so we don't break other callers)
   years?: number[];
 };
 
@@ -48,7 +47,6 @@ export default function DepartmentsDashboardClient({
 }: Props) {
   const searchParams = useSearchParams();
 
-  // Collect available fiscal years from all three sources (fallback if yearsProp not provided)
   const derivedYears = useMemo(() => {
     const set = new Set<number>();
 
@@ -70,7 +68,6 @@ export default function DepartmentsDashboardClient({
     return Array.from(set).sort((a, b) => b - a);
   }, [budgets, actuals, transactions]);
 
-  // Use years from the server if provided, otherwise fall back to derivedYears
   const years = yearsProp && yearsProp.length ? yearsProp : derivedYears;
 
   const selectedYear = useMemo(() => {
@@ -88,7 +85,6 @@ export default function DepartmentsDashboardClient({
 
   const yearLabel = selectedYear ?? (years.length > 0 ? years[0] : undefined);
 
-  // Filter rows to selected year
   const budgetsForYear = useMemo(
     () =>
       selectedYear == null
@@ -115,7 +111,6 @@ export default function DepartmentsDashboardClient({
     [transactions, selectedYear]
   );
 
-  // Aggregate per-department metrics
   const summaries: DepartmentSummary[] = useMemo(() => {
     if (selectedYear == null) return [];
 
@@ -177,9 +172,7 @@ export default function DepartmentsDashboardClient({
       }
     );
 
-    // Sort by budget DESC
     rows.sort((a, b) => b.budget - a.budget);
-
     return rows;
   }, [budgetsForYear, actualsForYear, txForYear, selectedYear]);
 
@@ -254,7 +247,6 @@ export default function DepartmentsDashboardClient({
         sortAccessor: (row) => row.percentSpent,
         headerClassName: "text-right",
         cellClassName: "text-right font-mono",
-        // FIXED: remove /100, show 1 decimal
         cell: (dept: DepartmentSummary) =>
           formatPercent(dept.percentSpent, 1),
       },
@@ -295,7 +287,7 @@ export default function DepartmentsDashboardClient({
   );
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div id="main-content" className="min-h-screen bg-slate-50">
       <div className="mx-auto max-w-6xl px-4 py-8">
         <SectionHeader
           eyebrow="Departments"
@@ -314,19 +306,18 @@ export default function DepartmentsDashboardClient({
         {/* Breadcrumb */}
         <nav
           aria-label="Breadcrumb"
-          className="mb-4 flex items-center gap-1 px-1 text-xs text-slate-500"
+          className="mb-4 flex items-center gap-1 px-1 text-sm text-slate-600"
         >
           <ol className="flex items-center gap-1">
             <li>
-      <Link
-        href={cityHref("/overview")}
-        className="hover:text-slate-800"
-      >
-        Home
-      </Link>
-
+              <Link
+                href={cityHref("/overview")}
+                className="hover:text-slate-800"
+              >
+                Home
+              </Link>
             </li>
-            <li aria-hidden="true" className="text-slate-400">
+            <li aria-hidden="true" className="text-slate-500">
               ›
             </li>
             <li aria-current="page">
@@ -345,7 +336,7 @@ export default function DepartmentsDashboardClient({
               className="space-y-4"
             >
               <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
-                <div className="text-xs text-slate-500">
+                <div className="text-sm text-slate-600">
                   {yearLabel ? (
                     <>
                       Showing{" "}
@@ -366,44 +357,44 @@ export default function DepartmentsDashboardClient({
 
               <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3">
-                  <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+                  <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-600">
                     Departments
                   </div>
                   <div className="mt-1 text-2xl font-bold text-slate-900">
                     {deptCount.toLocaleString("en-US")}
                   </div>
-                  <div className="mt-1 text-xs text-slate-500">
+                  <div className="mt-1 text-sm text-slate-600">
                     With budget, spending, or transactions in{" "}
                     {yearLabel ?? "–"}.
                   </div>
                 </div>
 
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3">
-                  <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+                  <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-600">
                     Total budget
                   </div>
                   <div className="mt-1 text-2xl font-bold text-slate-900">
                     {formatCurrency(totalBudget)}
                   </div>
-                  <div className="mt-1 text-xs text-slate-500">
+                  <div className="mt-1 text-sm text-slate-600">
                     Sum of department-level adopted budgets.
                   </div>
                 </div>
 
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3">
-                  <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+                  <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-600">
                     Total actuals
                   </div>
                   <div className="mt-1 text-2xl font-bold text-slate-900">
                     {formatCurrency(totalActuals)}
                   </div>
-                  <div className="mt-1 text-xs text-slate-500">
+                  <div className="mt-1 text-sm text-slate-600">
                     All recorded spending for these departments.
                   </div>
                 </div>
 
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3">
-                  <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+                  <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-600">
                     Variance (actuals - budget)
                   </div>
                   <div
@@ -418,31 +409,31 @@ export default function DepartmentsDashboardClient({
                   >
                     {formatCurrency(variance)}
                   </div>
-                  <div className="mt-1 text-xs text-slate-500">
+                  <div className="mt-1 text-sm text-slate-600">
                     Negative means departments are under budget overall.
                   </div>
                 </div>
 
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3">
-                  <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+                  <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-600">
                     % of budget spent
                   </div>
                   <div className="mt-1 text-2xl font-bold text-slate-900">
                     {formatPercent(execPct, 1)}
                   </div>
-                  <div className="mt-1 text-xs text-slate-500">
+                  <div className="mt-1 text-sm text-slate-600">
                     Based on total actuals versus total budget.
                   </div>
                 </div>
 
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3">
-                  <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+                  <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-600">
                     Transactions
                   </div>
                   <div className="mt-1 text-2xl font-bold text-slate-900">
                     {totalTx.toLocaleString("en-US")}
                   </div>
-                  <div className="mt-1 text-xs text-slate-500">
+                  <div className="mt-1 text-sm text-slate-600">
                     Posted for {yearLabel ?? "–"}.
                   </div>
                 </div>
@@ -453,7 +444,7 @@ export default function DepartmentsDashboardClient({
           {/* Table */}
           <CardContainer>
             {summaries.length === 0 ? (
-              <p className="text-sm text-slate-500">
+              <p className="text-sm text-slate-600">
                 No department data available for the selected year.
               </p>
             ) : (
@@ -461,7 +452,7 @@ export default function DepartmentsDashboardClient({
                 <h2 className="text-sm font-semibold text-slate-900">
                   Department Detail
                 </h2>
-                <p className="text-xs text-slate-500">
+                <p className="text-sm text-slate-600">
                   This table shows each department’s budget, actual
                   spending, variance, percentage of budget spent, and
                   the number of transactions recorded for the selected

@@ -296,6 +296,7 @@ export default function ParadiseSidebar() {
           className="inline-flex items-center justify-center rounded-md border border-slate-200 bg-white px-2 py-1 text-slate-700 shadow-sm"
           aria-label="Toggle navigation"
           aria-expanded={mobileOpen}
+          aria-controls="city-nav-panel"
         >
           <span className="sr-only">Toggle navigation</span>
           <div className="space-y-0.5">
@@ -316,6 +317,7 @@ export default function ParadiseSidebar() {
           />
           {/* Drawer */}
           <nav
+            id="city-nav-panel"
             className="absolute inset-y-0 right-0 w-64 max-w-[80%] bg-white shadow-xl"
             aria-label="Primary navigation"
           >

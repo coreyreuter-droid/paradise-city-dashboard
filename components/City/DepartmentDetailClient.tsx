@@ -79,7 +79,6 @@ export default function DepartmentDetailClient({
   const searchParams = useSearchParams();
   const [activeVendor, setActiveVendor] = useState<string | null>(null);
 
-  // Robust display name: prop → query → first dept in data → fallback label
   const displayName = useMemo(() => {
     if (departmentName && departmentName.trim().length > 0) {
       return departmentName;
@@ -117,7 +116,6 @@ export default function DepartmentDetailClient({
     [displayName]
   );
 
-  // Filter all data by normalized department name
   const deptBudgets = useMemo(
     () =>
       budgets.filter(
@@ -142,7 +140,6 @@ export default function DepartmentDetailClient({
     [transactions, normalizedDisplay]
   );
 
-  // Include transaction years in the year list
   const deptYears = useMemo(() => {
     const set = new Set<number>();
     deptBudgets.forEach((b) => set.add(b.fiscal_year));
@@ -165,7 +162,6 @@ export default function DepartmentDetailClient({
     return parsed;
   }, [searchParams, deptYears]);
 
-  // Multi-year budget vs actuals series
   const multiYearSeries = useMemo(() => {
     const byYear = new Map<
       number,
@@ -221,7 +217,6 @@ export default function DepartmentDetailClient({
     };
   }, [deptBudgets, deptActuals, selectedYear]);
 
-  // Transactions for this department in the selected year
   const deptTxForYear = useMemo(
     () =>
       selectedYear
@@ -236,7 +231,6 @@ export default function DepartmentDetailClient({
     [deptTx, selectedYear]
   );
 
-  // Aggregated vendor rollup for this department + year (from transactions)
   const deptVendorSummaries: DeptVendorSummary[] = useMemo(() => {
     if (deptTxForYear.length === 0) return [];
 
@@ -274,7 +268,6 @@ export default function DepartmentDetailClient({
       .slice(0, 10);
   }, [deptTxForYear]);
 
-  // Aggregated category rollup for this department + year (from actuals.category)
   const deptCategorySummaries: DeptCategorySummary[] = useMemo(() => {
     if (!selectedYear) return [];
 
@@ -310,7 +303,6 @@ export default function DepartmentDetailClient({
       .slice(0, 10);
   }, [deptActuals, selectedYear]);
 
-  // Active vendor transactions (for slideout)
   const activeVendorTx = useMemo(() => {
     if (!activeVendor || !selectedYear) return [];
     return deptTxForYear.filter(
@@ -319,7 +311,6 @@ export default function DepartmentDetailClient({
     );
   }, [activeVendor, deptTxForYear, selectedYear]);
 
-  // Transactions table columns
   const transactionColumns: DataTableColumn<TransactionRow>[] =
     useMemo(
       () => [
@@ -359,7 +350,7 @@ export default function DepartmentDetailClient({
             (row.description || "").toLowerCase(),
           cell: (row) =>
             row.description || (
-              <span className="italic text-slate-400">
+              <span className="italic text-slate-600">
                 No description
               </span>
             ),
@@ -388,7 +379,7 @@ export default function DepartmentDetailClient({
   );
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div id="main-content" className="min-h-screen bg-slate-50">
       <div className="mx-auto max-w-6xl px-4 py-8">
         <SectionHeader
           eyebrow="Department Overview"
@@ -407,23 +398,22 @@ export default function DepartmentDetailClient({
         {/* Breadcrumb */}
         <nav
           aria-label="Breadcrumb"
-          className="mb-4 flex items-center gap-1 px-1 text-xs text-slate-500"
+          className="mb-4 flex items-center gap-1 px-1 text-sm text-slate-600"
         >
-      <Link
-        href={cityHref("/overview")}
-        className="hover:text-slate-800"
-      >
-        Home
-      </Link>
-
-          <span className="text-slate-400">›</span>
+          <Link
+            href={cityHref("/overview")}
+            className="hover:text-slate-800"
+          >
+            Home
+          </Link>
+          <span className="text-slate-500">›</span>
           <Link
             href={cityHref("/departments")}
             className="hover:text-slate-800"
           >
             Departments
           </Link>
-          <span className="text-slate-400">›</span>
+          <span className="text-slate-500">›</span>
           <span className="font-medium text-slate-700">
             {displayName}
           </span>
@@ -432,7 +422,7 @@ export default function DepartmentDetailClient({
         {/* Metrics */}
         <div className="mb-6 grid gap-4 md:grid-cols-4">
           <CardContainer>
-            <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+            <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-600">
               Total Budget ({selectedYear ?? "–"})
             </div>
             <div className="mt-1 text-2xl font-bold text-slate-900">
@@ -441,20 +431,20 @@ export default function DepartmentDetailClient({
           </CardContainer>
 
           <CardContainer>
-            <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+            <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-600">
               Total Actuals ({selectedYear ?? "–"})
             </div>
             <div className="mt-1 text-2xl font-bold text-slate-900">
               {formatCurrency(selectedYearTotals.actuals)}
             </div>
-            <div className="mt-1 text-xs text-slate-500">
+            <div className="mt-1 text-sm text-slate-600">
               {formatPercent(selectedYearTotals.percentSpent)} of
               budget spent
             </div>
           </CardContainer>
 
           <CardContainer>
-            <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+            <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-600">
               Variance ({selectedYear ?? "–"})
             </div>
             <div
@@ -468,7 +458,7 @@ export default function DepartmentDetailClient({
             >
               {formatCurrency(Math.abs(selectedYearTotals.variance))}
             </div>
-            <div className="mt-1 text-xs text-slate-500">
+            <div className="mt-1 text-sm text-slate-600">
               {selectedYearTotals.variance >= 0
                 ? "Over"
                 : "Under"}{" "}
@@ -481,7 +471,7 @@ export default function DepartmentDetailClient({
           </CardContainer>
 
           <CardContainer>
-            <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+            <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-600">
               Transactions ({selectedYear ?? "–"})
             </div>
             <div className="mt-1 text-2xl font-bold text-slate-900">
@@ -509,7 +499,7 @@ export default function DepartmentDetailClient({
                   </h2>
                   <p
                     id="dept-multiyear-desc"
-                    className="text-xs text-slate-500"
+                    className="text-sm text-slate-600"
                   >
                     Trend of adopted budget and actual spending for{" "}
                     {displayName} across fiscal years.
@@ -577,10 +567,9 @@ export default function DepartmentDetailClient({
                 </ResponsiveContainer>
               </div>
 
-              {/* Accessible tabular representation */}
               {multiYearSeries.length > 0 && (
                 <div className="overflow-x-auto">
-                  <table className="mt-2 min-w-full border border-slate-200 text-xs">
+                  <table className="mt-2 min-w-full border border-slate-200 text-sm">
                     <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-600">
                       <tr>
                         <th
@@ -640,7 +629,7 @@ export default function DepartmentDetailClient({
                 Transactions ({selectedYear ?? "–"})
               </h2>
               {deptTxForYear.length === 0 ? (
-                <p className="text-xs text-slate-500">
+                <p className="text-sm text-slate-600">
                   No transactions found for this department in the
                   selected year.
                 </p>
@@ -666,11 +655,11 @@ export default function DepartmentDetailClient({
                 </h2>
 
                 {deptVendorSummaries.length === 0 ? (
-                  <p className="text-xs text-slate-500">
+                  <p className="text-sm text-slate-600">
                     No vendor spending found for the selected year.
                   </p>
                 ) : (
-                  <div className="space-y-1.5 text-xs sm:text-sm">
+                  <div className="space-y-1.5 text-sm">
                     {deptVendorSummaries.map((v) => (
                       <div key={v.name}>
                         <div className="flex items-center justify-between gap-2">
@@ -697,7 +686,7 @@ export default function DepartmentDetailClient({
                               }}
                             />
                           </div>
-                          <span className="w-12 text-right text-xs text-slate-500">
+                          <span className="w-12 text-right text-xs text-slate-600">
                             {formatPercent(v.percent)}
                           </span>
                         </div>
@@ -716,12 +705,12 @@ export default function DepartmentDetailClient({
                 </h2>
 
                 {deptCategorySummaries.length === 0 ? (
-                  <p className="text-xs text-slate-500">
+                  <p className="text-sm text-slate-600">
                     No categorized spending found for the selected
                     year.
                   </p>
                 ) : (
-                  <div className="space-y-1.5 text-xs sm:text-sm">
+                  <div className="space-y-1.5 text-sm">
                     {deptCategorySummaries.map((c) => (
                       <div key={c.category}>
                         <div className="flex items-center justify-between gap-2">
@@ -744,7 +733,7 @@ export default function DepartmentDetailClient({
                               }}
                             />
                           </div>
-                          <span className="w-12 text-right text-xs text-slate-500">
+                          <span className="w-12 text-right text-xs text-slate-600">
                             {formatPercent(c.percent)}
                           </span>
                         </div>
@@ -771,7 +760,7 @@ export default function DepartmentDetailClient({
             {/* Header */}
             <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-600">
                   Vendor detail
                 </p>
                 <h2
@@ -782,7 +771,7 @@ export default function DepartmentDetailClient({
                 </h2>
                 <p
                   id="vendor-detail-subtitle"
-                  className="mt-0.5 text-xs text-slate-500"
+                  className="mt-0.5 text-sm text-slate-600"
                 >
                   {displayName} • Fiscal year {selectedYear ?? "–"}
                 </p>
@@ -800,13 +789,13 @@ export default function DepartmentDetailClient({
             {/* Body */}
             <div className="flex-1 space-y-3 overflow-auto px-4 py-3">
               <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-                <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+                <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-600">
                   Total spent with this vendor
                 </div>
                 <div className="mt-1 text-lg font-semibold text-slate-900">
                   {formatCurrency(vendorTotal)}
                 </div>
-                <div className="mt-1 text-xs text-slate-500">
+                <div className="mt-1 text-sm text-slate-600">
                   {activeVendorTx.length.toLocaleString("en-US")}{" "}
                   transaction{activeVendorTx.length === 1 ? "" : "s"}{" "}
                   for this department in {selectedYear ?? "–"}.
@@ -814,55 +803,57 @@ export default function DepartmentDetailClient({
               </div>
 
               {activeVendorTx.length === 0 ? (
-                <p className="text-sm text-slate-500">
+                <p className="text-sm text-slate-600">
                   No transactions found for this vendor in the
                   selected year.
                 </p>
               ) : (
                 <div className="space-y-2">
-                  <p className="text-xs font-semibold text-slate-700">
+                  <p className="text-sm font-semibold text-slate-700">
                     Transactions with {activeVendor}
                   </p>
-                  <div className="max-h-[360px] overflow-auto">
-                    <table className="min-w-full text-left text-xs">
-                      <thead className="border-b border-slate-200 bg-slate-50">
-                        <tr>
-                          <th className="px-2 py-2 font-semibold text-slate-700">
-                            Date
-                          </th>
-                          <th className="px-2 py-2 font-semibold text-slate-700">
-                            Description
-                          </th>
-                          <th className="px-2 py-2 text-right font-semibold text-slate-700">
-                            Amount
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {activeVendorTx.map((tx, idx) => (
-                          <tr
-                            key={`${tx.date}-${idx}`}
-                            className="border-b border-slate-100 last:border-0"
-                          >
-                            <td className="px-2 py-1.5">
-                              {tx.date}
-                            </td>
-                            <td className="px-2 py-1.5">
-                              {tx.description || (
-                                <span className="italic text-slate-400">
-                                  No description
-                                </span>
-                              )}
-                            </td>
-                            <td className="px-2 py-1.5 text-right font-mono">
-                              {formatCurrency(
-                                Number(tx.amount || 0)
-                              )}
-                            </td>
+                  <div className="overflow-x-auto">
+                    <div className="max-h-[360px] overflow-y-auto">
+                      <table className="min-w-full text-left text-sm">
+                        <thead className="border-b border-slate-200 bg-slate-50">
+                          <tr>
+                            <th className="px-2 py-2 font-semibold text-slate-700">
+                              Date
+                            </th>
+                            <th className="px-2 py-2 font-semibold text-slate-700">
+                              Description
+                            </th>
+                            <th className="px-2 py-2 text-right font-semibold text-slate-700">
+                              Amount
+                            </th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody>
+                          {activeVendorTx.map((tx, idx) => (
+                            <tr
+                              key={`${tx.date}-${idx}`}
+                              className="border-b border-slate-100 last:border-0"
+                            >
+                              <td className="px-2 py-1.5">
+                                {tx.date}
+                              </td>
+                              <td className="px-2 py-1.5">
+                                {tx.description || (
+                                  <span className="italic text-slate-600">
+                                    No description
+                                  </span>
+                                )}
+                              </td>
+                              <td className="px-2 py-1.5 text-right font-mono">
+                                {formatCurrency(
+                                  Number(tx.amount || 0)
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 </div>
               )}

@@ -232,7 +232,7 @@ export default function TransactionsDashboardClient({
         sortable: true,
         sortAccessor: (row) => row.date,
         headerClassName: "w-28",
-        cellClassName: "whitespace-nowrap font-mono text-xs",
+        cellClassName: "whitespace-nowrap font-mono",
         cell: (row) => formatDate(row.date),
       },
       {
@@ -253,7 +253,7 @@ export default function TransactionsDashboardClient({
               {row.department_name}
             </Link>
           ) : (
-            <span className="italic text-slate-400">
+            <span className="italic text-slate-600">
               Unspecified
             </span>
           ),
@@ -269,7 +269,7 @@ export default function TransactionsDashboardClient({
           row.account_name ? (
             <span>{row.account_name}</span>
           ) : (
-            <span className="italic text-slate-400">
+            <span className="italic text-slate-600">
               Unspecified
             </span>
           ),
@@ -285,7 +285,7 @@ export default function TransactionsDashboardClient({
           row.vendor ? (
             <span>{row.vendor}</span>
           ) : (
-            <span className="italic text-slate-400">
+            <span className="italic text-slate-600">
               Unspecified
             </span>
           ),
@@ -301,7 +301,7 @@ export default function TransactionsDashboardClient({
           row.description ? (
             <span>{row.description}</span>
           ) : (
-            <span className="italic text-slate-400">
+            <span className="italic text-slate-600">
               Unspecified
             </span>
           ),
@@ -323,7 +323,7 @@ export default function TransactionsDashboardClient({
     selectedYear ?? (years.length > 0 ? years[0] : undefined);
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div id="main-content" className="min-h-screen bg-slate-50">
       <div className="mx-auto max-w-6xl px-4 py-8">
         <SectionHeader
           eyebrow="Transactions"
@@ -342,19 +342,18 @@ export default function TransactionsDashboardClient({
         {/* Breadcrumb */}
         <nav
           aria-label="Breadcrumb"
-          className="mb-4 px-1 text-xs text-slate-500"
+          className="mb-4 px-1 text-sm text-slate-600"
         >
           <ol className="flex items-center gap-1">
             <li>
-      <Link
-        href={cityHref("/overview")}
-        className="hover:text-slate-800"
-      >
-        Home
-      </Link>
-
+              <Link
+                href={cityHref("/overview")}
+                className="hover:text-slate-800"
+              >
+                Home
+              </Link>
             </li>
-            <li aria-hidden="true" className="text-slate-400">
+            <li aria-hidden="true" className="text-slate-500">
               ›
             </li>
             <li aria-current="page">
@@ -377,7 +376,7 @@ export default function TransactionsDashboardClient({
                   <h2 className="text-sm font-semibold text-slate-900">
                     Filters
                   </h2>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-sm text-slate-600">
                     Narrow the list of transactions by department and
                     vendor. Fiscal year is controlled in the header.
                   </p>
@@ -442,7 +441,7 @@ export default function TransactionsDashboardClient({
               </div>
 
               {/* Active filters summary */}
-              <div className="flex flex-col gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-col gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   {activeFilters.length === 0 ? (
                     <span>
@@ -457,7 +456,7 @@ export default function TransactionsDashboardClient({
                       {activeFilters.map((f) => (
                         <span
                           key={f}
-                          className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5"
+                          className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-xs"
                         >
                           {f}
                         </span>
@@ -488,7 +487,7 @@ export default function TransactionsDashboardClient({
                   <h2 className="text-sm font-semibold text-slate-900">
                     Transactions
                   </h2>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-sm text-slate-600">
                     {totalCount.toLocaleString("en-US")} transaction
                     {totalCount === 1 ? "" : "s"} found. Page {page} of{" "}
                     {totalPages}. Use the export options to download
@@ -514,7 +513,7 @@ export default function TransactionsDashboardClient({
               </div>
 
               {transactions.length === 0 ? (
-                <p className="text-sm text-slate-500">
+                <p className="text-sm text-slate-600">
                   No transactions available for the selected filters.
                 </p>
               ) : (

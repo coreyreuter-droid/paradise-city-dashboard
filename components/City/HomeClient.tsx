@@ -78,7 +78,6 @@ export default function ParadiseHomeClient({
 }: Props) {
   const searchParams = useSearchParams();
 
-  // Aggregate all years we actually have data for
   const years: number[] = useMemo(() => {
     const set = new Set<number>();
 
@@ -102,7 +101,7 @@ export default function ParadiseHomeClient({
       if (y !== null) set.add(y);
     });
 
-    return Array.from(set).sort((a, b) => b - a); // newest first
+    return Array.from(set).sort((a, b) => b - a);
   }, [availableYears, budgets, actuals, transactions]);
 
   const selectedYear: number | null = useMemo(() => {
@@ -266,7 +265,6 @@ export default function ParadiseHomeClient({
   const hasAnyDataForSelectedYear =
     hasBudgetData || transactionsForYear.length > 0;
 
-  // Build data freshness string
   const freshnessText = useMemo(() => {
     if (!dataFreshness) return null;
 
@@ -292,7 +290,10 @@ export default function ParadiseHomeClient({
   }, [dataFreshness]);
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6 px-3 py-6 sm:px-4 sm:py-8">
+    <div
+      id="main-content"
+      className="mx-auto max-w-6xl space-y-6 px-3 py-6 sm:px-4 sm:py-8"
+    >
       {/* Hero */}
       <section
         className="overflow-hidden rounded-2xl border border-slate-900/10 bg-slate-900 text-slate-50 shadow-lg"
@@ -450,7 +451,7 @@ export default function ParadiseHomeClient({
             </section>
           </CardContainer>
 
-          <div className="pb-4 pt-1 text-center text-xs text-slate-400">
+          <div className="pb-4 pt-1 text-center text-xs text-slate-500">
             Powered by{" "}
             <span className="font-semibold text-slate-600">
               CiviPortal
@@ -481,7 +482,7 @@ export default function ParadiseHomeClient({
             />
 
             {freshnessText && (
-              <p className="mt-2 text-[11px] text-slate-500">
+              <p className="mt-2 text-xs text-slate-600">
                 Data last updated — {freshnessText}
               </p>
             )}
@@ -508,7 +509,7 @@ export default function ParadiseHomeClient({
                     <h2 className="text-sm font-semibold text-slate-800">
                       Budget vs Actuals by Department
                     </h2>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-sm text-slate-600">
                       Top departments by budget and their corresponding
                       spending for{" "}
                       {yearLabel ?? "the selected year"}.
@@ -543,12 +544,12 @@ export default function ParadiseHomeClient({
                     >
                       Budget &amp; Spending Over Time
                     </h2>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-sm text-slate-600">
                       Compare adopted budgets and actual spending across
                       multiple fiscal years.
                     </p>
                   </div>
-                  <div className="text-xs text-slate-500">
+                  <div className="text-xs text-slate-600">
                     Showing{" "}
                     <span className="font-semibold">
                       {years.length}{" "}
@@ -592,13 +593,13 @@ export default function ParadiseHomeClient({
             </div>
           </div>
 
-          <div className="pb-4 pt-1 text-center text-xs text-slate-400">
+          <div className="pb-4 pt-1 text-center text-xs text-slate-500">
             Powered by{" "}
             <span className="font-semibold text-slate-600">
               CiviPortal
             </span>
             {" · "}
-            <span className="text-slate-500">
+            <span className="text-slate-600">
               {cityName} –{" "}
               {totalBudget > 0
                 ? `Managing ${formatCurrency(

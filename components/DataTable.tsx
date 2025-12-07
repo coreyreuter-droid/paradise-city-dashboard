@@ -144,7 +144,7 @@ export default function DataTable<T>({
   return (
     <>
       <div className="overflow-x-auto">
-        <div className="max-h-[70vh] overflow-auto">
+        <div className="max-h-[70vh] overflow-y-auto">
           <table className="min-w-full border-collapse text-left text-sm">
             <thead className="sticky top-0 z-10 border-b border-slate-200 bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-600">
               <tr>
@@ -218,7 +218,7 @@ export default function DataTable<T>({
                         <td
                           key={col.key}
                           className={[
-                            "px-3 py-2 align-top text-xs text-slate-700",
+                            "px-3 py-2 align-top text-sm text-slate-700",
                             col.cellClassName ?? "",
                           ]
                             .filter(Boolean)
