@@ -28,6 +28,11 @@ function pickFirst(value: string | string[] | undefined) {
   return undefined;
 }
 
+type YearTotal = {
+  year: number;
+  total: number;
+};
+
 export default async function RevenuesPage({
   searchParams,
 }: PageProps) {
@@ -47,7 +52,6 @@ export default async function RevenuesPage({
 
   // Strict module gate: Revenues require enable_revenues = true.
   const enableRevenues = portalSettings?.enable_revenues === true;
-
   if (portalSettings && !enableRevenues) {
     // Revenues module does not exist for this city.
     notFound();
@@ -55,6 +59,19 @@ export default async function RevenuesPage({
 
   const years = (yearsRaw ?? []).slice().sort((a, b) => b - a);
 
+  // Fetch revenues for all available years so we can build YOY totals.
+  let revenuesByYear: RevenueRow[][] = [];
+  if (years.length > 0) {
+    const all = await Promise.all(
+      years.map(async (year) => {
+        const rows = (await getRevenuesForYear(year)) ?? [];
+        return rows as RevenueRow[];
+      })
+    );
+    revenuesByYear = all;
+  }
+
+  // Determine selected year.
   let selectedYear: number | null = null;
   if (years.length > 0) {
     const yearParam = pickFirst(resolvedSearchParams.year);
@@ -65,12 +82,25 @@ export default async function RevenuesPage({
         : years[0];
   }
 
-  const sourceQuery = pickFirst(resolvedSearchParams.q) ?? null;
-
+  // Pick revenues for the selected year.
   let revenues: RevenueRow[] = [];
-  if (selectedYear != null) {
-    revenues = (await getRevenuesForYear(selectedYear)) ?? [];
+  if (selectedYear != null && years.length > 0) {
+    const index = years.indexOf(selectedYear);
+    const bucketIndex = index >= 0 ? index : 0;
+    revenues = revenuesByYear[bucketIndex] ?? [];
   }
+
+  // Build totals per year for YOY chart.
+  const yearTotals: YearTotal[] = years.map((year, idx) => {
+    const rows = revenuesByYear[idx] ?? [];
+    const total = rows.reduce(
+      (sum, r) => sum + Number(r.amount || 0),
+      0
+    );
+    return { year, total };
+  });
+
+  const sourceQuery = pickFirst(resolvedSearchParams.q) ?? null;
 
   return (
     <RevenuesDashboardClient
@@ -78,6 +108,7 @@ export default async function RevenuesPage({
       selectedYear={selectedYear}
       revenues={revenues}
       sourceQuery={sourceQuery}
+      yearTotals={yearTotals}
     />
   );
 }

@@ -36,6 +36,8 @@ export default function HomeRevenueSummary({
     return revenues.filter((r) => r.fiscal_year === selectedYear);
   }, [revenues, selectedYear]);
 
+  const hasRows = revenuesForYear.length > 0;
+
   const totalRevenue = useMemo(
     () =>
       revenuesForYear.reduce(
@@ -45,7 +47,7 @@ export default function HomeRevenueSummary({
     [revenuesForYear]
   );
 
-  const hasRevenueData = totalRevenue > 0;
+  const hasRevenueData = hasRows; // if there are rows, show the cards even if total is 0
   const yearLabel =
     selectedYear != null ? String(selectedYear) : "the selected year";
 
@@ -67,7 +69,7 @@ export default function HomeRevenueSummary({
             Revenue snapshot
           </h2>
           <p className="text-sm text-slate-600">
-            High-level view of total revenues recorded for{" "}
+            High-level view of total recorded revenues for{" "}
             {yearLabel}.
           </p>
         </div>
@@ -115,9 +117,9 @@ export default function HomeRevenueSummary({
           </div>
         ) : (
           <p className="text-sm text-slate-600">
-            Revenue data for {yearLabel} has not been uploaded
-            yet. Once revenue files are loaded through the admin
-            portal, this section will display total revenues for
+            Revenue data for {yearLabel} has not been loaded into the
+            portal yet. Once revenue files are uploaded through the
+            admin area, this section will summarize total revenues for
             the selected fiscal year.
           </p>
         )}

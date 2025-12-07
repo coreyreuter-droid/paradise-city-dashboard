@@ -79,6 +79,9 @@ export default function LandingClient({ portalSettings }: Props) {
   const enableRevenues =
     portalSettings?.enable_revenues === true;
 
+  const enableVendors =
+    enableTransactions && portalSettings?.enable_vendors === true;
+
   const leaderName = portalSettings?.leader_name?.trim() || "";
   const leaderTitle = portalSettings?.leader_title?.trim() || "";
   const leaderMessage = portalSettings?.leader_message?.trim() || "";
@@ -258,7 +261,9 @@ export default function LandingClient({ portalSettings }: Props) {
                   >
                     <span>Transactions</span>
                     <span className="text-xs text-slate-200">
-                      Payments &amp; vendors
+                      {enableVendors
+                        ? "Payments &amp; vendors"
+                        : "Payments"}
                     </span>
                   </Link>
                 </li>

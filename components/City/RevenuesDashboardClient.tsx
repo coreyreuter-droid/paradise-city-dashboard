@@ -7,6 +7,19 @@ import {
   useRouter,
   useSearchParams,
 } from "next/navigation";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  LineChart,
+  Line,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+} from "recharts";
 import type { RevenueRow } from "@/lib/types";
 import { formatCurrency } from "@/lib/format";
 import CardContainer from "../CardContainer";
@@ -19,6 +32,7 @@ type Props = {
   selectedYear: number | null;
   revenues: RevenueRow[];
   sourceQuery: string | null;
+  yearTotals: { year: number; total: number }[];
 };
 
 type RevenueSourceRow = {
@@ -27,6 +41,20 @@ type RevenueSourceRow = {
   count: number;
   avg: number;
 };
+
+type DistributionSlice = { name: string; value: number };
+
+const PIE_COLORS = [
+  "#0f766e",
+  "#0369a1",
+  "#4f46e5",
+  "#7c3aed",
+  "#db2777",
+  "#ea580c",
+  "#15803d",
+];
+
+const REVENUE_LINE_COLOR = "#0f766e";
 
 function buildSearchUrl(
   pathname: string,
@@ -56,11 +84,32 @@ function buildSearchUrl(
   return qs ? `${pathname}?${qs}` : pathname;
 }
 
+function buildDistribution(
+  base: DistributionSlice[]
+): DistributionSlice[] {
+  if (base.length <= 7) return base;
+
+  const sorted = [...base].sort((a, b) => b.value - a.value);
+  const top = sorted.slice(0, 7);
+  const otherValue = sorted.slice(7).reduce((sum, s) => sum + s.value, 0);
+
+  if (otherValue <= 0) return top;
+
+  return [
+    ...top,
+    {
+      name: "Other",
+      value: otherValue,
+    },
+  ];
+}
+
 export default function RevenuesDashboardClient({
   years,
   selectedYear,
   revenues,
   sourceQuery,
+  yearTotals,
 }: Props) {
   const pathname = usePathname();
   const router = useRouter();
@@ -113,7 +162,29 @@ export default function RevenuesDashboardClient({
     (sum, r) => sum + r.total,
     0
   );
+  const avgPerSource =
+    totalSources > 0 ? totalRevenue / totalSources : 0;
+
   const topSource = sourceRows[0]?.source ?? null;
+
+  const yoyTrendData = useMemo(() => {
+    if (!yearTotals || yearTotals.length === 0) return [];
+    return [...yearTotals]
+      .filter((row) => Number.isFinite(row.total))
+      .sort((a, b) => a.year - b.year)
+      .map((row) => ({
+        year: row.year,
+        Revenue: row.total,
+      }));
+  }, [yearTotals]);
+
+  const distributionSlices = useMemo(() => {
+    const base: DistributionSlice[] = sourceRows.map((row) => ({
+      name: row.source,
+      value: row.total,
+    }));
+    return buildDistribution(base);
+  }, [sourceRows]);
 
   const columns: DataTableColumn<RevenueSourceRow>[] = [
     {
@@ -183,6 +254,17 @@ export default function RevenuesDashboardClient({
     router.push(url);
   };
 
+  const totalUnfilteredRevenue = useMemo(() => {
+    // Use yearTotals to show unfiltered total for the current year if possible
+    if (yearLabel == null) return null;
+    const match = yearTotals.find((y) => y.year === yearLabel);
+    if (!match) return null;
+    return match.total;
+  }, [yearLabel, yearTotals]);
+
+  const showingFiltered =
+    sourceQuery && sourceQuery.trim().length > 0;
+
   return (
     <div
       id="main-content"
@@ -191,7 +273,7 @@ export default function RevenuesDashboardClient({
       <SectionHeader
         eyebrow="Revenues"
         title="Revenue by source"
-        description="Explore revenue by source for the selected fiscal year. Data typically includes taxes, fees, grants, and other income."
+        description="Explore recorded revenues by source for the selected fiscal year. Data typically includes taxes, fees, grants, and other income."
         rightSlot={
           years.length > 0 ? (
             <FiscalYearSelect options={years} label="Fiscal year" />
@@ -199,9 +281,10 @@ export default function RevenuesDashboardClient({
         }
       />
 
+      {/* Summary KPIs */}
       <CardContainer>
         <section aria-label="Revenue summary" className="space-y-4">
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-4">
             <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3 text-sm">
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-600">
                 Fiscal year
@@ -226,20 +309,41 @@ export default function RevenuesDashboardClient({
             </div>
             <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3 text-sm">
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-600">
-                Total revenue (filtered)
+                Total revenue
+                {showingFiltered ? " (filtered)" : ""}
               </p>
               <p className="mt-1 text-base font-semibold text-slate-900">
                 {formatCurrency(totalRevenue)}
               </p>
               <p className="mt-1 text-sm text-slate-600">
-                Sum of all records in the current view.
+                Sum of all sources in the current view.
+              </p>
+              {showingFiltered && totalUnfilteredRevenue != null && (
+                <p className="mt-1 text-xs text-slate-500">
+                  Unfiltered total for this year:{" "}
+                  <span className="font-mono">
+                    {formatCurrency(totalUnfilteredRevenue)}
+                  </span>
+                  .
+                </p>
+              )}
+            </div>
+            <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3 text-sm">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-600">
+                Avg per source
+              </p>
+              <p className="mt-1 text-base font-semibold text-slate-900">
+                {formatCurrency(avgPerSource)}
+              </p>
+              <p className="mt-1 text-sm text-slate-600">
+                Simple average of total revenues across all visible sources.
               </p>
             </div>
           </div>
 
           {topSource && (
             <p className="text-sm text-slate-600">
-              Top revenue source:{" "}
+              Top revenue source in this view:{" "}
               <span className="font-semibold text-slate-900">
                 {topSource}
               </span>
@@ -249,6 +353,254 @@ export default function RevenuesDashboardClient({
         </section>
       </CardContainer>
 
+      {/* Charts: distribution + YOY trend */}
+      <CardContainer>
+        <section
+          aria-label="Revenue charts"
+          className="space-y-4"
+        >
+          <div className="grid gap-4 md:grid-cols-2">
+            {/* Distribution by source */}
+            <figure
+              role="group"
+              aria-labelledby="revenue-distribution-heading"
+              aria-describedby="revenue-distribution-desc"
+              className="space-y-3"
+            >
+              <div>
+                <h2
+                  id="revenue-distribution-heading"
+                  className="text-sm font-semibold text-slate-800"
+                >
+                  Revenue distribution by source
+                </h2>
+                <p
+                  id="revenue-distribution-desc"
+                  className="text-sm text-slate-600"
+                >
+                  How total recorded revenues are distributed across
+                  sources for {yearLabel ?? "this year"}.
+                </p>
+              </div>
+
+              {distributionSlices.length === 0 ? (
+                <p className="text-sm text-slate-600">
+                  No revenue data available for this fiscal year.
+                </p>
+              ) : (
+                <>
+                  <div className="h-56 w-full min-w-0 overflow-hidden sm:h-64">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={distributionSlices}
+                          dataKey="value"
+                          nameKey="name"
+                          outerRadius="80%"
+                          paddingAngle={1}
+                        >
+                          {distributionSlices.map((entry, index) => (
+                            <Cell
+                              key={entry.name}
+                              fill={PIE_COLORS[index % PIE_COLORS.length]}
+                            />
+                          ))}
+                        </Pie>
+                        <Tooltip
+                          formatter={(value: any, name: string) => [
+                            formatCurrency(Number(value)),
+                            name,
+                          ]}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  <div className="overflow-x-auto">
+                    <table className="mt-3 min-w-full border border-slate-200 text-sm">
+                      <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-600">
+                        <tr>
+                          <th
+                            scope="col"
+                            className="px-3 py-2 text-left"
+                          >
+                            Source
+                          </th>
+                          <th
+                            scope="col"
+                            className="px-3 py-2 text-right"
+                          >
+                            Revenue
+                          </th>
+                          <th
+                            scope="col"
+                            className="px-3 py-2 text-right"
+                          >
+                            Share of total
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-200">
+                        {distributionSlices.map((slice) => {
+                          const total = distributionSlices.reduce(
+                            (sum, s) => sum + s.value,
+                            0
+                          );
+                          const percent =
+                            total === 0
+                              ? 0
+                              : (slice.value / total) * 100;
+
+                          return (
+                            <tr key={slice.name}>
+                              <th
+                                scope="row"
+                                className="px-3 py-2 text-left font-medium text-slate-800"
+                              >
+                                {slice.name}
+                              </th>
+                              <td className="px-3 py-2 text-right text-slate-700">
+                                {formatCurrency(slice.value)}
+                              </td>
+                              <td className="px-3 py-2 text-right text-slate-700">
+                                {percent.toFixed(1)}%
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              )}
+            </figure>
+
+            {/* YOY revenue trend */}
+            <figure
+              role="group"
+              aria-labelledby="revenue-yoy-heading"
+              aria-describedby="revenue-yoy-desc"
+              className="space-y-3"
+            >
+              <div>
+                <h2
+                  id="revenue-yoy-heading"
+                  className="text-sm font-semibold text-slate-800"
+                >
+                  Revenues over time
+                </h2>
+                <p
+                  id="revenue-yoy-desc"
+                  className="text-sm text-slate-600"
+                >
+                  Year-over-year view of total recorded revenues.
+                </p>
+              </div>
+
+              {yoyTrendData.length <= 1 ? (
+                <p className="text-sm text-slate-600">
+                  Not enough years of revenue data to show a trend.
+                  Load multiple fiscal years to see year-over-year
+                  changes.
+                </p>
+              ) : (
+                <>
+                  <div className="h-64 w-full min-w-0 overflow-hidden">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart
+                        data={yoyTrendData}
+                        margin={{
+                          top: 10,
+                          right: 30,
+                          left: 10,
+                          bottom: 20,
+                        }}
+                      >
+                        <CartesianGrid
+                          strokeDasharray="3 3"
+                          stroke="#e5e7eb"
+                        />
+                        <XAxis
+                          dataKey="year"
+                          tickLine={false}
+                          axisLine={false}
+                        />
+                        <YAxis
+                          tickFormatter={(v: number) =>
+                            formatCurrency(v)
+                          }
+                          tickLine={false}
+                          axisLine={false}
+                        />
+                        <Tooltip
+                          labelFormatter={(label) =>
+                            `Fiscal year ${label}`
+                          }
+                          formatter={(value: any, name) =>
+                            typeof value === "number"
+                              ? [formatCurrency(value), name]
+                              : [value, name]
+                          }
+                        />
+                        <Legend
+                          verticalAlign="top"
+                          align="right"
+                          wrapperStyle={{ fontSize: 11 }}
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey="Revenue"
+                          dot={false}
+                          strokeWidth={2}
+                          stroke={REVENUE_LINE_COLOR}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  <div className="mt-3 overflow-x-auto">
+                    <table className="min-w-full border border-slate-200 text-sm">
+                      <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-600">
+                        <tr>
+                          <th
+                            scope="col"
+                            className="px-3 py-2 text-left"
+                          >
+                            Fiscal year
+                          </th>
+                          <th
+                            scope="col"
+                            className="px-3 py-2 text-right"
+                          >
+                            Total revenue
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-200">
+                        {yoyTrendData.map((row) => (
+                          <tr key={row.year}>
+                            <th
+                              scope="row"
+                              className="px-3 py-2 text-left font-medium text-slate-800"
+                            >
+                              {row.year}
+                            </th>
+                            <td className="px-3 py-2 text-right text-slate-700">
+                              {formatCurrency(row.Revenue)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              )}
+            </figure>
+          </div>
+        </section>
+      </CardContainer>
+
+      {/* Filters + table */}
       <CardContainer>
         <section
           aria-label="Revenue filters and table"
@@ -304,6 +656,16 @@ export default function RevenuesDashboardClient({
           )}
 
           {/* Table */}
+          <div className="flex items-center justify-between text-xs text-slate-600">
+            <span>
+              Showing{" "}
+              <span className="font-semibold">
+                {sourceRows.length.toLocaleString("en-US")}
+              </span>{" "}
+              sources.
+            </span>
+          </div>
+
           <DataTable<RevenueSourceRow>
             data={sourceRows}
             columns={columns}

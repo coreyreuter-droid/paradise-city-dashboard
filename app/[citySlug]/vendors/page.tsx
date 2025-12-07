@@ -1,4 +1,5 @@
 // app/[citySlug]/vendors/page.tsx
+import { notFound } from "next/navigation";
 import VendorsDashboardClient from "@/components/City/VendorsDashboardClient";
 import UnpublishedMessage from "@/components/City/UnpublishedMessage";
 import {
@@ -41,6 +42,16 @@ export default async function VendorsPage({
 
   if (portalSettings && portalSettings.is_published === false) {
     return <UnpublishedMessage settings={portalSettings} />;
+  }
+
+  // Strict feature gating: vendors require transactions + vendors flag
+  const enableTransactions = portalSettings?.enable_transactions === true;
+  const enableVendors =
+    enableTransactions && portalSettings?.enable_vendors === true;
+
+  if (portalSettings && !enableVendors) {
+    // Vendors module is disabled for this portal: route should 404
+    notFound();
   }
 
   const years = (yearsRaw ?? []).slice().sort((a, b) => b - a);

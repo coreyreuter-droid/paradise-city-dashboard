@@ -1,8 +1,12 @@
-// app/[citySlug]/departments/[departmentName]/page.tsx
+// app/[citySlug]/departments/page.tsx
+import { notFound } from "next/navigation";
+import DepartmentsDashboardClient from "@/components/City/DepartmentsDashboardClient";
+import UnpublishedMessage from "@/components/City/UnpublishedMessage";
 import {
-  getBudgetsForDepartment,
-  getActualsForDepartment,
-  getTransactionsForDepartment,
+  getAvailableFiscalYears,
+  getBudgetsForYear,
+  getActualsForYear,
+  getTransactionsForYear,
   getPortalSettings,
 } from "@/lib/queries";
 import type {
@@ -11,71 +15,94 @@ import type {
   TransactionRow,
 } from "@/lib/types";
 import type { PortalSettings } from "@/lib/queries";
-import DepartmentDetailClient from "@/components/City/DepartmentDetailClient";
-import UnpublishedMessage from "@/components/City/UnpublishedMessage";
-import { notFound } from "next/navigation";
-
-// Next now hands params/searchParams as Promises in RSC.
-// We accept them but only use params; the client handles ?year=
-type PageProps = {
-  params: {
-    citySlug: string;
-    departmentName: string;
-  };
-  searchParams: Record<string, string | string[] | undefined> | Promise<
-    Record<string, string | string[] | undefined>
-  >;
-};
 
 export const revalidate = 0;
 
-export default async function DepartmentDetailPage({
-  params,
-}: PageProps) {
-  const decodedName = decodeURIComponent(params.departmentName);
+type SearchParamsShape = {
+  year?: string | string[];
+};
 
-  const [budgetsRaw, actualsRaw, transactionsRaw, settings] =
-    await Promise.all([
-      getBudgetsForDepartment(decodedName),
-      getActualsForDepartment(decodedName),
-      getTransactionsForDepartment(decodedName),
-      getPortalSettings(),
-    ]);
+type PageProps = {
+  params: { citySlug: string };
+  searchParams: SearchParamsShape | Promise<SearchParamsShape>;
+};
+
+function pickFirst(
+  value: string | string[] | undefined,
+): string | undefined {
+  if (typeof value === "string") return value;
+  if (Array.isArray(value) && value.length > 0) return value[0];
+  return undefined;
+}
+
+export default async function DepartmentsPage({
+  searchParams,
+}: PageProps) {
+  const resolvedSearchParams = await searchParams;
+
+  const [availableYearsRaw, settings] = await Promise.all([
+    getAvailableFiscalYears(),
+    getPortalSettings(),
+  ]);
 
   const portalSettings = settings as PortalSettings | null;
 
-  // If the portal itself is not published, show the unpublished message.
   if (portalSettings && portalSettings.is_published === false) {
     return <UnpublishedMessage settings={portalSettings} />;
   }
 
-  // Strict module gating: department detail depends on Actuals.
   const enableActuals =
     portalSettings?.enable_actuals === null ||
     portalSettings?.enable_actuals === undefined
       ? true
       : !!portalSettings.enable_actuals;
 
+  // Departments are an actuals-driven view: 404 when actuals are disabled
   if (portalSettings && !enableActuals) {
-    // City does not publish Actuals → department analytics do not exist.
     notFound();
   }
 
-  const enableTransactions = portalSettings?.enable_transactions === true;
-  const enableVendors =
-    enableTransactions && portalSettings?.enable_vendors === true;
+  const enableTransactions =
+    portalSettings?.enable_transactions === true;
 
-  const budgets: BudgetRow[] = budgetsRaw ?? [];
-  const actuals: ActualRow[] = actualsRaw ?? [];
-  const transactions: TransactionRow[] = transactionsRaw ?? [];
+  const years = (availableYearsRaw ?? [])
+    .map((y) => Number(y))
+    .filter((y) => Number.isFinite(y))
+    .sort((a, b) => b - a);
+
+  const yearParam = pickFirst(resolvedSearchParams.year);
+  const parsedYear = yearParam ? Number(yearParam) : NaN;
+
+  const selectedYear =
+    Number.isFinite(parsedYear) && years.includes(parsedYear)
+      ? parsedYear
+      : years.length > 0
+      ? years[0]
+      : undefined;
+
+  let budgets: BudgetRow[] = [];
+  let actuals: ActualRow[] = [];
+  let transactions: TransactionRow[] = [];
+
+  if (selectedYear != null) {
+    const [budgetsRaw, actualsRaw, transactionsRaw] = await Promise.all([
+      getBudgetsForYear(selectedYear),
+      getActualsForYear(selectedYear),
+      getTransactionsForYear(selectedYear),
+    ]);
+
+    budgets = (budgetsRaw ?? []) as BudgetRow[];
+    actuals = (actualsRaw ?? []) as ActualRow[];
+    transactions = (transactionsRaw ?? []) as TransactionRow[];
+  }
 
   return (
-    <DepartmentDetailClient
-      departmentName={decodedName}
+    <DepartmentsDashboardClient
       budgets={budgets}
       actuals={actuals}
       transactions={transactions}
-      enableVendors={enableVendors}
+      years={years}
+      enableTransactions={enableTransactions}
     />
   );
 }

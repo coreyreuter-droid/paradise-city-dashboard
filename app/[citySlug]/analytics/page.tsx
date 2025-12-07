@@ -6,11 +6,14 @@ import {
   getAllActuals,
   getAllTransactions,
   getPortalSettings,
+  getRevenueYears,
+  getRevenuesForYear,
 } from "@/lib/queries";
 import type {
   BudgetRow,
   ActualRow,
   TransactionRow,
+  RevenueRow,
 } from "@/lib/types";
 import type { PortalSettings } from "@/lib/queries";
 import { notFound } from "next/navigation";
@@ -21,15 +24,33 @@ type PageProps = {
   params: { citySlug: string };
 };
 
-export default async function AnalyticsPage({}: PageProps) {
-  const [budgetsRaw, actualsRaw, transactionsRaw, settings] =
-    await Promise.all([
-      getAllBudgets(),
-      getAllActuals(),
-      getAllTransactions(),
-      getPortalSettings(),
-    ]);
+type SearchParamsShape = {
+  year?: string | string[];
+};
 
+type RevenueSummary = {
+  year: number;
+  total: number;
+};
+
+function pickFirst(
+  value: string | string[] | undefined
+): string | undefined {
+  if (typeof value === "string") return value;
+  if (Array.isArray(value) && value.length > 0) return value[0];
+  return undefined;
+}
+
+export default async function AnalyticsPage({
+  searchParams,
+}: {
+  params: { citySlug: string };
+  searchParams: SearchParamsShape | Promise<SearchParamsShape>;
+}) {
+  const resolvedSearchParams = await searchParams;
+
+  // Load portal settings first to determine gating + whether revenues are enabled.
+  const settings = await getPortalSettings();
   const portalSettings = settings as PortalSettings | null;
 
   // If the portal itself is not published, show the unpublished message.
@@ -55,9 +76,59 @@ export default async function AnalyticsPage({}: PageProps) {
   const enableVendors =
     enableTransactions && portalSettings?.enable_vendors === true;
 
+  const enableRevenues =
+    portalSettings?.enable_revenues === true;
+
+  // Load budgets/actuals/transactions in parallel.
+  const [budgetsRaw, actualsRaw, transactionsRaw] =
+    await Promise.all([
+      getAllBudgets(),
+      getAllActuals(),
+      getAllTransactions(),
+    ]);
+
   const budgets: BudgetRow[] = budgetsRaw ?? [];
   const actuals: ActualRow[] = actualsRaw ?? [];
   const transactions: TransactionRow[] = transactionsRaw ?? [];
+
+  // Optional: compute a small revenue summary for the *selected* year
+  // so it stays in sync with the fiscal year selector.
+  let revenueSummary: RevenueSummary | null = null;
+
+  if (enableRevenues) {
+    const yearsRaw = await getRevenueYears();
+    const years = (yearsRaw ?? [])
+      .map((y) => Number(y))
+      .filter((y) => Number.isFinite(y))
+      .sort((a, b) => b - a); // desc, latest first
+
+    if (years.length > 0) {
+      const yearParam = pickFirst(resolvedSearchParams.year);
+      const parsed = yearParam ? Number(yearParam) : NaN;
+
+      const selectedYearForRevenue =
+        Number.isFinite(parsed) && years.includes(parsed)
+          ? parsed
+          : years[0];
+
+      const revenues: RevenueRow[] =
+        (await getRevenuesForYear(selectedYearForRevenue)) ?? [];
+
+      if (revenues.length > 0) {
+        const total = revenues.reduce(
+          (sum, r) => sum + Number(r.amount || 0),
+          0
+        );
+        revenueSummary = {
+          year: selectedYearForRevenue,
+          total,
+        };
+      } else {
+        // No rows for that year → treat as no summary
+        revenueSummary = null;
+      }
+    }
+  }
 
   return (
     <CitywideDashboardClient
@@ -66,6 +137,8 @@ export default async function AnalyticsPage({}: PageProps) {
       transactions={transactions}
       enableTransactions={enableTransactions}
       enableVendors={enableVendors}
+      enableRevenues={enableRevenues}
+      revenueSummary={revenueSummary}
     />
   );
 }

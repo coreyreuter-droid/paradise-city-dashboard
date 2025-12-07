@@ -106,30 +106,30 @@ const THEME_PRESETS: ThemePreset[] = [
   {
     id: "civic-classic",
     name: "Civic Classic",
-    primary: "#0F172A",     // dark slate header
-    accent: "#0369A1",      // sky accent
-    background: "#020617",  // very dark background
+    primary: "#0F172A", // dark slate header
+    accent: "#0369A1", // sky accent
+    background: "#020617", // very dark background
   },
   {
     id: "evergreen",
     name: "Evergreen",
-    primary: "#064E3B",     // deep green header
-    accent: "#047857",      // emerald accent
-    background: "#022C22",  // very dark green background
+    primary: "#064E3B", // deep green header
+    accent: "#047857", // emerald accent
+    background: "#022C22", // very dark green background
   },
   {
     id: "sunrise",
     name: "Sunrise",
-    primary: "#7C2D12",     // warm brown header
-    accent: "#EA580C",      // orange accent
-    background: "#451A03",  // dark warm background
+    primary: "#7C2D12", // warm brown header
+    accent: "#EA580C", // orange accent
+    background: "#451A03", // dark warm background
   },
   {
     id: "lakefront",
     name: "Lakefront",
-    primary: "#0C4A6E",     // deep blue header
-    accent: "#22C55E",      // fresh green accent
-    background: "#020617",  // dark neutral background
+    primary: "#0C4A6E", // deep blue header
+    accent: "#22C55E", // fresh green accent
+    background: "#020617", // dark neutral background
   },
 ];
 
@@ -643,7 +643,8 @@ export default function BrandingSettingsClient() {
             <p className="text-xs text-slate-500">
               Choose which parts of the portal are published. You can start
               with budget &amp; actuals and turn on additional modules when
-              you’re ready.
+              you’re ready. When a module is turned off, its navigation and
+              public pages are hidden so residents don’t hit dead ends.
             </p>
 
             <div className="grid gap-3 sm:grid-cols-2">
@@ -781,6 +782,11 @@ export default function BrandingSettingsClient() {
                   </button>
                 ))}
               </div>
+              <p className="mt-1 text-[11px] text-slate-500">
+                Presets are designed for light text on a darker shell. For
+                accessibility, keep hero and header text light against these
+                backgrounds.
+              </p>
             </div>
 
             {/* City name */}
@@ -835,8 +841,8 @@ export default function BrandingSettingsClient() {
                 placeholder="Welcome residents. Explore your city’s budget, spending, and financial health — all in one place."
               />
               <p className="mt-1 text-xs text-slate-500">
-                This text appears in the public hero section on the
-                overview page.
+                This text appears in the public hero section on the overview
+                page.
               </p>
             </div>
 
@@ -1005,8 +1011,8 @@ export default function BrandingSettingsClient() {
                 placeholder="Describe your community: population, location, and what makes it unique."
               />
               <p className="mt-1 text-xs text-slate-500">
-                Shown in the “About our community” card on the public
-                landing page.
+                Shown in the “About our community” card on the public landing
+                page.
               </p>
             </div>
 
@@ -1028,8 +1034,7 @@ export default function BrandingSettingsClient() {
                 placeholder="Summarize key accomplishments, new services, and improvements delivered this fiscal year."
               />
               <p className="mt-1 text-xs text-slate-500">
-                Shown in the “Year in review” card on the public landing
-                page.
+                Shown in the “Year in review” card on the public landing page.
               </p>
             </div>
 
@@ -1051,8 +1056,8 @@ export default function BrandingSettingsClient() {
                 placeholder="Call out major capital projects completed or underway (streets, facilities, parks, utilities)."
               />
               <p className="mt-1 text-xs text-slate-500">
-                Shown in the “Capital projects” card on the public
-                landing page.
+                Shown in the “Capital projects” card on the public landing
+                page.
               </p>
             </div>
 
@@ -1126,8 +1131,8 @@ export default function BrandingSettingsClient() {
                   placeholder="https://example.com/leader.jpg"
                 />
                 <p className="mt-1 text-xs text-slate-500">
-                  Optional photo shown next to the welcome message on the landing
-                  page.
+                  Optional photo shown next to the welcome message on the
+                  landing page.
                 </p>
               </div>
             </div>
@@ -1370,7 +1375,9 @@ export default function BrandingSettingsClient() {
                   />
                 </div>
                 <p className="mt-1 text-xs text-slate-500">
-                  Used for headers, key text, and high-emphasis elements.
+                  Used for headers and key text. For best readability, keep this
+                  darker when your text is light, or very light if you move to a
+                  dark text style.
                 </p>
               </div>
 
@@ -1400,7 +1407,8 @@ export default function BrandingSettingsClient() {
                   />
                 </div>
                 <p className="mt-1 text-xs text-slate-500">
-                  Used for highlights, buttons, and charts.
+                  Used for highlights, buttons, and charts. Avoid very pale
+                  accents for small text so labels stay readable.
                 </p>
               </div>
 
@@ -1430,7 +1438,9 @@ export default function BrandingSettingsClient() {
                   />
                 </div>
                 <p className="mt-1 text-xs text-slate-500">
-                  Used behind the hero area and dashboard shell.
+                  Used behind the hero area and dashboard shell. If you choose a
+                  very light background, be sure your text colors are dark
+                  enough to keep contrast comfortable.
                 </p>
               </div>
             </div>

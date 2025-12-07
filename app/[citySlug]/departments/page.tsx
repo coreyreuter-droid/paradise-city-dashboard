@@ -1,4 +1,4 @@
-// app/[citySlug]/departments/page.tsx
+import { notFound } from "next/navigation";
 import DepartmentsDashboardClient from "@/components/City/DepartmentsDashboardClient";
 import UnpublishedMessage from "@/components/City/UnpublishedMessage";
 import {
@@ -48,6 +48,19 @@ export default async function DepartmentsPage({
 
   if (portalSettings && portalSettings.is_published === false) {
     return <UnpublishedMessage settings={portalSettings} />;
+  }
+
+  // Strict actuals gating for Departments:
+  // - Departments UI is an actuals-driven module
+  // - When enable_actuals is explicitly false, this route must 404
+  const enableActuals =
+    portalSettings?.enable_actuals === null ||
+    portalSettings?.enable_actuals === undefined
+      ? true
+      : !!portalSettings.enable_actuals;
+
+  if (portalSettings && !enableActuals) {
+    notFound();
   }
 
   const enableTransactions =

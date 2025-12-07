@@ -253,7 +253,7 @@ export default function ParadiseSidebar() {
                 const isDepartmentsItem = item.path === "/departments";
 
                 const baseClasses =
-                  "group flex items-center gap-2 rounded-xl px-3 py-2 text-sm transition";
+                  "group flex items-center gap-2 rounded-xl px-3 py-2 text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-slate-900 focus-visible:ring-offset-slate-50";
 
                 const activeClasses =
                   variant === "desktop"
@@ -272,6 +272,7 @@ export default function ParadiseSidebar() {
                       className={`${baseClasses} ${
                         active ? activeClasses : inactiveClasses
                       }`}
+                      aria-current={active ? "page" : undefined}
                     >
                       <span
                         className={`inline-block h-1.5 w-1.5 rounded-full transition ${
@@ -315,11 +316,12 @@ export default function ParadiseSidebar() {
               <Link
                 href={adminHomeHref}
                 onClick={variant === "mobile" ? closeMobile : undefined}
-                className={`group flex items-center gap-2 rounded-xl px-3 py-2 text-xs transition ${
+                className={`group flex items-center gap-2 rounded-xl px-3 py-2 text-xs transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-slate-900 focus-visible:ring-offset-slate-50 ${
                   adminActive
                     ? "bg-slate-900 text-white shadow-sm"
                     : "text-slate-500 hover:bg-slate-100 hover:text-slate-900"
                 }`}
+                aria-current={adminActive ? "page" : undefined}
               >
                 <span
                   className={`inline-block h-1 w-1 rounded-full transition ${
@@ -376,7 +378,7 @@ export default function ParadiseSidebar() {
         <button
           type="button"
           onClick={() => setMobileOpen((v) => !v)}
-          className="inline-flex items-center justify-center rounded-md border border-slate-200 bg-white px-2 py-1 text-slate-700 shadow-sm"
+          className="inline-flex items-center justify-center rounded-md border border-slate-200 bg-white px-2 py-1 text-slate-700 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
           aria-label="Toggle navigation"
           aria-expanded={mobileOpen}
           aria-controls="city-nav-panel"
@@ -435,7 +437,7 @@ export default function ParadiseSidebar() {
               <button
                 type="button"
                 onClick={closeMobile}
-                className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600"
+                className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
                 aria-label="Close navigation"
               >
                 <span className="sr-only">Close</span>

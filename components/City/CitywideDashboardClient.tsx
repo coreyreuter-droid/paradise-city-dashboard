@@ -70,6 +70,11 @@ type DeptYearVarianceRow = {
   >;
 };
 
+type RevenueSummary = {
+  year: number;
+  total: number;
+};
+
 type Props = {
   budgets: BudgetRow[];
   actuals: ActualRow[];
@@ -78,6 +83,10 @@ type Props = {
   // feature flags
   enableTransactions: boolean;
   enableVendors: boolean;
+  enableRevenues: boolean;
+
+  // optional revenue summary for Analytics
+  revenueSummary?: RevenueSummary | null;
 };
 
 const formatAxisCurrencyShort = (v: number) => {
@@ -132,6 +141,8 @@ export default function CitywideDashboardClient({
   transactions,
   enableTransactions,
   enableVendors,
+  enableRevenues,
+  revenueSummary,
 }: Props) {
   const searchParams = useSearchParams();
 
@@ -506,6 +517,17 @@ export default function CitywideDashboardClient({
 
   const totalTransactionsCount = transactionsForYear.length;
 
+  const analyticsTitle = enableVendors
+    ? "Budget, spending, and vendors"
+    : "Budget and spending";
+
+  const analyticsDescription = enableVendors
+    ? "High-level trends, department performance, and vendor-level spending for the selected fiscal year."
+    : "High-level trends and department performance for the selected fiscal year.";
+
+  const showRevenueSummaryCard =
+    enableRevenues && revenueSummary && revenueSummary.total >= 0;
+
   return (
     <div
       id="main-content"
@@ -514,8 +536,8 @@ export default function CitywideDashboardClient({
       <div className="mx-auto max-w-6xl px-3 py-4 sm:px-4 sm:py-6 lg:px-6 lg:py-8">
         <SectionHeader
           eyebrow="Citywide analytics"
-          title="Budget, spending, and vendors"
-          description="High-level trends, department performance, and vendor-level spending for the selected fiscal year."
+          title={analyticsTitle}
+          description={analyticsDescription}
           rightSlot={
             years.length > 0 ? (
               <FiscalYearSelect
@@ -542,6 +564,49 @@ export default function CitywideDashboardClient({
             Analytics
           </span>
         </nav>
+
+        {/* Optional Revenue Summary card – strictly gated by enableRevenues */}
+        {showRevenueSummaryCard && (
+          <CardContainer>
+            <section
+              aria-label="Revenue summary"
+              className="flex flex-col gap-3 rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-700 sm:flex-row sm:items-center sm:justify-between"
+            >
+              <div className="min-w-0">
+                <h2 className="text-sm font-semibold text-slate-900">
+                  Revenue summary
+                </h2>
+                <p className="mt-1 text-sm text-slate-600">
+                  Total recorded revenues for fiscal year{" "}
+                  <span className="font-semibold">
+                    {revenueSummary!.year}
+                  </span>
+                  .
+                </p>
+                <p className="mt-1 text-xs text-slate-500">
+                  Use the Revenues page for a full breakdown by
+                  source, fund, and category.
+                </p>
+              </div>
+              <div className="flex flex-col items-end gap-2 text-right">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                    Total revenues ({revenueSummary!.year})
+                  </p>
+                  <p className="mt-1 text-xl font-bold text-slate-900">
+                    {formatCurrency(revenueSummary!.total)}
+                  </p>
+                </div>
+                <Link
+                  href={cityHref("/revenues")}
+                  className="inline-flex items-center rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+                >
+                  View Revenues
+                </Link>
+              </div>
+            </section>
+          </CardContainer>
+        )}
 
         <div className="space-y-4 md:space-y-6">
           {/* High-level KPIs */}
@@ -1318,8 +1383,9 @@ export default function CitywideDashboardClient({
                       >
                         Transactions
                       </Link>{" "}
-                      page to filter by department, vendor, or keyword and
-                      export CSVs for detailed analysis.
+                      page to filter by department,{" "}
+                      {enableVendors && "vendor or "}
+                      keyword and export CSVs for detailed analysis.
                     </p>
                   </section>
                 </CardContainer>
