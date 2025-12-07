@@ -28,7 +28,7 @@ export default function RecentTransactionsCard({
         </h3>
       </div>
       {rows.length === 0 ? (
-        <p className="text-xs text-slate-500">
+        <p className="text-sm text-slate-600">
           No transactions available for this year.
         </p>
       ) : (
@@ -45,8 +45,8 @@ export default function RecentTransactionsCard({
                 key={`${tx.date}-${tx.vendor}-${idx}`}
                 className="flex items-start justify-between gap-2 border-b border-slate-100 pb-1.5 last:border-b-0"
               >
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 text-[11px] text-slate-500">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 text-xs text-slate-600">
                     <span className="font-mono">
                       {formatDate(tx.date)}
                     </span>
@@ -60,7 +60,7 @@ export default function RecentTransactionsCard({
                     {vendor}
                   </div>
                   {tx.description && (
-                    <div className="line-clamp-2 text-[11px] text-slate-500">
+                    <div className="line-clamp-2 text-xs text-slate-600">
                       {tx.description}
                     </div>
                   )}

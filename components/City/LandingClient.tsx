@@ -93,7 +93,10 @@ export default function LandingClient({ portalSettings }: Props) {
   ].filter((p) => p.title || p.summary || p.imageUrl);
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6 px-3 py-6 sm:px-4 sm:py-8">
+    <div
+      id="main-content"
+      className="mx-auto max-w-6xl space-y-6 px-3 py-6 sm:px-4 sm:py-8"
+    >
       {/* HERO */}
       <section
         aria-label={`${cityName} transparency portal introduction`}
@@ -130,7 +133,7 @@ export default function LandingClient({ portalSettings }: Props) {
                   className="h-14 w-14 rounded-full border border-slate-700 bg-slate-950 object-contain shadow-sm"
                 />
                 <div className="flex flex-col">
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-200">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-slate-200">
                     Official seal
                   </span>
                   <span className="text-sm font-medium text-slate-50">
@@ -140,13 +143,13 @@ export default function LandingClient({ portalSettings }: Props) {
               </div>
             )}
 
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-300">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-200">
               {tagline}
             </p>
             <h1 className="mt-2 text-2xl font-semibold sm:text-3xl">
               {cityName} Transparency Portal
             </h1>
-            <p className="mt-3 text-sm text-slate-100/80">
+            <p className="mt-3 text-sm text-slate-100/90">
               {heroMessage}
             </p>
 
@@ -168,7 +171,7 @@ export default function LandingClient({ portalSettings }: Props) {
 
           {/* Right: quick nav list */}
           <div className="w-full max-w-xs rounded-xl bg-slate-900/60 p-3 text-xs text-slate-100 shadow-sm">
-            <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-300">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-200">
               Explore the data
             </p>
             <ul className="space-y-1.5">
@@ -178,7 +181,7 @@ export default function LandingClient({ portalSettings }: Props) {
                   className="flex items-center justify-between rounded-md bg-slate-900/40 px-2 py-1.5 hover:bg-slate-800/80"
                 >
                   <span>Overview dashboard</span>
-                  <span className="text-[10px] text-slate-300">
+                  <span className="text-xs text-slate-200">
                     Budget &amp; spending
                   </span>
                 </Link>
@@ -189,7 +192,7 @@ export default function LandingClient({ portalSettings }: Props) {
                   className="flex items-center justify-between rounded-md px-2 py-1.5 hover:bg-slate-900/40"
                 >
                   <span>Budget Explorer</span>
-                  <span className="text-[10px] text-slate-300">
+                  <span className="text-xs text-slate-200">
                     Adopted budgets
                   </span>
                 </Link>
@@ -200,7 +203,7 @@ export default function LandingClient({ portalSettings }: Props) {
                   className="flex items-center justify-between rounded-md px-2 py-1.5 hover:bg-slate-900/40"
                 >
                   <span>Departments</span>
-                  <span className="text-[10px] text-slate-300">
+                  <span className="text-xs text-slate-200">
                     Spending by service area
                   </span>
                 </Link>
@@ -211,7 +214,7 @@ export default function LandingClient({ portalSettings }: Props) {
                   className="flex items-center justify-between rounded-md px-2 py-1.5 hover:bg-slate-900/40"
                 >
                   <span>Revenues</span>
-                  <span className="text-[10px] text-slate-300">
+                  <span className="text-xs text-slate-200">
                     Where funding comes from
                   </span>
                 </Link>
@@ -222,7 +225,7 @@ export default function LandingClient({ portalSettings }: Props) {
                   className="flex items-center justify-between rounded-md px-2 py-1.5 hover:bg-slate-900/40"
                 >
                   <span>Transactions</span>
-                  <span className="text-[10px] text-slate-300">
+                  <span className="text-xs text-slate-200">
                     Payments &amp; vendors
                   </span>
                 </Link>
@@ -250,7 +253,7 @@ export default function LandingClient({ portalSettings }: Props) {
               </div>
             )}
             <div className="space-y-1">
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-600">
                 Leadership message
               </p>
               {(leaderName || leaderTitle) && (
@@ -317,7 +320,7 @@ export default function LandingClient({ portalSettings }: Props) {
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 {statPopulation && (
                   <div className="rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-3">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-600">
                       Population
                     </p>
                     <p className="mt-1 text-base font-semibold text-slate-900">
@@ -328,7 +331,7 @@ export default function LandingClient({ portalSettings }: Props) {
 
                 {statEmployees && (
                   <div className="rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-3">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-600">
                       City employees
                     </p>
                     <p className="mt-1 text-base font-semibold text-slate-900">
@@ -339,7 +342,7 @@ export default function LandingClient({ portalSettings }: Props) {
 
                 {statSquareMiles && (
                   <div className="rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-3">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-600">
                       Area (sq. miles)
                     </p>
                     <p className="mt-1 text-base font-semibold text-slate-900">
@@ -350,13 +353,13 @@ export default function LandingClient({ portalSettings }: Props) {
 
                 {statAnnualBudgetFormatted && (
                   <div className="rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-3">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-600">
                       Annual budget
                     </p>
                     <p className="mt-1 text-base font-semibold text-slate-900">
                       {statAnnualBudgetFormatted}
                     </p>
-                    <p className="mt-1 text-[11px] text-slate-500">
+                    <p className="mt-1 text-[11px] text-slate-600">
                       All funds, adopted.
                     </p>
                   </div>

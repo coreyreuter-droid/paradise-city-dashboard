@@ -66,7 +66,7 @@ export default function HomeRevenueSummary({
           <h2 className="text-sm font-semibold text-slate-800">
             Revenue snapshot
           </h2>
-          <p className="text-xs text-slate-500">
+          <p className="text-sm text-slate-600">
             High-level view of total revenues recorded for{" "}
             {yearLabel}.
           </p>
@@ -85,7 +85,7 @@ export default function HomeRevenueSummary({
             {/* Total revenues */}
             <div className="flex flex-col rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
               <div
-                className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500"
+                className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-600"
                 style={labelStyle}
               >
                 Total revenues
@@ -93,7 +93,7 @@ export default function HomeRevenueSummary({
               <div className="mt-1 text-lg font-semibold text-slate-900">
                 {formatCurrency(totalRevenue)}
               </div>
-              <p className="mt-1 text-xs text-slate-500">
+              <p className="mt-1 text-sm text-slate-600">
                 Sum of all revenue records loaded for{" "}
                 {yearLabel}.
               </p>
@@ -101,20 +101,20 @@ export default function HomeRevenueSummary({
 
             {/* Approx monthly */}
             <div className="flex flex-col rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
-              <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+              <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-600">
                 Approx. monthly revenues
               </div>
               <div className="mt-1 text-lg font-semibold text-slate-900">
                 {formatCurrency(totalRevenue / 12)}
               </div>
-              <p className="mt-1 text-xs text-slate-500">
+              <p className="mt-1 text-sm text-slate-600">
                 Simple total divided by 12 months to give a
                 ballpark monthly figure.
               </p>
             </div>
           </div>
         ) : (
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-slate-600">
             Revenue data for {yearLabel} has not been uploaded
             yet. Once revenue files are loaded through the admin
             portal, this section will display total revenues for
