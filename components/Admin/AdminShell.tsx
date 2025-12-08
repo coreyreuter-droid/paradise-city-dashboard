@@ -24,6 +24,7 @@ const NAV_ITEMS: { href: string; label: string }[] = [
   { href: "users", label: "Users & roles" },
   { href: "onboarding", label: "Onboarding checklist" },
   { href: "publish", label: "Publish status" },
+  { href: "help", label: "Help & FAQs" },
 ];
 
 type PublishState = "unknown" | "published" | "draft";
@@ -123,9 +124,7 @@ export default function AdminShell({
         aria-labelledby="admin-page-title"
       >
         <div className="mx-auto max-w-6xl px-4 py-6">
-          <section
-            className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"
-          >
+          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
             {/* Draft mode banner – always visible in admin when portal is draft */}
             {publishState === "draft" && (
               <div className="mb-3 flex flex-col gap-1 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-800 sm:flex-row sm:items-center sm:justify-between">

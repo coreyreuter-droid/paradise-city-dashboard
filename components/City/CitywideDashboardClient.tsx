@@ -87,6 +87,9 @@ type Props = {
 
   // optional revenue summary for Analytics
   revenueSummary?: RevenueSummary | null;
+
+  // optional fiscal year note
+  fiscalYearNote?: string | null;
 };
 
 const formatAxisCurrencyShort = (v: number) => {
@@ -143,6 +146,7 @@ export default function CitywideDashboardClient({
   enableVendors,
   enableRevenues,
   revenueSummary,
+  fiscalYearNote,
 }: Props) {
   const searchParams = useSearchParams();
 
@@ -535,7 +539,7 @@ export default function CitywideDashboardClient({
     >
       <div className="mx-auto max-w-6xl px-3 py-4 sm:px-4 sm:py-6 lg:px-6 lg:py-8">
         <SectionHeader
-          eyebrow="Citywide analytics"
+          eyebrow="Govwide analytics"
           title={analyticsTitle}
           description={analyticsDescription}
           rightSlot={
@@ -547,6 +551,11 @@ export default function CitywideDashboardClient({
             ) : null
           }
         />
+        {fiscalYearNote && (
+          <p className="mb-3 px-1 text-xs text-slate-500">
+            {fiscalYearNote}
+          </p>
+        )}
 
         {/* Breadcrumb */}
         <nav
@@ -608,11 +617,13 @@ export default function CitywideDashboardClient({
           </CardContainer>
         )}
 
+
+
         <div className="space-y-4 md:space-y-6">
           {/* High-level KPIs */}
           <CardContainer>
             <section
-              aria-label="Citywide budget and spending summary"
+              aria-label="Govwide budget and spending summary"
               className="grid gap-4 md:grid-cols-4"
             >
               <div className="min-w-0">
@@ -655,7 +666,7 @@ export default function CitywideDashboardClient({
                   {formatCurrency(variance)}
                 </div>
                 <div className="mt-1 text-sm text-slate-600">
-                  Negative indicates citywide under-spend versus adopted
+                  Negative indicates govwide under-spend versus adopted
                   budget.
                 </div>
               </div>
@@ -936,20 +947,20 @@ export default function CitywideDashboardClient({
                 )}
               </CardContainer>
 
-              {/* Citywide P&L and top categories */}
+              {/* Govwide P&L and top categories */}
               <CardContainer>
                 <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
                   <div className="min-w-0">
                     <h2 className="text-sm font-semibold text-slate-800">
-                      Citywide Budget vs Actuals & Categories
+                      Govwide Budget vs Actuals & Categories
                     </h2>
                     <p className="text-sm text-slate-600">
-                      Citywide view of budget, actuals, and top spending
+                      Govwide view of budget, actuals, and top spending
                       categories for {yearLabel}.
                     </p>
                   </div>
                   <div className="text-sm text-slate-600">
-                    {yearLabel} • Citywide totals
+                    {yearLabel} • Govwide totals
                   </div>
                 </div>
 
@@ -1038,13 +1049,13 @@ export default function CitywideDashboardClient({
                         id="citywide-yoy-heading"
                         className="text-sm font-semibold text-slate-800"
                       >
-                        Citywide Budget vs Actuals Over Time
+                        Govwide Budget vs Actuals Over Time
                       </h2>
                       <p
                         id="citywide-yoy-desc"
                         className="text-sm text-slate-600"
                       >
-                        Multi-year citywide view of total budget, actuals, and
+                        Multi-year govwide view of total budget, actuals, and
                         variance.
                       </p>
                     </div>
@@ -1160,7 +1171,7 @@ export default function CitywideDashboardClient({
                 </figure>
               </CardContainer>
 
-              {/* Citywide YOY variance matrix */}
+              {/* Govwide YOY variance matrix */}
               <CardContainer>
                 <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
                   <div className="min-w-0">
@@ -1398,9 +1409,9 @@ export default function CitywideDashboardClient({
                     How to use this page
                   </h2>
                   <p>
-                    Use this citywide view to quickly answer high-level
+                    Use this govwide view to quickly answer high-level
                     questions about budget execution, spending trends, and
-                    department performance across the city.
+                    department performance across your government.
                   </p>
                   <p>
                     For example, you can identify which departments are
@@ -1418,7 +1429,7 @@ export default function CitywideDashboardClient({
                     </Link>{" "}
                     view to see department-level detail.
                     {enableTransactions &&
-                      " Use the Transactions page to inspect line-item spending when enabled for your city."}
+                      " Use the Transactions page to inspect line-item spending when enabled."}
                   </p>
                 </div>
               </CardContainer>

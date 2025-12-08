@@ -12,6 +12,56 @@ type Props = {
   portalSettings: PortalSettings | null;
 };
 
+const MONTH_NAMES = [
+  "",
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
+
+function getFiscalYearPublicLabel(
+  portalSettings: PortalSettings | null
+): string | null {
+  if (!portalSettings) return null;
+
+  const anySettings = portalSettings as any;
+  const explicitLabel = anySettings?.fiscal_year_label as
+    | string
+    | null
+    | undefined;
+
+  if (explicitLabel && explicitLabel.trim().length > 0) {
+    return explicitLabel.trim();
+  }
+
+  const startMonth =
+    (anySettings?.fiscal_year_start_month as number | null | undefined) ?? 1;
+  const startDay =
+    (anySettings?.fiscal_year_start_day as number | null | undefined) ?? 1;
+
+  if (startMonth === 1 && startDay === 1) {
+    return "Fiscal year aligns with the calendar year (January 1 – December 31).";
+  }
+
+  const startMonthName =
+    MONTH_NAMES[startMonth] || "January";
+
+  const endMonthIndex = ((startMonth + 10) % 12) + 1;
+  const endMonthName =
+    MONTH_NAMES[endMonthIndex] || "December";
+
+  return `Fiscal year runs ${startMonthName} ${startDay} – ${endMonthName} ${startDay}.`;
+}
+
 export default function LandingClient({ portalSettings }: Props) {
   const cityName =
     portalSettings?.city_name || CITY_CONFIG.displayName || "Your City";
@@ -23,13 +73,15 @@ export default function LandingClient({ portalSettings }: Props) {
 
   const heroMessage =
     portalSettings?.hero_message ||
-    "Welcome to your city’s financial transparency portal. Explore how public dollars are planned, spent, and invested.";
+    "Welcome to your government’s financial transparency portal. Explore how public dollars are planned, spent, and invested.";
 
   const heroImageUrl = portalSettings?.hero_image_url || null;
   const heroBackground =
     portalSettings?.background_color || "#020617";
   const heroOverlay = "rgba(15, 23, 42, 0.65)";
   const sealUrl = portalSettings?.seal_url || null;
+
+  const fiscalYearNote = getFiscalYearPublicLabel(portalSettings);
 
   const storyCityDescription =
     portalSettings?.story_city_description ??
@@ -165,6 +217,11 @@ export default function LandingClient({ portalSettings }: Props) {
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-200">
               {tagline}
             </p>
+            {fiscalYearNote && (
+              <p className="mt-1 text-[11px] text-slate-200">
+                {fiscalYearNote}
+              </p>
+            )}
             <h1 className="mt-2 text-2xl font-semibold sm:text-3xl">
               {cityName} Transparency Portal
             </h1>
@@ -346,7 +403,7 @@ export default function LandingClient({ portalSettings }: Props) {
               <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
                 <div>
                   <h2 className="text-sm font-semibold text-slate-900">
-                    City at a glance
+                    At a glance
                   </h2>
                   <p className="text-xs text-slate-600">
                     Key figures that help put your community’s budget and

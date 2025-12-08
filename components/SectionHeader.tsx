@@ -5,7 +5,7 @@ type SectionHeaderProps = {
   title: string;
   description?: string;
   /**
-   * Small label above the title, e.g. "Citywide overview" or "Department detail"
+   * Small label above the title, e.g. "Govwide overview" or "Department detail"
    */
   eyebrow?: string;
   /**

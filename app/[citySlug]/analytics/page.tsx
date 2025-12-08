@@ -41,6 +41,56 @@ function pickFirst(
   return undefined;
 }
 
+const MONTH_NAMES = [
+  "",
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
+
+function getFiscalYearPublicLabelFromSettings(
+  settings: PortalSettings | null
+): string | null {
+  if (!settings) return null;
+
+  const anySettings = settings as any;
+  const explicitLabel = anySettings?.fiscal_year_label as
+    | string
+    | null
+    | undefined;
+
+  if (explicitLabel && explicitLabel.trim().length > 0) {
+    return explicitLabel.trim();
+  }
+
+  const startMonth =
+    (anySettings?.fiscal_year_start_month as number | null | undefined) ?? 1;
+  const startDay =
+    (anySettings?.fiscal_year_start_day as number | null | undefined) ?? 1;
+
+  if (startMonth === 1 && startDay === 1) {
+    return "Fiscal year aligns with the calendar year (January 1 – December 31).";
+  }
+
+  const startMonthName =
+    MONTH_NAMES[startMonth] || "January";
+
+  const endMonthIndex = ((startMonth + 10) % 12) + 1;
+  const endMonthName =
+    MONTH_NAMES[endMonthIndex] || "December";
+
+  return `Fiscal year runs ${startMonthName} ${startDay} – ${endMonthName} ${startDay}.`;
+}
+
 export default async function AnalyticsPage({
   searchParams,
 }: {
@@ -78,6 +128,11 @@ export default async function AnalyticsPage({
 
   const enableRevenues =
     portalSettings?.enable_revenues === true;
+
+  // Compute public-facing fiscal year note
+  const fiscalYearNote = getFiscalYearPublicLabelFromSettings(
+    portalSettings
+  );
 
   // Load budgets/actuals/transactions in parallel.
   const [budgetsRaw, actualsRaw, transactionsRaw] =
@@ -139,6 +194,7 @@ export default async function AnalyticsPage({
       enableVendors={enableVendors}
       enableRevenues={enableRevenues}
       revenueSummary={revenueSummary}
+      fiscalYearNote={fiscalYearNote}
     />
   );
 }

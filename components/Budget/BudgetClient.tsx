@@ -244,7 +244,7 @@ export default function BudgetClient({ budgets, actuals }: Props) {
     <div className="min-h-screen bg-slate-50">
       <div className="mx-auto max-w-6xl px-4 py-8">
         <SectionHeader
-          eyebrow="City budget overview"
+          eyebrow="Budget overview"
           title="Budget vs Actuals"
           description="Compare adopted budgets and actual spending across departments for the selected fiscal year."
           rightSlot={
@@ -353,7 +353,7 @@ export default function BudgetClient({ budgets, actuals }: Props) {
                     {formatCurrency(totals.variance)}
                   </div>
                   <div className="mt-1 text-xs text-slate-500">
-                    Positive means the city is currently under budget.
+                    Positive means the spend is currently under budget.
                   </div>
                 </div>
 

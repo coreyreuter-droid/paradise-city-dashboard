@@ -248,8 +248,8 @@ export default function AdminOverviewPage() {
   return (
     <AdminGuard>
       <AdminShell
-        title="Admin overview"
-        description="High-level status of your portal plus shortcuts to the most common admin tasks."
+        title=" "
+
       >
         <div className="space-y-6">
           {/* Status cards */}

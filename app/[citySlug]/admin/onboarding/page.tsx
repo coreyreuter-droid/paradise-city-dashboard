@@ -140,7 +140,7 @@ export default function OnboardingPage() {
       >
         <div className="space-y-4 text-sm text-slate-700">
           <p className="text-xs text-slate-600">
-            Complete each step below to prepare your city’s CiviPortal for
+            Complete each step below to prepare your entity’s CiviPortal for
             public launch. Steps reflect the modules you have enabled.
           </p>
 

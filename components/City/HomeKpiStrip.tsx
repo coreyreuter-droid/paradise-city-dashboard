@@ -58,7 +58,7 @@ export default function HomeKpiStrip({
           Key indicators
         </h2>
         <p className="text-xs text-slate-500">
-          Citywide totals and high-level metrics for the selected fiscal year.
+          Govwide totals and high-level metrics for the selected fiscal year.
         </p>
       </div>
 

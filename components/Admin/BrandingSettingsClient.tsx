@@ -61,6 +61,11 @@ type PortalSettings = {
   enable_vendors: boolean | null;
   enable_revenues: boolean | null;
 
+  // fiscal year config
+  fiscal_year_start_month: number | null;
+  fiscal_year_start_day: number | null;
+  fiscal_year_label: string | null;
+
   // publish state
   is_published: boolean | null;
 };
@@ -176,6 +181,9 @@ const SELECT_FIELDS = [
   "enable_transactions",
   "enable_vendors",
   "enable_revenues",
+  "fiscal_year_start_month",
+  "fiscal_year_start_day",
+  "fiscal_year_label",
   "is_published",
 ].join(", ");
 
@@ -272,6 +280,10 @@ export default function BrandingSettingsClient() {
                 enable_transactions: false,
                 enable_vendors: false,
                 enable_revenues: false,
+                // fiscal default: calendar year
+                fiscal_year_start_month: 1,
+                fiscal_year_start_day: 1,
+                fiscal_year_label: null,
                 is_published: false, // new portals start in draft
               })
               .select(SELECT_FIELDS)
@@ -507,6 +519,16 @@ export default function BrandingSettingsClient() {
               ? false
               : settings.enable_vendors ?? false,
           enable_revenues: settings.enable_revenues ?? false,
+          // fiscal year config
+          fiscal_year_start_month:
+            settings.fiscal_year_start_month ?? 1,
+          fiscal_year_start_day:
+            settings.fiscal_year_start_day ?? 1,
+          fiscal_year_label:
+            settings.fiscal_year_label &&
+            settings.fiscal_year_label.trim().length > 0
+              ? settings.fiscal_year_label.trim()
+              : null,
           is_published: settings.is_published ?? false,
         })
         .eq("id", settings.id)
@@ -582,10 +604,6 @@ export default function BrandingSettingsClient() {
           <h1 className="text-xl font-semibold text-slate-900">
             Portal branding
           </h1>
-          <p className="mt-1 text-sm text-slate-600">
-            Control how your city&apos;s CiviPortal appears on the public
-            site.
-          </p>
         </div>
 
         {/* Single full-width form card */}
@@ -737,6 +755,101 @@ export default function BrandingSettingsClient() {
                   </span>
                 </span>
               </label>
+            </div>
+          </div>
+
+          {/* Fiscal year configuration */}
+          <div className="mb-4 space-y-3 border-b border-slate-200 pb-4">
+            <h2 className="text-sm font-semibold text-slate-900">
+              Fiscal year configuration
+            </h2>
+            <p className="text-xs text-slate-500">
+              This controls how the portal describes your fiscal year to
+              residents. It does not change your uploaded data, but it helps
+              explain what &quot;FY 2024&quot; means.
+            </p>
+
+            <div className="grid gap-3 sm:grid-cols-3">
+              <div>
+                <label className="mb-1 block text-sm font-medium text-slate-700">
+                  Fiscal year starts in
+                </label>
+                <select
+                  value={settings.fiscal_year_start_month ?? 1}
+                  onChange={(e) =>
+                    handleFieldChange(
+                      "fiscal_year_start_month",
+                      Number(
+                        e.target.value
+                      ) as PortalSettings["fiscal_year_start_month"]
+                    )
+                  }
+                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
+                >
+                  <option value={1}>January</option>
+                  <option value={2}>February</option>
+                  <option value={3}>March</option>
+                  <option value={4}>April</option>
+                  <option value={5}>May</option>
+                  <option value={6}>June</option>
+                  <option value={7}>July</option>
+                  <option value={8}>August</option>
+                  <option value={9}>September</option>
+                  <option value={10}>October</option>
+                  <option value={11}>November</option>
+                  <option value={12}>December</option>
+                </select>
+                <p className="mt-1 text-xs text-slate-500">
+                  For example, many cities use July 1 – June 30.
+                </p>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-slate-700">
+                  Start day
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  max={31}
+                  value={settings.fiscal_year_start_day ?? 1}
+                  onChange={(e) =>
+                    handleFieldChange(
+                      "fiscal_year_start_day",
+                      Number(
+                        e.target.value
+                      ) as PortalSettings["fiscal_year_start_day"]
+                    )
+                  }
+                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
+                />
+                <p className="mt-1 text-xs text-slate-500">
+                  Most cities use the 1st of the month.
+                </p>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-slate-700">
+                  Public fiscal year label (optional)
+                </label>
+                <input
+                  type="text"
+                  value={settings.fiscal_year_label ?? ""}
+                  onChange={(e) =>
+                    handleFieldChange(
+                      "fiscal_year_label",
+                      e.target.value
+                    )
+                  }
+                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
+                  placeholder='e.g. "Fiscal year runs July 1 – June 30."'
+                />
+                <p className="mt-1 text-xs text-slate-500">
+                  If set, this text will be shown directly to residents. If
+                  left blank, the portal will generate a label based on the
+                  start month and day.
+                </p>
+              </div>
             </div>
           </div>
 

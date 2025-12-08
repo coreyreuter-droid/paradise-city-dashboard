@@ -66,6 +66,56 @@ function formatFreshnessDate(iso: string | null): string | null {
   });
 }
 
+const MONTH_NAMES = [
+  "",
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
+
+function getFiscalYearPublicLabel(
+  portalSettings: PortalSettings | null
+): string | null {
+  if (!portalSettings) return null;
+
+  const anySettings = portalSettings as any;
+  const explicitLabel = anySettings?.fiscal_year_label as
+    | string
+    | null
+    | undefined;
+
+  if (explicitLabel && explicitLabel.trim().length > 0) {
+    return explicitLabel.trim();
+  }
+
+  const startMonth =
+    (anySettings?.fiscal_year_start_month as number | null | undefined) ?? 1;
+  const startDay =
+    (anySettings?.fiscal_year_start_day as number | null | undefined) ?? 1;
+
+  if (startMonth === 1 && startDay === 1) {
+    return "Fiscal year aligns with the calendar year (January 1 – December 31).";
+  }
+
+  const startMonthName =
+    MONTH_NAMES[startMonth] || "January";
+
+  const endMonthIndex = ((startMonth + 10) % 12) + 1;
+  const endMonthName =
+    MONTH_NAMES[endMonthIndex] || "December";
+
+  return `Fiscal year runs ${startMonthName} ${startDay} – ${endMonthName} ${startDay}.`;
+}
+
 export default function ParadiseHomeClient({
   budgets,
   actuals,
@@ -278,6 +328,8 @@ export default function ParadiseHomeClient({
     portalSettings?.background_color || "#020617";
   const heroOverlay = "rgba(15, 23, 42, 0.65)";
 
+  const fiscalYearNote = getFiscalYearPublicLabel(portalSettings);
+
   const hasAnyDataForSelectedYear =
     hasBudgetData ||
     (enableTransactions && transactionsForYear.length > 0);
@@ -369,6 +421,11 @@ export default function ParadiseHomeClient({
               <p className="mt-2 text-xs text-slate-200/90 sm:max-w-md">
                 {heroMessage}
               </p>
+              {fiscalYearNote && (
+                <p className="mt-1 text-[11px] text-slate-300 sm:max-w-md">
+                  {fiscalYearNote}
+                </p>
+              )}
 
               <div className="mt-4 flex flex-wrap gap-2">
                 <Link
@@ -412,7 +469,7 @@ export default function ParadiseHomeClient({
                       : "Awaiting data"}
                   </div>
                   <p className="mt-1 text-[11px] text-slate-400">
-                    Citywide adopted budget for the selected
+                    Govwide adopted budget for the selected
                     fiscal year.
                   </p>
                 </div>
@@ -501,7 +558,7 @@ export default function ParadiseHomeClient({
             <CardContainer>
               {yearLabel && (
                 <div className="mb-3 text-xs text-slate-600">
-                  Citywide totals for fiscal year{" "}
+                  Govwide totals for fiscal year{" "}
                   <span className="font-semibold">{yearLabel}</span>.
                 </div>
               )}
@@ -614,7 +671,7 @@ export default function ParadiseHomeClient({
             <CardContainer>
               <SectionHeader
                 title="Departments"
-                eyebrow="City services"
+                eyebrow="Services"
                 description={
                   enableActuals
                     ? "Compare budgets, actuals, and spending patterns across departments."

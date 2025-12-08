@@ -329,7 +329,7 @@ export async function getTransactionsForYear(
 
 /**
  * BvA summarized by department for a given fiscal year.
- * This is what the citywide BvA chart/table should be using.
+ * This is what the govwide BvA chart/table should be using.
  */
 export async function getDepartmentBudgetVsActual(
   fiscalYear: number
