@@ -26,6 +26,8 @@ const NAV_ITEMS: { href: string; label: string }[] = [
   { href: "publish", label: "Publish status" },
 ];
 
+type PublishState = "unknown" | "published" | "draft";
+
 export default function AdminShell({
   title,
   description,
@@ -34,9 +36,8 @@ export default function AdminShell({
 }: Props) {
   const pathname = usePathname();
 
-  const [publishState, setPublishState] = useState<
-    "unknown" | "published" | "draft"
-  >("unknown");
+  const [publishState, setPublishState] =
+    useState<PublishState>("unknown");
 
   // Normalize full URL for each tab
   const buildFullHref = (slug: string) => {
@@ -52,8 +53,8 @@ export default function AdminShell({
       return pathname === full;
     }
 
-    // Other tabs: exact match or nested routes under that tab
-    return pathname === full || pathname.startsWith(full + "/");
+    // Other tabs: consider exact path only for clarity
+    return pathname === full;
   };
 
   useEffect(() => {
@@ -86,8 +87,11 @@ export default function AdminShell({
 
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* Top bar */}
-      <header className="border-b border-slate-200 bg-white">
+      {/* Global admin banner */}
+      <header
+        role="banner"
+        className="border-b border-slate-200 bg-white"
+      >
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
           <div className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
@@ -103,6 +107,7 @@ export default function AdminShell({
           <div className="flex items-center gap-2 text-xs">
             <Link
               href={cityHref("/")}
+              aria-label="View public transparency site"
               className="inline-flex items-center rounded-full border border-slate-200 px-3 py-2 font-medium text-slate-700 shadow-sm hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
             >
               View public site
@@ -111,31 +116,46 @@ export default function AdminShell({
         </div>
       </header>
 
-      {/* Main content */}
-      <main id="main-content">
+      {/* Main admin content */}
+      <main
+        id="main-content"
+        role="main"
+        aria-labelledby="admin-page-title"
+      >
         <div className="mx-auto max-w-6xl px-4 py-6">
           <section
-            aria-label={title}
             className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"
           >
-            {/* Draft mode banner */}
+            {/* Draft mode banner – always visible in admin when portal is draft */}
             {publishState === "draft" && (
-              <div className="mb-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-800">
-                <span className="font-semibold">Draft mode.</span>{" "}
-                This portal is currently hidden from the public. Switch it to{" "}
-                <span className="font-semibold">Published</span> from{" "}
-                <span className="font-semibold">Branding &amp; settings</span>{" "}
-                when you&apos;re ready to launch.
+              <div className="mb-3 flex flex-col gap-1 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-800 sm:flex-row sm:items-center sm:justify-between">
+                <p>
+                  <span className="font-semibold">Draft mode.</span>{" "}
+                  This portal is currently hidden from the public.
+                </p>
+                <p>
+                  When you&apos;re ready to launch, go to{" "}
+                  <Link
+                    href={cityHref("/admin/publish")}
+                    className="font-semibold underline underline-offset-2"
+                  >
+                    Publish status
+                  </Link>{" "}
+                  to mark the site as published.
+                </p>
               </div>
             )}
 
-            {/* Header + actions */}
+            {/* Page header + actions */}
             <header className="mb-3 flex flex-wrap items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
                   Admin
                 </p>
-                <h2 className="mt-1 truncate text-sm font-semibold text-slate-900 sm:text-base">
+                <h2
+                  id="admin-page-title"
+                  className="mt-1 truncate text-sm font-semibold text-slate-900 sm:text-base"
+                >
                   {title}
                 </h2>
                 {description && (
@@ -151,7 +171,7 @@ export default function AdminShell({
               )}
             </header>
 
-            {/* Admin tabs */}
+            {/* Admin nav tabs */}
             <nav
               aria-label="Admin navigation"
               className="mb-4 border-b border-slate-200"
@@ -165,7 +185,7 @@ export default function AdminShell({
                     "whitespace-nowrap rounded-t-lg px-3 py-2 font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white";
 
                   const activeClasses =
-                    "border-b-2 border-slate-900 bg-slate-50 text-slate-900";
+                    "border-b-2 border-sky-600 bg-slate-50 text-slate-900";
                   const inactiveClasses =
                     "border-b-2 border-transparent text-slate-500 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900";
 
@@ -186,8 +206,13 @@ export default function AdminShell({
               </ul>
             </nav>
 
-            {/* Page content */}
-            <div>{children}</div>
+            {/* Page content region */}
+            <section
+              aria-label="Admin page content"
+              className="text-sm text-slate-700"
+            >
+              {children}
+            </section>
           </section>
         </div>
       </main>

@@ -1,8 +1,9 @@
 // components/Auth/AdminGuard.tsx
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { cityHref } from "@/lib/cityRouting";
 
@@ -16,6 +17,9 @@ export default function AdminGuard({ children }: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const [state, setState] = useState<GuardState>("loading");
+
+  const loadingRef = useRef<HTMLDivElement | null>(null);
+  const forbiddenRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -45,7 +49,7 @@ export default function AdminGuard({ children }: Props) {
         .from("profiles")
         .select("role")
         .eq("id", user.id)
-        .single();
+        .maybeSingle();
 
       if (cancelled) return;
 
@@ -75,10 +79,25 @@ export default function AdminGuard({ children }: Props) {
     };
   }, [router, pathname]);
 
+  useEffect(() => {
+    if (state === "loading" && loadingRef.current) {
+      loadingRef.current.focus();
+    }
+    if (state === "forbidden" && forbiddenRef.current) {
+      forbiddenRef.current.focus();
+    }
+  }, [state]);
+
   if (state === "loading") {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50">
-        <div className="rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600 shadow-sm">
+        <div
+          ref={loadingRef}
+          tabIndex={-1}
+          role="status"
+          aria-live="polite"
+          className="rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600 shadow-sm"
+        >
           Checking admin access…
         </div>
       </div>
@@ -88,10 +107,30 @@ export default function AdminGuard({ children }: Props) {
   if (state === "forbidden") {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50">
-          <div className="max-w-md rounded-lg border border-red-200 bg-white px-4 py-3 text-sm text-red-700 shadow-sm">
-            Unable to verify your admin permissions. Please contact the site
-            administrator.
+        <div
+          ref={forbiddenRef}
+          tabIndex={-1}
+          role="alert"
+          aria-live="assertive"
+          className="max-w-md rounded-lg border border-red-200 bg-white px-4 py-4 text-sm text-red-700 shadow-sm"
+        >
+          <h1 className="text-sm font-semibold text-red-800">
+            Admin access required
+          </h1>
+          <p className="mt-1 text-xs text-red-700">
+            We were unable to verify that your account has admin
+            permissions for this portal. If you believe this is a
+            mistake, contact the site administrator.
+          </p>
+          <div className="mt-3">
+            <Link
+              href={cityHref("/")}
+              className="inline-flex items-center rounded-md border border-red-300 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-800 hover:bg-red-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
+            >
+              Return to public site
+            </Link>
           </div>
+        </div>
       </div>
     );
   }

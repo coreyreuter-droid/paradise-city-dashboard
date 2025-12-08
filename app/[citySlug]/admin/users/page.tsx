@@ -1,7 +1,7 @@
 // app/[citySlug]/admin/users/page.tsx
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import AdminGuard from "@/components/Auth/AdminGuard";
 import AdminShell from "@/components/Admin/AdminShell";
 import { supabase } from "@/lib/supabase";
@@ -50,6 +50,8 @@ export default function AdminUsersPage() {
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
 
   const isLoading = state === "loading";
+
+  const messageRef = useRef<HTMLDivElement | null>(null);
 
   // Helper: reload users from API using token
   async function reloadUsers(tokenOverride?: string) {
@@ -159,6 +161,12 @@ export default function AdminUsersPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    if ((actionMessage || actionError) && messageRef.current) {
+      messageRef.current.focus();
+    }
+  }, [actionMessage, actionError]);
+
   // Derived metrics
   const superAdminCount = users.filter((u) => u.role === "super_admin").length;
   const adminCount = users.filter((u) => u.role === "admin").length;
@@ -177,7 +185,10 @@ export default function AdminUsersPage() {
       // role filter
       if (roleFilter === "super_admin" && role !== "super_admin") return false;
       if (roleFilter === "admin" && role !== "admin") return false;
-      if (roleFilter === "viewer" && !(role === "viewer" || u.role === null)) {
+      if (
+        roleFilter === "viewer" &&
+        !(role === "viewer" || u.role === null)
+      ) {
         return false;
       }
       if (roleFilter === "none" && u.role !== null) return false;
@@ -390,7 +401,10 @@ export default function AdminUsersPage() {
       >
         <div className="space-y-4 text-sm text-slate-700">
           {/* Top summary */}
-          <div className="grid gap-3 rounded-xl border border-slate-200 bg-slate-50/80 p-4 text-xs sm:grid-cols-4">
+          <section
+            aria-label="User roles summary"
+            className="grid gap-3 rounded-xl border border-slate-200 bg-slate-50/80 p-4 text-xs sm:grid-cols-4"
+          >
             <div>
               <p className="text-[0.75rem] font-medium uppercase tracking-[0.18em] text-slate-500">
                 Total users
@@ -426,10 +440,13 @@ export default function AdminUsersPage() {
                 </span>
               </p>
             </div>
-          </div>
+          </section>
 
           {/* Search + filter */}
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <section
+            aria-label="User filters"
+            className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between"
+          >
             <div className="flex flex-1 flex-col gap-2">
               <label className="text-xs font-medium text-slate-700">
                 Search by email
@@ -448,7 +465,9 @@ export default function AdminUsersPage() {
               </label>
               <select
                 value={roleFilter}
-                onChange={(e) => setRoleFilter(e.target.value as RoleFilter)}
+                onChange={(e) =>
+                  setRoleFilter(e.target.value as RoleFilter)
+                }
                 className="h-9 w-full rounded-md border border-slate-200 bg-white px-2 text-sm text-slate-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
               >
                 <option value="all">All roles</option>
@@ -458,10 +477,13 @@ export default function AdminUsersPage() {
                 <option value="none">No role assigned</option>
               </select>
             </div>
-          </div>
+          </section>
 
           {/* Invite form */}
-          <div className="rounded-xl border border-slate-200 bg-white p-4 text-xs shadow-sm">
+          <section
+            aria-label="Invite new user"
+            className="rounded-xl border border-slate-200 bg-white p-4 text-xs shadow-sm"
+          >
             <div className="mb-3 flex items-center justify-between gap-2">
               <div>
                 <p className="text-sm font-semibold text-slate-900">
@@ -488,9 +510,10 @@ export default function AdminUsersPage() {
                   </label>
                   <input
                     type="email"
-                    required
                     value={inviteEmail}
-                    onChange={(e) => setInviteEmail(e.target.value)}
+                    onChange={(e) =>
+                      setInviteEmail(e.target.value)
+                    }
                     placeholder="name@city.gov"
                     className="h-9 w-full rounded-md border border-slate-200 bg-white px-2 text-sm text-slate-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
                   />
@@ -502,7 +525,9 @@ export default function AdminUsersPage() {
                   <select
                     value={inviteRole}
                     onChange={(e) =>
-                      setInviteRole(e.target.value as AssignableRole)
+                      setInviteRole(
+                        e.target.value as AssignableRole
+                      )
                     }
                     className="h-9 w-full rounded-md border border-slate-200 bg-white px-2 text-sm text-slate-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
                   >
@@ -528,13 +553,21 @@ export default function AdminUsersPage() {
             )}
 
             {inviteError && (
-              <p className="mt-2 text-xs text-red-600">{inviteError}</p>
+              <p className="mt-2 text-xs text-red-600">
+                {inviteError}
+              </p>
             )}
-          </div>
+          </section>
 
           {/* Global action feedback */}
           {(actionMessage || actionError) && (
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs">
+            <div
+              ref={messageRef}
+              tabIndex={-1}
+              aria-live="assertive"
+              role="alert"
+              className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+            >
               {actionMessage && (
                 <p className="font-medium text-emerald-700">
                   {actionMessage}
@@ -547,7 +580,10 @@ export default function AdminUsersPage() {
           )}
 
           {/* Users table */}
-          <div className="rounded-xl border border-slate-200 bg-white text-xs shadow-sm">
+          <section
+            aria-label="User list"
+            className="rounded-xl border border-slate-200 bg-white text-xs shadow-sm"
+          >
             {isLoading && (
               <div className="px-4 py-6 text-sm text-slate-600">
                 Loading users…
@@ -555,7 +591,12 @@ export default function AdminUsersPage() {
             )}
 
             {!isLoading && error && (
-              <div className="px-4 py-6 text-sm text-red-600">{error}</div>
+              <div
+                role="alert"
+                className="px-4 py-6 text-sm text-red-600"
+              >
+                {error}
+              </div>
             )}
 
             {!isLoading && !error && filteredUsers.length === 0 && (
@@ -569,19 +610,29 @@ export default function AdminUsersPage() {
                 <table className="min-w-full text-left text-xs">
                   <thead className="sticky top-0 bg-slate-50 text-[0.75rem] uppercase tracking-[0.16em] text-slate-500">
                     <tr>
-                      <th className="px-4 py-2 font-semibold">Email</th>
-                      <th className="px-4 py-2 font-semibold">Role</th>
+                      <th className="px-4 py-2 font-semibold">
+                        Email
+                      </th>
+                      <th className="px-4 py-2 font-semibold">
+                        Role
+                      </th>
                       <th className="px-4 py-2 font-semibold">
                         Last sign-in
                       </th>
-                      <th className="px-4 py-2 font-semibold">Created</th>
-                      <th className="px-4 py-2 font-semibold">Actions</th>
+                      <th className="px-4 py-2 font-semibold">
+                        Created
+                      </th>
+                      <th className="px-4 py-2 font-semibold">
+                        Actions
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
                     {filteredUsers.map((u) => {
                       const isSelf = u.id === currentUserId;
-                      const role = (u.role ?? "viewer") as AssignableRole | "viewer";
+                      const role = (u.role ?? "viewer") as
+                        | AssignableRole
+                        | "viewer";
                       const isSuper = role === "super_admin";
                       const isOnlySuper =
                         isSuper && superAdminCount === 1;
@@ -610,21 +661,29 @@ export default function AdminUsersPage() {
                           </td>
                           <td className="px-4 py-2 align-top text-slate-900">
                             {canChangeRole ? (
-                              <select
-                                value={u.role ?? "viewer"}
-                                onChange={(e) =>
-                                  handleSetRole(
-                                    u.id,
-                                    e.target.value as AssignableRole
-                                  )
-                                }
-                                disabled={updatingUserId === u.id}
-                                className="h-8 rounded-md border border-slate-200 bg-white px-2 text-xs text-slate-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
-                              >
-                                <option value="super_admin">Super admin</option>
-                                <option value="admin">Admin</option>
-                                <option value="viewer">Viewer</option>
-                              </select>
+                              <label className="inline-flex flex-col gap-1">
+                                <span className="sr-only">
+                                  Role for {u.email ?? u.id}
+                                </span>
+                                <select
+                                  value={u.role ?? "viewer"}
+                                  onChange={(e) =>
+                                    handleSetRole(
+                                      u.id,
+                                      e.target
+                                        .value as AssignableRole
+                                    )
+                                  }
+                                  disabled={updatingUserId === u.id}
+                                  className="h-8 rounded-md border border-slate-200 bg-white px-2 text-xs text-slate-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+                                >
+                                  <option value="super_admin">
+                                    Super admin
+                                  </option>
+                                  <option value="admin">Admin</option>
+                                  <option value="viewer">Viewer</option>
+                                </select>
+                              </label>
                             ) : (
                               <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-[0.75rem] font-medium text-slate-700">
                                 {roleLabel(u.role)}
@@ -648,8 +707,12 @@ export default function AdminUsersPage() {
                               {canRemoveAdmin && role !== "viewer" && (
                                 <button
                                   type="button"
-                                  onClick={() => handleRemoveAdmin(u.id)}
-                                  disabled={removingUserId === u.id}
+                                  onClick={() =>
+                                    handleRemoveAdmin(u.id)
+                                  }
+                                  disabled={
+                                    removingUserId === u.id
+                                  }
                                   className="rounded-full border border-slate-300 px-2 py-1 text-[0.75rem] font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
                                 >
                                   {removingUserId === u.id
@@ -661,8 +724,12 @@ export default function AdminUsersPage() {
                               {canDelete && (
                                 <button
                                   type="button"
-                                  onClick={() => handleDeleteUser(u.id)}
-                                  disabled={deletingUserId === u.id}
+                                  onClick={() =>
+                                    handleDeleteUser(u.id)
+                                  }
+                                  disabled={
+                                    deletingUserId === u.id
+                                  }
                                   className="rounded-full border border-red-200 px-2 py-1 text-[0.75rem] font-medium text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
                                 >
                                   {deletingUserId === u.id
@@ -679,7 +746,7 @@ export default function AdminUsersPage() {
                 </table>
               </div>
             )}
-          </div>
+          </section>
         </div>
       </AdminShell>
     </AdminGuard>

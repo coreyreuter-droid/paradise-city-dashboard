@@ -1,6 +1,7 @@
+// components/Admin/UploadClient.tsx
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { cityHref } from "@/lib/cityRouting";
 
@@ -400,6 +401,14 @@ export default function UploadClient() {
     null
   );
 
+  const messageRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (message && messageRef.current) {
+      messageRef.current.focus();
+    }
+  }, [message]);
+
   function setError(msg: string) {
     setMessage(msg);
     setMessageIsError(true);
@@ -620,7 +629,7 @@ export default function UploadClient() {
       setError("Upload failed: " + (err?.message || "Unknown error"));
     }
 
-  setLoading(false);
+    setLoading(false);
   }
 
   function handleDownloadTemplate() {
@@ -654,7 +663,10 @@ export default function UploadClient() {
       : [];
 
   return (
-    <div className="max-w-4xl rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+    <div
+      className="max-w-4xl rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
+      aria-label="Data upload"
+    >
       <div className="mb-4 flex items-center justify-between gap-2">
         <div>
           <h1 className="text-lg font-semibold text-slate-900">
@@ -667,7 +679,7 @@ export default function UploadClient() {
         </div>
         <a
           href={cityHref("/admin/upload/history")}
-          className="text-sm font-medium text-slate-700 underline-offset-4 hover:underline"
+          className="text-sm font-medium text-slate-700 underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2"
         >
           View upload history
         </a>
@@ -675,13 +687,17 @@ export default function UploadClient() {
 
       {/* Table selector */}
       <div className="mb-4">
-        <label className="mb-1 block text-sm font-medium text-slate-700">
+        <label
+          className="mb-1 block text-sm font-medium text-slate-700"
+          htmlFor="upload-table-select"
+        >
           Target table
         </label>
         <select
+          id="upload-table-select"
           value={table}
           onChange={(e) => setTable(e.target.value)}
-          className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+          className="rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
         >
           <option value="budgets">budgets</option>
           <option value="actuals">actuals</option>
@@ -695,7 +711,7 @@ export default function UploadClient() {
           <button
             type="button"
             onClick={handleDownloadTemplate}
-            className="rounded-md border border-slate-300 px-3 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50"
+            className="rounded-md border border-slate-300 px-3 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2"
           >
             Download template
           </button>
@@ -704,60 +720,64 @@ export default function UploadClient() {
 
       {/* Mode selector */}
       <div className="mb-4">
-        <label className="mb-1 block text-sm font-medium text-slate-700">
-          Upload mode
-        </label>
-        <div className="flex flex-col gap-1 text-sm">
-          <label className="flex items-center gap-2">
-            <input
-              type="radio"
-              name="mode"
-              value="append"
-              checked={mode === "append"}
-              onChange={() => setMode("append")}
-            />
-            <span>
-              <span className="font-medium">Append</span>{" "}
-              <span className="text-slate-600">
-                – Add new rows. Existing data is not changed.
+        <fieldset>
+          <legend className="mb-1 block text-sm font-medium text-slate-700">
+            Upload mode
+          </legend>
+          <div className="flex flex-col gap-1 text-sm">
+            <label className="flex items-center gap-2">
+              <input
+                type="radio"
+                name="mode"
+                value="append"
+                checked={mode === "append"}
+                onChange={() => setMode("append")}
+              />
+              <span>
+                <span className="font-medium">Append</span>{" "}
+                <span className="text-slate-600">
+                  – Add new rows. Existing data is not changed.
+                </span>
               </span>
-            </span>
-          </label>
+            </label>
 
-          <label className="flex items-center gap-2">
-            <input
-              type="radio"
-              name="mode"
-              value="replace_year"
-              checked={mode === "replace_year"}
-              onChange={() => setMode("replace_year")}
-            />
-            <span>
-              <span className="font-medium">Replace this fiscal year only</span>{" "}
-              <span className="text-slate-600">
-                – Delete existing rows for a single fiscal year, then insert
-                rows from this file.
+            <label className="flex items-center gap-2">
+              <input
+                type="radio"
+                name="mode"
+                value="replace_year"
+                checked={mode === "replace_year"}
+                onChange={() => setMode("replace_year")}
+              />
+              <span>
+                <span className="font-medium">
+                  Replace this fiscal year only
+                </span>{" "}
+                <span className="text-slate-600">
+                  – Delete existing rows for a single fiscal year, then
+                  insert rows from this file.
+                </span>
               </span>
-            </span>
-          </label>
+            </label>
 
-          <label className="flex items-center gap-2">
-            <input
-              type="radio"
-              name="mode"
-              value="replace_table"
-              checked={mode === "replace_table"}
-              onChange={() => setMode("replace_table")}
-            />
-            <span>
-              <span className="font-medium">Replace entire table</span>{" "}
-              <span className="text-slate-600">
-                – Delete ALL existing rows in this table, then insert rows from
-                this file.
+            <label className="flex items-center gap-2">
+              <input
+                type="radio"
+                name="mode"
+                value="replace_table"
+                checked={mode === "replace_table"}
+                onChange={() => setMode("replace_table")}
+              />
+              <span>
+                <span className="font-medium">Replace entire table</span>{" "}
+                <span className="text-slate-600">
+                  – Delete ALL existing rows in this table, then insert
+                  rows from this file.
+                </span>
               </span>
-            </span>
-          </label>
-        </div>
+            </label>
+          </div>
+        </fieldset>
 
         {mode === "replace_year" && (
           <div className="mt-3 rounded-md border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900">
@@ -768,7 +788,10 @@ export default function UploadClient() {
             </p>
             <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center">
               <div className="flex items-center gap-2">
-                <label htmlFor="replaceYear" className="text-xs font-medium">
+                <label
+                  htmlFor="replaceYear"
+                  className="text-xs font-medium"
+                >
                   Fiscal year to replace
                 </label>
                 <input
@@ -777,7 +800,7 @@ export default function UploadClient() {
                   inputMode="numeric"
                   value={replaceYear}
                   onChange={(e) => setReplaceYear(e.target.value)}
-                  className="w-24 rounded-md border border-slate-300 px-2 py-1 text-xs"
+                  className="w-24 rounded-md border border-slate-300 px-2 py-1 text-xs text-slate-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
                   aria-describedby="replace-year-help"
                 />
               </div>
@@ -792,15 +815,17 @@ export default function UploadClient() {
                   id="replaceYearConfirm"
                   type="text"
                   value={replaceYearConfirm}
-                  onChange={(e) => setReplaceYearConfirm(e.target.value)}
-                  className="w-full rounded-md border border-slate-300 px-2 py-1 text-xs"
+                  onChange={(e) =>
+                    setReplaceYearConfirm(e.target.value)
+                  }
+                  className="w-full rounded-md border border-slate-300 px-2 py-1 text-xs text-slate-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
                   placeholder="Type the same fiscal year again to confirm"
                 />
               </div>
             </div>
             <p id="replace-year-help" className="mt-1 text-xs">
-              Example: if you enter <span className="font-mono">2024</span>,
-              all existing rows with{" "}
+              Example: if you enter{" "}
+              <span className="font-mono">2024</span>, all existing rows with{" "}
               <span className="font-mono">fiscal_year = 2024</span> will be
               deleted first.
             </p>
@@ -819,7 +844,9 @@ export default function UploadClient() {
               <input
                 type="checkbox"
                 checked={replaceTableConfirmed}
-                onChange={(e) => setReplaceTableConfirmed(e.target.checked)}
+                onChange={(e) =>
+                  setReplaceTableConfirmed(e.target.checked)
+                }
               />
               <span>
                 I understand this will delete all existing data in the{" "}
@@ -832,11 +859,18 @@ export default function UploadClient() {
 
       {/* File picker + preview */}
       <div className="mb-4">
-        <label className="mb-1 block text-sm font-medium text-slate-700">
+        <label
+          className="mb-1 block text-sm font-medium text-slate-700"
+          htmlFor="upload-file-input"
+        >
           CSV file
         </label>
 
-        <label className="flex cursor-pointer items-center justify-between gap-3 rounded-md border border-dashed border-slate-300 bg-slate-50 px-3 py-3 text-sm hover:border-slate-400">
+        <label
+          htmlFor="upload-file-input"
+          className="flex cursor-pointer items-center justify-between gap-3 rounded-md border border-dashed border-slate-300 bg-slate-50 px-3 py-3 text-sm hover:border-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2"
+          aria-describedby="upload-file-help"
+        >
           <div className="flex flex-col">
             <span className="font-medium text-slate-800">
               {file ? file.name : "Click to choose a CSV file"}
@@ -848,60 +882,68 @@ export default function UploadClient() {
           <span className="rounded-md border border-slate-300 bg-white px-3 py-1 text-xs font-medium text-slate-700">
             Browse
           </span>
-          <input
-            type="file"
-            accept=".csv"
-            className="sr-only"
-            onChange={async (e) => {
-              const f = e.target.files?.[0] ?? null;
-              setFile(f);
-              setPreviewHeaders(null);
-              setPreviewRows(null);
-              setPreviewMessage(null);
-              setPreflight(null);
-              setPendingRecords(null);
-              setPendingYearsInData([]);
+        </label>
+        <input
+          id="upload-file-input"
+          type="file"
+          accept=".csv"
+          className="sr-only"
+          onChange={async (e) => {
+            const f = e.target.files?.[0] ?? null;
+            setFile(f);
+            setPreviewHeaders(null);
+            setPreviewRows(null);
+            setPreviewMessage(null);
+            setPreflight(null);
+            setPendingRecords(null);
+            setPendingYearsInData([]);
 
-              if (!f) return;
+            if (!f) return;
 
-              try {
-                const text = await f.text();
-                const lines = text
-                  .trim()
-                  .split("\n")
-                  .filter((line) => line.length > 0);
+            try {
+              const text = await f.text();
+              const lines = text
+                .trim()
+                .split("\n")
+                .filter((line) => line.length > 0);
 
-                if (lines.length === 0) {
-                  setPreviewMessage("File appears to be empty.");
-                  return;
-                }
+              if (lines.length === 0) {
+                setPreviewMessage("File appears to be empty.");
+                return;
+              }
 
-                const rows = lines.map((line) => line.split(","));
-                const headers = rows[0].map((h) => h.trim());
-                const dataRows = rows.slice(1, 21); // preview first 20 rows
+              const rows = lines.map((line) => line.split(","));
+              const headers = rows[0].map((h) => h.trim());
+              const dataRows = rows.slice(1, 21); // preview first 20 rows
 
-                setPreviewHeaders(headers);
-                setPreviewRows(dataRows);
+              setPreviewHeaders(headers);
+              setPreviewRows(dataRows);
 
-                const totalDataRows = rows.length - 1;
-                if (totalDataRows > dataRows.length) {
-                  setPreviewMessage(
-                    `Showing first ${dataRows.length} of ${totalDataRows} row(s).`
-                  );
-                } else {
-                  setPreviewMessage(
-                    `${totalDataRows} row(s) detected in this file.`
-                  );
-                }
-              } catch (err) {
-                console.error("Preview parse error:", err);
+              const totalDataRows = rows.length - 1;
+              if (totalDataRows > dataRows.length) {
                 setPreviewMessage(
-                  "Could not read file for preview. You can still attempt upload."
+                  `Showing first ${dataRows.length} of ${totalDataRows} row(s).`
+                );
+              } else {
+                setPreviewMessage(
+                  `${totalDataRows} row(s) detected in this file.`
                 );
               }
-            }}
-          />
-        </label>
+            } catch (err) {
+              console.error("Preview parse error:", err);
+              setPreviewMessage(
+                "Could not read file for preview. You can still attempt upload."
+              );
+            }
+          }}
+        />
+        <p
+          id="upload-file-help"
+          className="mt-1 text-xs text-slate-500"
+        >
+          The uploader will validate column names, years, and formats
+          before sending any data to the server.
+        </p>
       </div>
 
       {/* Preview warnings */}
@@ -909,8 +951,8 @@ export default function UploadClient() {
         <div className="mb-2 text-xs">
           {previewMissingRequired.length > 0 ? (
             <p className="text-red-700">
-              Preview warning: CSV is missing required column(s) for {table}:{" "}
-              {previewMissingRequired.join(", ")}.
+              Preview warning: CSV is missing required column(s) for{" "}
+              {table}: {previewMissingRequired.join(", ")}.
             </p>
           ) : (
             <p className="text-emerald-700">
@@ -922,7 +964,10 @@ export default function UploadClient() {
 
       {/* CSV preview table */}
       {previewHeaders && previewRows && previewRows.length > 0 && (
-        <div className="mb-4 overflow-x-auto rounded-md border border-slate-200 bg-slate-50">
+        <div
+          className="mb-4 overflow-x-auto rounded-md border border-slate-200 bg-slate-50"
+          aria-label="CSV preview"
+        >
           <div className="max-h-72 overflow-y-auto">
             <table className="min-w-full text-xs">
               <thead className="bg-slate-100">
@@ -939,7 +984,10 @@ export default function UploadClient() {
               </thead>
               <tbody>
                 {previewRows.map((row, idx) => (
-                  <tr key={idx} className="border-t border-slate-200">
+                  <tr
+                    key={idx}
+                    className="border-t border-slate-200"
+                  >
                     {row.map((cell, cellIdx) => (
                       <td
                         key={cellIdx}
@@ -957,7 +1005,9 @@ export default function UploadClient() {
       )}
 
       {previewMessage && (
-        <p className="mb-4 text-xs text-slate-500">{previewMessage}</p>
+        <p className="mb-4 text-xs text-slate-500">
+          {previewMessage}
+        </p>
       )}
 
       {preflight && (
@@ -1027,7 +1077,7 @@ export default function UploadClient() {
               type="button"
               onClick={handleConfirmUpload}
               disabled={loading}
-              className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50"
+              className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2"
             >
               {loading ? "Uploading..." : "Confirm upload"}
             </button>
@@ -1039,7 +1089,7 @@ export default function UploadClient() {
                 setPendingYearsInData([]);
               }}
               disabled={loading}
-              className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+              className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2"
             >
               Back
             </button>
@@ -1049,9 +1099,10 @@ export default function UploadClient() {
 
       {/* Upload button */}
       <button
+        type="button"
         onClick={handlePrepareUpload}
         disabled={loading}
-        className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50"
+        className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2"
       >
         {loading
           ? "Processing..."
@@ -1063,10 +1114,14 @@ export default function UploadClient() {
       {/* Status message */}
       {message && (
         <div
+          ref={messageRef}
+          tabIndex={-1}
           className={
-            "mt-4 text-sm " +
+            "mt-4 whitespace-pre-wrap text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 " +
             (messageIsError ? "text-red-700" : "text-emerald-700")
           }
+          role={messageIsError ? "alert" : "status"}
+          aria-live={messageIsError ? "assertive" : "polite"}
         >
           {message}
         </div>

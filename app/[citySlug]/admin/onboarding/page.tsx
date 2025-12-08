@@ -14,6 +14,7 @@ type CheckResults = {
   budgets: HealthStatus;
   actuals: HealthStatus;
   transactions: HealthStatus;
+  revenues: HealthStatus;
   portalSettings: HealthStatus;
   publish: HealthStatus;
 };
@@ -23,6 +24,7 @@ export default function OnboardingPage() {
     budgets: "loading",
     actuals: "loading",
     transactions: "loading",
+    revenues: "loading",
     portalSettings: "loading",
     publish: "loading",
   });
@@ -35,6 +37,7 @@ export default function OnboardingPage() {
         budgets: "pass",
         actuals: "pass",
         transactions: "pass",
+        revenues: "pass",
         portalSettings: "pass",
         publish: "pass",
       };
@@ -57,24 +60,49 @@ export default function OnboardingPage() {
         .select("*", { count: "exact", head: true });
       if (!txCount || txCount === 0) results.transactions = "fail";
 
-      // Portal Settings + publish state
+      // Revenues (optional module, depends on enable_revenues flag)
+      const { count: revenuesCount } = await supabase
+        .from("revenues")
+        .select("*", { count: "exact", head: true });
+
+      // Portal Settings + publish state + enable_revenues
       const { data: ps, error: psError } = await supabase
         .from("portal_settings")
-        .select("id, city_name, is_published")
+        .select(
+          "id, city_name, is_published, enable_revenues"
+        )
         .maybeSingle();
 
       if (psError) {
         console.error("Onboarding: portal_settings error", psError);
         results.portalSettings = "fail";
         results.publish = "fail";
+        // If we don't know enable_revenues, treat revenues as warn
+        results.revenues = "warn";
       } else if (!ps) {
         results.portalSettings = "fail";
         results.publish = "fail";
+        results.revenues = "warn";
       } else {
         if (!ps.city_name) {
           results.portalSettings = "warn";
         }
+
         results.publish = ps.is_published ? "pass" : "warn";
+
+        const revenuesEnabled =
+          ps.enable_revenues === true;
+
+        if (!revenuesEnabled) {
+          // Revenues module not enabled → no onboarding requirement
+          results.revenues = "pass";
+        } else {
+          if (!revenuesCount || revenuesCount === 0) {
+            results.revenues = "fail";
+          } else {
+            results.revenues = "pass";
+          }
+        }
       }
 
       if (!cancelled) {
@@ -113,7 +141,7 @@ export default function OnboardingPage() {
         <div className="space-y-4 text-sm text-slate-700">
           <p className="text-xs text-slate-600">
             Complete each step below to prepare your city’s CiviPortal for
-            public launch.
+            public launch. Steps reflect the modules you have enabled.
           </p>
 
           {/* STEP 1 — Budgets */}
@@ -179,7 +207,29 @@ export default function OnboardingPage() {
             </Link>
           </div>
 
-          {/* STEP 4 — Branding */}
+          {/* STEP 4 — Revenues (optional, controlled by enable_revenues) */}
+          <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="flex items-center gap-3">
+              {statusCircle(checks.revenues)}
+              <div>
+                <p className="font-semibold text-slate-900">
+                  Revenues data
+                </p>
+                <p className="text-xs text-slate-500">
+                  If the Revenues module is enabled, load at least one
+                  year of revenue records.
+                </p>
+              </div>
+            </div>
+            <Link
+              href={cityHref("/admin/upload?table=revenues")}
+              className="rounded-md bg-slate-900 px-3 py-2 text-xs font-medium text-white hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+            >
+              Upload
+            </Link>
+          </div>
+
+          {/* STEP 5 — Branding */}
           <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
             <div className="flex items-center gap-3">
               {statusCircle(checks.portalSettings)}
@@ -200,7 +250,7 @@ export default function OnboardingPage() {
             </Link>
           </div>
 
-          {/* STEP 5 — Publish */}
+          {/* STEP 6 — Publish */}
           <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
             <div className="flex items-center gap-3">
               {statusCircle(checks.publish)}
