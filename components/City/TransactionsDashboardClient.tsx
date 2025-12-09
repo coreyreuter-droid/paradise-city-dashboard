@@ -29,6 +29,7 @@ type Props = {
   departmentFilter: string | null;
   vendorQuery: string | null;
   enableVendors: boolean;
+  fiscalYearNote?: string;
 };
 
 function buildSearchUrl(
@@ -137,6 +138,7 @@ export default function TransactionsDashboardClient({
   departmentFilter,
   vendorQuery,
   enableVendors,
+  fiscalYearNote,
 }: Props) {
   const pathname = usePathname();
   const router = useRouter();
@@ -173,7 +175,6 @@ export default function TransactionsDashboardClient({
     return filters;
   }, [selectedYear, effectiveDeptFilter, vendorQuery, enableVendors]);
 
-  // /api/transactions/export?year=...&department=...&q=...
   const exportAllHref = useMemo(() => {
     const params = new URLSearchParams();
     if (selectedYear != null) {
@@ -197,7 +198,7 @@ export default function TransactionsDashboardClient({
 
   const handleSearchSubmit = (e: FormEvent) => {
     e.preventDefault();
-    if (!enableVendors) return; // vendor search disabled
+    if (!enableVendors) return;
     const url = buildSearchUrl(pathname, searchParams, {
       q: vendorInput,
       page: "1",
@@ -345,7 +346,6 @@ export default function TransactionsDashboardClient({
 
   const columns = useMemo(() => {
     if (enableVendors) return baseColumns;
-    // Strip vendor column completely when vendor names are disabled.
     return baseColumns.filter((col) => col.key !== "vendor");
   }, [baseColumns, enableVendors]);
 
@@ -363,6 +363,7 @@ export default function TransactionsDashboardClient({
               ? "Search, filter, and export individual transactions for the selected fiscal year."
               : "Search and export individual transactions for the selected fiscal year. Vendor names have been disabled for this city."
           }
+          fiscalNote={fiscalYearNote}
           rightSlot={
             years.length > 0 ? (
               <FiscalYearSelect
@@ -567,7 +568,6 @@ export default function TransactionsDashboardClient({
                 />
               )}
 
-              {/* Pagination */}
               {totalPages > 1 && (
                 <div className="mt-3 flex flex-col items-center justify-between gap-2 border-t border-slate-200 pt-3 text-xs text-slate-600 sm:flex-row">
                   <div>

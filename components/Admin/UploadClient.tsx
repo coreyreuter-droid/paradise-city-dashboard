@@ -85,8 +85,7 @@ function isReasonableYear(n: unknown): boolean {
 }
 
 // Strict ISO date: YYYY-MM-DD, no auto-correction
-function isValidISODate(value: unknown): boolean {
-  if (typeof value !== "string") return false;
+function isValidISODate(value: string): boolean {
   const trimmed = value.trim();
   if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return false;
 
@@ -95,7 +94,11 @@ function isValidISODate(value: unknown): boolean {
   const month = Number(monthStr);
   const day = Number(dayStr);
 
-  if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) {
+  if (
+    !Number.isInteger(year) ||
+    !Number.isInteger(month) ||
+    !Number.isInteger(day)
+  ) {
     return false;
   }
   if (month < 1 || month > 12) return false;
@@ -107,6 +110,54 @@ function isValidISODate(value: unknown): boolean {
   // Ensure it didn't auto-correct (e.g. 2024-02-31 -> 2024-03-02)
   const iso = dt.toISOString().slice(0, 10);
   return iso === trimmed;
+}
+
+/**
+ * Accepts either MM/DD/YYYY or YYYY-MM-DD and returns a normalized
+ * YYYY-MM-DD string, or null if invalid.
+ */
+function parseAndNormalizeTransactionDate(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+
+  // Already ISO: YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    return isValidISODate(trimmed) ? trimmed : null;
+  }
+
+  // MM/DD/YYYY (1 or 2 digit month/day)
+  if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(trimmed)) {
+    const [mStr, dStr, yStr] = trimmed.split("/");
+    const month = Number(mStr);
+    const day = Number(dStr);
+    const year = Number(yStr);
+    if (
+      !Number.isInteger(year) ||
+      !Number.isInteger(month) ||
+      !Number.isInteger(day)
+    ) {
+      return null;
+    }
+    if (month < 1 || month > 12) return null;
+    if (day < 1 || day > 31) return null;
+
+    const dt = new Date(year, month - 1, day);
+    if (Number.isNaN(dt.getTime())) return null;
+    // ensure no auto-correct
+    if (
+      dt.getFullYear() !== year ||
+      dt.getMonth() !== month - 1 ||
+      dt.getDate() !== day
+    ) {
+      return null;
+    }
+    const mm = String(month).padStart(2, "0");
+    const dd = String(day).padStart(2, "0");
+    return `${year}-${mm}-${dd}`;
+  }
+
+  return null;
 }
 
 function getUniqueFiscalYearsFromRows(rows: any[]): number[] {
@@ -265,14 +316,19 @@ function validateAndBuildRecords(
     const fy = rec["fiscal_year"];
 
     if (table === "transactions") {
-      // date
-      if (!isValidISODate(rec["date"])) {
+      // date: accept MM/DD/YYYY or YYYY-MM-DD, normalize to YYYY-MM-DD
+      const normalizedDate = parseAndNormalizeTransactionDate(
+        rec["date"]
+      );
+      if (!normalizedDate) {
         issues.push({
           row: rowNum,
           field: "date",
           message:
-            'Invalid date format. Expected strict "YYYY-MM-DD" (e.g. "2024-07-01").',
+            'Invalid date format. Expected "MM/DD/YYYY" (e.g. "7/1/2024") or "YYYY-MM-DD".',
         });
+      } else {
+        rec["date"] = normalizedDate;
       }
 
       // description
@@ -391,15 +447,9 @@ export default function UploadClient() {
   const [pendingYearsInData, setPendingYearsInData] = useState<number[]>([]);
 
   // --- CSV preview state ---
-  const [previewHeaders, setPreviewHeaders] = useState<string[] | null>(
-    null
-  );
-  const [previewRows, setPreviewRows] = useState<string[][] | null>(
-    null
-  );
-  const [previewMessage, setPreviewMessage] = useState<string | null>(
-    null
-  );
+  const [previewHeaders, setPreviewHeaders] = useState<string[] | null>(null);
+  const [previewRows, setPreviewRows] = useState<string[][] | null>(null);
+  const [previewMessage, setPreviewMessage] = useState<string | null>(null);
 
   const messageRef = useRef<HTMLDivElement | null>(null);
 
@@ -676,6 +726,15 @@ export default function UploadClient() {
             Upload CSV files for budgets, actuals, transactions, or
             revenues. Use the template to ensure columns match exactly.
           </p>
+          {table === "transactions" && (
+            <p className="mt-1 text-[11px] text-slate-500">
+              For transactions, dates may be entered as{" "}
+              <span className="font-mono">MM/DD/YYYY</span> (e.g.{" "}
+              <span className="font-mono">7/1/2024</span>) or{" "}
+              <span className="font-mono">YYYY-MM-DD</span>. They will
+              be normalized automatically.
+            </p>
+          )}
         </div>
         <a
           href={cityHref("/admin/upload/history")}
@@ -1139,7 +1198,7 @@ function buildTemplateCsv(table: string): string | null {
   const exampleRow = headers.map((h) => {
     if (h === "fiscal_year") return "2024";
     if (h === "period") return "2024-01"; // year-period format
-    if (h === "date") return "2024-07-01"; // strict YYYY-MM-DD
+    if (h === "date") return "07/01/2024"; // MM/DD/YYYY for transactions
     if (h === "amount") return "12345.67";
     if (h === "fund_code") return "100";
     if (h === "fund_name") return "General Fund";

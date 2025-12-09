@@ -33,6 +33,7 @@ type Props = {
   transactions: TransactionRow[];
   years?: number[];
   enableTransactions: boolean;
+  fiscalYearNote?: string;
 };
 
 function fy(value: unknown): number | null {
@@ -46,6 +47,7 @@ export default function DepartmentsDashboardClient({
   transactions,
   years: yearsProp,
   enableTransactions,
+  fiscalYearNote,
 }: Props) {
   const searchParams = useSearchParams();
 
@@ -85,7 +87,8 @@ export default function DepartmentsDashboardClient({
     return years[0];
   }, [searchParams, years]);
 
-  const yearLabel = selectedYear ?? (years.length > 0 ? years[0] : undefined);
+  const yearLabel =
+    selectedYear ?? (years.length > 0 ? years[0] : undefined);
 
   const budgetsForYear = useMemo(
     () =>
@@ -300,6 +303,7 @@ export default function DepartmentsDashboardClient({
           eyebrow="Departments"
           title="Department Overview"
           description="See how each department’s budget, actual spending, and transaction volume compare for the selected fiscal year."
+          fiscalNote={fiscalYearNote}
           rightSlot={
             years.length > 0 ? (
               <FiscalYearSelect
@@ -309,6 +313,7 @@ export default function DepartmentsDashboardClient({
             ) : null
           }
         />
+
 
         {/* Breadcrumb */}
         <nav

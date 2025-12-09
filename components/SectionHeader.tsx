@@ -18,6 +18,11 @@ type SectionHeaderProps = {
    */
   accentColor?: string;
   /**
+   * Optional fiscal-year note shown below the description, e.g.
+   * "Fiscal year runs July 1 – June 30."
+   */
+  fiscalNote?: string;
+  /**
    * Heading level (defaults to h2 so page-level h1 can live in layout/hero)
    */
   as?: "h1" | "h2" | "h3";
@@ -111,6 +116,7 @@ export default function SectionHeader({
   eyebrow,
   rightSlot,
   accentColor,
+  fiscalNote,
   as = "h2",
   id,
 }: SectionHeaderProps) {
@@ -118,6 +124,7 @@ export default function SectionHeader({
   const generatedId = slugify(title) || "section-heading";
   const headingId = id ?? generatedId;
   const descriptionId = description ? `${headingId}-description` : undefined;
+  const fiscalId = fiscalNote ? `${headingId}-fiscalnote` : undefined;
 
   // Only use the accent color for text/underline if it meets contrast
   const safeAccentColor = getReadableAccentColor(accentColor);
@@ -126,11 +133,13 @@ export default function SectionHeader({
     ? { backgroundColor: safeAccentColor }
     : undefined;
 
+  const describedBy = [descriptionId, fiscalId].filter(Boolean).join(" ") || undefined;
+
   return (
     <header
       className="mb-4 flex flex-col gap-3 border-b border-slate-200 pb-3 sm:mb-6 sm:flex-row sm:items-end sm:justify-between"
       aria-labelledby={headingId}
-      {...(descriptionId ? { "aria-describedby": descriptionId } : {})}
+      aria-describedby={describedBy}
     >
       <div className="max-w-2xl">
         {eyebrow && (
@@ -162,6 +171,15 @@ export default function SectionHeader({
             className="mt-2 max-w-2xl text-xs text-slate-500 sm:text-sm"
           >
             {description}
+          </p>
+        )}
+
+        {fiscalNote && (
+          <p
+            id={fiscalId}
+            className="mt-1 max-w-2xl text-xs text-slate-500 sm:text-sm italic"
+          >
+            {fiscalNote}
           </p>
         )}
       </div>

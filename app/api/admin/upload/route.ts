@@ -20,8 +20,185 @@ type UploadPayload = {
   replaceYear?: number | null;
   records: Record<string, any>[];
   filename?: string;
-  yearsInData?: number[];
+  yearsInData?: number[]; // from client — we'll recompute on server after FY normalization
 };
+
+const MAX_RECORDS_PER_UPLOAD = 250_000;
+const INSERT_CHUNK_SIZE = 5_000;
+
+type FiscalConfig = {
+  startMonth: number; // 1–12
+  startDay: number; // 1–31
+};
+
+/**
+ * Load fiscal-year start config from portal_settings.
+ * Fallback is Jan 1 if not configured.
+ */
+async function getFiscalConfig(): Promise<FiscalConfig> {
+  const { data, error } = await supabaseAdmin
+    .from("portal_settings")
+    .select("fiscal_year_start_month, fiscal_year_start_day")
+    .eq("id", 1)
+    .maybeSingle();
+
+  if (error) {
+    console.error("Admin upload: error loading fiscal config", error);
+  }
+
+  const rawMonth = data?.fiscal_year_start_month;
+  const rawDay = data?.fiscal_year_start_day;
+
+  const parsedMonth = Number(rawMonth);
+  const parsedDay = Number(rawDay);
+
+  const startMonth =
+    Number.isFinite(parsedMonth) && parsedMonth >= 1 && parsedMonth <= 12
+      ? parsedMonth
+      : 1;
+
+  const startDay =
+    Number.isFinite(parsedDay) && parsedDay >= 1 && parsedDay <= 31
+      ? parsedDay
+      : 1;
+
+  return {
+    startMonth,
+    startDay,
+  };
+}
+
+/**
+ * Compute fiscal year from a date string and a fiscal-year start (month/day).
+ * Uses UTC so we don't get burned by timezones.
+ *
+ * Example for July 1 start:
+ * - 2024-06-30 -> FY 2024
+ * - 2024-07-01 -> FY 2025
+ */
+function computeFiscalYearFromDate(
+  dateStr: string | null | undefined,
+  config: FiscalConfig
+): number | null {
+  if (!dateStr || typeof dateStr !== "string") return null;
+
+  const d = new Date(dateStr);
+  if (Number.isNaN(d.getTime())) return null;
+
+  const month = d.getUTCMonth() + 1; // 1–12
+  const day = d.getUTCDate();
+  const year = d.getUTCFullYear();
+
+  const { startMonth, startDay } = config;
+
+  // If date >= FY start for that year → next fiscal year; else → same year
+  const afterStart =
+    month > startMonth ||
+    (month === startMonth && day >= startDay);
+
+  return afterStart ? year + 1 : year;
+}
+
+/**
+ * Try to derive a date string from a "period" field like "2024-01" or "2024-1".
+ * We assume day 1 of that month.
+ */
+function deriveDateFromPeriod(period: unknown): string | null {
+  if (!period || typeof period !== "string") return null;
+
+  const trimmed = period.trim();
+  // Basic patterns: "YYYY-MM" or "YYYY-M"
+  const match = /^(\d{4})[-/](\d{1,2})$/.exec(trimmed);
+  if (!match) return null;
+
+  const year = match[1];
+  const month = match[2].padStart(2, "0");
+  return `${year}-${month}-01`;
+}
+
+/**
+ * Normalize fiscal_year on a single record based on table and fiscal config.
+ *
+ * Rules:
+ * - budgets: trust incoming fiscal_year (budgets are already keyed by FY)
+ * - transactions: derive FY from date field using fiscal-year start
+ * - actuals/revenues:
+ *    - if fiscal_year is numeric, keep as number
+ *    - else, if "date" exists, derive from date
+ *    - else, if "period" exists, derive from period string
+ */
+function normalizeFiscalYearForRecord(
+  record: Record<string, any>,
+  table: UploadTable,
+  config: FiscalConfig
+): Record<string, any> {
+  const cloned = { ...record };
+
+  // Force numeric fiscal_year if present and numeric
+  const rawFy = cloned.fiscal_year;
+  if (rawFy != null && rawFy !== "") {
+    const n = Number(rawFy);
+    if (Number.isFinite(n)) {
+      cloned.fiscal_year = n;
+    }
+  }
+
+  if (table === "budgets") {
+    // Budgets are uploaded per fiscal year; we assume the CSV has correct FY.
+    return cloned;
+  }
+
+  if (table === "transactions") {
+    const fyFromDate = computeFiscalYearFromDate(
+      cloned.date,
+      config
+    );
+    if (fyFromDate != null) {
+      cloned.fiscal_year = fyFromDate;
+    }
+    return cloned;
+  }
+
+  if (table === "actuals" || table === "revenues") {
+    // If fiscal_year is already numeric, keep it.
+    if (
+      cloned.fiscal_year != null &&
+      cloned.fiscal_year !== "" &&
+      Number.isFinite(Number(cloned.fiscal_year))
+    ) {
+      cloned.fiscal_year = Number(cloned.fiscal_year);
+      return cloned;
+    }
+
+    // Else try from "date"
+    const fyFromDate = computeFiscalYearFromDate(
+      cloned.date,
+      config
+    );
+    if (fyFromDate != null) {
+      cloned.fiscal_year = fyFromDate;
+      return cloned;
+    }
+
+    // Else try from "period"
+    const derivedDate = deriveDateFromPeriod(cloned.period);
+    if (derivedDate) {
+      const fyFromPeriod = computeFiscalYearFromDate(
+        derivedDate,
+        config
+      );
+      if (fyFromPeriod != null) {
+        cloned.fiscal_year = fyFromPeriod;
+        return cloned;
+      }
+    }
+
+    // Fallback: leave as-is (could be null)
+    return cloned;
+  }
+
+  return cloned;
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -117,13 +294,35 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    if (body.records.length > MAX_RECORDS_PER_UPLOAD) {
+      return NextResponse.json(
+        {
+          error: `Upload too large. This tool currently supports up to ${MAX_RECORDS_PER_UPLOAD.toLocaleString()} rows per upload. Please split your file and try again.`,
+        },
+        { status: 400 }
+      );
+    }
+
     const table: UploadTable = body.table;
     const mode: Mode = body.mode;
     const replaceYear =
       typeof body.replaceYear === "number" ? body.replaceYear : null;
-    const yearsInData = Array.isArray(body.yearsInData)
-      ? body.yearsInData.filter((y) => Number.isFinite(Number(y))).map(Number)
-      : [];
+
+    // 4) Load fiscal-year config and normalize fiscal_year on records
+    const fiscalConfig = await getFiscalConfig();
+
+    const normalizedRecords = body.records.map((rec) =>
+      normalizeFiscalYearForRecord(rec, table, fiscalConfig)
+    );
+
+    // Compute years present in data *after* FY normalization
+    const yearsInData = Array.from(
+      new Set(
+        normalizedRecords
+          .map((r) => Number(r.fiscal_year))
+          .filter((y) => Number.isFinite(y))
+      )
+    );
 
     // Extra safety: enforce single-year behavior for replace_year
     if (mode === "replace_year") {
@@ -138,7 +337,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json(
           {
             error:
-              "No fiscal years were detected in the uploaded data. For replace_year mode, all rows must include a fiscal_year.",
+              "No fiscal years were detected in the uploaded data after normalization. For replace_year mode, rows must resolve to a single fiscal_year.",
           },
           { status: 400 }
         );
@@ -147,9 +346,9 @@ export async function POST(req: NextRequest) {
       if (yearsInData.length > 1) {
         return NextResponse.json(
           {
-            error: `Multiple fiscal years detected in uploaded data (${yearsInData.join(
+            error: `Multiple fiscal years detected in uploaded data after normalization (${yearsInData.join(
               ", "
-            )}). For replace_year mode, the file must contain a single fiscal year.`,
+            )}). For replace_year mode, the file must resolve to a single fiscal year.`,
           },
           { status: 400 }
         );
@@ -160,14 +359,14 @@ export async function POST(req: NextRequest) {
       if (fileYear !== replaceYear) {
         return NextResponse.json(
           {
-            error: `Fiscal year mismatch. You requested replace_year for FY ${replaceYear}, but the uploaded data contains FY ${fileYear}.`,
+            error: `Fiscal year mismatch. You requested replace_year for FY ${replaceYear}, but the uploaded data resolves to FY ${fileYear}.`,
           },
           { status: 400 }
         );
       }
     }
 
-    // 4) Perform delete (if needed) using service-role client (bypasses RLS)
+    // 5) Perform delete (if needed) using service-role client (bypasses RLS)
     if (mode === "replace_year") {
       const { error: deleteError } = await supabaseAdmin
         .from(table)
@@ -196,20 +395,41 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 5) Insert new records using service role
-    const { error: insertError } = await supabaseAdmin
-      .from(table)
-      .insert(body.records);
+    // 6) Insert new records in chunks using service role
+    const totalRecords = normalizedRecords.length;
+    let insertedCount = 0;
 
-    if (insertError) {
-      console.error("Admin upload insert error:", insertError);
-      return NextResponse.json(
-        { error: "Failed to insert uploaded data" },
-        { status: 500 }
-      );
+    for (let i = 0; i < totalRecords; i += INSERT_CHUNK_SIZE) {
+      const chunk = normalizedRecords.slice(i, i + INSERT_CHUNK_SIZE);
+
+      const { error: chunkError } = await supabaseAdmin
+        .from(table)
+        .insert(chunk);
+
+      if (chunkError) {
+        console.error(
+          `Admin upload insert error on chunk starting at index ${i}:`,
+          chunkError
+        );
+
+        return NextResponse.json(
+          {
+            error:
+              "Failed to insert uploaded data. Some rows may have been written before this error.",
+            details: {
+              attemptedRows: totalRecords,
+              successfullyInsertedRows: insertedCount,
+              failedAtIndex: i,
+            },
+          },
+          { status: 500 }
+        );
+      }
+
+      insertedCount += chunk.length;
     }
 
-    // 6) Audit log
+    // 7) Audit log
     const fiscalYearForAudit =
       mode === "replace_year"
         ? replaceYear
@@ -224,7 +444,7 @@ export async function POST(req: NextRequest) {
       .insert({
         table_name: table,
         mode,
-        row_count: body.records.length,
+        row_count: insertedCount,
         fiscal_year: fiscalYearForAudit,
         filename: body.filename ?? null,
         admin_identifier: adminIdentifier,
@@ -246,7 +466,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       ok: true,
-      message: `Successfully ${action} "${table}" with ${body.records.length} record(s).`,
+      message: `Successfully ${action} "${table}" with ${insertedCount} record(s).`,
     });
   } catch (err: any) {
     console.error("Admin upload route error:", err);

@@ -33,6 +33,7 @@ type Props = {
   revenues: RevenueRow[];
   sourceQuery: string | null;
   yearTotals: { year: number; total: number }[];
+  fiscalYearNote?: string;
 };
 
 type RevenueSourceRow = {
@@ -110,6 +111,7 @@ export default function RevenuesDashboardClient({
   revenues,
   sourceQuery,
   yearTotals,
+  fiscalYearNote,
 }: Props) {
   const pathname = usePathname();
   const router = useRouter();
@@ -255,7 +257,6 @@ export default function RevenuesDashboardClient({
   };
 
   const totalUnfilteredRevenue = useMemo(() => {
-    // Use yearTotals to show unfiltered total for the current year if possible
     if (yearLabel == null) return null;
     const match = yearTotals.find((y) => y.year === yearLabel);
     if (!match) return null;
@@ -274,6 +275,7 @@ export default function RevenuesDashboardClient({
         eyebrow="Revenues"
         title="Revenue by source"
         description="Explore recorded revenues by source for the selected fiscal year. Data typically includes taxes, fees, grants, and other income."
+        fiscalNote={fiscalYearNote}
         rightSlot={
           years.length > 0 ? (
             <FiscalYearSelect options={years} label="Fiscal year" />
@@ -355,10 +357,7 @@ export default function RevenuesDashboardClient({
 
       {/* Charts: distribution + YOY trend */}
       <CardContainer>
-        <section
-          aria-label="Revenue charts"
-          className="space-y-4"
-        >
+        <section aria-label="Revenue charts" className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
             {/* Distribution by source */}
             <figure
@@ -420,22 +419,13 @@ export default function RevenuesDashboardClient({
                     <table className="mt-3 min-w-full border border-slate-200 text-sm">
                       <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-600">
                         <tr>
-                          <th
-                            scope="col"
-                            className="px-3 py-2 text-left"
-                          >
+                          <th scope="col" className="px-3 py-2 text-left">
                             Source
                           </th>
-                          <th
-                            scope="col"
-                            className="px-3 py-2 text-right"
-                          >
+                          <th scope="col" className="px-3 py-2 text-right">
                             Revenue
                           </th>
-                          <th
-                            scope="col"
-                            className="px-3 py-2 text-right"
-                          >
+                          <th scope="col" className="px-3 py-2 text-right">
                             Share of total
                           </th>
                         </tr>
@@ -606,7 +596,6 @@ export default function RevenuesDashboardClient({
           aria-label="Revenue filters and table"
           className="space-y-4"
         >
-          {/* Filters */}
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <form
               onSubmit={handleSearchSubmit}
@@ -645,7 +634,6 @@ export default function RevenuesDashboardClient({
             </div>
           </div>
 
-          {/* Active filter summary */}
           {sourceQuery && sourceQuery.trim().length > 0 && (
             <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
               <span className="font-semibold">Active filters:</span>{" "}
@@ -655,7 +643,6 @@ export default function RevenuesDashboardClient({
             </div>
           )}
 
-          {/* Table */}
           <div className="flex items-center justify-between text-xs text-slate-600">
             <span>
               Showing{" "}

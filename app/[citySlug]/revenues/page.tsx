@@ -33,6 +33,71 @@ type YearTotal = {
   total: number;
 };
 
+const MONTH_NAMES = [
+  "",
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
+
+function getFiscalYearPublicLabelFromSettings(
+  settings: PortalSettings | null
+): string | null {
+  if (!settings) return null;
+  const anySettings = settings as any;
+
+  const explicitLabel = (anySettings?.fiscal_year_label as
+    | string
+    | null
+    | undefined) ?? null;
+
+  if (explicitLabel && explicitLabel.trim().length > 0) {
+    return explicitLabel.trim();
+  }
+
+  const rawStartMonth = anySettings?.fiscal_year_start_month;
+  const rawStartDay = anySettings?.fiscal_year_start_day;
+
+  const parsedMonth = Number(rawStartMonth);
+  const parsedDay = Number(rawStartDay);
+
+  const startMonth =
+    Number.isFinite(parsedMonth) && parsedMonth >= 1 && parsedMonth <= 12
+      ? parsedMonth
+      : 1;
+  const startDay =
+    Number.isFinite(parsedDay) && parsedDay >= 1 && parsedDay <= 31
+      ? parsedDay
+      : 1;
+
+  if (startMonth === 1 && startDay === 1) {
+    return "Fiscal year aligns with the calendar year (January 1 – December 31).";
+  }
+
+const startMonthName = MONTH_NAMES[startMonth] || "January";
+
+// End month is the month before the start month in the following year.
+// For example, start July 1 -> end June 30.
+const endMonthIndex = ((startMonth + 10) % 12) + 1;
+const endMonthName = MONTH_NAMES[endMonthIndex] || "December";
+
+// Use the last day of the end month (non-leap year is fine for this message).
+const LAST_DAY_OF_MONTH = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+const endDay = LAST_DAY_OF_MONTH[endMonthIndex] ?? 30;
+
+return `Fiscal year runs ${startMonthName} ${startDay} – ${endMonthName} ${endDay}.`;
+
+}
+
 export default async function RevenuesPage({
   searchParams,
 }: PageProps) {
@@ -45,21 +110,21 @@ export default async function RevenuesPage({
 
   const portalSettings = settings as PortalSettings | null;
 
-  // Publish gate: if the portal is not published, show the unpublished message.
   if (portalSettings && portalSettings.is_published === false) {
     return <UnpublishedMessage settings={portalSettings} />;
   }
 
+  const fiscalYearNote =
+    getFiscalYearPublicLabelFromSettings(portalSettings);
+
   // Strict module gate: Revenues require enable_revenues = true.
   const enableRevenues = portalSettings?.enable_revenues === true;
   if (portalSettings && !enableRevenues) {
-    // Revenues module does not exist for this city.
     notFound();
   }
 
   const years = (yearsRaw ?? []).slice().sort((a, b) => b - a);
 
-  // Fetch revenues for all available years so we can build YOY totals.
   let revenuesByYear: RevenueRow[][] = [];
   if (years.length > 0) {
     const all = await Promise.all(
@@ -71,7 +136,6 @@ export default async function RevenuesPage({
     revenuesByYear = all;
   }
 
-  // Determine selected year.
   let selectedYear: number | null = null;
   if (years.length > 0) {
     const yearParam = pickFirst(resolvedSearchParams.year);
@@ -82,7 +146,6 @@ export default async function RevenuesPage({
         : years[0];
   }
 
-  // Pick revenues for the selected year.
   let revenues: RevenueRow[] = [];
   if (selectedYear != null && years.length > 0) {
     const index = years.indexOf(selectedYear);
@@ -90,7 +153,6 @@ export default async function RevenuesPage({
     revenues = revenuesByYear[bucketIndex] ?? [];
   }
 
-  // Build totals per year for YOY chart.
   const yearTotals: YearTotal[] = years.map((year, idx) => {
     const rows = revenuesByYear[idx] ?? [];
     const total = rows.reduce(
@@ -109,6 +171,7 @@ export default async function RevenuesPage({
       revenues={revenues}
       sourceQuery={sourceQuery}
       yearTotals={yearTotals}
+      fiscalYearNote={fiscalYearNote ?? undefined}
     />
   );
 }

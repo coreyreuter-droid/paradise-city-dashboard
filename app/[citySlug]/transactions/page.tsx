@@ -32,6 +32,71 @@ function pickFirst(value: string | string[] | undefined) {
   return undefined;
 }
 
+const MONTH_NAMES = [
+  "",
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
+
+function getFiscalYearPublicLabelFromSettings(
+  settings: PortalSettings | null
+): string | null {
+  if (!settings) return null;
+  const anySettings = settings as any;
+
+  const explicitLabel = (anySettings?.fiscal_year_label as
+    | string
+    | null
+    | undefined) ?? null;
+
+  if (explicitLabel && explicitLabel.trim().length > 0) {
+    return explicitLabel.trim();
+  }
+
+  const rawStartMonth = anySettings?.fiscal_year_start_month;
+  const rawStartDay = anySettings?.fiscal_year_start_day;
+
+  const parsedMonth = Number(rawStartMonth);
+  const parsedDay = Number(rawStartDay);
+
+  const startMonth =
+    Number.isFinite(parsedMonth) && parsedMonth >= 1 && parsedMonth <= 12
+      ? parsedMonth
+      : 1;
+  const startDay =
+    Number.isFinite(parsedDay) && parsedDay >= 1 && parsedDay <= 31
+      ? parsedDay
+      : 1;
+
+  if (startMonth === 1 && startDay === 1) {
+    return "Fiscal year aligns with the calendar year (January 1 – December 31).";
+  }
+
+const startMonthName = MONTH_NAMES[startMonth] || "January";
+
+// End month is the month before the start month in the following year.
+// For example, start July 1 -> end June 30.
+const endMonthIndex = ((startMonth + 10) % 12) + 1;
+const endMonthName = MONTH_NAMES[endMonthIndex] || "December";
+
+// Use the last day of the end month (non-leap year is fine for this message).
+const LAST_DAY_OF_MONTH = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+const endDay = LAST_DAY_OF_MONTH[endMonthIndex] ?? 30;
+
+return `Fiscal year runs ${startMonthName} ${startDay} – ${endMonthName} ${endDay}.`;
+
+}
+
 export default async function TransactionsPage({
   searchParams,
 }: PageProps) {
@@ -44,20 +109,19 @@ export default async function TransactionsPage({
 
   const portalSettings = settings as PortalSettings | null;
 
-  // Publish gate: if the portal is not published, show the unpublished message.
   if (portalSettings && portalSettings.is_published === false) {
     return <UnpublishedMessage settings={portalSettings} />;
   }
 
-  // Strict module gate: Transactions require enable_transactions = true.
+  const fiscalYearNote =
+    getFiscalYearPublicLabelFromSettings(portalSettings);
+
   const enableTransactions = portalSettings?.enable_transactions === true;
 
   if (portalSettings && !enableTransactions) {
-    // Transactions module does not exist for this city.
     notFound();
   }
 
-  // Vendor flag depends on transactions being enabled.
   const enableVendors =
     enableTransactions && portalSettings?.enable_vendors === true;
 
@@ -114,6 +178,7 @@ export default async function TransactionsPage({
       departmentFilter={department}
       vendorQuery={vendorQuery}
       enableVendors={enableVendors}
+      fiscalYearNote={fiscalYearNote ?? undefined}
     />
   );
 }
