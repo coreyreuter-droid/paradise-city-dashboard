@@ -4,7 +4,7 @@ import UnpublishedMessage from "@/components/City/UnpublishedMessage";
 import {
   getAllBudgets,
   getAllActuals,
-  getAllTransactions,
+  getTransactionsForYear,
   getPortalSettings,
   getRevenuesForYear,
 } from "@/lib/queries";
@@ -14,30 +14,65 @@ import type {
   TransactionRow,
   RevenueRow,
 } from "@/lib/types";
-import type { PortalSettings } from "@/lib/queries";
 import { notFound } from "next/navigation";
 
-export const revalidate = 0; // always hit Supabase; change if you want caching
-
 type SearchParamsShape = {
-  year?: string | string[];
+  year?: string;
 };
 
-type RevenueSummary = {
-  year: number;
-  total: number;
-};
+function normalizeFiscalYearFromRow(row: {
+  fiscal_year?: number | string | null;
+}): number | null {
+  const raw = row?.fiscal_year;
+  if (raw == null) return null;
 
-function pickFirst(
-  value: string | string[] | undefined
-): string | undefined {
-  if (typeof value === "string") return value;
-  if (Array.isArray(value) && value.length > 0) return value[0];
-  return undefined;
+  const n = Number(raw);
+  if (!Number.isFinite(n)) return null;
+
+  return n;
+}
+
+/**
+ * Given budgets and searchParams.year, choose a selected year + the sorted list of available years.
+ */
+function pickSelectedYear(
+  budgets: BudgetRow[],
+  searchParams: SearchParamsShape
+): { years: number[]; selectedYear: number | null } {
+  const yearsSet = new Set<number>();
+
+  budgets.forEach((row) => {
+    const y = normalizeFiscalYearFromRow(row);
+    if (y != null) {
+      yearsSet.add(y);
+    }
+  });
+
+  const years = Array.from(yearsSet).sort((a, b) => b - a);
+
+  if (years.length === 0) {
+    return { years: [], selectedYear: null };
+  }
+
+  const paramYear = searchParams.year;
+  if (!paramYear) {
+    return { years, selectedYear: years[0] };
+  }
+
+  const parsedYear = Number(paramYear);
+  if (!Number.isFinite(parsedYear)) {
+    return { years, selectedYear: years[0] };
+  }
+
+  const selectedYear =
+    Number.isFinite(parsedYear) && years.includes(parsedYear)
+      ? parsedYear
+      : years[0];
+
+  return { years, selectedYear };
 }
 
 const MONTH_NAMES = [
-  "",
   "January",
   "February",
   "March",
@@ -58,8 +93,8 @@ const MONTH_NAMES = [
  * - explicit fiscal_year_label, OR
  * - numeric fiscal_year_start_month / fiscal_year_start_day with sane defaults.
  */
-function getFiscalYearPublicLabelFromSettings(
-  settings: PortalSettings | null
+function getFiscalYearNoteFromSettings(
+  settings: Record<string, unknown> | null
 ): string | null {
   if (!settings) return null;
 
@@ -83,62 +118,20 @@ function getFiscalYearPublicLabelFromSettings(
   const startMonth =
     Number.isFinite(parsedMonth) && parsedMonth >= 1 && parsedMonth <= 12
       ? parsedMonth
-      : 1;
+      : 7; // Default to July (common pattern)
   const startDay =
     Number.isFinite(parsedDay) && parsedDay >= 1 && parsedDay <= 31
       ? parsedDay
-      : 1;
+      : 1; // Default to the first of the month
 
-  // Calendar year shortcut
-  if (startMonth === 1 && startDay === 1) {
-    return "Fiscal year aligns with the calendar year (January 1 – December 31).";
-  }
+  const startMonthName =
+    MONTH_NAMES[(startMonth - 1 + MONTH_NAMES.length) % MONTH_NAMES.length];
 
-const startMonthName = MONTH_NAMES[startMonth] || "January";
+  const endMonthIndex =
+    (startMonth - 2 + MONTH_NAMES.length) % MONTH_NAMES.length;
+  const endMonthName = MONTH_NAMES[endMonthIndex];
 
-// End month is the month before the start month in the following year.
-// For example, start July 1 -> end June 30.
-const endMonthIndex = ((startMonth + 10) % 12) + 1;
-const endMonthName = MONTH_NAMES[endMonthIndex] || "December";
-
-// Use the last day of the end month (non-leap year is fine for this message).
-const LAST_DAY_OF_MONTH = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-const endDay = LAST_DAY_OF_MONTH[endMonthIndex] ?? 30;
-
-return `Fiscal year runs ${startMonthName} ${startDay} – ${endMonthName} ${endDay}.`;
-
-}
-
-/**
- * Derive available fiscal years from the budgets data and the URL ?year= param.
- * This mirrors the logic used on other pages: newest year is default if no
- * valid year param is provided.
- */
-function getSelectedFiscalYear(
-  budgets: BudgetRow[],
-  searchParams: SearchParamsShape
-): { years: number[]; selectedYear: number | null } {
-  const years = Array.from(
-    new Set(
-      budgets
-        .map((b) => Number(b.fiscal_year))
-        .filter((y) => Number.isFinite(y))
-    )
-  ).sort((a, b) => b - a); // newest first
-
-  if (years.length === 0) {
-    return { years: [], selectedYear: null };
-  }
-
-  const yearParam = pickFirst(searchParams.year);
-  const parsedYear = yearParam ? Number(yearParam) : NaN;
-
-  const selectedYear =
-    Number.isFinite(parsedYear) && years.includes(parsedYear)
-      ? parsedYear
-      : years[0];
-
-  return { years, selectedYear };
+  return `Fiscal year runs from ${startMonthName} ${startDay.toString()} to ${endMonthName} ${startDay.toString()} of the following year.`;
 }
 
 export default async function AnalyticsPage({
@@ -149,72 +142,65 @@ export default async function AnalyticsPage({
 }) {
   const resolvedSearchParams = await searchParams;
 
-  // Load portal settings first to determine gating + whether revenues are enabled.
-  const settings = await getPortalSettings();
-  const portalSettings = settings as PortalSettings | null;
+  const portalSettings = await getPortalSettings();
 
-  // If the portal itself is not published, show the unpublished message.
-  if (portalSettings && portalSettings.is_published === false) {
-    return <UnpublishedMessage settings={portalSettings} />;
-  }
-
-  // Strict module gating: Analytics depends on Actuals.
-  const enableActuals =
-    portalSettings?.enable_actuals === null ||
-    portalSettings?.enable_actuals === undefined
-      ? true
-      : !!portalSettings.enable_actuals;
-
-  if (portalSettings && !enableActuals) {
-    // Gov does not publish Actuals → Analytics does not exist.
+  if (!portalSettings) {
     notFound();
   }
 
+  // Use is_published flag and pass settings into UnpublishedMessage
+  if (portalSettings.is_published === false) {
+    return <UnpublishedMessage settings={portalSettings} />;
+  }
+
   const enableTransactions =
-    portalSettings?.enable_transactions === true;
-
+    (portalSettings as any)?.enable_transactions === true;
   const enableVendors =
-    enableTransactions && portalSettings?.enable_vendors === true;
-
+    enableTransactions && (portalSettings as any)?.enable_vendors === true;
   const enableRevenues =
-    portalSettings?.enable_revenues === true;
+    (portalSettings as any)?.enable_revenues === true;
 
-  // Compute public-facing fiscal year note
-  const fiscalYearNote = getFiscalYearPublicLabelFromSettings(
-    portalSettings
+  const fiscalYearNote = getFiscalYearNoteFromSettings(
+    portalSettings as unknown as Record<string, unknown> | null
   );
 
-  // Load budgets/actuals/transactions in parallel.
-  const [budgetsRaw, actualsRaw, transactionsRaw] =
-    await Promise.all([
-      getAllBudgets(),
-      getAllActuals(),
-      getAllTransactions(),
-    ]);
+  // 1) Load budgets + actuals in parallel (these are needed for multi-year charts)
+  const [budgetsRaw, actualsRaw] = await Promise.all([
+    getAllBudgets(),
+    getAllActuals(),
+  ]);
 
   const budgets: BudgetRow[] = budgetsRaw ?? [];
   const actuals: ActualRow[] = actualsRaw ?? [];
-  const transactions: TransactionRow[] = transactionsRaw ?? [];
 
-  // Work out which fiscal year is selected based on budgets + ?year= param.
-  // This keeps Analytics in sync with the year selector and avoids hard-coding 2020.
-  const { selectedYear } = getSelectedFiscalYear(
+  // 2) Decide which year is selected based on budgets + URL params
+  const { years, selectedYear } = pickSelectedYear(
     budgets,
     resolvedSearchParams
   );
 
-  // Optional: compute a revenue summary for the *selected* fiscal year only.
-  // If there's no revenue data for that year, we leave the summary null instead
-  // of silently falling back to some older year like 2020.
-  let revenueSummary: RevenueSummary | null = null;
+  // 3) Only load transactions for the selected year (not all years)
+  let transactions: TransactionRow[] = [];
+
+  if (enableTransactions && selectedYear != null) {
+    transactions = (await getTransactionsForYear(selectedYear)) ?? [];
+  }
+
+  // 4) Revenue summary still uses selectedYear
+  let revenueSummary:
+    | {
+        year: number;
+        total: number;
+      }
+    | null = null;
 
   if (enableRevenues && selectedYear != null) {
     const revenues: RevenueRow[] =
-      (await getRevenuesForYear(selectedYear)) ?? [];
+      ((await getRevenuesForYear(selectedYear)) as RevenueRow[]) ?? [];
 
     if (revenues.length > 0) {
       const total = revenues.reduce(
-        (sum, r) => sum + Number(r.amount || 0),
+        (sum, row) => sum + (row.amount || 0),
         0
       );
       revenueSummary = {
@@ -222,7 +208,6 @@ export default async function AnalyticsPage({
         total,
       };
     } else {
-      // No revenues for the selected year → no summary card.
       revenueSummary = null;
     }
   }

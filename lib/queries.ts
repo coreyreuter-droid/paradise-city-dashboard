@@ -275,16 +275,22 @@ export type DepartmentBudgetActual = {
 
 /**
  * Get distinct fiscal years from budgets table (authoritative list of years).
+ * Uses a simple select + JS dedupe (no `distinct` option in TS types).
  */
 export async function getAvailableFiscalYears(): Promise<number[]> {
-  const rows = await fetchAllRows<{ fiscal_year: number | string | null }>(
-    "budgets",
-    (q) => q.select("fiscal_year")
-  );
+  const { data, error } = await supabase
+    .from("budgets")
+    .select("fiscal_year");
 
-  const years = rows
-    .map((row) => Number(row.fiscal_year))
-    .filter((y) => Number.isFinite(y));
+  if (error) {
+    console.error("getAvailableFiscalYears error:", error);
+    return [];
+  }
+
+  const years =
+    data
+      ?.map((row: any) => Number(row.fiscal_year))
+      .filter((y: number) => Number.isFinite(y)) ?? [];
 
   return Array.from(new Set(years)).sort((a, b) => a - b);
 }
@@ -549,57 +555,75 @@ export type TransactionsPageResult = {
 
 /**
  * Get all distinct fiscal years seen across budgets, actuals, and transactions.
+ * Uses select + JS dedupe (no `distinct` option).
  */
 export async function getTransactionYears(): Promise<number[]> {
-  const [budgetsRows, actualsRows, txRows] = await Promise.all([
-    fetchAllRows<{ fiscal_year: number | string | null }>(
-      "budgets",
-      (q) => q.select("fiscal_year")
-    ),
-    fetchAllRows<{ fiscal_year: number | string | null }>(
-      "actuals",
-      (q) => q.select("fiscal_year")
-    ),
-    fetchAllRows<{ fiscal_year: number | string | null }>(
-      "transactions",
-      (q) => q.select("fiscal_year")
-    ),
+  const [budgetsRes, actualsRes, txRes] = await Promise.all([
+    supabase.from("budgets").select("fiscal_year"),
+    supabase.from("actuals").select("fiscal_year"),
+    supabase.from("transactions").select("fiscal_year"),
   ]);
 
-  const set = new Set<number>();
+  if (budgetsRes.error) {
+    console.error(
+      "getTransactionYears budgets error:",
+      budgetsRes.error
+    );
+  }
+  if (actualsRes.error) {
+    console.error(
+      "getTransactionYears actuals error:",
+      actualsRes.error
+    );
+  }
+  if (txRes.error) {
+    console.error(
+      "getTransactionYears transactions error:",
+      txRes.error
+    );
+  }
 
-  const addYears = (rows: { fiscal_year: number | string | null }[]) => {
-    rows.forEach((row) => {
-      const year = Number(row.fiscal_year);
-      if (Number.isFinite(year)) set.add(year);
+  const years = new Set<number>();
+
+  const addYears = (rows: any[] | null | undefined) => {
+    (rows ?? []).forEach((row) => {
+      const v = Number((row as any).fiscal_year);
+      if (Number.isFinite(v)) years.add(v);
     });
   };
 
-  addYears(budgetsRows);
-  addYears(actualsRows);
-  addYears(txRows);
+  addYears(budgetsRes.data);
+  addYears(actualsRes.data);
+  addYears(txRes.data);
 
-  return Array.from(set).sort((a, b) => b - a);
+  return Array.from(years).sort((a, b) => b - a);
 }
 
 /**
  * Get distinct fiscal years from revenues table.
+ * Uses select + JS dedupe.
  */
 export async function getRevenueYears(): Promise<number[]> {
-  const rows = await fetchAllRows<{ fiscal_year: number | string | null }>(
-    "revenues",
-    (q) => q.select("fiscal_year")
-  );
+  const { data, error } = await supabase
+    .from("revenues")
+    .select("fiscal_year");
 
-  const years = rows
-    .map((row) => Number(row.fiscal_year))
-    .filter((y) => Number.isFinite(y));
+  if (error) {
+    console.error("getRevenueYears error:", error);
+    return [];
+  }
+
+  const years =
+    data
+      ?.map((row: any) => Number(row.fiscal_year))
+      .filter((y: number) => Number.isFinite(y)) ?? [];
 
   return Array.from(new Set(years)).sort((a, b) => b - a);
 }
 
 /**
  * Get distinct department names that appear in transactions for a given year.
+ * Uses select + JS dedupe, not the `distinct` option.
  */
 export async function getTransactionDepartmentsForYear(
   fiscalYear: number
@@ -607,8 +631,7 @@ export async function getTransactionDepartmentsForYear(
   const { data, error } = await supabase
     .from("transactions")
     .select("department_name")
-    .eq("fiscal_year", fiscalYear)
-    .limit(10000);
+    .eq("fiscal_year", fiscalYear);
 
   if (error) {
     console.error("Error fetching transaction departments", {
@@ -622,7 +645,7 @@ export async function getTransactionDepartmentsForYear(
 
   (data ?? []).forEach((row: any) => {
     const raw = row.department_name as string | null;
-    const name = raw && raw.length > 0 ? raw : "Unspecified";
+    const name = raw && raw.trim().length > 0 ? raw.trim() : "Unspecified";
     set.add(name);
   });
 
@@ -631,6 +654,7 @@ export async function getTransactionDepartmentsForYear(
 
 /**
  * Paged transactions with year/department/vendor filters.
+ * Uses a cheaper count algorithm for large tables.
  */
 export async function getTransactionsPage(options: {
   fiscalYear?: number;
@@ -643,7 +667,8 @@ export async function getTransactionsPage(options: {
 
   let query = supabase
     .from("transactions")
-    .select("*", { count: "exact" });
+    // "planned" is cheaper than "exact" on big tables.
+    .select("*", { count: "planned" });
 
   if (fiscalYear) {
     query = query.eq("fiscal_year", fiscalYear);
@@ -674,9 +699,13 @@ export async function getTransactionsPage(options: {
     return { rows: [], totalCount: 0 };
   }
 
+  const rows: TransactionRow[] = (data ?? []) as TransactionRow[];
+  const totalCount =
+    typeof count === "number" ? count : rows.length;
+
   return {
-    rows: (data ?? []) as TransactionRow[],
-    totalCount: count ?? 0,
+    rows,
+    totalCount,
   };
 }
 
