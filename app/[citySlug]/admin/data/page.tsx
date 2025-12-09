@@ -9,6 +9,7 @@ import {
   getPortalSettings,
 } from "@/lib/queries";
 import { supabaseAdmin } from "@/lib/supabaseService";
+import DeleteYearButton from "@/components/Admin/DeleteYearButton";
 
 export const revalidate = 0;
 
@@ -26,28 +27,32 @@ type PageProps = {
 };
 
 async function getModuleYears() {
-  const [budgetYears, revenueYears, txYears, settings] =
+  const [budgetYearsRaw, revenueYearsRaw, txYearsRaw, settings] =
     await Promise.all([
-      getAvailableFiscalYears(), // from budgets table
-      getRevenueYears(), // from revenues table
-      getTransactionYears(), // union of budgets/actuals/transactions
+      getAvailableFiscalYears(),
+      getRevenueYears(),
+      getTransactionYears(),
       getPortalSettings(),
     ]);
 
   const portalSettings = settings;
 
   if (!portalSettings) {
-    // If settings are missing, something is wrong with onboarding; show 404.
     notFound();
   }
 
-  // We keep years as arrays so the UI can show per-module differences.
+  // Ensure consistent sort order: newest → oldest for all modules
+  const budgetYears = [...(budgetYearsRaw ?? [])].sort((a, b) => b - a);
+  const actualsYears = [...budgetYears]; // actuals should mirror budgets
+  const revenueYears = [...(revenueYearsRaw ?? [])].sort((a, b) => b - a);
+  const transactionYears = [...(txYearsRaw ?? [])].sort((a, b) => b - a);
+
   return {
     portalSettings,
     budgetYears,
-    actualsYears: budgetYears, // actuals should mirror budgets; we key off budgets list
+    actualsYears,
     revenueYears,
-    transactionYears: txYears,
+    transactionYears,
   };
 }
 
@@ -86,7 +91,7 @@ async function deleteYearAction(formData: FormData) {
     return;
   }
 
-  // Optional: log somewhere else if you want; we already log uploads in data_uploads.
+  // Optional: log somewhere else if you want; uploads are already logged in data_uploads.
 }
 
 export default async function DataManagementPage({}: PageProps) {
@@ -100,7 +105,7 @@ export default async function DataManagementPage({}: PageProps) {
 
   const govName = portalSettings.city_name || "Your gov";
 
-  const maxYears =
+  const anyYears =
     budgetYears.length ||
     actualsYears.length ||
     revenueYears.length ||
@@ -124,7 +129,8 @@ export default async function DataManagementPage({}: PageProps) {
               </span>{" "}
               from the selected table. Use this to enforce retention (for
               example, only keeping the last 5 fiscal years) or to clean up
-              bad uploads before reloading data.
+              bad uploads before reloading data. You will be asked to confirm
+              each deletion.
             </p>
           </section>
 
@@ -133,7 +139,7 @@ export default async function DataManagementPage({}: PageProps) {
               Module data by fiscal year
             </h2>
 
-            {maxYears === 0 ? (
+            {!anyYears ? (
               <p className="text-sm text-slate-600">
                 No fiscal-year data found yet. Upload budgets, actuals,
                 transactions, or revenues to see available years.
@@ -161,24 +167,11 @@ export default async function DataManagementPage({}: PageProps) {
                           className="flex items-center justify-between gap-2"
                         >
                           <span>FY {year}</span>
-                          <form action={deleteYearAction}>
-                            <input
-                              type="hidden"
-                              name="table"
-                              value="budgets"
-                            />
-                            <input
-                              type="hidden"
-                              name="fiscalYear"
-                              value={year}
-                            />
-                            <button
-                              type="submit"
-                              className="rounded-md border border-red-300 bg-red-50 px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
-                            >
-                              Delete FY {year}
-                            </button>
-                          </form>
+                          <DeleteYearButton
+                            table="budgets"
+                            fiscalYear={year}
+                            action={deleteYearAction}
+                          />
                         </li>
                       ))}
                     </ul>
@@ -206,24 +199,11 @@ export default async function DataManagementPage({}: PageProps) {
                           className="flex items-center justify-between gap-2"
                         >
                           <span>FY {year}</span>
-                          <form action={deleteYearAction}>
-                            <input
-                              type="hidden"
-                              name="table"
-                              value="actuals"
-                            />
-                            <input
-                              type="hidden"
-                              name="fiscalYear"
-                              value={year}
-                            />
-                            <button
-                              type="submit"
-                              className="rounded-md border border-red-300 bg-red-50 px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
-                            >
-                              Delete FY {year}
-                            </button>
-                          </form>
+                          <DeleteYearButton
+                            table="actuals"
+                            fiscalYear={year}
+                            action={deleteYearAction}
+                          />
                         </li>
                       ))}
                     </ul>
@@ -251,24 +231,11 @@ export default async function DataManagementPage({}: PageProps) {
                           className="flex items-center justify-between gap-2"
                         >
                           <span>FY {year}</span>
-                          <form action={deleteYearAction}>
-                            <input
-                              type="hidden"
-                              name="table"
-                              value="transactions"
-                            />
-                            <input
-                              type="hidden"
-                              name="fiscalYear"
-                              value={year}
-                            />
-                            <button
-                              type="submit"
-                              className="rounded-md border border-red-300 bg-red-50 px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
-                            >
-                              Delete FY {year}
-                            </button>
-                          </form>
+                          <DeleteYearButton
+                            table="transactions"
+                            fiscalYear={year}
+                            action={deleteYearAction}
+                          />
                         </li>
                       ))}
                     </ul>
@@ -296,24 +263,11 @@ export default async function DataManagementPage({}: PageProps) {
                           className="flex items-center justify-between gap-2"
                         >
                           <span>FY {year}</span>
-                          <form action={deleteYearAction}>
-                            <input
-                              type="hidden"
-                              name="table"
-                              value="revenues"
-                            />
-                            <input
-                              type="hidden"
-                              name="fiscalYear"
-                              value={year}
-                            />
-                            <button
-                              type="submit"
-                              className="rounded-md border border-red-300 bg-red-50 px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
-                            >
-                              Delete FY {year}
-                            </button>
-                          </form>
+                          <DeleteYearButton
+                            table="revenues"
+                            fiscalYear={year}
+                            action={deleteYearAction}
+                          />
                         </li>
                       ))}
                     </ul>
