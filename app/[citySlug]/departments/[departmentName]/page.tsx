@@ -1,108 +1,93 @@
-// app/[citySlug]/departments/page.tsx
+// app/[citySlug]/departments/[departmentName]/page.tsx
+
 import { notFound } from "next/navigation";
-import DepartmentsDashboardClient from "@/components/City/DepartmentsDashboardClient";
 import UnpublishedMessage from "@/components/City/UnpublishedMessage";
 import {
-  getAvailableFiscalYears,
   getBudgetsForYear,
   getActualsForYear,
-  getTransactionsForYear,
   getPortalSettings,
 } from "@/lib/queries";
-import type {
-  BudgetRow,
-  ActualRow,
-  TransactionRow,
-} from "@/lib/types";
+import type { BudgetRow, ActualRow } from "@/lib/types";
 import type { PortalSettings } from "@/lib/queries";
 
-export const revalidate = 0;
-
-type SearchParamsShape = {
-  year?: string | string[];
-};
-
 type PageProps = {
-  params: { citySlug: string };
-  searchParams: SearchParamsShape | Promise<SearchParamsShape>;
+  params: {
+    citySlug: string;
+    departmentName: string;
+  };
+  searchParams: { year?: string | string[] } | Promise<{ year?: string | string[] }>;
 };
 
-function pickFirst(
-  value: string | string[] | undefined,
-): string | undefined {
-  if (typeof value === "string") return value;
-  if (Array.isArray(value) && value.length > 0) return value[0];
+function pickFirst(v: string | string[] | undefined) {
+  if (typeof v === "string") return v;
+  if (Array.isArray(v) && v.length) return v[0];
   return undefined;
 }
 
-export default async function DepartmentsPage({
+export default async function DepartmentDetailPage({
+  params,
   searchParams,
 }: PageProps) {
-  const resolvedSearchParams = await searchParams;
+  const sp = await searchParams;
+  const departmentName = decodeURIComponent(params.departmentName);
 
-  const [availableYearsRaw, settings] = await Promise.all([
-    getAvailableFiscalYears(),
-    getPortalSettings(),
-  ]);
-
-  const portalSettings = settings as PortalSettings | null;
+  const portalSettings = (await getPortalSettings()) as PortalSettings | null;
 
   if (portalSettings && portalSettings.is_published === false) {
     return <UnpublishedMessage settings={portalSettings} />;
   }
 
-  const enableActuals =
-    portalSettings?.enable_actuals === null ||
-    portalSettings?.enable_actuals === undefined
-      ? true
-      : !!portalSettings.enable_actuals;
+  const yearParam = pickFirst(sp?.year);
+  const parsedYear = yearParam ? Number(yearParam) : NaN;
 
-  // Departments are an actuals-driven view: 404 when actuals are disabled
-  if (portalSettings && !enableActuals) {
+  if (!Number.isFinite(parsedYear)) {
     notFound();
   }
 
-  const enableTransactions =
-    portalSettings?.enable_transactions === true;
+  const [budgetsRaw, actualsRaw] = await Promise.all([
+    getBudgetsForYear(parsedYear),
+    getActualsForYear(parsedYear),
+  ]);
 
-  const years = (availableYearsRaw ?? [])
-    .map((y) => Number(y))
-    .filter((y) => Number.isFinite(y))
-    .sort((a, b) => b - a);
+  const budgets = (budgetsRaw ?? []).filter(
+    (b) => b.department_name === departmentName
+  ) as BudgetRow[];
 
-  const yearParam = pickFirst(resolvedSearchParams.year);
-  const parsedYear = yearParam ? Number(yearParam) : NaN;
+  const actuals = (actualsRaw ?? []).filter(
+    (a) => a.department_name === departmentName
+  ) as ActualRow[];
 
-  const selectedYear =
-    Number.isFinite(parsedYear) && years.includes(parsedYear)
-      ? parsedYear
-      : years.length > 0
-      ? years[0]
-      : undefined;
-
-  let budgets: BudgetRow[] = [];
-  let actuals: ActualRow[] = [];
-  let transactions: TransactionRow[] = [];
-
-  if (selectedYear != null) {
-    const [budgetsRaw, actualsRaw, transactionsRaw] = await Promise.all([
-      getBudgetsForYear(selectedYear),
-      getActualsForYear(selectedYear),
-      getTransactionsForYear(selectedYear),
-    ]);
-
-    budgets = (budgetsRaw ?? []) as BudgetRow[];
-    actuals = (actualsRaw ?? []) as ActualRow[];
-    transactions = (transactionsRaw ?? []) as TransactionRow[];
+  if (!budgets.length && !actuals.length) {
+    notFound();
   }
 
+  const totalBudget = budgets.reduce((s, b) => s + (b.amount || 0), 0);
+  const totalActuals = actuals.reduce((s, a) => s + (a.amount || 0), 0);
+
   return (
-    <DepartmentsDashboardClient
-      budgets={budgets}
-      actuals={actuals}
-      transactions={transactions}
-      years={years}
-      enableTransactions={enableTransactions}
-    />
+    <div className="mx-auto max-w-4xl px-4 py-8">
+      <h1 className="text-xl font-semibold text-slate-900">
+        {departmentName}
+      </h1>
+
+      <p className="mt-1 text-sm text-slate-600">
+        Fiscal year {parsedYear}
+      </p>
+
+      <div className="mt-6 grid gap-4 sm:grid-cols-2">
+        <div className="rounded-lg border p-4">
+          <div className="text-xs uppercase text-slate-500">Budget</div>
+          <div className="text-lg font-semibold">
+            ${totalBudget.toLocaleString()}
+          </div>
+        </div>
+        <div className="rounded-lg border p-4">
+          <div className="text-xs uppercase text-slate-500">Actuals</div>
+          <div className="text-lg font-semibold">
+            ${totalActuals.toLocaleString()}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
