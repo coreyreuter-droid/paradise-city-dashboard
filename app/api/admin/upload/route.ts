@@ -93,8 +93,7 @@ function computeFiscalYearFromDate(
 
   // If date >= FY start for that year → next fiscal year; else → same year
   const afterStart =
-    month > startMonth ||
-    (month === startMonth && day >= startDay);
+    month > startMonth || (month === startMonth && day >= startDay);
 
   return afterStart ? year + 1 : year;
 }
@@ -149,10 +148,7 @@ function normalizeFiscalYearForRecord(
   }
 
   if (table === "transactions") {
-    const fyFromDate = computeFiscalYearFromDate(
-      cloned.date,
-      config
-    );
+    const fyFromDate = computeFiscalYearFromDate(cloned.date, config);
     if (fyFromDate != null) {
       cloned.fiscal_year = fyFromDate;
     }
@@ -171,10 +167,7 @@ function normalizeFiscalYearForRecord(
     }
 
     // Else try from "date"
-    const fyFromDate = computeFiscalYearFromDate(
-      cloned.date,
-      config
-    );
+    const fyFromDate = computeFiscalYearFromDate(cloned.date, config);
     if (fyFromDate != null) {
       cloned.fiscal_year = fyFromDate;
       return cloned;
@@ -183,10 +176,7 @@ function normalizeFiscalYearForRecord(
     // Else try from "period"
     const derivedDate = deriveDateFromPeriod(cloned.period);
     if (derivedDate) {
-      const fyFromPeriod = computeFiscalYearFromDate(
-        derivedDate,
-        config
-      );
+      const fyFromPeriod = computeFiscalYearFromDate(derivedDate, config);
       if (fyFromPeriod != null) {
         cloned.fiscal_year = fyFromPeriod;
         return cloned;
@@ -198,6 +188,36 @@ function normalizeFiscalYearForRecord(
   }
 
   return cloned;
+}
+
+/**
+ * Recompute transaction summaries for all fiscal years touched by an upload.
+ * This keeps transaction_year_vendor and transaction_year_department accurate.
+ *
+ * This is intentionally strict: if recompute fails, we return 500 because the
+ * UI would otherwise show stale/incorrect data.
+ */
+async function recomputeTransactionSummaries(years: number[]) {
+  const uniqueYears = Array.from(new Set(years))
+    .filter((y) => Number.isFinite(y))
+    .sort((a, b) => b - a);
+
+  for (const year of uniqueYears) {
+    const { error } = await supabaseAdmin.rpc(
+      "recompute_transaction_summaries_for_year",
+      { p_year: year }
+    );
+
+    if (error) {
+      console.error("Failed recomputing transaction summaries", {
+        year,
+        error,
+      });
+      throw new Error(
+        `Uploaded transactions successfully, but failed to recompute summaries for fiscal year ${year}.`
+      );
+    }
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -402,9 +422,7 @@ export async function POST(req: NextRequest) {
     for (let i = 0; i < totalRecords; i += INSERT_CHUNK_SIZE) {
       const chunk = normalizedRecords.slice(i, i + INSERT_CHUNK_SIZE);
 
-      const { error: chunkError } = await supabaseAdmin
-        .from(table)
-        .insert(chunk);
+      const { error: chunkError } = await supabaseAdmin.from(table).insert(chunk);
 
       if (chunkError) {
         console.error(
@@ -439,20 +457,34 @@ export async function POST(req: NextRequest) {
 
     const adminIdentifier = user.email ?? user.id;
 
-    const { error: auditError } = await supabaseAdmin
-      .from("data_uploads")
-      .insert({
-        table_name: table,
-        mode,
-        row_count: insertedCount,
-        fiscal_year: fiscalYearForAudit,
-        filename: body.filename ?? null,
-        admin_identifier: adminIdentifier,
-      });
+    const { error: auditError } = await supabaseAdmin.from("data_uploads").insert({
+      table_name: table,
+      mode,
+      row_count: insertedCount,
+      fiscal_year: fiscalYearForAudit,
+      filename: body.filename ?? null,
+      admin_identifier: adminIdentifier,
+    });
 
     if (auditError) {
       console.error("Admin upload audit log error:", auditError);
       // non-fatal
+    }
+
+    // 8) Recompute summaries if transactions were uploaded
+    if (table === "transactions") {
+      if (yearsInData.length === 0) {
+        // If we inserted transactions but couldn't derive FYs, that's a data integrity problem.
+        return NextResponse.json(
+          {
+            error:
+              "Transactions upload succeeded, but no fiscal years were detected after normalization. Cannot recompute summaries.",
+          },
+          { status: 500 }
+        );
+      }
+
+      await recomputeTransactionSummaries(yearsInData);
     }
 
     let action: string;
@@ -464,9 +496,17 @@ export async function POST(req: NextRequest) {
       action = "replaced all rows in";
     }
 
+    const summaryMsg =
+      table === "transactions"
+        ? ` Summaries recomputed for FY ${yearsInData
+            .slice()
+            .sort((a, b) => b - a)
+            .join(", ")}.`
+        : "";
+
     return NextResponse.json({
       ok: true,
-      message: `Successfully ${action} "${table}" with ${insertedCount} record(s).`,
+      message: `Successfully ${action} "${table}" with ${insertedCount} record(s).${summaryMsg}`,
     });
   } catch (err: any) {
     console.error("Admin upload route error:", err);

@@ -1,4 +1,3 @@
-// components/City/CitywideDashboardClient.tsx
 "use client";
 
 import { useMemo } from "react";
@@ -17,7 +16,8 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts";
-import type { BudgetRow, ActualRow, TransactionRow } from "@/lib/types";
+import type { BudgetRow, ActualRow } from "@/lib/types";
+import type { VendorYearSummary } from "@/lib/queries";
 import CardContainer from "../CardContainer";
 import SectionHeader from "../SectionHeader";
 import FiscalYearSelect from "../FiscalYearSelect";
@@ -78,7 +78,7 @@ type RevenueSummary = {
 type Props = {
   budgets: BudgetRow[];
   actuals: ActualRow[];
-  transactions: TransactionRow[];
+  vendorSummaries: VendorYearSummary[];
 
   // feature flags
   enableTransactions: boolean;
@@ -128,10 +128,7 @@ const buildDistribution = (
 };
 
 const safeFiscalYear = (
-  value:
-    | BudgetRow["fiscal_year"]
-    | ActualRow["fiscal_year"]
-    | TransactionRow["fiscal_year"]
+  value: BudgetRow["fiscal_year"] | ActualRow["fiscal_year"]
 ): number | null => {
   if (typeof value === "number") return value;
   const parsed = Number(value);
@@ -141,7 +138,7 @@ const safeFiscalYear = (
 export default function CitywideDashboardClient({
   budgets,
   actuals,
-  transactions,
+  vendorSummaries,
   enableTransactions,
   enableVendors,
   enableRevenues,
@@ -163,13 +160,8 @@ export default function CitywideDashboardClient({
       if (fy !== null) set.add(fy);
     });
 
-    transactions.forEach((t) => {
-      const fy = safeFiscalYear(t.fiscal_year);
-      if (fy !== null) set.add(fy);
-    });
-
     return Array.from(set).sort((a, b) => b - a);
-  }, [budgets, actuals, transactions]);
+  }, [budgets, actuals]);
 
   const selectedYear = useMemo(() => {
     if (years.length === 0) return undefined;
@@ -284,51 +276,61 @@ export default function CitywideDashboardClient({
   const execPctClamped = Math.max(0, Math.min(execPct, 200));
   const execPctDisplay = Math.max(0, execPct);
 
-  const { transactionsForYear, topVendors, totalVendorSpend } = useMemo(() => {
-    if (!selectedYear) {
+  // Vendor summaries (from pre-aggregated table)
+  const {
+    topVendors,
+    totalVendorSpend,
+    totalTransactionsCount,
+  } = useMemo(() => {
+    if (!selectedYear || vendorSummaries.length === 0) {
       return {
-        transactionsForYear: [] as TransactionRow[],
         topVendors: [] as VendorSummary[],
         totalVendorSpend: 0,
+        totalTransactionsCount: 0,
       };
     }
 
-    const filtered = transactions.filter(
-      (tx) => tx.fiscal_year === selectedYear
+    const forYear = vendorSummaries.filter(
+      (v) => v.fiscal_year === selectedYear
     );
 
-    const byVendor = new Map<string, number>();
-
-    filtered.forEach((tx) => {
-      const name =
-        (tx.vendor && tx.vendor.trim().length > 0
-          ? tx.vendor
-          : "Unspecified") ?? "Unspecified";
-      const amt = Number(tx.amount || 0);
-      byVendor.set(name, (byVendor.get(name) || 0) + amt);
-    });
-
-    const totalVendorSpend = Array.from(byVendor.values()).reduce(
-      (sum, v) => sum + v,
+    const totalVendorSpend = forYear.reduce(
+      (sum, v) => sum + Number(v.total_amount || 0),
       0
     );
 
-    const vendors: VendorSummary[] = Array.from(byVendor.entries())
-      .map(([name, total]) => ({
-        name,
-        total,
-        percent:
-          totalVendorSpend === 0 ? 0 : (total / totalVendorSpend) * 100,
-      }))
+    const totalTransactionsCount = forYear.reduce(
+      (sum, v) => sum + Number(v.txn_count || 0),
+      0
+    );
+
+    const vendors: VendorSummary[] = forYear
+      .map((v) => {
+        const name =
+          v.vendor && v.vendor.trim().length > 0
+            ? v.vendor.trim()
+            : "Unspecified";
+        const total = Number(v.total_amount || 0);
+        const percent =
+          totalVendorSpend === 0
+            ? 0
+            : (total / totalVendorSpend) * 100;
+
+        return {
+          name,
+          total,
+          percent,
+        };
+      })
       .sort((a, b) => b.total - a.total)
       .slice(0, 10);
 
     return {
-      transactionsForYear: filtered,
       topVendors: vendors,
       totalVendorSpend,
+      totalTransactionsCount,
     };
-  }, [transactions, selectedYear]);
+  }, [vendorSummaries, selectedYear]);
 
   // Budget distribution (top departments + "Other") for pies
   const budgetDistribution = useMemo(() => {
@@ -519,8 +521,6 @@ export default function CitywideDashboardClient({
     };
   }, [deptSummaries]);
 
-  const totalTransactionsCount = transactionsForYear.length;
-
   const analyticsTitle = enableVendors
     ? "Budget, spending, and vendors"
     : "Budget and spending";
@@ -616,8 +616,6 @@ export default function CitywideDashboardClient({
             </section>
           </CardContainer>
         )}
-
-
 
         <div className="space-y-4 md:space-y-6">
           {/* High-level KPIs */}

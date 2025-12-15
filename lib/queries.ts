@@ -203,6 +203,61 @@ export async function getPortalSettings(): Promise<PortalSettings | null> {
   };
 }
 
+// ---- Transaction summaries (department-level) ----
+
+export type DepartmentYearTxSummary = {
+  fiscal_year: number;
+  department_name: string;
+  total_amount: number;
+  txn_count: number;
+};
+
+export async function getDepartmentTransactionSummariesForYear(
+  fiscalYear: number
+): Promise<DepartmentYearTxSummary[]> {
+  const { data, error } = await supabase
+    .from("transaction_year_department")
+    .select("*")
+    .eq("fiscal_year", fiscalYear)
+    .order("total_amount", { ascending: false });
+
+  if (error) {
+    console.error("getDepartmentTransactionSummariesForYear error:", {
+      fiscalYear,
+      error,
+    });
+    throw error;
+  }
+
+  return (data ?? []) as DepartmentYearTxSummary[];
+}
+
+
+export async function getRecentTransactionsForYear(
+  fiscalYear: number,
+  limit = 20
+): Promise<TransactionRow[]> {
+  const { data, error } = await supabase
+    .from("transactions")
+    .select("*")
+    .eq("fiscal_year", fiscalYear)
+    .order("date", { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    console.error("getRecentTransactionsForYear error:", {
+      fiscalYear,
+      limit,
+      error,
+    });
+    throw error;
+  }
+
+  return (data ?? []) as TransactionRow[];
+}
+
+
+
 // ---- Internal pagination helper ----
 
 const PAGE_SIZE = 1000;
@@ -707,6 +762,57 @@ export async function getTransactionsPage(options: {
     rows,
     totalCount,
   };
+}
+
+// ---- Transaction summaries (vendor-level) ----
+
+export type VendorYearSummary = {
+  fiscal_year: number;
+  vendor: string;
+  total_amount: number;
+  txn_count: number;
+  first_txn_date: string | null;
+  last_txn_date: string | null;
+};
+
+/**
+ * Pre-aggregated vendor-level spend for a given fiscal year.
+ * Backed by the transaction_year_vendor table.
+ */
+export async function getVendorSummariesForYear(
+  fiscalYear: number,
+  options?: { search?: string | null; limit?: number }
+): Promise<VendorYearSummary[]> {
+  const limit = options?.limit ?? 500;
+  const search = options?.search?.trim() ?? "";
+
+  let query = supabase
+    .from("transaction_year_vendor")
+    .select("*")
+    .eq("fiscal_year", fiscalYear)
+    .order("total_amount", { ascending: false });
+
+  if (search.length > 0) {
+    query = query.ilike("vendor", `%${search}%`);
+  }
+
+  if (limit && limit > 0) {
+    query = query.limit(limit);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    console.error("getVendorSummariesForYear error:", {
+      fiscalYear,
+      search,
+      limit,
+      error,
+    });
+    throw error;
+  }
+
+  return (data ?? []) as VendorYearSummary[];
 }
 
 /**

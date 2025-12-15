@@ -1,3 +1,4 @@
+// app/[citySlug]/departments/page.tsx
 import { notFound } from "next/navigation";
 import DepartmentsDashboardClient from "@/components/City/DepartmentsDashboardClient";
 import UnpublishedMessage from "@/components/City/UnpublishedMessage";
@@ -5,17 +6,13 @@ import {
   getAvailableFiscalYears,
   getBudgetsForYear,
   getActualsForYear,
-  getTransactionsForYear,
+  getDepartmentTransactionSummariesForYear,
   getPortalSettings,
 } from "@/lib/queries";
-import type {
-  BudgetRow,
-  ActualRow,
-  TransactionRow,
-} from "@/lib/types";
-import type { PortalSettings } from "@/lib/queries";
+import type { BudgetRow, ActualRow } from "@/lib/types";
+import type { PortalSettings, DepartmentYearTxSummary } from "@/lib/queries";
 
-export const revalidate = 0;
+export const revalidate = 60;
 
 type SearchParamsShape = {
   year?: string | string[];
@@ -26,9 +23,7 @@ type PageProps = {
   searchParams: SearchParamsShape | Promise<SearchParamsShape>;
 };
 
-function pickFirst(
-  value: string | string[] | undefined
-): string | undefined {
+function pickFirst(value: string | string[] | undefined): string | undefined {
   if (typeof value === "string") return value;
   if (Array.isArray(value) && value.length > 0) return value[0];
   return undefined;
@@ -84,24 +79,20 @@ function getFiscalYearPublicLabelFromSettings(
     return "Fiscal year aligns with the calendar year (January 1 – December 31).";
   }
 
-const startMonthName = MONTH_NAMES[startMonth] || "January";
+  const startMonthName = MONTH_NAMES[startMonth] || "January";
 
-// End month is the month before the start month in the following year.
-// For example, start July 1 -> end June 30.
-const endMonthIndex = ((startMonth + 10) % 12) + 1;
-const endMonthName = MONTH_NAMES[endMonthIndex] || "December";
+  // End month is the month before the start month in the following year.
+  const endMonthIndex = ((startMonth + 10) % 12) + 1;
+  const endMonthName = MONTH_NAMES[endMonthIndex] || "December";
 
-// Use the last day of the end month (non-leap year is fine for this message).
-const LAST_DAY_OF_MONTH = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-const endDay = LAST_DAY_OF_MONTH[endMonthIndex] ?? 30;
+  // Use the last day of the end month (non-leap year is fine for this message).
+  const LAST_DAY_OF_MONTH = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  const endDay = LAST_DAY_OF_MONTH[endMonthIndex] ?? 30;
 
-return `Fiscal year runs ${startMonthName} ${startDay} – ${endMonthName} ${endDay}.`;
-
+  return `Fiscal year runs ${startMonthName} ${startDay} – ${endMonthName} ${endDay}.`;
 }
 
-export default async function DepartmentsPage({
-  searchParams,
-}: PageProps) {
+export default async function DepartmentsPage({ searchParams }: PageProps) {
   const resolvedSearchParams = await searchParams;
 
   const [availableYearsRaw, settings] = await Promise.all([
@@ -115,8 +106,7 @@ export default async function DepartmentsPage({
     return <UnpublishedMessage settings={portalSettings} />;
   }
 
-  const fiscalYearNote =
-    getFiscalYearPublicLabelFromSettings(portalSettings);
+  const fiscalYearNote = getFiscalYearPublicLabelFromSettings(portalSettings);
 
   // Strict actuals gating for Departments
   const enableActuals =
@@ -129,8 +119,7 @@ export default async function DepartmentsPage({
     notFound();
   }
 
-  const enableTransactions =
-    portalSettings?.enable_transactions === true;
+  const enableTransactions = portalSettings?.enable_transactions === true;
 
   const years = (availableYearsRaw ?? [])
     .map((y) => Number(y))
@@ -149,26 +138,27 @@ export default async function DepartmentsPage({
 
   let budgets: BudgetRow[] = [];
   let actuals: ActualRow[] = [];
-  let transactions: TransactionRow[] = [];
+  let txSummaries: DepartmentYearTxSummary[] = [];
 
   if (selectedYear != null) {
-    const [budgetsRaw, actualsRaw, transactionsRaw] =
-      await Promise.all([
-        getBudgetsForYear(selectedYear),
-        getActualsForYear(selectedYear),
-        getTransactionsForYear(selectedYear),
-      ]);
+    const [budgetsRaw, actualsRaw, txSummariesRaw] = await Promise.all([
+      getBudgetsForYear(selectedYear),
+      getActualsForYear(selectedYear),
+      enableTransactions
+        ? getDepartmentTransactionSummariesForYear(selectedYear)
+        : Promise.resolve([]),
+    ]);
 
     budgets = (budgetsRaw ?? []) as BudgetRow[];
     actuals = (actualsRaw ?? []) as ActualRow[];
-    transactions = (transactionsRaw ?? []) as TransactionRow[];
+    txSummaries = (txSummariesRaw ?? []) as DepartmentYearTxSummary[];
   }
 
   return (
     <DepartmentsDashboardClient
       budgets={budgets}
       actuals={actuals}
-      transactions={transactions}
+      txSummaries={txSummaries}
       years={years}
       enableTransactions={enableTransactions}
       fiscalYearNote={fiscalYearNote ?? undefined}

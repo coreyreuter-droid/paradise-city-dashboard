@@ -4,16 +4,16 @@ import UnpublishedMessage from "@/components/City/UnpublishedMessage";
 import {
   getAllBudgets,
   getAllActuals,
-  getTransactionsForYear,
   getPortalSettings,
   getRevenuesForYear,
+  getVendorSummariesForYear,
 } from "@/lib/queries";
 import type {
   BudgetRow,
   ActualRow,
-  TransactionRow,
   RevenueRow,
 } from "@/lib/types";
+import type { VendorYearSummary } from "@/lib/queries";
 import { notFound } from "next/navigation";
 
 type SearchParamsShape = {
@@ -179,11 +179,11 @@ export default async function AnalyticsPage({
     resolvedSearchParams
   );
 
-  // 3) Only load transactions for the selected year (not all years)
-  let transactions: TransactionRow[] = [];
+  // 3) Load vendor summaries for the selected year (instead of raw transactions)
+  let vendorSummaries: VendorYearSummary[] = [];
 
-  if (enableTransactions && selectedYear != null) {
-    transactions = (await getTransactionsForYear(selectedYear)) ?? [];
+  if (enableVendors && selectedYear != null) {
+    vendorSummaries = await getVendorSummariesForYear(selectedYear);
   }
 
   // 4) Revenue summary still uses selectedYear
@@ -216,7 +216,7 @@ export default async function AnalyticsPage({
     <CitywideDashboardClient
       budgets={budgets}
       actuals={actuals}
-      transactions={transactions}
+      vendorSummaries={vendorSummaries}
       enableTransactions={enableTransactions}
       enableVendors={enableVendors}
       enableRevenues={enableRevenues}

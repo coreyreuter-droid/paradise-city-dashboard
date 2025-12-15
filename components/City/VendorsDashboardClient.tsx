@@ -6,18 +6,18 @@ import {
   useRouter,
   useSearchParams,
 } from "next/navigation";
-import type { TransactionRow } from "@/lib/types";
 import { formatCurrency } from "@/lib/format";
 import CardContainer from "../CardContainer";
 import SectionHeader from "../SectionHeader";
 import FiscalYearSelect from "../FiscalYearSelect";
 import DataTable, { DataTableColumn } from "../DataTable";
 import { cityHref } from "@/lib/cityRouting";
+import type { VendorYearSummary } from "@/lib/queries";
 
 type Props = {
   years: number[];
   selectedYear: number | null;
-  transactions: TransactionRow[];
+  vendorSummaries: VendorYearSummary[];
   vendorQuery: string | null;
 };
 
@@ -59,7 +59,7 @@ function buildSearchUrl(
 export default function VendorsDashboardClient({
   years,
   selectedYear,
-  transactions,
+  vendorSummaries,
   vendorQuery,
 }: Props) {
   const pathname = usePathname();
@@ -73,38 +73,30 @@ export default function VendorsDashboardClient({
   const yearLabel =
     selectedYear ?? (years.length > 0 ? years[0] : undefined);
 
+  // Build vendor rows from pre-aggregated summaries
   const vendorRows: VendorRow[] = useMemo(() => {
-    const map = new Map<string, { total: number; count: number }>();
-
-    for (const tx of transactions) {
-      const raw =
-        tx.vendor && tx.vendor.trim().length > 0
-          ? tx.vendor.trim()
+    const base: VendorRow[] = vendorSummaries.map((s) => {
+      const name =
+        s.vendor && s.vendor.trim().length > 0
+          ? s.vendor.trim()
           : "Unspecified";
-      const amt = Number(tx.amount || 0);
-      const entry = map.get(raw) ?? { total: 0, count: 0 };
-      entry.total += amt;
-      entry.count += 1;
-      map.set(raw, entry);
-    }
+      const total = Number(s.total_amount || 0);
+      const count = Number(s.txn_count || 0);
+      const avg = count > 0 ? total / count : 0;
 
-    let rows: VendorRow[] = Array.from(map.entries()).map(
-      ([name, v]) => ({
+      return {
         name,
-        total: v.total,
-        count: v.count,
-        avg: v.count > 0 ? v.total / v.count : 0,
-      })
-    );
+        total,
+        count,
+        avg,
+      };
+    });
 
     const q = vendorQuery?.trim().toLowerCase();
-    if (q && q.length > 0) {
-      rows = rows.filter((r) => r.name.toLowerCase().includes(q));
-    }
+    if (!q || q.length === 0) return base;
 
-    rows.sort((a, b) => b.total - a.total);
-    return rows;
-  }, [transactions, vendorQuery]);
+    return base.filter((r) => r.name.toLowerCase().includes(q));
+  }, [vendorSummaries, vendorQuery]);
 
   const totalVendors = vendorRows.length;
   const totalSpend = vendorRows.reduce((sum, v) => sum + v.total, 0);
@@ -222,7 +214,7 @@ export default function VendorsDashboardClient({
                 {yearLabel ?? "Latest"}
               </p>
               <p className="mt-1 text-xs text-slate-500">
-                Transactions grouped by vendor.
+                Transactions aggregated by vendor.
               </p>
             </div>
             <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3 text-xs">

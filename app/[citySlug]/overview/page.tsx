@@ -6,9 +6,10 @@ import {
   getAllActuals,
   getPortalSettings,
   getAvailableFiscalYears,
-  getTransactionsForYear,
   getRevenuesForYear,
   getDataUploadLogs,
+  getVendorSummariesForYear,
+  getRecentTransactionsForYear,
 } from "@/lib/queries";
 import type {
   BudgetRow,
@@ -16,9 +17,9 @@ import type {
   TransactionRow,
   RevenueRow,
 } from "@/lib/types";
-import type { PortalSettings } from "@/lib/queries";
+import type { PortalSettings, VendorYearSummary } from "@/lib/queries";
 
-export const revalidate = 0;
+export const revalidate = 60;
 
 type SearchParams = {
   [key: string]: string | string[] | undefined;
@@ -31,13 +32,11 @@ function toYear(value: unknown): number | null {
 
 type PageProps = {
   params: { citySlug: string };
-  searchParams?: SearchParams;
+  searchParams: SearchParams | Promise<SearchParams>;
 };
 
-export default async function CityOverviewPage({
-  searchParams,
-}: PageProps) {
-  const sp = searchParams ?? {};
+export default async function CityOverviewPage({ searchParams }: PageProps) {
+  const sp = (await searchParams) ?? {};
 
   // 1) Fetch core data + upload logs
   const [
@@ -66,9 +65,8 @@ export default async function CityOverviewPage({
           {cityName} overview is not yet published
         </h1>
         <p className="mt-3 text-sm text-slate-600">
-          Staff are preparing financial data for this portal. Once
-          it&apos;s ready, the budget and spending overview will be
-          available here.
+          Staff are preparing financial data for this portal. Once it&apos;s
+          ready, the budget and spending overview will be available here.
         </p>
       </div>
     );
@@ -118,27 +116,46 @@ export default async function CityOverviewPage({
     }
   }
 
-  // 4) Fetch ONLY the transactions + revenues for the selected year
-  let transactions: TransactionRow[] = [];
+  // 4) Fetch ONLY small + pre-aggregated data for the selected year
+  let recentTransactions: TransactionRow[] = [];
+  let vendorSummaries: VendorYearSummary[] = [];
   let revenues: RevenueRow[] = [];
   let revenueTotal: number | null = null;
 
   if (selectedYear !== undefined) {
-    const [transactionsRaw, revenuesRaw] = await Promise.all([
-      getTransactionsForYear(selectedYear),
-      getRevenuesForYear(selectedYear),
-    ]);
+    const enableTransactions = portalSettings?.enable_transactions === true;
+    const enableVendors =
+      enableTransactions && portalSettings?.enable_vendors === true;
+    const enableRevenues = portalSettings?.enable_revenues === true;
 
-    transactions =
-      ((transactionsRaw ?? []) as TransactionRow[]) ?? [];
+    const promises: Promise<any>[] = [];
 
-    revenues =
-      ((revenuesRaw ?? []) as RevenueRow[]) ?? [];
-
-    revenueTotal = revenues.reduce(
-      (sum, r) => sum + Number(r.amount || 0),
-      0
+    promises.push(
+      enableTransactions
+        ? getRecentTransactionsForYear(selectedYear, 20)
+        : Promise.resolve([])
     );
+
+    promises.push(
+      enableVendors
+        ? getVendorSummariesForYear(selectedYear, { limit: 500 })
+        : Promise.resolve([])
+    );
+
+    promises.push(
+      enableRevenues ? getRevenuesForYear(selectedYear) : Promise.resolve([])
+    );
+
+    const [recentTxRaw, vendorRaw, revenuesRaw] = await Promise.all(promises);
+
+    recentTransactions = (recentTxRaw ?? []) as TransactionRow[];
+    vendorSummaries = (vendorRaw ?? []) as VendorYearSummary[];
+
+    revenues = (revenuesRaw ?? []) as RevenueRow[];
+    revenueTotal =
+      enableRevenues && revenues.length > 0
+        ? revenues.reduce((sum, r) => sum + Number(r.amount || 0), 0)
+        : null;
   }
 
   // 5) Compute data freshness summary from upload logs
@@ -168,20 +185,16 @@ export default async function CityOverviewPage({
   const dataFreshness: DataFreshnessSummary = {};
 
   tables.forEach((tableName) => {
-    const tableLogs = uploadLogs.filter(
-      (log) => log?.table_name === tableName
-    );
+    const tableLogs = uploadLogs.filter((log) => log?.table_name === tableName);
 
     if (!tableLogs.length) {
       (dataFreshness as any)[tableName] = null;
       return;
     }
 
-    // sort descending by created_at
     const latest = tableLogs.sort((a, b) => {
       return (
-        new Date(b.created_at).getTime() -
-        new Date(a.created_at).getTime()
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       );
     })[0];
 
@@ -207,7 +220,8 @@ export default async function CityOverviewPage({
     <ParadiseHomeClient
       budgets={budgets}
       actuals={actuals}
-      transactions={transactions}
+      recentTransactions={recentTransactions}
+      vendorSummaries={vendorSummaries}
       availableYears={years}
       portalSettings={portalSettings}
       revenues={revenues}

@@ -4,11 +4,10 @@ import VendorsDashboardClient from "@/components/City/VendorsDashboardClient";
 import UnpublishedMessage from "@/components/City/UnpublishedMessage";
 import {
   getTransactionYears,
-  getTransactionsForYear,
   getPortalSettings,
+  getVendorSummariesForYear,
 } from "@/lib/queries";
-import type { TransactionRow } from "@/lib/types";
-import type { PortalSettings } from "@/lib/queries";
+import type { PortalSettings, VendorYearSummary } from "@/lib/queries";
 
 export const revalidate = 0;
 
@@ -68,16 +67,18 @@ export default async function VendorsPage({
 
   const vendorQuery = pickFirst(resolvedSearchParams.q) ?? null;
 
-  let transactions: TransactionRow[] = [];
+  let vendorSummaries: VendorYearSummary[] = [];
   if (selectedYear != null) {
-    transactions = (await getTransactionsForYear(selectedYear)) ?? [];
+    vendorSummaries = await getVendorSummariesForYear(selectedYear, {
+      search: vendorQuery,
+    });
   }
 
   return (
     <VendorsDashboardClient
       years={years}
       selectedYear={selectedYear}
-      transactions={transactions}
+      vendorSummaries={vendorSummaries}
       vendorQuery={vendorQuery}
     />
   );
