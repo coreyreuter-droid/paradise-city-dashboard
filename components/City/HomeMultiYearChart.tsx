@@ -10,64 +10,38 @@ import {
   CartesianGrid,
   Legend,
 } from "recharts";
-import type { BudgetRow, ActualRow } from "@/lib/types";
 import { formatCurrency } from "@/lib/format";
 
-type Props = {
-  budgets: BudgetRow[];
-  actuals: ActualRow[];
+type YearTotalsRow = {
+  year: number;
+  Budget: number;
+  Actuals: number;
+  Variance: number;
 };
 
-export default function ParadiseHomeMultiYearChart({
-  budgets,
-  actuals,
-}: Props) {
-  const yearSet = new Set<number>();
+type Props = {
+  yearTotals: YearTotalsRow[];
+};
 
-  budgets.forEach((b) => yearSet.add(b.fiscal_year));
-  actuals.forEach((a) => yearSet.add(a.fiscal_year));
-
-  const years = Array.from(yearSet).sort((a, b) => a - b);
-
-  const data = years.map((year) => {
-    const yearBudget = budgets
-      .filter((b) => b.fiscal_year === year)
-      .reduce((sum, b) => sum + Number(b.amount || 0), 0);
-
-    const yearActuals = actuals
-      .filter((a) => a.fiscal_year === year)
-      .reduce((sum, a) => sum + Number(a.amount || 0), 0);
-
-    return {
-      year,
-      budget: yearBudget,
-      actuals: yearActuals,
-    };
-  });
+export default function ParadiseHomeMultiYearChart({ yearTotals }: Props) {
+  const data = (yearTotals ?? []).map((r) => ({
+    year: r.year,
+    budget: Number(r.Budget || 0),
+    actuals: Number(r.Actuals || 0),
+  }));
 
   if (data.length === 0) {
-    return (
-      <p className="text-sm text-slate-600">
-        No multi-year data available yet.
-      </p>
-    );
+    return <p className="text-sm text-slate-600">No multi-year data available yet.</p>;
   }
 
   const yTickFormatter = (value: number) => {
     const n = Number(value);
     if (!Number.isFinite(n)) return "";
-
     const abs = Math.abs(n);
 
-    if (abs >= 1_000_000_000) {
-      return `${(abs / 1_000_000_000).toFixed(1)}B`;
-    }
-    if (abs >= 1_000_000) {
-      return `${(abs / 1_000_000).toFixed(1)}M`;
-    }
-    if (abs >= 1_000) {
-      return `${(abs / 1_000).toFixed(1)}K`;
-    }
+    if (abs >= 1_000_000_000) return `${(abs / 1_000_000_000).toFixed(1)}B`;
+    if (abs >= 1_000_000) return `${(abs / 1_000_000).toFixed(1)}M`;
+    if (abs >= 1_000) return `${(abs / 1_000).toFixed(1)}K`;
 
     return n.toLocaleString("en-US", { maximumFractionDigits: 0 });
   };
@@ -80,26 +54,15 @@ export default function ParadiseHomeMultiYearChart({
       className="space-y-3"
     >
       <p id="home-multi-year-desc" className="sr-only">
-        Column chart and data table showing total annual budget and
-        actual spending for each fiscal year.
+        Column chart and data table showing total annual budget and actual spending for each fiscal year.
       </p>
 
       <div className="h-56 w-full min-w-0 overflow-hidden sm:h-64">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-            <XAxis
-              dataKey="year"
-              tickLine={false}
-              axisLine={{ stroke: "#cbd5f5" }}
-              tick={{ fontSize: 11, fill: "#475569" }}
-            />
-            <YAxis
-              tickFormatter={yTickFormatter}
-              tickLine={false}
-              axisLine={{ stroke: "#cbd5f5" }}
-              tick={{ fontSize: 11, fill: "#475569" }}
-            />
+            <XAxis dataKey="year" tickLine={false} axisLine={{ stroke: "#cbd5f5" }} tick={{ fontSize: 11, fill: "#475569" }} />
+            <YAxis tickFormatter={yTickFormatter} tickLine={false} axisLine={{ stroke: "#cbd5f5" }} tick={{ fontSize: 11, fill: "#475569" }} />
             <Tooltip
               formatter={(value: any, name: any) => [
                 formatCurrency(Number(value)),
@@ -113,53 +76,26 @@ export default function ParadiseHomeMultiYearChart({
                 boxShadow: "0 8px 16px rgba(15,23,42,0.12)",
               }}
             />
-            <Legend
-              verticalAlign="top"
-              align="right"
-              wrapperStyle={{ fontSize: 11 }}
-            />
-            <Bar
-              dataKey="actuals"
-              name="Actuals"
-              fill="#0f766e"
-              radius={[4, 4, 0, 0]}
-            />
-            <Bar
-              dataKey="budget"
-              name="Budget"
-              fill="#4b5563"
-              radius={[4, 4, 0, 0]}
-            />
+            <Legend verticalAlign="top" align="right" wrapperStyle={{ fontSize: 11 }} />
+            <Bar dataKey="actuals" name="Actuals" fill="#0f766e" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="budget" name="Budget" fill="#4b5563" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>
 
-      {/* Accessible tabular representation */}
       <div className="overflow-x-auto">
         <table className="min-w-full border border-slate-200 text-sm">
           <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-600">
             <tr>
-              <th scope="col" className="px-3 py-2 text-left">
-                Fiscal year
-              </th>
-              <th scope="col" className="px-3 py-2 text-right">
-                Budget
-              </th>
-              <th scope="col" className="px-3 py-2 text-right">
-                Actuals
-              </th>
+              <th scope="col" className="px-3 py-2 text-left">Fiscal year</th>
+              <th scope="col" className="px-3 py-2 text-right">Budget</th>
+              <th scope="col" className="px-3 py-2 text-right">Actuals</th>
             </tr>
           </thead>
           <tbody>
             {data.map((row) => (
-              <tr
-                key={row.year}
-                className="border-t border-slate-200 even:bg-slate-50/40"
-              >
-                <th
-                  scope="row"
-                  className="px-3 py-2 text-left font-medium text-slate-800"
-                >
+              <tr key={row.year} className="border-t border-slate-200 even:bg-slate-50/40">
+                <th scope="row" className="px-3 py-2 text-left font-medium text-slate-800">
                   {row.year}
                 </th>
                 <td className="px-3 py-2 text-right text-slate-700">

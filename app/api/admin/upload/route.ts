@@ -220,6 +220,33 @@ async function recomputeTransactionSummaries(years: number[]) {
   }
 }
 
+/**
+ * Recompute budget/actuals summaries for all fiscal years touched by an upload.
+ * Keeps budget_actuals_year_department accurate.
+ */
+async function recomputeBudgetActualsSummaries(years: number[]) {
+  const uniqueYears = Array.from(new Set(years))
+    .filter((y) => Number.isFinite(y))
+    .sort((a, b) => b - a);
+
+  for (const year of uniqueYears) {
+    const { error } = await supabaseAdmin.rpc(
+      "recompute_budget_actuals_summaries_for_year",
+      { p_year: year }
+    );
+
+    if (error) {
+      console.error("Failed recomputing budget/actuals summaries", {
+        year,
+        error,
+      });
+      throw new Error(
+        `Uploaded data successfully, but failed to recompute budget/actuals summaries for fiscal year ${year}.`
+      );
+    }
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     // 1) Authenticate caller
@@ -486,6 +513,21 @@ export async function POST(req: NextRequest) {
 
       await recomputeTransactionSummaries(yearsInData);
     }
+
+    // 9) Recompute budget/actual summaries if budgets or actuals were uploaded
+if (table === "budgets" || table === "actuals") {
+  if (yearsInData.length === 0) {
+    return NextResponse.json(
+      {
+        error:
+          "Upload succeeded, but no fiscal years were detected after normalization. Cannot recompute budget/actuals summaries.",
+      },
+      { status: 500 }
+    );
+  }
+
+  await recomputeBudgetActualsSummaries(yearsInData);
+}
 
     let action: string;
     if (mode === "append") {

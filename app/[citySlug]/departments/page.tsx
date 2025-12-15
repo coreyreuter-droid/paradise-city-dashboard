@@ -30,7 +30,7 @@ function pickFirst(value: string | string[] | undefined): string | undefined {
 }
 
 export default async function DepartmentsPage({ searchParams }: PageProps) {
-  const resolvedSearchParams = await searchParams;
+  const sp = await searchParams;
 
   const [availableYearsRaw, settings] = await Promise.all([
     getAvailableFiscalYears(),
@@ -60,7 +60,7 @@ export default async function DepartmentsPage({ searchParams }: PageProps) {
     .filter((y) => Number.isFinite(y))
     .sort((a, b) => b - a);
 
-  const yearParam = pickFirst(resolvedSearchParams.year);
+  const yearParam = pickFirst(sp?.year);
   const parsedYear = yearParam ? Number(yearParam) : NaN;
 
   const selectedYear =

@@ -1,4 +1,3 @@
-// components/City/HomeClient.tsx
 "use client";
 
 import { useMemo } from "react";
@@ -15,8 +14,12 @@ import RecentTransactionsCard from "@/components/City/HomeRecentTransactionsCard
 import HomeRevenueSummary from "@/components/City/HomeRevenueSummary";
 import { CITY_CONFIG } from "@/lib/cityConfig";
 import { cityHref } from "@/lib/cityRouting";
-import type { PortalSettings, VendorYearSummary } from "@/lib/queries";
-import type { BudgetRow, ActualRow, TransactionRow, RevenueRow } from "@/lib/types";
+import type {
+  PortalSettings,
+  VendorYearSummary,
+  BudgetActualsYearDeptRow,
+} from "@/lib/queries";
+import type { TransactionRow, RevenueRow } from "@/lib/types";
 import { formatCurrency } from "@/lib/format";
 
 type FreshnessEntry = {
@@ -33,16 +36,19 @@ type DataFreshnessSummary = {
   revenues?: FreshnessEntry | null;
 };
 
+type YearTotalsRow = {
+  year: number;
+  Budget: number;
+  Actuals: number;
+  Variance: number;
+};
+
 type Props = {
-  budgets: BudgetRow[];
-  actuals: ActualRow[];
+  deptBudgetActuals: BudgetActualsYearDeptRow[];
+  yearTotals: YearTotalsRow[];
 
-  // new: already limited server-side (max 20)
   recentTransactions: TransactionRow[];
-
-  // new: pre-aggregated vendor table for selected FY
   vendorSummaries: VendorYearSummary[];
-
   availableYears: number[];
   portalSettings: PortalSettings | null;
 
@@ -51,47 +57,21 @@ type Props = {
   dataFreshness?: DataFreshnessSummary;
 };
 
-function fy(value: unknown): number | null {
-  const n = Number(value);
-  return Number.isFinite(n) ? n : null;
-}
-
 function formatFreshnessDate(iso: string | null): string | null {
   if (!iso) return null;
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return null;
-  return d.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
-const MONTH_NAMES = [
-  "",
-  "January",
-  "February",
-  "March",
-  "April",
-  "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December",
-];
+const MONTH_NAMES = ["", "January","February","March","April","May","June","July","August","September","October","November","December"];
 
 function getFiscalYearPublicLabel(portalSettings: PortalSettings | null): string | null {
   if (!portalSettings) return null;
 
   const anySettings = portalSettings as any;
   const explicitLabel = anySettings?.fiscal_year_label as string | null | undefined;
-
-  if (explicitLabel && explicitLabel.trim().length > 0) {
-    return explicitLabel.trim();
-  }
+  if (explicitLabel && explicitLabel.trim().length > 0) return explicitLabel.trim();
 
   const startMonth = (anySettings?.fiscal_year_start_month as number | null | undefined) ?? 1;
   const startDay = (anySettings?.fiscal_year_start_day as number | null | undefined) ?? 1;
@@ -108,8 +88,8 @@ function getFiscalYearPublicLabel(portalSettings: PortalSettings | null): string
 }
 
 export default function ParadiseHomeClient({
-  budgets,
-  actuals,
+  deptBudgetActuals,
+  yearTotals,
   recentTransactions,
   vendorSummaries,
   availableYears,
@@ -120,7 +100,6 @@ export default function ParadiseHomeClient({
 }: Props) {
   const searchParams = useSearchParams();
 
-  // Feature flags – default behavior matches server-side normalization
   const enableActuals =
     portalSettings?.enable_actuals === null || portalSettings?.enable_actuals === undefined
       ? true
@@ -130,137 +109,54 @@ export default function ParadiseHomeClient({
   const enableRevenues = portalSettings?.enable_revenues === true;
   const enableVendors = enableTransactions && portalSettings?.enable_vendors === true;
 
-  const years: number[] = useMemo(() => {
-    const set = new Set<number>();
-
-    availableYears.forEach((y) => {
-      const n = fy(y);
-      if (n !== null) set.add(n);
-    });
-
-    budgets.forEach((b) => {
-      const y = fy(b.fiscal_year);
-      if (y !== null) set.add(y);
-    });
-
-    actuals.forEach((a) => {
-      const y = fy(a.fiscal_year);
-      if (y !== null) set.add(y);
-    });
-
-    return Array.from(set).sort((a, b) => b - a);
-  }, [availableYears, budgets, actuals]);
+  const years = useMemo(() => (availableYears ?? []).slice().sort((a, b) => b - a), [availableYears]);
 
   const selectedYear: number | null = useMemo(() => {
     if (!years.length) return null;
-
     const raw = searchParams.get("year");
     if (!raw) return years[0];
-
     const parsed = Number(raw);
     if (!Number.isFinite(parsed)) return years[0];
     if (!years.includes(parsed)) return years[0];
-
     return parsed;
   }, [searchParams, years]);
 
   const yearLabel = selectedYear !== null ? String(selectedYear) : null;
 
-  const budgetsForYear = useMemo(
-    () => (selectedYear === null ? budgets : budgets.filter((b) => b.fiscal_year === selectedYear)),
-    [budgets, selectedYear]
-  );
-
-  const actualsForYear = useMemo(
-    () => (selectedYear === null ? actuals : actuals.filter((a) => a.fiscal_year === selectedYear)),
-    [actuals, selectedYear]
-  );
-
-  // Department-level summaries (for charts + grid)
   const departmentsForYear: DepartmentSummary[] = useMemo(() => {
-    const budgetByDept = new Map<string, number>();
-    const actualsByDept = new Map<string, number>();
-
-    budgetsForYear.forEach((b) => {
-      if (!b.department_name) return;
-      const dept = b.department_name;
-      budgetByDept.set(dept, (budgetByDept.get(dept) || 0) + (b.amount || 0));
-    });
-
-    actualsForYear.forEach((a) => {
-      if (!a.department_name) return;
-      const dept = a.department_name;
-      const amt = a.amount || 0;
-      actualsByDept.set(dept, (actualsByDept.get(dept) || 0) + amt);
-    });
-
-    const allDepts = Array.from(new Set([...budgetByDept.keys(), ...actualsByDept.keys()]));
-
-    const rows: DepartmentSummary[] = allDepts.map((dept) => {
-      const budget = budgetByDept.get(dept) || 0;
-      const actual = actualsByDept.get(dept) || 0;
+    const rows = (deptBudgetActuals ?? []).map((r) => {
+      const dept = r.department_name || "Unspecified";
+      const budget = Number(r.budget_amount || 0);
+      const actual = Number(r.actual_amount || 0);
       const percentSpent = budget > 0 ? (actual / budget) * 100 : 0;
 
-      return {
-        department_name: dept,
-        budget,
-        actuals: actual,
-        percentSpent,
-      };
+      return { department_name: dept, budget, actuals: actual, percentSpent };
     });
 
     rows.sort((a, b) => b.budget - a.budget);
     return rows;
-  }, [budgetsForYear, actualsForYear]);
+  }, [deptBudgetActuals]);
 
-  // Vendor summaries (already server-filtered to selected FY)
-  const topVendors = useMemo(() => {
-    const rows = (vendorSummaries ?? [])
-      .map((v) => ({
-        name: (v.vendor && v.vendor.trim().length > 0 ? v.vendor.trim() : "Unspecified"),
-        total: Number(v.total_amount || 0),
-        count: Number(v.txn_count || 0),
-      }))
-      .filter((v) => v.total > 0)
-      .sort((a, b) => b.total - a.total)
-      .slice(0, 10);
-
-    return rows;
-  }, [vendorSummaries]);
-
-  // KPI rollups
   const { totalBudget, totalActuals, variance, execPct, deptCount, txCount, topDepartment } =
     useMemo(() => {
       const totalBudget = departmentsForYear.reduce((sum, d) => sum + d.budget, 0);
       const totalActuals = departmentsForYear.reduce((sum, d) => sum + d.actuals, 0);
       const variance = totalActuals - totalBudget;
       const execPct = totalBudget > 0 ? totalActuals / totalBudget : 0;
-
       const deptCount = departmentsForYear.length;
 
-      // IMPORTANT: don’t infer txCount from raw transactions anymore.
-      // Use vendor summaries (sum of txn_count) when available; otherwise 0.
       const txCount = enableTransactions
         ? (vendorSummaries ?? []).reduce((sum, v) => sum + Number(v.txn_count || 0), 0)
         : 0;
 
       const topDepartment = departmentsForYear.length > 0 ? departmentsForYear[0].department_name : null;
 
-      return {
-        totalBudget,
-        totalActuals,
-        variance,
-        execPct,
-        deptCount,
-        txCount,
-        topDepartment,
-      };
+      return { totalBudget, totalActuals, variance, execPct, deptCount, txCount, topDepartment };
     }, [departmentsForYear, enableTransactions, vendorSummaries]);
 
   const execPctDisplay = `${Math.round(execPct * 100)}%`;
   const hasBudgetData = totalBudget > 0;
 
-  // Branding / hero config
   const accentColor =
     portalSettings?.accent_color ||
     portalSettings?.primary_color ||
@@ -283,7 +179,6 @@ export default function ParadiseHomeClient({
     if (!dataFreshness) return null;
 
     const parts: string[] = [];
-
     const push = (label: string, entry: FreshnessEntry | null | undefined) => {
       if (!entry || !entry.lastUploadAt) return;
       const date = formatFreshnessDate(entry.lastUploadAt);
@@ -292,31 +187,36 @@ export default function ParadiseHomeClient({
     };
 
     push("Budgets", dataFreshness?.budgets);
-
     if (enableActuals) push("Actuals", dataFreshness?.actuals);
     if (enableTransactions) push("Transactions", dataFreshness?.transactions);
     if (enableRevenues) push("Revenues", dataFreshness?.revenues);
 
-    if (!parts.length) return null;
-    return parts.join(" · ");
+    return parts.length ? parts.join(" · ") : null;
   }, [dataFreshness, enableActuals, enableTransactions, enableRevenues]);
+
+  const topVendors = useMemo(() => {
+    return (vendorSummaries ?? [])
+      .map((v) => ({
+        name: v.vendor && v.vendor.trim().length > 0 ? v.vendor.trim() : "Unspecified",
+        total: Number(v.total_amount || 0),
+      }))
+      .filter((v) => v.total > 0)
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 8);
+  }, [vendorSummaries]);
 
   return (
     <div id="main-content" className="mx-auto max-w-6xl space-y-6 px-3 py-6 sm:px-4 sm:py-8">
       {/* Hero */}
-      <section
-        className="overflow-hidden rounded-2xl border border-slate-900/10 bg-slate-900 text-slate-50 shadow-lg"
-        aria-labelledby="overview-hero-title"
-      >
+      <section className="overflow-hidden rounded-2xl border border-slate-900/10 bg-slate-900 text-slate-50 shadow-lg" aria-labelledby="overview-hero-title">
         <div className="relative">
-          {heroImageUrl && (
+          {heroImageUrl ? (
             <div className="absolute inset-0 opacity-20" aria-hidden="true">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={heroImageUrl} alt="" className="h-full w-full object-cover" />
               <div className="absolute inset-0" style={{ backgroundColor: heroOverlay }} />
             </div>
-          )}
-          {!heroImageUrl && (
+          ) : (
             <div className="absolute inset-0" style={{ backgroundColor: heroBackground }} aria-hidden="true" />
           )}
 
@@ -330,9 +230,7 @@ export default function ParadiseHomeClient({
               </h1>
               <p className="mt-1 text-sm text-slate-100/90">{tagline}</p>
               <p className="mt-2 text-xs text-slate-200/90 sm:max-w-md">{heroMessage}</p>
-              {fiscalYearNote && (
-                <p className="mt-1 text-[11px] text-slate-300 sm:max-w-md">{fiscalYearNote}</p>
-              )}
+              {fiscalYearNote && <p className="mt-1 text-[11px] text-slate-300 sm:max-w-md">{fiscalYearNote}</p>}
 
               <div className="mt-4 flex flex-wrap gap-2">
                 <Link
@@ -377,9 +275,7 @@ export default function ParadiseHomeClient({
 
                 {enableActuals && (
                   <div className="rounded-lg bg-slate-950/50 p-3">
-                    <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">
-                      Spent to date
-                    </div>
+                    <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">Spent to date</div>
                     <div className="mt-1 text-sm font-semibold text-slate-50">
                       {hasBudgetData ? formatCurrency(totalActuals) : "Awaiting data"}
                     </div>
@@ -413,34 +309,20 @@ export default function ParadiseHomeClient({
       </section>
 
       {!hasAnyDataForSelectedYear ? (
-        <>
-          <CardContainer>
-            <section aria-label="No data available for selected fiscal year" className="space-y-2">
-              <h2 className="text-sm font-semibold text-slate-900">
-                Data not yet available for this fiscal year
-              </h2>
-              <p className="text-sm leading-relaxed text-slate-700">
-                There are no budgets or published spending data loaded for{" "}
-                {yearLabel ? `fiscal year ${yearLabel}` : "the selected year"}. Try choosing a different fiscal year from
-                the menu above, or check back after new data is published.
-              </p>
-            </section>
-          </CardContainer>
-
-          <div className="pb-4 pt-1 text-center text-xs text-slate-500">
-            Powered by <span className="font-semibold text-slate-600">CiviPortal</span>.
-          </div>
-        </>
+        <CardContainer>
+          <section aria-label="No data available for selected fiscal year" className="space-y-2">
+            <h2 className="text-sm font-semibold text-slate-900">Data not yet available for this fiscal year</h2>
+            <p className="text-sm leading-relaxed text-slate-700">
+              There are no budgets or published spending data loaded for{" "}
+              {yearLabel ? `fiscal year ${yearLabel}` : "the selected year"}.
+              Try choosing a different fiscal year from the menu above, or check back after new data is published.
+            </p>
+          </section>
+        </CardContainer>
       ) : (
         <>
           {enableActuals && (
             <CardContainer>
-              {yearLabel && (
-                <div className="mb-3 text-xs text-slate-600">
-                  Govwide totals for fiscal year <span className="font-semibold">{yearLabel}</span>.
-                </div>
-              )}
-
               <ParadiseHomeKpiStrip
                 totalBudget={totalBudget}
                 totalActuals={totalActuals}
@@ -452,7 +334,6 @@ export default function ParadiseHomeClient({
                 accentColor={accentColor}
                 enableTransactions={enableTransactions}
               />
-
               {freshnessText && <p className="mt-2 text-xs text-slate-600">Data last updated — {freshnessText}</p>}
             </CardContainer>
           )}
@@ -474,10 +355,7 @@ export default function ParadiseHomeClient({
                         Top departments by budget and their corresponding spending for {yearLabel ?? "the selected year"}.
                       </p>
                     </div>
-                    <Link
-                      href={cityHref("/departments")}
-                      className="mt-1 text-xs font-semibold text-slate-700 underline-offset-2 hover:underline"
-                    >
+                    <Link href={cityHref("/departments")} className="mt-1 text-xs font-semibold text-slate-700 underline-offset-2 hover:underline">
                       View all departments
                     </Link>
                   </div>
@@ -506,7 +384,7 @@ export default function ParadiseHomeClient({
                     </div>
                   </div>
 
-                  <ParadiseHomeMultiYearChart budgets={budgets} actuals={actuals} />
+                  <ParadiseHomeMultiYearChart yearTotals={yearTotals} />
                 </section>
               </CardContainer>
             </div>
@@ -538,10 +416,7 @@ export default function ParadiseHomeClient({
                             Vendors ranked by total spending for {yearLabel ?? "the selected year"}.
                           </p>
                         </div>
-                        <Link
-                          href={cityHref("/vendors")}
-                          className="text-xs font-semibold text-slate-700 underline-offset-2 hover:underline"
-                        >
+                        <Link href={cityHref("/vendors")} className="text-xs font-semibold text-slate-700 underline-offset-2 hover:underline">
                           View vendors
                         </Link>
                       </div>
@@ -550,7 +425,7 @@ export default function ParadiseHomeClient({
                         <p className="text-sm text-slate-600">No vendor summary data available for this year.</p>
                       ) : (
                         <ul className="divide-y divide-slate-200 rounded-lg border border-slate-200 bg-white">
-                          {topVendors.slice(0, 8).map((v) => (
+                          {topVendors.map((v) => (
                             <li key={v.name} className="flex items-center justify-between gap-3 px-3 py-2">
                               <span className="truncate text-sm text-slate-800">{v.name}</span>
                               <span className="whitespace-nowrap font-mono text-sm text-slate-900">
@@ -573,14 +448,6 @@ export default function ParadiseHomeClient({
                 </CardContainer>
               </div>
             )}
-          </div>
-
-          <div className="pb-4 pt-1 text-center text-xs text-slate-500">
-            Powered by <span className="font-semibold text-slate-600">CiviPortal</span> {" · "}
-            <span className="text-slate-600">
-              {cityName} –{" "}
-              {totalBudget > 0 ? `Managing ${formatCurrency(totalBudget)} in adopted budget` : "Awaiting budget data"}
-            </span>
           </div>
         </>
       )}

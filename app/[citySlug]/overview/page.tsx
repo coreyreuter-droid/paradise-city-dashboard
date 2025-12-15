@@ -1,34 +1,27 @@
 // app/[citySlug]/overview/page.tsx
-
 import ParadiseHomeClient from "@/components/City/HomeClient";
 import {
-  getAllBudgets,
-  getAllActuals,
   getPortalSettings,
-  getAvailableFiscalYears,
+  getPortalFiscalYears,
+  getBudgetActualsSummaryForYear,
+  getBudgetActualsYearTotals,
   getRevenuesForYear,
   getDataUploadLogs,
   getVendorSummariesForYear,
   getRecentTransactionsForYear,
 } from "@/lib/queries";
+import type { TransactionRow, RevenueRow } from "@/lib/types";
 import type {
-  BudgetRow,
-  ActualRow,
-  TransactionRow,
-  RevenueRow,
-} from "@/lib/types";
-import type { PortalSettings, VendorYearSummary } from "@/lib/queries";
+  PortalSettings,
+  VendorYearSummary,
+  BudgetActualsYearDeptRow,
+} from "@/lib/queries";
 
 export const revalidate = 60;
 
 type SearchParams = {
   [key: string]: string | string[] | undefined;
 };
-
-function toYear(value: unknown): number | null {
-  const n = Number(value);
-  return Number.isFinite(n) ? n : null;
-}
 
 type PageProps = {
   params: { citySlug: string };
@@ -38,66 +31,33 @@ type PageProps = {
 export default async function CityOverviewPage({ searchParams }: PageProps) {
   const sp = (await searchParams) ?? {};
 
-  // 1) Fetch core data + upload logs
-  const [
-    budgetsRaw,
-    actualsRaw,
-    settings,
-    availableYearsFromBudgets,
-    uploadLogsRaw,
-  ] = await Promise.all([
-    getAllBudgets(),
-    getAllActuals(),
+  const [portalSettings, portalYears, uploadLogsRaw, yearTotals] = await Promise.all([
     getPortalSettings(),
-    getAvailableFiscalYears(),
+    getPortalFiscalYears(),
     getDataUploadLogs(),
+    getBudgetActualsYearTotals(),
   ]);
 
-  const portalSettings = settings as PortalSettings | null;
+  const settings = portalSettings as PortalSettings | null;
 
-  // Gate overview if not published
-  if (portalSettings && portalSettings.is_published === false) {
-    const cityName = portalSettings.city_name || "Your City";
-
+  if (settings && settings.is_published === false) {
+    const cityName = settings.city_name || "Your City";
     return (
       <div className="mx-auto max-w-3xl px-4 py-16 text-center sm:py-24">
         <h1 className="text-xl font-semibold text-slate-900 sm:text-2xl">
           {cityName} overview is not yet published
         </h1>
         <p className="mt-3 text-sm text-slate-600">
-          Staff are preparing financial data for this portal. Once it&apos;s
-          ready, the budget and spending overview will be available here.
+          Staff are preparing financial data for this portal. Once it&apos;s ready,
+          the budget and spending overview will be available here.
         </p>
       </div>
     );
   }
 
-  const budgets = (budgetsRaw ?? []) as BudgetRow[];
-  const actuals = (actualsRaw ?? []) as ActualRow[];
+  const years = (portalYears ?? []).slice().sort((a, b) => b - a);
 
-  // 2) Build unified fiscal year list: budgets + actuals + explicit list
-  const yearSet = new Set<number>();
-
-  (availableYearsFromBudgets ?? []).forEach((y) => {
-    const n = toYear(y);
-    if (n !== null) yearSet.add(n);
-  });
-
-  budgets.forEach((b) => {
-    const n = toYear((b as any).fiscal_year);
-    if (n !== null) yearSet.add(n);
-  });
-
-  actuals.forEach((a) => {
-    const n = toYear((a as any).fiscal_year);
-    if (n !== null) yearSet.add(n);
-  });
-
-  const years = Array.from(yearSet).sort((a, b) => b - a); // newest first
-
-  // 3) Determine selected fiscal year from query param (or default to latest)
   let selectedYear: number | undefined = undefined;
-
   if (years.length > 0) {
     const rawParam = sp.year;
     const param =
@@ -108,46 +68,28 @@ export default async function CityOverviewPage({ searchParams }: PageProps) {
         : undefined;
 
     const parsed = param ? Number(param) : NaN;
-
-    if (Number.isFinite(parsed) && years.includes(parsed)) {
-      selectedYear = parsed;
-    } else {
-      selectedYear = years[0];
-    }
+    selectedYear = Number.isFinite(parsed) && years.includes(parsed) ? parsed : years[0];
   }
 
-  // 4) Fetch ONLY small + pre-aggregated data for the selected year
+  let deptBudgetActuals: BudgetActualsYearDeptRow[] = [];
   let recentTransactions: TransactionRow[] = [];
   let vendorSummaries: VendorYearSummary[] = [];
   let revenues: RevenueRow[] = [];
   let revenueTotal: number | null = null;
 
   if (selectedYear !== undefined) {
-    const enableTransactions = portalSettings?.enable_transactions === true;
-    const enableVendors =
-      enableTransactions && portalSettings?.enable_vendors === true;
-    const enableRevenues = portalSettings?.enable_revenues === true;
+    const enableTransactions = settings?.enable_transactions === true;
+    const enableVendors = enableTransactions && settings?.enable_vendors === true;
+    const enableRevenues = settings?.enable_revenues === true;
 
-    const promises: Promise<any>[] = [];
+    const [deptRows, recentTxRaw, vendorRaw, revenuesRaw] = await Promise.all([
+      getBudgetActualsSummaryForYear(selectedYear),
+      enableTransactions ? getRecentTransactionsForYear(selectedYear, 20) : Promise.resolve([]),
+      enableVendors ? getVendorSummariesForYear(selectedYear, { limit: 500 }) : Promise.resolve([]),
+      enableRevenues ? getRevenuesForYear(selectedYear) : Promise.resolve([]),
+    ]);
 
-    promises.push(
-      enableTransactions
-        ? getRecentTransactionsForYear(selectedYear, 20)
-        : Promise.resolve([])
-    );
-
-    promises.push(
-      enableVendors
-        ? getVendorSummariesForYear(selectedYear, { limit: 500 })
-        : Promise.resolve([])
-    );
-
-    promises.push(
-      enableRevenues ? getRevenuesForYear(selectedYear) : Promise.resolve([])
-    );
-
-    const [recentTxRaw, vendorRaw, revenuesRaw] = await Promise.all(promises);
-
+    deptBudgetActuals = (deptRows ?? []) as BudgetActualsYearDeptRow[];
     recentTransactions = (recentTxRaw ?? []) as TransactionRow[];
     vendorSummaries = (vendorRaw ?? []) as VendorYearSummary[];
 
@@ -158,7 +100,6 @@ export default async function CityOverviewPage({ searchParams }: PageProps) {
         : null;
   }
 
-  // 5) Compute data freshness summary from upload logs
   const uploadLogs = (uploadLogsRaw ?? []) as any[];
 
   type FreshnessEntry = {
@@ -175,13 +116,7 @@ export default async function CityOverviewPage({ searchParams }: PageProps) {
     revenues?: FreshnessEntry | null;
   };
 
-  const tables: Array<keyof DataFreshnessSummary> = [
-    "budgets",
-    "actuals",
-    "transactions",
-    "revenues",
-  ];
-
+  const tables: Array<keyof DataFreshnessSummary> = ["budgets", "actuals", "transactions", "revenues"];
   const dataFreshness: DataFreshnessSummary = {};
 
   tables.forEach((tableName) => {
@@ -193,9 +128,7 @@ export default async function CityOverviewPage({ searchParams }: PageProps) {
     }
 
     const latest = tableLogs.sort((a, b) => {
-      return (
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-      );
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     })[0];
 
     (dataFreshness as any)[tableName] = {
@@ -218,12 +151,12 @@ export default async function CityOverviewPage({ searchParams }: PageProps) {
 
   return (
     <ParadiseHomeClient
-      budgets={budgets}
-      actuals={actuals}
+      deptBudgetActuals={deptBudgetActuals}
+      yearTotals={yearTotals}
       recentTransactions={recentTransactions}
       vendorSummaries={vendorSummaries}
       availableYears={years}
-      portalSettings={portalSettings}
+      portalSettings={settings}
       revenues={revenues}
       revenueTotal={revenueTotal}
       dataFreshness={dataFreshness}

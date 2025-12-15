@@ -2,112 +2,31 @@
 import CitywideDashboardClient from "@/components/City/CitywideDashboardClient";
 import UnpublishedMessage from "@/components/City/UnpublishedMessage";
 import {
-  getAllBudgets,
-  getAllActuals,
   getPortalSettings,
+  getPortalFiscalYears,
+  getBudgetActualsSummaryForYear,
+  getBudgetActualsSummaryAllYears,
+  getBudgetActualsYearTotals,
   getRevenuesForYear,
   getVendorSummariesForYear,
 } from "@/lib/queries";
-import type {
-  BudgetRow,
-  ActualRow,
-  RevenueRow,
-} from "@/lib/types";
-import type { VendorYearSummary } from "@/lib/queries";
+import type { RevenueRow } from "@/lib/types";
+import type { VendorYearSummary, BudgetActualsYearDeptRow } from "@/lib/queries";
 import { notFound } from "next/navigation";
 
-type SearchParamsShape = {
-  year?: string;
-};
-
-function normalizeFiscalYearFromRow(row: {
-  fiscal_year?: number | string | null;
-}): number | null {
-  const raw = row?.fiscal_year;
-  if (raw == null) return null;
-
-  const n = Number(raw);
-  if (!Number.isFinite(n)) return null;
-
-  return n;
-}
-
-/**
- * Given budgets and searchParams.year, choose a selected year + the sorted list of available years.
- */
-function pickSelectedYear(
-  budgets: BudgetRow[],
-  searchParams: SearchParamsShape
-): { years: number[]; selectedYear: number | null } {
-  const yearsSet = new Set<number>();
-
-  budgets.forEach((row) => {
-    const y = normalizeFiscalYearFromRow(row);
-    if (y != null) {
-      yearsSet.add(y);
-    }
-  });
-
-  const years = Array.from(yearsSet).sort((a, b) => b - a);
-
-  if (years.length === 0) {
-    return { years: [], selectedYear: null };
-  }
-
-  const paramYear = searchParams.year;
-  if (!paramYear) {
-    return { years, selectedYear: years[0] };
-  }
-
-  const parsedYear = Number(paramYear);
-  if (!Number.isFinite(parsedYear)) {
-    return { years, selectedYear: years[0] };
-  }
-
-  const selectedYear =
-    Number.isFinite(parsedYear) && years.includes(parsedYear)
-      ? parsedYear
-      : years[0];
-
-  return { years, selectedYear };
-}
+type SearchParamsShape = { year?: string };
 
 const MONTH_NAMES = [
-  "January",
-  "February",
-  "March",
-  "April",
-  "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December",
+  "January","February","March","April","May","June",
+  "July","August","September","October","November","December",
 ];
 
-/**
- * Build the public-facing fiscal-year note from portal_settings.
- * Respects:
- * - explicit fiscal_year_label, OR
- * - numeric fiscal_year_start_month / fiscal_year_start_day with sane defaults.
- */
-function getFiscalYearNoteFromSettings(
-  settings: Record<string, unknown> | null
-): string | null {
+function getFiscalYearNoteFromSettings(settings: Record<string, unknown> | null): string | null {
   if (!settings) return null;
 
   const anySettings = settings as any;
-
-  const explicitLabel = (anySettings?.fiscal_year_label as
-    | string
-    | null
-    | undefined) ?? null;
-
-  if (explicitLabel && explicitLabel.trim().length > 0) {
-    return explicitLabel.trim();
-  }
+  const explicitLabel = (anySettings?.fiscal_year_label as string | null | undefined) ?? null;
+  if (explicitLabel && explicitLabel.trim().length > 0) return explicitLabel.trim();
 
   const rawStartMonth = anySettings?.fiscal_year_start_month;
   const rawStartDay = anySettings?.fiscal_year_start_day;
@@ -116,19 +35,12 @@ function getFiscalYearNoteFromSettings(
   const parsedDay = Number(rawStartDay);
 
   const startMonth =
-    Number.isFinite(parsedMonth) && parsedMonth >= 1 && parsedMonth <= 12
-      ? parsedMonth
-      : 7; // Default to July (common pattern)
+    Number.isFinite(parsedMonth) && parsedMonth >= 1 && parsedMonth <= 12 ? parsedMonth : 7;
   const startDay =
-    Number.isFinite(parsedDay) && parsedDay >= 1 && parsedDay <= 31
-      ? parsedDay
-      : 1; // Default to the first of the month
+    Number.isFinite(parsedDay) && parsedDay >= 1 && parsedDay <= 31 ? parsedDay : 1;
 
-  const startMonthName =
-    MONTH_NAMES[(startMonth - 1 + MONTH_NAMES.length) % MONTH_NAMES.length];
-
-  const endMonthIndex =
-    (startMonth - 2 + MONTH_NAMES.length) % MONTH_NAMES.length;
+  const startMonthName = MONTH_NAMES[(startMonth - 1 + MONTH_NAMES.length) % MONTH_NAMES.length];
+  const endMonthIndex = (startMonth - 2 + MONTH_NAMES.length) % MONTH_NAMES.length;
   const endMonthName = MONTH_NAMES[endMonthIndex];
 
   return `Fiscal year runs from ${startMonthName} ${startDay.toString()} to ${endMonthName} ${startDay.toString()} of the following year.`;
@@ -140,82 +52,67 @@ export default async function AnalyticsPage({
   params: { citySlug: string };
   searchParams: SearchParamsShape | Promise<SearchParamsShape>;
 }) {
-  const resolvedSearchParams = await searchParams;
+  const sp = await searchParams;
 
   const portalSettings = await getPortalSettings();
+  if (!portalSettings) notFound();
 
-  if (!portalSettings) {
-    notFound();
-  }
-
-  // Use is_published flag and pass settings into UnpublishedMessage
   if (portalSettings.is_published === false) {
     return <UnpublishedMessage settings={portalSettings} />;
   }
 
-  const enableTransactions =
-    (portalSettings as any)?.enable_transactions === true;
-  const enableVendors =
-    enableTransactions && (portalSettings as any)?.enable_vendors === true;
-  const enableRevenues =
-    (portalSettings as any)?.enable_revenues === true;
+  const enableTransactions = portalSettings.enable_transactions === true;
+  const enableVendors = enableTransactions && portalSettings.enable_vendors === true;
+  const enableRevenues = portalSettings.enable_revenues === true;
 
   const fiscalYearNote = getFiscalYearNoteFromSettings(
     portalSettings as unknown as Record<string, unknown> | null
   );
 
-  // 1) Load budgets + actuals in parallel (these are needed for multi-year charts)
-  const [budgetsRaw, actualsRaw] = await Promise.all([
-    getAllBudgets(),
-    getAllActuals(),
+  const [years, yoyTotals, deptAllYears] = await Promise.all([
+    getPortalFiscalYears(),
+    getBudgetActualsYearTotals(),
+    getBudgetActualsSummaryAllYears(),
   ]);
 
-  const budgets: BudgetRow[] = budgetsRaw ?? [];
-  const actuals: ActualRow[] = actualsRaw ?? [];
+  const paramYear = sp?.year;
+  const parsedYear = paramYear ? Number(paramYear) : NaN;
 
-  // 2) Decide which year is selected based on budgets + URL params
-  const { years, selectedYear } = pickSelectedYear(
-    budgets,
-    resolvedSearchParams
-  );
+  const selectedYear =
+    Number.isFinite(parsedYear) && years.includes(parsedYear)
+      ? parsedYear
+      : years.length > 0
+      ? years[0]
+      : null;
 
-  // 3) Load vendor summaries for the selected year (instead of raw transactions)
+  let deptBudgetActuals: BudgetActualsYearDeptRow[] = [];
   let vendorSummaries: VendorYearSummary[] = [];
+  let revenueSummary: { year: number; total: number } | null = null;
 
-  if (enableVendors && selectedYear != null) {
-    vendorSummaries = await getVendorSummariesForYear(selectedYear);
-  }
+  if (selectedYear != null) {
+    const [deptRows, vendorRows, revenuesRaw] = await Promise.all([
+      getBudgetActualsSummaryForYear(selectedYear),
+      enableVendors ? getVendorSummariesForYear(selectedYear) : Promise.resolve([]),
+      enableRevenues ? getRevenuesForYear(selectedYear) : Promise.resolve([]),
+    ]);
 
-  // 4) Revenue summary still uses selectedYear
-  let revenueSummary:
-    | {
-        year: number;
-        total: number;
-      }
-    | null = null;
+    deptBudgetActuals = (deptRows ?? []) as BudgetActualsYearDeptRow[];
+    vendorSummaries = (vendorRows ?? []) as VendorYearSummary[];
 
-  if (enableRevenues && selectedYear != null) {
-    const revenues: RevenueRow[] =
-      ((await getRevenuesForYear(selectedYear)) as RevenueRow[]) ?? [];
-
-    if (revenues.length > 0) {
-      const total = revenues.reduce(
-        (sum, row) => sum + (row.amount || 0),
-        0
-      );
-      revenueSummary = {
-        year: selectedYear,
-        total,
-      };
-    } else {
-      revenueSummary = null;
+    const revenues = (revenuesRaw ?? []) as RevenueRow[];
+    if (enableRevenues && revenues.length > 0) {
+      const total = revenues.reduce((sum, r) => sum + (r.amount || 0), 0);
+      revenueSummary = { year: selectedYear, total };
     }
   }
 
   return (
     <CitywideDashboardClient
-      budgets={budgets}
-      actuals={actuals}
+      years={years}
+      selectedYear={selectedYear}
+      deptBudgetActuals={deptBudgetActuals}
+      deptAllYears={deptAllYears}
+      yoyTotals={yoyTotals}
       vendorSummaries={vendorSummaries}
       enableTransactions={enableTransactions}
       enableVendors={enableVendors}
