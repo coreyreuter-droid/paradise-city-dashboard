@@ -1,4 +1,3 @@
-// components/Budget/BudgetClient.tsx
 "use client";
 
 import { useMemo } from "react";
@@ -6,12 +5,12 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import CardContainer from "../CardContainer";
 import SectionHeader from "../SectionHeader";
-import type { BudgetRow, ActualRow } from "../../lib/types";
 import { formatCurrency, formatPercent } from "@/lib/format";
 import DataTable, { DataTableColumn } from "../DataTable";
 import FiscalYearSelect from "../FiscalYearSelect";
 import BudgetByDepartmentChart from "@/components/Analytics/BudgetByDepartmentChart";
 import { cityHref } from "@/lib/cityRouting";
+import type { BudgetActualsYearDeptRow } from "@/lib/queries";
 
 export type DepartmentSummary = {
   department_name: string;
@@ -22,11 +21,10 @@ export type DepartmentSummary = {
 
 type Props = {
   years: number[];
-  budgets: BudgetRow[]; // already selected-year scoped
-  actuals: ActualRow[]; // already selected-year scoped
+  deptBudgetActuals: BudgetActualsYearDeptRow[]; // selected-year scoped summary rows
 };
 
-export default function BudgetClient({ years, budgets, actuals }: Props) {
+export default function BudgetClient({ years, deptBudgetActuals }: Props) {
   const searchParams = useSearchParams();
 
   const selectedYear = useMemo(() => {
@@ -41,48 +39,21 @@ export default function BudgetClient({ years, budgets, actuals }: Props) {
 
   const yearLabel = selectedYear ? String(selectedYear) : null;
 
-  // Aggregate by department (inputs are already year-scoped)
   const departments: DepartmentSummary[] = useMemo(() => {
-    if (!budgets.length && !actuals.length) return [];
+    if (!deptBudgetActuals || deptBudgetActuals.length === 0) return [];
 
-    const byDept = new Map<string, DepartmentSummary>();
-
-    for (const b of budgets) {
-      const name = b.department_name || "Unspecified";
-      const existing = byDept.get(name) || {
-        department_name: name,
-        budget: 0,
-        actuals: 0,
-        percentSpent: 0,
-      };
-
-      existing.budget += b.amount || 0;
-      byDept.set(name, existing);
-    }
-
-    for (const a of actuals) {
-      const name = a.department_name || "Unspecified";
-      const existing = byDept.get(name) || {
-        department_name: name,
-        budget: 0,
-        actuals: 0,
-        percentSpent: 0,
-      };
-
-      existing.actuals += a.amount || 0;
-      byDept.set(name, existing);
-    }
-
-    const result: DepartmentSummary[] = [];
-    for (const value of byDept.values()) {
-      const { budget, actuals } = value;
+    const result = deptBudgetActuals.map((r) => {
+      const name = r.department_name || "Unspecified";
+      const budget = Number(r.budget_amount ?? 0);
+      const actuals = Number(r.actual_amount ?? 0);
       const percentSpent = budget > 0 ? Math.min((actuals / budget) * 100, 999) : 0;
-      result.push({ ...value, percentSpent });
-    }
+
+      return { department_name: name, budget, actuals, percentSpent };
+    });
 
     result.sort((a, b) => b.budget - a.budget);
     return result;
-  }, [budgets, actuals]);
+  }, [deptBudgetActuals]);
 
   const totals = useMemo(() => {
     const budget = departments.reduce((sum, d) => sum + d.budget, 0);
@@ -96,7 +67,8 @@ export default function BudgetClient({ years, budgets, actuals }: Props) {
   const deptCount = departments.length;
   const chartYear = selectedYear ?? (years.length ? years[0] : 0);
 
-  const hasAnyActualsForSelectedYear = actuals.length > 0;
+  const hasAnyActualsForSelectedYear =
+    departments.some((d) => d.actuals > 0) || false;
 
   const columns: DataTableColumn<DepartmentSummary>[] = useMemo(
     () => [
@@ -247,8 +219,12 @@ export default function BudgetClient({ years, budgets, actuals }: Props) {
                 >
                   <div className="space-y-4">
                     <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Overall budget execution</p>
-                      <p className="mt-1 text-2xl font-semibold text-slate-900">{formatPercent(totals.execPct)}</p>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        Overall budget execution
+                      </p>
+                      <p className="mt-1 text-2xl font-semibold text-slate-900">
+                        {formatPercent(totals.execPct)}
+                      </p>
                       <p className="mt-1 text-xs text-slate-600">
                         {formatCurrency(totals.actuals)} of {formatCurrency(totals.budget)} spent across all departments.
                       </p>
@@ -262,7 +238,9 @@ export default function BudgetClient({ years, budgets, actuals }: Props) {
                   </div>
 
                   <div className="rounded-lg border border-slate-200 bg-white p-4">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Department spending highlights</p>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      Department spending highlights
+                    </p>
                     <p className="mt-1 text-xs text-slate-600">
                       Departments are sorted by size of adopted budget. Large green bars show major services that are currently
                       under budget; red bars flag areas where spending is running ahead of plan.

@@ -2,13 +2,11 @@
 import BudgetClient from "@/components/Budget/BudgetClient";
 import UnpublishedMessage from "@/components/City/UnpublishedMessage";
 import {
-  getAvailableFiscalYears,
-  getBudgetsForYear,
-  getActualsForYear,
+  getPortalFiscalYears,
+  getBudgetActualsSummaryForYear,
   getPortalSettings,
 } from "@/lib/queries";
-import type { BudgetRow, ActualRow } from "@/lib/types";
-import type { PortalSettings } from "@/lib/queries";
+import type { PortalSettings, BudgetActualsYearDeptRow } from "@/lib/queries";
 
 export const revalidate = 60;
 
@@ -31,7 +29,7 @@ export default async function BudgetPage({ searchParams }: PageProps) {
   const sp = await searchParams;
 
   const [yearsRaw, settings] = await Promise.all([
-    getAvailableFiscalYears(),
+    getPortalFiscalYears(),
     getPortalSettings(),
   ]);
 
@@ -41,10 +39,7 @@ export default async function BudgetPage({ searchParams }: PageProps) {
     return <UnpublishedMessage settings={portalSettings} />;
   }
 
-  const years = (yearsRaw ?? [])
-    .map((y) => Number(y))
-    .filter((y) => Number.isFinite(y))
-    .sort((a, b) => b - a);
+  const years = (yearsRaw ?? []).slice().sort((a, b) => b - a);
 
   const yearParam = pickFirst(sp?.year);
   const parsedYear = yearParam ? Number(yearParam) : NaN;
@@ -56,18 +51,12 @@ export default async function BudgetPage({ searchParams }: PageProps) {
       ? years[0]
       : undefined;
 
-  let budgets: BudgetRow[] = [];
-  let actuals: ActualRow[] = [];
+  let deptBudgetActuals: BudgetActualsYearDeptRow[] = [];
 
   if (selectedYear != null) {
-    const [budgetsRaw, actualsRaw] = await Promise.all([
-      getBudgetsForYear(selectedYear),
-      getActualsForYear(selectedYear),
-    ]);
-
-    budgets = (budgetsRaw ?? []) as BudgetRow[];
-    actuals = (actualsRaw ?? []) as ActualRow[];
+    const rows = await getBudgetActualsSummaryForYear(selectedYear);
+    deptBudgetActuals = (rows ?? []) as BudgetActualsYearDeptRow[];
   }
 
-  return <BudgetClient years={years} budgets={budgets} actuals={actuals} />;
+  return <BudgetClient years={years} deptBudgetActuals={deptBudgetActuals} />;
 }

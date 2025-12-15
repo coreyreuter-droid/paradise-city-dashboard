@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import VendorsDashboardClient from "@/components/City/VendorsDashboardClient";
 import UnpublishedMessage from "@/components/City/UnpublishedMessage";
 import {
-  getTransactionYears,
+  getPortalFiscalYears,
   getPortalSettings,
   getVendorSummariesForYear,
 } from "@/lib/queries";
@@ -27,13 +27,11 @@ function pickFirst(value: string | string[] | undefined) {
   return undefined;
 }
 
-export default async function VendorsPage({
-  searchParams,
-}: PageProps) {
+export default async function VendorsPage({ searchParams }: PageProps) {
   const resolvedSearchParams = await searchParams;
 
   const [yearsRaw, settings] = await Promise.all([
-    getTransactionYears(),
+    getPortalFiscalYears(),
     getPortalSettings(),
   ]);
 
@@ -45,11 +43,9 @@ export default async function VendorsPage({
 
   // Strict feature gating: vendors require transactions + vendors flag
   const enableTransactions = portalSettings?.enable_transactions === true;
-  const enableVendors =
-    enableTransactions && portalSettings?.enable_vendors === true;
+  const enableVendors = enableTransactions && portalSettings?.enable_vendors === true;
 
   if (portalSettings && !enableVendors) {
-    // Vendors module is disabled for this portal: route should 404
     notFound();
   }
 
@@ -60,9 +56,7 @@ export default async function VendorsPage({
     const yearParam = pickFirst(resolvedSearchParams.year);
     const parsedYear = yearParam ? Number(yearParam) : NaN;
     selectedYear =
-      Number.isFinite(parsedYear) && years.includes(parsedYear)
-        ? parsedYear
-        : years[0];
+      Number.isFinite(parsedYear) && years.includes(parsedYear) ? parsedYear : years[0];
   }
 
   const vendorQuery = pickFirst(resolvedSearchParams.q) ?? null;

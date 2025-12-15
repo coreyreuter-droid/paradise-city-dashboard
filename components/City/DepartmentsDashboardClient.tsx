@@ -1,11 +1,9 @@
-// components/City/DepartmentsDashboardClient.tsx
 "use client";
 
 import { useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import type { BudgetRow, ActualRow } from "@/lib/types";
-import type { DepartmentYearTxSummary } from "@/lib/queries";
+import type { DepartmentYearTxSummary, BudgetActualsYearDeptRow } from "@/lib/queries";
 import CardContainer from "../CardContainer";
 import SectionHeader from "../SectionHeader";
 import FiscalYearSelect from "../FiscalYearSelect";
@@ -23,22 +21,15 @@ type DepartmentSummary = {
 };
 
 type Props = {
-  budgets: BudgetRow[];
-  actuals: ActualRow[];
-  txSummaries: DepartmentYearTxSummary[];
+  deptBudgetActuals: BudgetActualsYearDeptRow[]; // selected-year dept summaries
+  txSummaries: DepartmentYearTxSummary[]; // selected-year tx summaries
   years?: number[];
   enableTransactions: boolean;
   fiscalYearNote?: string;
 };
 
-function fy(value: unknown): number | null {
-  const n = Number(value);
-  return Number.isFinite(n) ? n : null;
-}
-
 export default function DepartmentsDashboardClient({
-  budgets,
-  actuals,
+  deptBudgetActuals,
   txSummaries,
   years: yearsProp,
   enableTransactions,
@@ -46,23 +37,7 @@ export default function DepartmentsDashboardClient({
 }: Props) {
   const searchParams = useSearchParams();
 
-  const derivedYears = useMemo(() => {
-    const set = new Set<number>();
-
-    budgets.forEach((b) => {
-      const y = fy(b.fiscal_year);
-      if (y !== null) set.add(y);
-    });
-
-    actuals.forEach((a) => {
-      const y = fy(a.fiscal_year);
-      if (y !== null) set.add(y);
-    });
-
-    return Array.from(set).sort((a, b) => b - a);
-  }, [budgets, actuals]);
-
-  const years = yearsProp && yearsProp.length ? yearsProp : derivedYears;
+  const years = yearsProp ?? [];
 
   const selectedYear = useMemo(() => {
     if (!years.length) return null;
@@ -78,27 +53,11 @@ export default function DepartmentsDashboardClient({
   }, [searchParams, years]);
 
   const yearLabel = selectedYear ?? (years.length > 0 ? years[0] : undefined);
+  const yearParam = selectedYear != null ? `?year=${selectedYear}` : "";
 
-  const budgetsForYear = useMemo(
-    () =>
-      selectedYear == null
-        ? []
-        : budgets.filter((b) => fy(b.fiscal_year) === selectedYear),
-    [budgets, selectedYear]
-  );
-
-  const actualsForYear = useMemo(
-    () =>
-      selectedYear == null
-        ? []
-        : actuals.filter((a) => fy(a.fiscal_year) === selectedYear),
-    [actuals, selectedYear]
-  );
-
-  // Map tx counts by dept from pre-aggregated summaries
   const txCountByDept = useMemo(() => {
     const map = new Map<string, number>();
-    txSummaries.forEach((row) => {
+    (txSummaries ?? []).forEach((row) => {
       const dept = row.department_name || "Unspecified";
       map.set(dept, Number(row.txn_count || 0));
     });
@@ -106,30 +65,11 @@ export default function DepartmentsDashboardClient({
   }, [txSummaries]);
 
   const summaries: DepartmentSummary[] = useMemo(() => {
-    if (selectedYear == null) return [];
-
-    const budgetByDept = new Map<string, number>();
-    const actualsByDept = new Map<string, number>();
-
-    budgetsForYear.forEach((row) => {
-      const dept = row.department_name || "Unspecified";
-      const amt = Number(row.amount || 0);
-      budgetByDept.set(dept, (budgetByDept.get(dept) || 0) + amt);
-    });
-
-    actualsForYear.forEach((row) => {
-      const dept = row.department_name || "Unspecified";
-      const amt = Number(row.amount || 0);
-      actualsByDept.set(dept, (actualsByDept.get(dept) || 0) + amt);
-    });
-
-    const allDepts = Array.from(
-      new Set([...budgetByDept.keys(), ...actualsByDept.keys(), ...txCountByDept.keys()])
-    );
-
-    const rows: DepartmentSummary[] = allDepts.map((dept) => {
-      const budget = budgetByDept.get(dept) || 0;
-      const actualsVal = actualsByDept.get(dept) || 0;
+    const rows = deptBudgetActuals ?? [];
+    const result = rows.map((r) => {
+      const dept = r.department_name || "Unspecified";
+      const budget = Number(r.budget_amount ?? 0);
+      const actualsVal = Number(r.actual_amount ?? 0);
       const variance = actualsVal - budget;
       const percentSpent = budget === 0 ? 0 : Math.min((actualsVal / budget) * 100, 999);
       const txCount = txCountByDept.get(dept) || 0;
@@ -144,9 +84,26 @@ export default function DepartmentsDashboardClient({
       };
     });
 
-    rows.sort((a, b) => b.budget - a.budget);
-    return rows;
-  }, [budgetsForYear, actualsForYear, txCountByDept, selectedYear]);
+    // If there are departments that only have transactions but no budget/actual summary row,
+    // include them as zero-budget/zero-actual rows so the list is complete when transactions are enabled.
+    if (enableTransactions) {
+      for (const [dept, txCount] of txCountByDept.entries()) {
+        if (!result.some((r) => r.department_name === dept)) {
+          result.push({
+            department_name: dept,
+            budget: 0,
+            actuals: 0,
+            variance: 0,
+            percentSpent: 0,
+            txCount,
+          });
+        }
+      }
+    }
+
+    result.sort((a, b) => b.budget - a.budget);
+    return result;
+  }, [deptBudgetActuals, txCountByDept, enableTransactions]);
 
   const deptCount = summaries.length;
   const totalBudget = summaries.reduce((sum, d) => sum + d.budget, 0);
@@ -154,8 +111,6 @@ export default function DepartmentsDashboardClient({
   const variance = totalActuals - totalBudget;
   const execPct = totalBudget === 0 ? 0 : Math.min((totalActuals / totalBudget) * 100, 999);
   const totalTx = summaries.reduce((sum, d) => sum + d.txCount, 0);
-
-  const yearParam = selectedYear != null ? `?year=${selectedYear}` : "";
 
   const baseColumns: DataTableColumn<DepartmentSummary>[] = useMemo(
     () => [
@@ -340,8 +295,8 @@ export default function DepartmentsDashboardClient({
               <div className="space-y-3">
                 <h2 className="text-sm font-semibold text-slate-900">Department Detail</h2>
                 <p className="text-sm text-slate-600">
-                  This table shows each department’s budget, actual spending, variance, percentage of budget spent,
-                  {enableTransactions ? " and the number of transactions recorded for the selected year." : " and summary metrics for the selected year."}
+                  This table shows each department’s budget, actual spending, variance, percentage of budget spent
+                  {enableTransactions ? ", and the number of transactions recorded for the selected year." : "."}
                 </p>
                 <DataTable<DepartmentSummary>
                   data={summaries}
