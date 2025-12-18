@@ -70,6 +70,23 @@ export async function getPortalSettings(): Promise<PortalSettings | null> {
   return (data ?? null) as PortalSettings | null;
 }
 
+// Recent transactions (compat for overview)
+export async function getRecentTransactionsForYear(
+  fiscalYear: number,
+  limit: number = 10
+) {
+  const { data, error } = await supabase
+    .from("transactions")
+    .select("*")
+    .eq("fiscal_year", fiscalYear)
+    .order("date", { ascending: false })
+    .limit(limit);
+
+  if (error) throw error;
+  return data ?? [];
+}
+
+
 /* =========================
    Fiscal years (canonical)
 ========================= */
@@ -377,10 +394,13 @@ export type DataUploadLogRow = {
   id: number;
   created_at: string;
   table_name: string;
-  mode: "append" | "replace_year" | "replace_table";
+  mode: string;
   row_count: number;
   fiscal_year: number | null;
+  filename: string | null;
+  admin_identifier: string | null;
 };
+
 
 export async function getDataUploadLogs(): Promise<DataUploadLogRow[]> {
   // Never throw here (Overview should remain stable even if logs are unavailable).
@@ -402,4 +422,264 @@ export async function getDataUploadLogs(): Promise<DataUploadLogRow[]> {
 
   console.error("getDataUploadLogs error:", first.error || fallback.error);
   return [];
+}
+
+/* =========================
+   Legacy exports (compat)
+   - DO NOT remove/rename (UI depends on these)
+   - Implemented via summary tables + scoped raw reads where possible
+========================= */
+
+export type DepartmentBudgetActual = {
+  department_name: string;
+  budget: number;
+  actuals: number;
+  percentSpent: number; // 0–100
+};
+
+export type BudgetPageDepartmentSummary = {
+  department_name: string;
+  budget: number;
+  actuals: number;
+  percentSpent: number;
+};
+
+export type TransactionFilter = {
+  fiscalYear: number;
+  departmentName?: string;
+  fundCode?: string;
+  accountCode?: string;
+  vendorSearch?: string;
+  descriptionSearch?: string;
+  minAmount?: number;
+  maxAmount?: number;
+  limit?: number;
+  offset?: number;
+};
+
+export async function getTransactions(
+  filter: TransactionFilter
+): Promise<TransactionRow[]> {
+  const {
+    fiscalYear,
+    departmentName,
+    fundCode,
+    accountCode,
+    vendorSearch,
+    descriptionSearch,
+    minAmount,
+    maxAmount,
+    limit = 200,
+    offset = 0,
+  } = filter;
+
+  let query = supabase
+    .from("transactions")
+    .select("*")
+    .eq("fiscal_year", fiscalYear)
+    .order("date", { ascending: false });
+
+  if (departmentName) query = query.eq("department_name", departmentName);
+  if (fundCode) query = query.eq("fund_code", fundCode);
+  if (accountCode) query = query.eq("account_code", accountCode);
+
+  if (vendorSearch && vendorSearch.trim().length > 0) {
+    query = query.ilike("vendor", `%${vendorSearch.trim()}%`);
+  }
+  if (descriptionSearch && descriptionSearch.trim().length > 0) {
+    query = query.ilike("description", `%${descriptionSearch.trim()}%`);
+  }
+  if (typeof minAmount === "number") query = query.gte("amount", minAmount);
+  if (typeof maxAmount === "number") query = query.lte("amount", maxAmount);
+
+  query = query.range(offset, offset + limit - 1);
+
+  const { data, error } = await query;
+
+  if (error) {
+    console.error("getTransactions error:", error);
+    throw error;
+  }
+
+  return (data ?? []) as TransactionRow[];
+}
+
+export type TransactionsPageResult = {
+  rows: TransactionRow[];
+  totalCount: number;
+};
+
+/**
+ * Fast paginated transaction query (Transactions page).
+ * Uses planned count for performance at scale.
+ */
+export async function getTransactionsPage(options: {
+  fiscalYear?: number;
+  department?: string;
+  vendorQuery?: string;
+  page: number;
+  pageSize: number;
+}): Promise<TransactionsPageResult> {
+  const { fiscalYear, department, vendorQuery, page, pageSize } = options;
+
+  let query = supabase
+    .from("transactions")
+    .select("*", { count: "planned" });
+
+  if (fiscalYear) query = query.eq("fiscal_year", fiscalYear);
+  if (department) query = query.eq("department_name", department);
+
+  if (vendorQuery && vendorQuery.trim().length > 0) {
+    query = query.ilike("vendor", `%${vendorQuery.trim()}%`);
+  }
+
+  // Newest first
+  query = query.order("date", { ascending: false });
+
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+
+  const { data, error, count } = await query.range(from, to);
+
+  if (error) {
+    console.error("getTransactionsPage error:", error);
+    throw error;
+  }
+
+  return {
+    rows: (data ?? []) as TransactionRow[],
+    totalCount: count ?? 0,
+  };
+}
+
+/**
+ * Distinct transaction departments for a year.
+ * Uses summary table for performance.
+ */
+export async function getTransactionDepartmentsForYear(
+  fiscalYear: number
+): Promise<string[]> {
+  const { data, error } = await supabase
+    .from("transaction_year_department")
+    .select("department_name")
+    .eq("fiscal_year", fiscalYear)
+    .order("department_name", { ascending: true });
+
+  if (error) {
+    console.error("getTransactionDepartmentsForYear error:", error);
+    throw error;
+  }
+
+  const names = (data ?? [])
+    .map((r: any) => (r?.department_name ?? "").toString().trim())
+    .filter((s: string) => s.length > 0);
+
+  // de-dupe defensively
+  return Array.from(new Set(names));
+}
+
+/**
+ * Department summaries for Budget page.
+ * Uses summary table (no JS aggregation over raw tables).
+ */
+export async function getBudgetPageDepartmentSummaries(
+  fiscalYear: number
+): Promise<BudgetPageDepartmentSummary[]> {
+  const { data, error } = await supabase
+    .from("budget_actuals_year_department")
+    .select("department_name,budget_amount,actual_amount")
+    .eq("fiscal_year", fiscalYear);
+
+  if (error) {
+    console.error("getBudgetPageDepartmentSummaries error:", error);
+    throw error;
+  }
+
+  return (data ?? []).map((row: any) => {
+    const budget = Number(row?.budget_amount ?? 0);
+    const actuals = Number(row?.actual_amount ?? 0);
+    const percentSpent = budget > 0 ? Math.round((actuals / budget) * 100) : 0;
+
+    return {
+      department_name: (row?.department_name ?? "Unassigned").toString(),
+      budget,
+      actuals,
+      percentSpent,
+    };
+  });
+}
+
+/**
+ * Budget vs actuals by department for a fiscal year (used in Analytics/Budget views).
+ * Summary-table backed.
+ */
+export async function getDepartmentBudgetVsActual(
+  fiscalYear: number
+): Promise<DepartmentBudgetActual[]> {
+  const rows = await getBudgetPageDepartmentSummaries(fiscalYear);
+  // same shape, different exported name in legacy UI
+  return rows.map((r) => ({
+    department_name: r.department_name,
+    budget: r.budget,
+    actuals: r.actuals,
+    percentSpent: r.percentSpent,
+  }));
+}
+
+/**
+ * Legacy: all budgets for a department (all years).
+ * WARNING: can be large; prefer getBudgetsForDepartmentYear where possible.
+ */
+export async function getBudgetsForDepartment(
+  departmentName: string
+): Promise<BudgetRow[]> {
+  return fetchAllRows<BudgetRow>("budgets", (q) =>
+    q.eq("department_name", departmentName)
+  );
+}
+
+/**
+ * Legacy: all actuals for a department (all years).
+ * WARNING: can be large; prefer getActualsForDepartmentYear where possible.
+ */
+export async function getActualsForDepartment(
+  departmentName: string
+): Promise<ActualRow[]> {
+  return fetchAllRows<ActualRow>("actuals", (q) =>
+    q.eq("department_name", departmentName)
+  );
+}
+
+/**
+ * Legacy: all transactions for a department (all years).
+ * WARNING: can be extremely large; prefer getTransactionsForDepartmentYear.
+ */
+export async function getTransactionsForDepartment(
+  departmentName: string
+): Promise<TransactionRow[]> {
+  return fetchAllRows<TransactionRow>("transactions", (q) =>
+    q.eq("department_name", departmentName)
+  );
+}
+
+/**
+ * Legacy: distinct fiscal years present in revenues.
+ */
+export async function getRevenueYears(): Promise<number[]> {
+  const { data, error } = await supabase
+    .from("revenues")
+    .select("fiscal_year");
+
+  if (error) {
+    console.error("getRevenueYears error:", error);
+    throw error;
+  }
+
+  const set = new Set<number>();
+  (data ?? []).forEach((r: any) => {
+    const v = Number(r?.fiscal_year);
+    if (!Number.isNaN(v)) set.add(v);
+  });
+
+  return Array.from(set).sort((a, b) => b - a);
 }

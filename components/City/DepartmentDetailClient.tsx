@@ -14,14 +14,18 @@ import {
   CartesianGrid,
   Legend,
 } from "recharts";
-import type { BudgetRow, ActualRow, TransactionRow } from "@/lib/types";
+import type {
+  BudgetRow,
+  ActualRow,
+  TransactionRow,
+} from "@/lib/types";
 import CardContainer from "../CardContainer";
 import SectionHeader from "../SectionHeader";
 import FiscalYearSelect from "../FiscalYearSelect";
-import DataTable, { DataTableColumn } from "../DataTable";
+import DataTable, {
+  DataTableColumn,
+} from "../DataTable";
 import { cityHref } from "@/lib/cityRouting";
-
-type DeptYearPoint = { year: number; budget: number; actuals: number };
 
 type Props = {
   departmentName?: string;
@@ -29,10 +33,8 @@ type Props = {
   actuals: ActualRow[];
   transactions: TransactionRow[];
   enableVendors: boolean;
-  /** Optional: used for FY selector (avoids needing all-years raw data). */
   availableYears?: number[];
-  /** Optional: used for YOY chart/table (avoids needing all-years raw data). */
-  multiYearSeriesOverride?: DeptYearPoint[];
+  multiYearSeriesOverride?: any;
 };
 
 const formatCurrency = (value: number) =>
@@ -47,12 +49,16 @@ const formatAxisCurrency = (value: number) => {
   const abs = Math.abs(value);
   if (abs >= 1_000_000) return `$${(value / 1_000_000).toFixed(1)}M`;
   if (abs >= 1_000) return `$${(value / 1_000).toFixed(0)}k`;
-  return `$${value.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
+  return `$${value.toLocaleString("en-US", {
+    maximumFractionDigits: 0,
+  })}`;
 };
 
-const formatPercent = (value: number) => `${value.toFixed(1).replace(/-0\.0/, "0.0")}%`;
+const formatPercent = (value: number) =>
+  `${value.toFixed(1).replace(/-0\.0/, "0.0")}%`;
 
-const normalizeName = (name: string | null | undefined) => (name ?? "").trim().toLowerCase();
+const normalizeName = (name: string | null | undefined) =>
+  (name ?? "").trim().toLowerCase();
 
 type DeptVendorSummary = {
   name: string;
@@ -73,61 +79,78 @@ export default function DepartmentDetailClient({
   actuals,
   transactions,
   enableVendors,
-  availableYears,
-  multiYearSeriesOverride,
 }: Props) {
   const searchParams = useSearchParams();
   const [activeVendor, setActiveVendor] = useState<string | null>(null);
 
   const displayName = useMemo(() => {
-    if (departmentName && departmentName.trim().length > 0) return departmentName;
+    if (departmentName && departmentName.trim().length > 0) {
+      return departmentName;
+    }
 
-    const fromQuery = searchParams.get("department") || searchParams.get("dept");
-    if (fromQuery && fromQuery.trim().length > 0) return fromQuery;
+    const fromQuery =
+      searchParams.get("department") || searchParams.get("dept");
+    if (fromQuery && fromQuery.trim().length > 0) {
+      return fromQuery;
+    }
 
-    const fromBudgets = budgets.find((b) => b.department_name)?.department_name;
-    if (fromBudgets && fromBudgets.trim().length > 0) return fromBudgets;
+    const fromBudgets =
+      budgets.find((b) => b.department_name)?.department_name;
+    if (fromBudgets && fromBudgets.trim().length > 0) {
+      return fromBudgets;
+    }
 
-    const fromActuals = actuals.find((a) => a.department_name)?.department_name;
-    if (fromActuals && fromActuals.trim().length > 0) return fromActuals;
+    const fromActuals =
+      actuals.find((a) => a.department_name)?.department_name;
+    if (fromActuals && fromActuals.trim().length > 0) {
+      return fromActuals;
+    }
 
-    const fromTx = transactions.find((t) => t.department_name)?.department_name;
-    if (fromTx && fromTx.trim().length > 0) return fromTx;
+    const fromTx =
+      transactions.find((t) => t.department_name)?.department_name;
+    if (fromTx && fromTx.trim().length > 0) {
+      return fromTx;
+    }
 
     return "Department detail";
   }, [departmentName, searchParams, budgets, actuals, transactions]);
 
-  const normalizedDisplay = useMemo(() => normalizeName(displayName), [displayName]);
+  const normalizedDisplay = useMemo(
+    () => normalizeName(displayName),
+    [displayName]
+  );
 
   const deptBudgets = useMemo(
-    () => budgets.filter((b) => normalizeName(b.department_name) === normalizedDisplay),
+    () =>
+      budgets.filter(
+        (b) => normalizeName(b.department_name) === normalizedDisplay
+      ),
     [budgets, normalizedDisplay]
   );
 
   const deptActuals = useMemo(
-    () => actuals.filter((a) => normalizeName(a.department_name) === normalizedDisplay),
+    () =>
+      actuals.filter(
+        (a) => normalizeName(a.department_name) === normalizedDisplay
+      ),
     [actuals, normalizedDisplay]
   );
 
   const deptTx = useMemo(
-    () => transactions.filter((t) => normalizeName(t.department_name) === normalizedDisplay),
+    () =>
+      transactions.filter(
+        (t) => normalizeName(t.department_name) === normalizedDisplay
+      ),
     [transactions, normalizedDisplay]
   );
 
   const deptYears = useMemo(() => {
-    if (Array.isArray(availableYears) && availableYears.length > 0) {
-      return [...availableYears]
-        .map((y) => Number(y))
-        .filter((y) => Number.isFinite(y))
-        .sort((a, b) => b - a);
-    }
-
     const set = new Set<number>();
     deptBudgets.forEach((b) => set.add(b.fiscal_year));
     deptActuals.forEach((a) => set.add(a.fiscal_year));
     deptTx.forEach((t) => set.add(t.fiscal_year));
     return Array.from(set).sort((a, b) => b - a);
-  }, [availableYears, deptBudgets, deptActuals, deptTx]);
+  }, [deptBudgets, deptActuals, deptTx]);
 
   const selectedYear = useMemo(() => {
     if (deptYears.length === 0) return undefined;
@@ -143,19 +166,24 @@ export default function DepartmentDetailClient({
     return parsed;
   }, [searchParams, deptYears]);
 
-  const multiYearSeriesComputed = useMemo(() => {
-    const byYear = new Map<number, { year: number; budget: number; actuals: number }>();
+  const multiYearSeries = useMemo(() => {
+    const byYear = new Map<
+      number,
+      { year: number; budget: number; actuals: number }
+    >();
 
     deptBudgets.forEach((b) => {
       const year = b.fiscal_year;
-      const entry = byYear.get(year) || { year, budget: 0, actuals: 0 };
+      const entry =
+        byYear.get(year) || { year, budget: 0, actuals: 0 };
       entry.budget += Number(b.amount || 0);
       byYear.set(year, entry);
     });
 
     deptActuals.forEach((a) => {
       const year = a.fiscal_year;
-      const entry = byYear.get(year) || { year, budget: 0, actuals: 0 };
+      const entry =
+        byYear.get(year) || { year, budget: 0, actuals: 0 };
       entry.actuals += Number(a.amount || 0);
       byYear.set(year, entry);
     });
@@ -163,26 +191,34 @@ export default function DepartmentDetailClient({
     return Array.from(byYear.values()).sort((a, b) => a.year - b.year);
   }, [deptBudgets, deptActuals]);
 
-  const multiYearSeries = useMemo(() => {
-    if (Array.isArray(multiYearSeriesOverride) && multiYearSeriesOverride.length > 0) {
-      return [...multiYearSeriesOverride]
-        .map((p) => ({ year: Number(p.year), budget: Number(p.budget || 0), actuals: Number(p.actuals || 0) }))
-        .filter((p) => Number.isFinite(p.year))
-        .sort((a, b) => a.year - b.year);
-    }
-    return multiYearSeriesComputed;
-  }, [multiYearSeriesOverride, multiYearSeriesComputed]);
-
   const selectedYearTotals = useMemo(() => {
-    if (!selectedYear) return { budget: 0, actuals: 0, variance: 0, percentSpent: 0 };
+    if (!selectedYear) {
+      return {
+        budget: 0,
+        actuals: 0,
+        variance: 0,
+        percentSpent: 0,
+      };
+    }
 
-    const totalBudget = deptBudgets.reduce((sum, b) => sum + Number(b.amount || 0), 0);
-    const totalActuals = deptActuals.reduce((sum, a) => sum + Number(a.amount || 0), 0);
+    const totalBudget = deptBudgets
+      .filter((b) => b.fiscal_year === selectedYear)
+      .reduce((sum, b) => sum + Number(b.amount || 0), 0);
+
+    const totalActuals = deptActuals
+      .filter((a) => a.fiscal_year === selectedYear)
+      .reduce((sum, a) => sum + Number(a.amount || 0), 0);
 
     const variance = totalActuals - totalBudget;
-    const percentSpent = totalBudget === 0 ? 0 : (totalActuals / totalBudget) * 100;
+    const percentSpent =
+      totalBudget === 0 ? 0 : (totalActuals / totalBudget) * 100;
 
-    return { budget: totalBudget, actuals: totalActuals, variance, percentSpent };
+    return {
+      budget: totalBudget,
+      actuals: totalActuals,
+      variance,
+      percentSpent,
+    };
   }, [deptBudgets, deptActuals, selectedYear]);
 
   const deptTxForYear = useMemo(
@@ -190,7 +226,11 @@ export default function DepartmentDetailClient({
       selectedYear
         ? deptTx
             .filter((t) => t.fiscal_year === selectedYear)
-            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+            .sort(
+              (a, b) =>
+                new Date(b.date).getTime() -
+                new Date(a.date).getTime()
+            )
         : [],
     [deptTx, selectedYear]
   );
@@ -202,22 +242,32 @@ export default function DepartmentDetailClient({
     const byVendor = new Map<string, { total: number; count: number }>();
 
     deptTxForYear.forEach((tx) => {
-      const name = tx.vendor && tx.vendor.trim().length > 0 ? tx.vendor : "Unspecified";
+      const name =
+        tx.vendor && tx.vendor.trim().length > 0
+          ? tx.vendor
+          : "Unspecified";
       const amt = Number(tx.amount || 0);
-      const existing = byVendor.get(name) || { total: 0, count: 0 };
+      const existing = byVendor.get(name) || {
+        total: 0,
+        count: 0,
+      };
       existing.total += amt;
       existing.count += 1;
       byVendor.set(name, existing);
     });
 
-    const grandTotal = Array.from(byVendor.values()).reduce((sum, v) => sum + v.total, 0);
+    const grandTotal = Array.from(byVendor.values()).reduce(
+      (sum, v) => sum + v.total,
+      0
+    );
 
     return Array.from(byVendor.entries())
       .map(([name, info]) => ({
         name,
         total: info.total,
         txCount: info.count,
-        percent: grandTotal === 0 ? 0 : (info.total / grandTotal) * 100,
+        percent:
+          grandTotal === 0 ? 0 : (info.total / grandTotal) * 100,
       }))
       .sort((a, b) => b.total - a.total)
       .slice(0, 10);
@@ -225,23 +275,34 @@ export default function DepartmentDetailClient({
 
   const deptCategorySummaries: DeptCategorySummary[] = useMemo(() => {
     if (!selectedYear) return [];
-    if (deptActuals.length === 0) return [];
+
+    const actualsForYear = deptActuals.filter(
+      (a) => a.fiscal_year === selectedYear
+    );
+    if (actualsForYear.length === 0) return [];
 
     const byCategory = new Map<string, number>();
 
-    deptActuals.forEach((row) => {
-      const cat = row.category && row.category.trim().length > 0 ? row.category : "Unspecified";
+    actualsForYear.forEach((row) => {
+      const cat =
+        row.category && row.category.trim().length > 0
+          ? row.category
+          : "Unspecified";
       const amt = Number(row.amount || 0);
       byCategory.set(cat, (byCategory.get(cat) || 0) + amt);
     });
 
-    const grandTotal = Array.from(byCategory.values()).reduce((sum, v) => sum + v, 0);
+    const grandTotal = Array.from(byCategory.values()).reduce(
+      (sum, v) => sum + v,
+      0
+    );
 
     return Array.from(byCategory.entries())
       .map(([category, totalAmt]) => ({
         category,
         total: totalAmt,
-        percent: grandTotal === 0 ? 0 : (totalAmt / grandTotal) * 100,
+        percent:
+          grandTotal === 0 ? 0 : (totalAmt / grandTotal) * 100,
       }))
       .sort((a, b) => b.total - a.total)
       .slice(0, 10);
@@ -250,86 +311,584 @@ export default function DepartmentDetailClient({
   const activeVendorTx = useMemo(() => {
     if (!enableVendors || !activeVendor || !selectedYear) return [];
     return deptTxForYear.filter(
-      (tx) => (tx.vendor && tx.vendor.trim().length > 0 ? tx.vendor : "Unspecified") === activeVendor
+      (tx) =>
+        (tx.vendor && tx.vendor.trim().length > 0
+          ? tx.vendor
+          : "Unspecified") === activeVendor
     );
   }, [activeVendor, deptTxForYear, selectedYear, enableVendors]);
 
-  const baseTransactionColumns: DataTableColumn<TransactionRow>[] = useMemo(
-    () => [
-      {
-        key: "date",
-        header: "Date",
-        sortable: true,
-        sortAccessor: (row) => row.date,
-        cellClassName: "whitespace-nowrap",
-        cell: (row) => row.date,
-      },
-      {
-        key: "vendor",
-        header: "Vendor",
-        sortable: true,
-        sortAccessor: (row) => (row.vendor || "Unspecified").toLowerCase(),
-        cellClassName: "whitespace-nowrap",
-        cell: (row) => {
-          const name = row.vendor || "Unspecified";
-          return (
-            <button
-              type="button"
-              onClick={() => (enableVendors ? setActiveVendor(name) : undefined)}
-              className={
-                enableVendors
-                  ? "whitespace-nowrap text-sky-700 hover:underline"
-                  : "whitespace-nowrap text-slate-700"
-              }
-              aria-disabled={!enableVendors}
-            >
-              {enableVendors ? name : "Hidden"}
-            </button>
-          );
+  const baseTransactionColumns: DataTableColumn<TransactionRow>[] =
+    useMemo(
+      () => [
+        {
+          key: "date",
+          header: "Date",
+          sortable: true,
+          sortAccessor: (row) => row.date,
+          cellClassName: "whitespace-nowrap",
+          cell: (row) => row.date,
         },
-      },
-      {
-        key: "description",
-        header: "Description",
-        sortable: true,
-        sortAccessor: (row) => (row.description || "").toLowerCase(),
-        cell: (row) => row.description || <span className="italic text-slate-600">No description</span>,
-      },
-      {
-        key: "amount",
-        header: "Amount",
-        sortable: true,
-        sortAccessor: (row) => Number(row.amount || 0),
-        headerClassName: "text-right",
-        cellClassName: "text-right font-mono",
-        cell: (row) => formatCurrency(Number(row.amount || 0)),
-      },
-    ],
-    [enableVendors]
-  );
+        {
+          key: "vendor",
+          header: "Vendor",
+          sortable: true,
+          sortAccessor: (row) =>
+            (row.vendor || "Unspecified").toLowerCase(),
+          cellClassName: "whitespace-nowrap",
+          cell: (row) => {
+            const name = row.vendor || "Unspecified";
+            return (
+              <button
+                type="button"
+                onClick={() =>
+                  enableVendors
+                    ? setActiveVendor(name)
+                    : undefined
+                }
+                className={
+                  enableVendors
+                    ? "whitespace-nowrap text-sky-700 hover:underline"
+                    : "whitespace-nowrap text-slate-700"
+                }
+                aria-disabled={!enableVendors}
+              >
+                {enableVendors ? name : "Hidden"}
+              </button>
+            );
+          },
+        },
+        {
+          key: "description",
+          header: "Description",
+          sortable: true,
+          sortAccessor: (row) =>
+            (row.description || "").toLowerCase(),
+          cell: (row) =>
+            row.description || (
+              <span className="italic text-slate-600">
+                No description
+              </span>
+            ),
+        },
+        {
+          key: "amount",
+          header: "Amount",
+          sortable: true,
+          sortAccessor: (row) => Number(row.amount || 0),
+          headerClassName: "text-right",
+          cellClassName: "text-right font-mono",
+          cell: (row) =>
+            formatCurrency(Number(row.amount || 0)),
+        },
+      ],
+      [enableVendors]
+    );
 
   const transactionColumns = useMemo(() => {
     if (enableVendors) return baseTransactionColumns;
+    // Strip vendor column entirely when vendor names are disabled.
     return baseTransactionColumns.filter((col) => col.key !== "vendor");
   }, [baseTransactionColumns, enableVendors]);
 
-  const vendorTotal = useMemo(() => activeVendorTx.reduce((sum, t) => sum + Number(t.amount || 0), 0), [activeVendorTx]);
-
-  // --- UI below is unchanged from your current version ---
-  // (rest of your JSX remains the same as you provided)
+  const vendorTotal = useMemo(
+    () =>
+      activeVendorTx.reduce(
+        (sum, t) => sum + Number(t.amount || 0),
+        0
+      ),
+    [activeVendorTx]
+  );
 
   return (
     <div id="main-content" className="min-h-screen bg-slate-50">
-      {/* KEEP YOUR EXISTING JSX HERE */}
-      {/* I’m not re-pasting the full JSX again in this message because you already have it in your current file.
-          The only changes above are: props + deptYears + multiYearSeries override. */}
       <div className="mx-auto max-w-6xl px-4 py-8">
-        {/* ... your existing UI ... */}
+        <SectionHeader
+          eyebrow="Department Overview"
+          title={displayName}
+          description={
+            enableVendors
+              ? "Multi-year trends and detailed transactions for this department."
+              : "Multi-year trends and detailed transactions for this department. Vendor names are disabled for this city."
+          }
+          rightSlot={
+            deptYears.length > 0 ? (
+              <FiscalYearSelect
+                options={deptYears}
+                label="Fiscal year"
+              />
+            ) : null
+          }
+        />
+
+        {/* Breadcrumb */}
+        <nav
+          aria-label="Breadcrumb"
+          className="mb-4 flex items-center gap-1 px-1 text-sm text-slate-600"
+        >
+          <Link
+            href={cityHref("/overview")}
+            className="hover:text-slate-800"
+          >
+            Home
+          </Link>
+          <span className="text-slate-500">›</span>
+          <Link
+            href={cityHref("/departments")}
+            className="hover:text-slate-800"
+          >
+            Departments
+          </Link>
+          <span className="text-slate-500">›</span>
+          <span className="font-medium text-slate-700">
+            {displayName}
+          </span>
+        </nav>
+
+        {/* Metrics */}
+        <div className="mb-6 grid gap-4 md:grid-cols-4">
+          <CardContainer>
+            <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-600">
+              Total Budget ({selectedYear ?? "–"})
+            </div>
+            <div className="mt-1 text-2xl font-bold text-slate-900">
+              {formatCurrency(selectedYearTotals.budget)}
+            </div>
+          </CardContainer>
+
+          <CardContainer>
+            <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-600">
+              Total Actuals ({selectedYear ?? "–"})
+            </div>
+            <div className="mt-1 text-2xl font-bold text-slate-900">
+              {formatCurrency(selectedYearTotals.actuals)}
+            </div>
+            <div className="mt-1 text-sm text-slate-600">
+              {formatPercent(selectedYearTotals.percentSpent)} of
+              budget spent
+            </div>
+          </CardContainer>
+
+          <CardContainer>
+            <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-600">
+              Variance ({selectedYear ?? "–"})
+            </div>
+            <div
+              className={`mt-1 text-2xl font-bold ${
+                selectedYearTotals.variance > 0
+                  ? "text-emerald-700"
+                  : selectedYearTotals.variance < 0
+                  ? "text-red-700"
+                  : "text-slate-900"
+              }`}
+            >
+              {formatCurrency(
+                Math.abs(selectedYearTotals.variance)
+              )}
+            </div>
+            <div className="mt-1 text-sm text-slate-600">
+              {selectedYearTotals.variance >= 0
+                ? "Over"
+                : "Under"}{" "}
+              budget by{" "}
+              {formatPercent(
+                Math.abs(selectedYearTotals.percentSpent - 100)
+              )}
+              .
+            </div>
+          </CardContainer>
+
+          <CardContainer>
+            <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-600">
+              Transactions ({selectedYear ?? "–"})
+            </div>
+            <div className="mt-1 text-2xl font-bold text-slate-900">
+              {deptTxForYear.length.toLocaleString("en-US")}
+            </div>
+          </CardContainer>
+        </div>
+
+        {/* Multi-year chart */}
+        <div className="mb-6">
+          <CardContainer>
+            <figure
+              role="group"
+              aria-labelledby="dept-multiyear-heading"
+              aria-describedby="dept-multiyear-desc"
+              className="space-y-3"
+            >
+              <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                  <h2
+                    id="dept-multiyear-heading"
+                    className="text-sm font-semibold text-slate-800"
+                  >
+                    Multi-year Budget vs Actuals
+                  </h2>
+                  <p
+                    id="dept-multiyear-desc"
+                    className="text-sm text-slate-600"
+                  >
+                    Trend of adopted budget and actual spending for{" "}
+                    {displayName} across fiscal years.
+                  </p>
+                </div>
+              </div>
+
+              <div className="h-[280px] w-full min-w-0 overflow-hidden sm:h-[320px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart
+                    data={multiYearSeries}
+                    margin={{
+                      top: 10,
+                      right: 30,
+                      left: 10,
+                      bottom: 20,
+                    }}
+                  >
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      stroke="#e5e7eb"
+                    />
+                    <XAxis
+                      dataKey="year"
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <YAxis
+                      tickFormatter={formatAxisCurrency}
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <Tooltip
+                      labelFormatter={(label) =>
+                        `Fiscal year ${label}`
+                      }
+                      formatter={(value: any, name) =>
+                        typeof value === "number"
+                          ? [formatCurrency(value), name]
+                          : [value, name]
+                      }
+                    />
+                    <Legend
+                      verticalAlign="top"
+                      align="right"
+                      wrapperStyle={{ fontSize: 11 }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="budget"
+                      name="Budget"
+                      dot={false}
+                      strokeWidth={2}
+                      stroke="#3b82f6"
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="actuals"
+                      name="Actuals"
+                      dot={false}
+                      strokeWidth={2}
+                      stroke="#10b981"
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+
+              {multiYearSeries.length > 0 && (
+                <div className="overflow-x-auto">
+                  <table className="mt-2 min-w-full border border-slate-200 text-sm">
+                    <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-600">
+                      <tr>
+                        <th
+                          scope="col"
+                          className="px-3 py-2 text-left"
+                        >
+                          Fiscal year
+                        </th>
+                        <th
+                          scope="col"
+                          className="px-3 py-2 text-right"
+                        >
+                          Budget
+                        </th>
+                        <th
+                          scope="col"
+                          className="px-3 py-2 text-right"
+                        >
+                          Actuals
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {multiYearSeries.map((row) => (
+                        <tr
+                          key={row.year}
+                          className="border-t border-slate-200"
+                        >
+                          <th
+                            scope="row"
+                            className="px-3 py-2 text-left font-medium text-slate-800"
+                          >
+                            {row.year}
+                          </th>
+                          <td className="px-3 py-2 text-right text-slate-700">
+                            {formatCurrency(row.budget)}
+                          </td>
+                          <td className="px-3 py-2 text-right text-slate-700">
+                            {formatCurrency(row.actuals)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </figure>
+          </CardContainer>
+        </div>
+
+        {/* Vendors + categories + transactions */}
+        <div className="grid gap-6 lg:grid-cols-[2fr,1.2fr]">
+          {/* Left: transactions table */}
+          <CardContainer>
+            <div className="p-4">
+              <h2 className="mb-2 text-sm font-semibold text-slate-900">
+                Transactions ({selectedYear ?? "–"})
+              </h2>
+              {deptTxForYear.length === 0 ? (
+                <p className="text-sm text-slate-600">
+                  No transactions found for this department in the
+                  selected year.
+                </p>
+              ) : (
+                <DataTable<TransactionRow>
+                  data={deptTxForYear}
+                  columns={transactionColumns}
+                  initialSortKey="date"
+                  initialSortDirection="desc"
+                  getRowKey={(_, index) => String(index)}
+                />
+              )}
+            </div>
+          </CardContainer>
+
+          {/* Right: vendors + categories */}
+          <div className="space-y-6">
+            {/* Vendors – only when vendor module is enabled */}
+            {enableVendors && (
+              <CardContainer>
+                <div className="p-4">
+                  <h2 className="mb-2 text-sm font-semibold text-slate-900">
+                    Top Vendors ({selectedYear ?? "–"})
+                  </h2>
+
+                  {deptVendorSummaries.length === 0 ? (
+                    <p className="text-sm text-slate-600">
+                      No vendor spending found for the selected year.
+                    </p>
+                  ) : (
+                    <div className="space-y-1.5 text-sm">
+                      {deptVendorSummaries.map((v) => (
+                        <div key={v.name}>
+                          <div className="flex items-center justify-between gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setActiveVendor(v.name)}
+                              className="truncate pr-2 text-left text-sky-700 hover:underline"
+                            >
+                              {v.name}
+                            </button>
+                            <span className="whitespace-nowrap font-mono">
+                              {formatCurrency(v.total)}
+                            </span>
+                          </div>
+                          <div className="mt-1 flex items-center gap-2">
+                            <div className="h-1.5 flex-1 rounded-full bg-slate-100">
+                              <div
+                                className="h-1.5 rounded-full bg-sky-500"
+                                style={{
+                                  width: `${Math.max(
+                                    2,
+                                    Math.min(v.percent, 100)
+                                  )}%`,
+                                }}
+                              />
+                            </div>
+                            <span className="w-12 text-right text-xs text-slate-600">
+                              {formatPercent(v.percent)}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </CardContainer>
+            )}
+
+            {/* Categories */}
+            <CardContainer>
+              <div className="p-4">
+                <h2 className="mb-2 text-sm font-semibold text-slate-900">
+                  Spending by category ({selectedYear ?? "–"})
+                </h2>
+
+                {deptCategorySummaries.length === 0 ? (
+                  <p className="text-sm text-slate-600">
+                    No categorized spending found for the selected
+                    year.
+                  </p>
+                ) : (
+                  <div className="space-y-1.5 text-sm">
+                    {deptCategorySummaries.map((c) => (
+                      <div key={c.category}>
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="truncate pr-2">
+                            {c.category}
+                          </span>
+                          <span className="whitespace-nowrap font-mono">
+                            {formatCurrency(c.total)}
+                          </span>
+                        </div>
+                        <div className="mt-1 flex items-center gap-2">
+                          <div className="h-1.5 flex-1 rounded-full bg-slate-100">
+                            <div
+                              className="h-1.5 rounded-full bg-emerald-500"
+                              style={{
+                                width: `${Math.max(
+                                  2,
+                                  Math.min(c.percent, 100)
+                                )}%`,
+                              }}
+                            />
+                          </div>
+                          <span className="w-12 text-right text-xs text-slate-600">
+                            {formatPercent(c.percent)}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </CardContainer>
+          </div>
+        </div>
       </div>
 
+      {/* Vendor detail slideout – only when vendor module is enabled */}
       {enableVendors && activeVendor && (
         <div className="fixed inset-0 z-[9999] flex justify-end bg-black/40 backdrop-blur-sm">
-          {/* ... your existing slideout ... */}
+          <div
+            className="flex h-full w-full max-w-md flex-col bg-white shadow-2xl"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="vendor-detail-heading"
+            aria-describedby="vendor-detail-subtitle"
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-600">
+                  Vendor detail
+                </p>
+                <h2
+                  id="vendor-detail-heading"
+                  className="text-sm font-semibold text-slate-900"
+                >
+                  {activeVendor}
+                </h2>
+                <p
+                  id="vendor-detail-subtitle"
+                  className="mt-0.5 text-sm text-slate-600"
+                >
+                  {displayName} • Fiscal year {selectedYear ?? "–"}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setActiveVendor(null)}
+                className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-800"
+              >
+                Close
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="flex-1 space-y-3 overflow-auto px-4 py-3">
+              <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-600">
+                  Total spent with this vendor
+                </div>
+                <div className="mt-1 text-lg font-semibold text-slate-900">
+                  {formatCurrency(vendorTotal)}
+                </div>
+                <div className="mt-1 text-sm text-slate-600">
+                  {activeVendorTx.length.toLocaleString("en-US")}{" "}
+                  transaction{activeVendorTx.length === 1 ? "" : "s"}{" "}
+                  for this department in {selectedYear ?? "–"}.
+                </div>
+              </div>
+
+              {activeVendorTx.length === 0 ? (
+                <p className="text-sm text-slate-600">
+                  No transactions found for this vendor in the
+                  selected year.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  <p className="text-sm font-semibold text-slate-700">
+                    Transactions with {activeVendor}
+                  </p>
+                  <div className="overflow-x-auto">
+                    <div className="max-h-[360px] overflow-y-auto">
+                      <table className="min-w-full text-left text-sm">
+                        <thead className="border-b border-slate-200 bg-slate-50">
+                          <tr>
+                            <th className="px-2 py-2 font-semibold text-slate-700">
+                              Date
+                            </th>
+                            <th className="px-2 py-2 font-semibold text-slate-700">
+                              Description
+                            </th>
+                            <th className="px-2 py-2 text-right font-semibold text-slate-700">
+                              Amount
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {activeVendorTx.map((tx, idx) => (
+                            <tr
+                              key={`${tx.date}-${idx}`}
+                              className="border-b border-slate-100 last:border-0"
+                            >
+                              <td className="px-2 py-1.5">
+                                {tx.date}
+                              </td>
+                              <td className="px-2 py-1.5">
+                                {tx.description || (
+                                  <span className="italic text-slate-600">
+                                    No description
+                                  </span>
+                                )}
+                              </td>
+                              <td className="px-2 py-1.5 text-right font-mono">
+                                {formatCurrency(
+                                  Number(tx.amount || 0)
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>
