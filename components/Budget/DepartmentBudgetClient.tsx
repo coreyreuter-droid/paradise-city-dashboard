@@ -429,10 +429,11 @@ export default function DepartmentBudgetClient(props: Props) {
                         tick={{ fontSize: 11, fill: "#64748b" }}
                       />
                       <Tooltip
-                        formatter={(value: any, name: string) => [
-                          formatCurrency(Number(value) || 0),
-                          name,
-                        ]}
+formatter={(value: any, name?: string) => {
+  const key = name ?? "";
+  return [formatCurrency(Number(value ?? 0)), key];
+}}
+
                         labelFormatter={(label: any) => `Fiscal year ${label}`}
                       />
                       <Bar

@@ -92,22 +92,21 @@ export default function BudgetByDepartmentChart({
               width={180}
               tick={{ fontSize: 11, fill: "#475569" }}
             />
-            <Tooltip
-              formatter={(value: any, name: string) => {
-                if (name === "Budget") {
-                  return [formatCurrency(Number(value)), "Budget"];
-                }
-                if (name === "Actuals") {
-                  return [formatCurrency(Number(value)), "Actuals"];
-                }
-                if (name === "% spent") {
-                  return [
-                    formatPercent(Number(value)),
-                    "% of budget spent",
-                  ];
-                }
-                return value;
-              }}
+          <Tooltip
+            formatter={(value: any, name?: string) => {
+              const key = name ?? "";
+
+              if (key === "Budget") {
+                return [formatCurrency(Number(value)), "Budget"];
+              }
+              if (key === "Actuals") {
+                return [formatCurrency(Number(value)), "Actuals"];
+              }
+              if (key === "% spent") {
+                return [formatPercent(Number(value)), "% of budget spent"];
+              }
+              return value;
+            }}
               labelFormatter={(label: any) =>
                 `Department: ${String(label)}`
               }

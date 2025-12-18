@@ -406,10 +406,11 @@ export default function RevenuesDashboardClient({
                           ))}
                         </Pie>
                         <Tooltip
-                          formatter={(value: any, name: string) => [
-                            formatCurrency(Number(value)),
-                            name,
-                          ]}
+formatter={(value: any, name?: string) => {
+  const key = name ?? "";
+  return [formatCurrency(Number(value ?? 0)), key];
+}}
+
                         />
                       </PieChart>
                     </ResponsiveContainer>

@@ -189,10 +189,11 @@ export default function BudgetCharts({
               }
             />
             <Tooltip
-              formatter={(value: number, name) => [
-                formatCurrency(value),
-                name,
-              ]}
+formatter={(value?: number, name?: any) => [
+  formatCurrency(Number(value ?? 0)),
+  name,
+]}
+
               labelFormatter={(label: any) =>
                 `Department: ${String(label)}`
               }

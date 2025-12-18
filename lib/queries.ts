@@ -54,6 +54,19 @@ export type PortalSettings = {
   fiscal_year_label: string | null;
   fiscal_year_start_month: number | null;
   fiscal_year_start_day: number | null;
+
+  // Homepage stats + section toggles (used by LandingClient)
+  stat_population: string | null;
+  stat_employees: string | null;
+  stat_square_miles: string | null;
+  stat_annual_budget: string | null;
+
+  show_leadership: boolean | null;
+  show_story: boolean | null;
+  show_year_review: boolean | null;
+  show_capital_projects: boolean | null;
+  show_stats: boolean | null;
+  show_projects: boolean | null;
 };
 
 export async function getPortalSettings(): Promise<PortalSettings | null> {
@@ -242,8 +255,9 @@ export async function getBudgetActualsYearTotals(): Promise<
 
   const rows = (data ?? []) as any[];
   return rows.map((r) => {
-    const budget = Number(r.budget_total ?? 0);
-    const actual = Number(r.actual_total ?? 0);
+const budget = Number(r.total_budget ?? 0);
+const actual = Number(r.total_actuals ?? 0);
+
     return {
       year: Number(r.fiscal_year),
       Budget: budget,

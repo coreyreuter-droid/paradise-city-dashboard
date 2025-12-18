@@ -439,12 +439,11 @@ export default function CitywideDashboardClient({
                                 })}
                               </Pie>
                               <Tooltip
-                                formatter={(value: any, name: string) => {
-                                  const v = Number(value);
-                                  const pct =
-                                    distributionTotalBudget === 0 ? 0 : (v / distributionTotalBudget) * 100;
-                                  return [`${formatCurrency(v)} (${formatPercent(pct, 1)})`, name];
-                                }}
+formatter={(value: any, name?: string) => {
+  const key = name ?? "";
+  return [formatCurrency(Number(value ?? 0)), key];
+}}
+
                               />
                             </PieChart>
                           </ResponsiveContainer>
@@ -518,12 +517,11 @@ export default function CitywideDashboardClient({
                                 })}
                               </Pie>
                               <Tooltip
-                                formatter={(value: any, name: string) => {
-                                  const v = Number(value);
-                                  const pct =
-                                    distributionTotalActuals === 0 ? 0 : (v / distributionTotalActuals) * 100;
-                                  return [`${formatCurrency(v)} (${formatPercent(pct, 1)})`, name];
-                                }}
+formatter={(value: any, name?: string) => {
+  const key = name ?? "";
+  return [value, key];
+}}
+
                               />
                             </PieChart>
                           </ResponsiveContainer>
