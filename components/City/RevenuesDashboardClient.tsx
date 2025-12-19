@@ -46,16 +46,17 @@ type RevenueSourceRow = {
 type DistributionSlice = { name: string; value: number };
 
 const PIE_COLORS = [
-  "#0f766e",
-  "#0369a1",
-  "#4f46e5",
-  "#7c3aed",
-  "#db2777",
-  "#ea580c",
-  "#15803d",
+  "#0f172a", // slate-900
+  "#334155", // slate-700
+  "#64748b", // slate-500
+  "#0f766e", // teal-700 (status/positive alt)
+  "#15803d", // green-700 (positive)
+  "#b45309", // amber-700 (warning)
+  "#b91c1c", // red-700 (negative)
 ];
 
-const REVENUE_LINE_COLOR = "#0f766e";
+
+const REVENUE_LINE_COLOR = "#0f172a";
 
 const CURRENCY_COMPACT = new Intl.NumberFormat("en-US", {
   notation: "compact",
@@ -69,6 +70,31 @@ function formatCurrencyCompactTick(value: number) {
   const abs = Math.abs(n);
   const sign = n < 0 ? "-" : "";
   return `${sign}$${CURRENCY_COMPACT.format(abs)}`;
+}
+
+function computeSnappedDomain(values: number[]): [number, number] {
+  const finite = values.filter((v) => Number.isFinite(v));
+  if (finite.length === 0) return [0, 100_000];
+
+  let min = Math.min(...finite);
+  let max = Math.max(...finite);
+
+  if (min === max) {
+    const pad = Math.max(Math.abs(min) * 0.1, 100_000);
+    min -= pad;
+    max += pad;
+  }
+
+  const range = max - min;
+  const pad = range * 0.08;
+  min -= pad;
+  max += pad;
+
+  const step = 100_000; // 0.1M
+  const snappedMin = Math.floor(min / step) * step;
+  const snappedMax = Math.ceil(max / step) * step;
+
+  return [snappedMin, snappedMax];
 }
 
 function buildSearchUrl(
@@ -193,6 +219,11 @@ export default function RevenuesDashboardClient({
         Revenue: row.total,
       }));
   }, [yearTotals]);
+
+    const yoyDomain = useMemo((): [number, number] => {
+    const values = yoyTrendData.map((d) => Number(d.Revenue || 0));
+    return computeSnappedDomain(values);
+  }, [yoyTrendData]);
 
   const distributionSlices = useMemo(() => {
     const base: DistributionSlice[] = sourceRows.map((row) => ({
@@ -531,11 +562,12 @@ formatter={(value: any, name?: string) => {
                           tickLine={false}
                           axisLine={false}
                         />
-                        <YAxis
-                          tickFormatter={formatCurrencyCompactTick}
-                          tickLine={false}
-                          axisLine={false}
-                        />
+                      <YAxis
+                        domain={yoyDomain}
+                        tickFormatter={formatCurrencyCompactTick}
+                        tickLine={false}
+                        axisLine={false}
+                      />
 
                         <Tooltip
                           labelFormatter={(label) =>

@@ -54,6 +54,34 @@ const formatAxisCurrency = (value: number) => {
   })}`;
 };
 
+function computeSnappedDomain(values: number[]): [number, number] {
+  const finite = values.filter((v) => Number.isFinite(v));
+  if (finite.length === 0) return [0, 100_000];
+
+  let min = Math.min(...finite);
+  let max = Math.max(...finite);
+
+  // If series is flat, pad it so Recharts has a visible range.
+  if (min === max) {
+    const pad = Math.max(Math.abs(min) * 0.1, 100_000);
+    min -= pad;
+    max += pad;
+  }
+
+  // Add a little breathing room.
+  const range = max - min;
+  const pad = range * 0.08;
+  min -= pad;
+  max += pad;
+
+  // Snap to 0.1M increments.
+  const step = 100_000;
+  const snappedMin = Math.floor(min / step) * step;
+  const snappedMax = Math.ceil(max / step) * step;
+
+  return [snappedMin, snappedMax];
+}
+
 const formatPercent = (value: number) =>
   `${value.toFixed(1).replace(/-0\.0/, "0.0")}%`;
 
@@ -190,6 +218,16 @@ export default function DepartmentDetailClient({
 
     return Array.from(byYear.values()).sort((a, b) => a.year - b.year);
   }, [deptBudgets, deptActuals]);
+
+    const multiYearDomain = useMemo((): [number, number] => {
+    const values: number[] = [];
+    multiYearSeries.forEach((row) => {
+      values.push(Number(row.budget || 0));
+      values.push(Number(row.actuals || 0));
+    });
+    return computeSnappedDomain(values);
+  }, [multiYearSeries]);
+
 
   const selectedYearTotals = useMemo(() => {
     if (!selectedYear) {
@@ -556,10 +594,12 @@ export default function DepartmentDetailClient({
                       axisLine={false}
                     />
                     <YAxis
+                      domain={multiYearDomain}
                       tickFormatter={formatAxisCurrency}
                       tickLine={false}
                       axisLine={false}
-                    />
+/>
+
                     <Tooltip
                       labelFormatter={(label) =>
                         `Fiscal year ${label}`
@@ -581,7 +621,7 @@ export default function DepartmentDetailClient({
                       name="Budget"
                       dot={false}
                       strokeWidth={2}
-                      stroke="#3b82f6"
+                      stroke="#0f172a"
                     />
                     <Line
                       type="monotone"

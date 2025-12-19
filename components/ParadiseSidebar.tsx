@@ -32,143 +32,65 @@ type PortalBranding = {
   enable_vendors: boolean;
 };
 
-export default function ParadiseSidebar() {
+type Props = {
+  initialBranding?: PortalBranding | null;
+  initialIsPublished?: boolean;
+};
+
+export default function ParadiseSidebar({
+  initialBranding = null,
+  initialIsPublished = true,
+}: Props) {
+
   const pathname = usePathname();
 
-  const [branding, setBranding] = useState<PortalBranding | null>(null);
+  const [branding] = useState<PortalBranding | null>(initialBranding);
   const [mobileOpen, setMobileOpen] = useState(false);
 
   // whether dashboard nav should be visible (published OR admin)
-  const [showDashboardNav, setShowDashboardNav] = useState(true);
+  const [showDashboardNav, setShowDashboardNav] = useState(initialIsPublished);
   const [isAdminUser, setIsAdminUser] = useState(false);
 
-  useEffect(() => {
+    useEffect(() => {
     let cancelled = false;
 
-    async function loadSidebarState() {
-      // 1) Load branding + flags
-      const { data, error } = await supabase
-        .from("portal_settings")
-        .select(
-          [
-            "city_name",
-            "tagline",
-            "primary_color",
-            "accent_color",
-            "logo_url",
-            "is_published",
-            "enable_actuals",
-            "enable_transactions",
-            "enable_vendors",
-            "enable_revenues",
-          ].join(", ")
-        )
+    async function loadAdminState() {
+      // Determine if viewer is admin/super_admin (client-side session)
+      let isAdmin = false;
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
 
-        .maybeSingle();
+      if (session?.user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", session.user.id)
+          .maybeSingle();
+
+        if (
+          profile &&
+          (profile.role === "admin" || profile.role === "super_admin")
+        ) {
+          isAdmin = true;
+        }
+      }
 
       if (cancelled) return;
 
-      if (error) {
-        console.error("ParadiseSidebar: error loading portal_settings", error);
-      }
+      setIsAdminUser(isAdmin);
 
-      const brandingData = data as any | null;
-
-      if (brandingData) {
-        const enable_actuals: boolean =
-          brandingData.enable_actuals === null ||
-          brandingData.enable_actuals === undefined
-            ? true
-            : !!brandingData.enable_actuals;
-
-        const enable_transactions: boolean =
-          brandingData.enable_transactions === null ||
-          brandingData.enable_transactions === undefined
-            ? false
-            : !!brandingData.enable_transactions;
-
-        const enable_revenues: boolean =
-          brandingData.enable_revenues === null ||
-          brandingData.enable_revenues === undefined
-            ? false
-            : !!brandingData.enable_revenues;
-
-        const enable_vendors: boolean =
-          brandingData.enable_vendors === null ||
-          brandingData.enable_vendors === undefined
-            ? false
-            : !!brandingData.enable_vendors;
-
-
-        const {
-          city_name,
-          tagline,
-          primary_color,
-          accent_color,
-          logo_url,
-        } = brandingData;
-
-        setBranding({
-          city_name: city_name ?? null,
-          tagline: tagline ?? null,
-          primary_color: primary_color ?? null,
-          accent_color: accent_color ?? null,
-          logo_url: logo_url ?? null,
-          enable_actuals,
-          enable_transactions,
-          enable_revenues,
-          enable_vendors,
-        });
-
-
-        // 3) Determine publish state
-        const isPublished =
-          brandingData && brandingData.is_published === false
-            ? false
-            : true;
-
-        // 2) Determine if viewer is admin/super_admin
-        let isAdmin = false;
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-
-        if (session?.user) {
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("role")
-            .eq("id", session.user.id)
-            .maybeSingle();
-
-          if (
-            profile &&
-            (profile.role === "admin" ||
-              profile.role === "super_admin")
-          ) {
-            isAdmin = true;
-          }
-        }
-        if (!cancelled) {
-          setIsAdminUser(isAdmin);
-        }
-
-
-        // Public only sees dashboard nav when published; admins always see it
-        if (!cancelled) {
-          setShowDashboardNav(isPublished || isAdmin);
-        }
-      } else {
-        // No branding row; still allow admins nav by default.
-        setShowDashboardNav(true);
-      }
+      // Public sees dashboard nav only when published; admins always see it
+      setShowDashboardNav(initialIsPublished || isAdmin);
     }
 
-    loadSidebarState();
+    loadAdminState();
 
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [initialIsPublished]);
+
 
   const isActive = (path: string) => {
     const full = cityHref(path);

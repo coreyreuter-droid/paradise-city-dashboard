@@ -100,7 +100,7 @@ export default function FiscalYearSelect({
         id={selectId}
         value={currentValue ?? ""}
         onChange={(e) => setYear(e.target.value)}
-        className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+        className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900"
       >
         {sortedYears.map((year) => (
           <option key={year} value={String(year)}>

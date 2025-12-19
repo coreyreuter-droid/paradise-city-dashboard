@@ -137,15 +137,15 @@ export default function BudgetByDepartmentChart({
       {/* Legend */}
       <div className="flex flex-wrap items-center gap-4 text-xs text-slate-600">
         <div className="flex items-center gap-1">
-          <span className="inline-block h-2 w-3 rounded bg-slate-300" />
+          <span className="inline-block h-2 w-3 rounded" style={{ backgroundColor: "#757b84ff" }} />
           <span>Budget</span>
         </div>
         <div className="flex items-center gap-1">
-          <span className="inline-block h-2 w-3 rounded bg-emerald-500" />
+          <span className="inline-block h-2 w-3 rounded" style={{ backgroundColor: "#16a34a" }} />
           <span>Actuals (at or under budget)</span>
         </div>
         <div className="flex items-center gap-1">
-          <span className="inline-block h-2 w-3 rounded bg-red-500" />
+          <span className="inline-block h-2 w-3 rounded" style={{ backgroundColor: "#dc2626" }} />
           <span>Actuals (over budget)</span>
         </div>
       </div>

@@ -28,17 +28,17 @@ import { getMillionDomain } from "@/lib/chartDomain";
 const BUDGET_COLOR = "#334155";
 const ACTUAL_COLOR = "#0f766e";
 
-// Higher contrast palette; "Other" is always neutral gray.
 const PIE_COLORS = [
-  "#0f766e", // teal
-  "#1d4ed8", // blue
-  "#7c3aed", // violet
-  "#db2777", // pink
-  "#ea580c", // orange
-  "#a16207", // amber
-  "#0f172a", // slate
-  "#64748b", // gray fallback
+  "#0f172a", // slate-900
+  "#334155", // slate-700
+  "#64748b", // slate-500
+  "#0f766e", // teal-700 (positive alt)
+  "#15803d", // green-700 (positive)
+  "#b45309", // amber-700 (warning)
+  "#b91c1c", // red-700 (negative)
+  "#94a3b8", // slate-400 (fallback)
 ];
+
 
 type DepartmentSummary = {
   department_name: string;
