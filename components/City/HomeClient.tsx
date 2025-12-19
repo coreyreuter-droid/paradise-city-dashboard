@@ -236,7 +236,8 @@ export default function ParadiseHomeClient({
 
   const heroImageUrl = portalSettings?.hero_image_url || null;
   const heroBackground = portalSettings?.background_color || "#020617";
-  const heroOverlay = "rgba(15, 23, 42, 0.65)";
+  // LESS DARK overlay so branding/background shows through
+  const heroOverlay = "rgba(15, 23, 42, 0.45)";
 
   const fiscalYearNote = getFiscalYearPublicLabel(portalSettings);
 
@@ -287,10 +288,18 @@ export default function ParadiseHomeClient({
         className="overflow-hidden rounded-2xl border border-slate-900/10 bg-slate-900 text-slate-50 shadow-lg"
         aria-labelledby="overview-hero-title"
         aria-label="Budget and spending overview hero"
+        style={
+          accentColor
+            ? {
+                borderTopColor: accentColor,
+                borderTopWidth: "3px",
+              }
+            : undefined
+        }
       >
         <div className="relative">
           {heroImageUrl ? (
-            <div className="absolute inset-0 opacity-20" aria-hidden="true">
+            <div className="absolute inset-0 opacity-25" aria-hidden="true">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={heroImageUrl}
@@ -307,7 +316,12 @@ export default function ParadiseHomeClient({
               className="absolute inset-0"
               style={{ backgroundColor: heroBackground }}
               aria-hidden="true"
-            />
+            >
+              <div
+                className="absolute inset-0"
+                style={{ backgroundColor: heroOverlay }}
+              />
+            </div>
           )}
 
           <div className="relative grid gap-6 p-5 sm:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)] sm:p-7 lg:p-8">
@@ -322,26 +336,39 @@ export default function ParadiseHomeClient({
                 {cityName} Budget &amp; Spending Overview
               </h1>
               <p className="mt-1 text-sm text-slate-100/90">{tagline}</p>
-              <p className="mt-2 text-xs text-slate-200/90 sm:max-w-md">
+              <p className="mt-2 text-xs text-slate-100 sm:max-w-md">
                 {heroMessage}
               </p>
               {fiscalYearNote && (
-                <p className="mt-1 text-[11px] text-slate-300 sm:max-w-md">
+                <p className="mt-1 text-[11px] text-slate-200 sm:max-w-md">
                   {fiscalYearNote}
                 </p>
               )}
 
               <div className="mt-4 flex flex-wrap gap-2">
+                {/* Primary CTA – brand accent */}
                 <Link
                   href={cityHref("/budget")}
-                  className="inline-flex items-center justify-center rounded-full bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-900 shadow-sm transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-50 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"
+                  className="inline-flex items-center justify-center rounded-full px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"
+                  style={
+                    accentColor
+                      ? { backgroundColor: accentColor }
+                      : undefined
+                  }
                 >
                   View budget details
                 </Link>
+
+                {/* Secondary CTA – neutral */}
                 {enableActuals && (
                   <Link
                     href={cityHref("/departments")}
-                    className="inline-flex items-center justify-center rounded-full border border-slate-100/60 bg-transparent px-3 py-1.5 text-xs font-semibold text-slate-50 shadow-sm transition hover:bg-slate-50/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-50 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"
+className="inline-flex items-center justify-center rounded-full px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"
+                  style={
+                    accentColor
+                      ? { backgroundColor: accentColor }
+                      : undefined
+                  }
                   >
                     Explore departments
                   </Link>
@@ -366,8 +393,8 @@ export default function ParadiseHomeClient({
               </div>
 
               <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                <div className="rounded-lg bg-slate-950/50 p-3">
-                  <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+                <div className="rounded-lg bg-slate-950/40 p-3">
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-300">
                     Budget
                   </div>
                   <div className="mt-1 text-sm font-semibold text-slate-50">
@@ -375,14 +402,14 @@ export default function ParadiseHomeClient({
                       ? formatCurrency(totalBudget)
                       : "Awaiting data"}
                   </div>
-                  <p className="mt-1 text-[11px] text-slate-400">
+                  <p className="mt-1 text-[11px] text-slate-300">
                     Govwide adopted budget for the selected fiscal year.
                   </p>
                 </div>
 
                 {enableActuals && (
-                  <div className="rounded-lg bg-slate-950/50 p-3">
-                    <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+                  <div className="rounded-lg bg-slate-950/40 p-3">
+                    <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-300">
                       Spent to date
                     </div>
                     <div className="mt-1 text-sm font-semibold text-slate-50">
@@ -390,30 +417,34 @@ export default function ParadiseHomeClient({
                         ? formatCurrency(totalActuals)
                         : "Awaiting data"}
                     </div>
-                    <p className="mt-1 text-[11px] text-slate-400">
-                      Actual expenditures recorded against the budget.
+                    <p className="mt-1 text-[11px] text-slate-300">
+                      Actual expenditures recorded against the budget so far.
                     </p>
                   </div>
                 )}
               </div>
 
               <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-                <div className="flex flex-wrap gap-2 text-[11px] text-slate-300">
+                <div className="flex flex-wrap gap-2 text-[11px] text-slate-200">
                   <span>
                     Departments:{" "}
-                    <span className="font-semibold">{deptCount || "—"}</span>
+                    <span className="font-semibold">
+                      {deptCount || "—"}
+                    </span>
                   </span>
                   {enableTransactions && (
                     <span>
                       Transactions:{" "}
-                      <span className="font-semibold">{txCount || "—"}</span>
+                      <span className="font-semibold">
+                        {txCount || "—"}
+                      </span>
                     </span>
                   )}
                 </div>
                 {enableActuals && hasBudgetData && (
-                  <div className="text-[11px] text-slate-300">
+                  <div className="text-[11px] text-slate-200">
                     <span className="font-semibold">{execPctDisplay}</span> of
-                    budget spent.
+                    budget spent so far.
                   </div>
                 )}
               </div>
@@ -422,6 +453,7 @@ export default function ParadiseHomeClient({
         </div>
       </section>
 
+      {/* No data for selected year */}
       {!hasAnyDataForSelectedYear ? (
         <CardContainer>
           <section
@@ -441,6 +473,7 @@ export default function ParadiseHomeClient({
         </CardContainer>
       ) : (
         <>
+          {/* KPI strip */}
           {enableActuals && (
             <CardContainer>
               <ParadiseHomeKpiStrip
@@ -474,6 +507,7 @@ export default function ParadiseHomeClient({
             </CardContainer>
           )}
 
+          {/* Revenue summary */}
           {enableRevenues && (
             <CardContainer>
               <HomeRevenueSummary
@@ -484,6 +518,7 @@ export default function ParadiseHomeClient({
             </CardContainer>
           )}
 
+          {/* Budget vs actuals & multi-year */}
           {enableActuals && (
             <div className="grid gap-6 lg:grid-cols-[2fr,1.3fr]">
               <CardContainer>
@@ -505,7 +540,12 @@ export default function ParadiseHomeClient({
                     </div>
                     <Link
                       href={cityHref("/departments")}
-                      className="mt-1 text-xs font-semibold text-slate-700 underline-offset-2 hover:underline"
+                      className="mt-1 text-xs font-semibold underline-offset-2 hover:underline"
+                      style={
+                        accentColor
+                          ? { color: accentColor }
+                          : undefined
+                      }
                     >
                       View all departments
                     </Link>
@@ -537,6 +577,14 @@ export default function ParadiseHomeClient({
                         multiple fiscal years.
                       </p>
                     </div>
+                    <div className="text-xs text-slate-600">
+                      Showing{" "}
+                      <span className="font-semibold">
+                        {years.length}{" "}
+                        {years.length === 1 ? "year" : "years"}
+                      </span>
+                      .
+                    </div>
                   </div>
 
                   <ParadiseHomeMultiYearChart yearTotals={yearTotals} />
@@ -545,6 +593,7 @@ export default function ParadiseHomeClient({
             </div>
           )}
 
+          {/* Departments & vendors/transactions */}
           <div className="grid gap-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
             <CardContainer>
               <SectionHeader
@@ -583,7 +632,12 @@ export default function ParadiseHomeClient({
                         </div>
                         <Link
                           href={cityHref("/vendors")}
-                          className="text-xs font-semibold text-slate-700 underline-offset-2 hover:underline"
+                          className="text-xs font-semibold underline-offset-2 hover:underline"
+                          style={
+                            accentColor
+                              ? { color: accentColor }
+                              : undefined
+                          }
                         >
                           View vendors
                         </Link>
