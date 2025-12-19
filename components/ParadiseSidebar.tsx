@@ -16,6 +16,7 @@ const navItems = [
   { path: "/departments", label: "Departments" },
   { path: "/revenues", label: "Revenues" },
   { path: "/transactions", label: "Transactions" },
+  { path: "/vendors", label: "Vendors" },
 ];
 
 type PortalBranding = {
@@ -28,6 +29,7 @@ type PortalBranding = {
   enable_actuals: boolean;
   enable_transactions: boolean;
   enable_revenues: boolean;
+  enable_vendors: boolean;
 };
 
 export default function ParadiseSidebar() {
@@ -38,6 +40,7 @@ export default function ParadiseSidebar() {
 
   // whether dashboard nav should be visible (published OR admin)
   const [showDashboardNav, setShowDashboardNav] = useState(true);
+  const [isAdminUser, setIsAdminUser] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -56,9 +59,11 @@ export default function ParadiseSidebar() {
             "is_published",
             "enable_actuals",
             "enable_transactions",
+            "enable_vendors",
             "enable_revenues",
           ].join(", ")
         )
+
         .maybeSingle();
 
       if (cancelled) return;
@@ -88,6 +93,13 @@ export default function ParadiseSidebar() {
             ? false
             : !!brandingData.enable_revenues;
 
+        const enable_vendors: boolean =
+          brandingData.enable_vendors === null ||
+          brandingData.enable_vendors === undefined
+            ? false
+            : !!brandingData.enable_vendors;
+
+
         const {
           city_name,
           tagline,
@@ -105,7 +117,9 @@ export default function ParadiseSidebar() {
           enable_actuals,
           enable_transactions,
           enable_revenues,
+          enable_vendors,
         });
+
 
         // 3) Determine publish state
         const isPublished =
@@ -134,6 +148,10 @@ export default function ParadiseSidebar() {
             isAdmin = true;
           }
         }
+        if (!cancelled) {
+          setIsAdminUser(isAdmin);
+        }
+
 
         // Public only sees dashboard nav when published; admins always see it
         if (!cancelled) {
@@ -209,6 +227,7 @@ export default function ParadiseSidebar() {
     const enableActuals = branding?.enable_actuals !== false;
     const enableTransactions = branding?.enable_transactions === true;
     const enableRevenues = branding?.enable_revenues === true;
+    const enableVendors = enableTransactions && branding?.enable_vendors === true;
 
     return (
       <>
@@ -239,6 +258,10 @@ export default function ParadiseSidebar() {
                   item.path === "/transactions" &&
                   !enableTransactions
                 ) {
+                  return null;
+                }
+              
+                if (item.path === "/vendors" && !enableVendors) {
                   return null;
                 }
 
@@ -301,40 +324,44 @@ export default function ParadiseSidebar() {
         )}
 
         {/* Admin nav – single entry point to Admin home */}
-        <div className="mt-6">
-          <p
-            className={
-              variant === "desktop"
-                ? "px-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500"
-                : "px-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500"
-            }
-          >
-            Admin
-          </p>
-          <ul className="mt-2 space-y-1">
-            <li>
-              <Link
-                href={adminHomeHref}
-                onClick={variant === "mobile" ? closeMobile : undefined}
-                className={`group flex items-center gap-2 rounded-xl px-3 py-2 text-xs transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-slate-900 focus-visible:ring-offset-slate-50 ${
-                  adminActive
-                    ? "bg-slate-900 text-white shadow-sm"
-                    : "text-slate-500 hover:bg-slate-100 hover:text-slate-900"
-                }`}
-                aria-current={adminActive ? "page" : undefined}
-              >
-                <span
-                  className={`inline-block h-1 w-1 rounded-full transition ${
-                    adminActive
-                      ? "bg-white"
-                      : "bg-slate-300 group-hover:bg-slate-500"
-                  }`}
-                />
-                <span className="truncate">Admin home</span>
-              </Link>
-            </li>
-          </ul>
-        </div>
+{isAdminUser && (
+  <div className="mt-6">
+    <p
+      className={
+        variant === "desktop"
+          ? "px-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500"
+          : "px-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500"
+      }
+    >
+      Admin
+    </p>
+    <ul className="mt-2 space-y-1">
+      <li>
+        <Link
+          href={adminHomeHref}
+          onClick={variant === "mobile" ? closeMobile : undefined}
+          className={`group flex items-center gap-2 rounded-xl px-3 py-2 text-xs transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-slate-900 focus-visible:ring-offset-slate-50 ${
+            adminActive
+              ? "bg-slate-900 text-white shadow-sm"
+              : "text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+          }`}
+          aria-current={adminActive ? "page" : undefined}
+        >
+          <span
+            className={`inline-block h-1 w-1 rounded-full transition ${
+              adminActive
+                ? "bg-white"
+                : "bg-slate-300 group-hover:bg-slate-500"
+            }`}
+          />
+          <span className="truncate">Admin home</span>
+        </Link>
+      </li>
+    </ul>
+  </div>
+)}
+
+
       </>
     );
   };
