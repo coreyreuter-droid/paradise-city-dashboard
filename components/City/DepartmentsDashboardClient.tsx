@@ -191,13 +191,19 @@ export default function DepartmentsDashboardClient({
   return (
     <div id="main-content" className="min-h-screen bg-slate-50">
       <div className="mx-auto max-w-6xl px-4 py-8">
-        <SectionHeader
-          eyebrow="Departments"
-          title="Department Overview"
-          description="See how each department’s budget, actual spending, and transaction volume compare for the selected fiscal year."
-          fiscalNote={fiscalYearNote}
-          rightSlot={years.length > 0 ? <FiscalYearSelect options={years} label="Fiscal year" /> : null}
-        />
+<SectionHeader
+  eyebrow="Departments"
+  title="Department overview"
+  description="See how each department’s budget, actual spending, and transaction volume compare for the selected fiscal year."
+  fiscalNote={fiscalYearNote}
+  rightSlot={
+    years.length > 0 ? (
+      <FiscalYearSelect options={years} label="Fiscal year" />
+    ) : null
+  }
+/>
+
+
 
         <nav aria-label="Breadcrumb" className="mb-4 flex items-center gap-1 px-1 text-sm text-slate-600">
           <ol className="flex items-center gap-1">

@@ -51,9 +51,7 @@ export default function HomeRevenueSummary({
   const yearLabel =
     selectedYear != null ? String(selectedYear) : "the selected year";
 
-  const labelStyle = accentColor
-    ? { color: accentColor }
-    : undefined;
+  // Only use accent color for the small "Revenues" pill, not the card headers
   const accentBadgeStyle = accentColor
     ? { backgroundColor: accentColor }
     : undefined;
@@ -73,12 +71,7 @@ export default function HomeRevenueSummary({
             {yearLabel}.
           </p>
         </div>
-        <span
-          className="inline-flex items-center rounded-full px-2 py-1 text-[10px] font-medium uppercase tracking-[0.16em] text-slate-50"
-          style={accentBadgeStyle}
-        >
-          Revenues
-        </span>
+
       </div>
 
       <div className="mt-4 flex-1">
@@ -86,10 +79,7 @@ export default function HomeRevenueSummary({
           <div className="grid gap-4 sm:grid-cols-2">
             {/* Total revenues */}
             <div className="flex flex-col rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
-              <div
-                className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-600"
-                style={labelStyle}
-              >
+              <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-600">
                 Total revenues
               </div>
               <div className="mt-1 text-lg font-semibold text-slate-900">
