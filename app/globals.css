@@ -1,8 +1,9 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Slightly cool, neutral background instead of pure white */
+  --background: #f1f5f9; /* slate-100-ish */
+  --foreground: #020617; /* slate-950-ish */
 }
 
 @theme inline {
@@ -15,8 +16,8 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #020617; /* near slate-950 */
+    --foreground: #e5e7eb; /* slate-200 */
   }
 }
 
@@ -25,4 +26,5 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans), system-ui, -apple-system,
     BlinkMacSystemFont, "Segoe UI", sans-serif;
+  line-height: 1.5;
 }

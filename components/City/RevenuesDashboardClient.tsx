@@ -285,17 +285,18 @@ export default function RevenuesDashboardClient({
       id="main-content"
       className="mx-auto max-w-6xl space-y-6 px-3 py-6 sm:px-4 sm:py-8"
     >
-      <SectionHeader
-        eyebrow="Revenues"
-        title="Revenue by source"
-        description="Explore recorded revenues by source for the selected fiscal year. Data typically includes taxes, fees, grants, and other income."
-        fiscalNote={fiscalYearNote}
-        rightSlot={
-          years.length > 0 ? (
-            <FiscalYearSelect options={years} label="Fiscal year" />
-          ) : null
-        }
-      />
+<SectionHeader
+  eyebrow="Revenues"
+  title="Revenue by source"
+  description="Explore recorded revenues by source for the selected fiscal year. Data typically includes taxes, fees, grants, and other income."
+  fiscalNote={fiscalYearNote}
+  rightSlot={
+    years.length > 0 ? (
+      <FiscalYearSelect options={years} label="Fiscal year" />
+    ) : null
+  }
+/>
+
 
       {/* Summary KPIs */}
       <CardContainer>

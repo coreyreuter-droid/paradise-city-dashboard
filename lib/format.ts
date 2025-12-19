@@ -46,3 +46,60 @@ export function formatDate(value: string | Date): string {
   });
 }
 
+export const formatNumber = (
+  value: number | string | null | undefined,
+  opts?: {
+    maximumFractionDigits?: number;
+    minimumFractionDigits?: number;
+  }
+): string => {
+  if (value === null || value === undefined) return "";
+
+  const cleaned =
+    typeof value === "string" ? value.replace(/,/g, "").trim() : String(value);
+
+  if (!cleaned) return "";
+
+  const num = Number(cleaned);
+  if (!Number.isFinite(num)) return cleaned;
+
+  const { maximumFractionDigits = 0, minimumFractionDigits = 0 } = opts ?? {};
+
+  return num.toLocaleString("en-US", {
+    maximumFractionDigits,
+    minimumFractionDigits,
+  });
+};
+
+export const formatCurrencyCompact = (
+  value: number | string | null | undefined,
+  decimals = 1
+): string => {
+  if (value === null || value === undefined) return "$0";
+
+  const cleaned =
+    typeof value === "string" ? value.replace(/,/g, "").trim() : String(value);
+
+  if (!cleaned) return "$0";
+
+  const num = Number(cleaned);
+  if (!Number.isFinite(num)) return "$0";
+
+  const sign = num < 0 ? "-" : "";
+  const abs = Math.abs(num);
+
+  const formatScaled = (scaled: number, suffix: string) => {
+    const fixed = scaled.toFixed(decimals);
+    const trimmed = fixed
+      .replace(/\.0$/, "")
+      .replace(/(\.\d)0$/, "$1");
+    return `${sign}$${trimmed}${suffix}`;
+  };
+
+  if (abs >= 1_000_000_000) return formatScaled(abs / 1_000_000_000, "B");
+  if (abs >= 1_000_000) return formatScaled(abs / 1_000_000, "M");
+  if (abs >= 1_000) return formatScaled(abs / 1_000, "K");
+
+  return `${sign}$${abs.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
+};
+

@@ -61,21 +61,48 @@ function formatFreshnessDate(iso: string | null): string | null {
   if (!iso) return null;
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return null;
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  return d.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
 }
 
-const MONTH_NAMES = ["", "January","February","March","April","May","June","July","August","September","October","November","December"];
+const MONTH_NAMES = [
+  "",
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
 const LAST_DAY_OF_MONTH = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
 
-function getFiscalYearPublicLabel(portalSettings: PortalSettings | null): string | null {
+function getFiscalYearPublicLabel(
+  portalSettings: PortalSettings | null
+): string | null {
   if (!portalSettings) return null;
 
   const anySettings = portalSettings as any;
-  const explicitLabel = anySettings?.fiscal_year_label as string | null | undefined;
-  if (explicitLabel && explicitLabel.trim().length > 0) return explicitLabel.trim();
+  const explicitLabel = anySettings?.fiscal_year_label as
+    | string
+    | null
+    | undefined;
+  if (explicitLabel && explicitLabel.trim().length > 0) {
+    return explicitLabel.trim();
+  }
 
-  const startMonth = (anySettings?.fiscal_year_start_month as number | null | undefined) ?? 1;
-  const startDay = (anySettings?.fiscal_year_start_day as number | null | undefined) ?? 1;
+  const startMonth =
+    (anySettings?.fiscal_year_start_month as number | null | undefined) ?? 1;
+  const startDay =
+    (anySettings?.fiscal_year_start_day as number | null | undefined) ?? 1;
 
   if (startMonth === 1 && startDay === 1) {
     return "Fiscal year aligns with the calendar year (January 1 – December 31).";
@@ -85,9 +112,8 @@ function getFiscalYearPublicLabel(portalSettings: PortalSettings | null): string
   const endMonthIndex = ((startMonth + 10) % 12) + 1;
   const endMonthName = MONTH_NAMES[endMonthIndex] || "December";
 
-const endDay = LAST_DAY_OF_MONTH[endMonthIndex] ?? 30;
-return `Fiscal year runs ${startMonthName} ${startDay} – ${endMonthName} ${endDay}.`;
-
+  const endDay = LAST_DAY_OF_MONTH[endMonthIndex] ?? 30;
+  return `Fiscal year runs ${startMonthName} ${startDay} – ${endMonthName} ${endDay}.`;
 }
 
 export default function ParadiseHomeClient({
@@ -104,15 +130,20 @@ export default function ParadiseHomeClient({
   const searchParams = useSearchParams();
 
   const enableActuals =
-    portalSettings?.enable_actuals === null || portalSettings?.enable_actuals === undefined
+    portalSettings?.enable_actuals === null ||
+    portalSettings?.enable_actuals === undefined
       ? true
       : !!portalSettings.enable_actuals;
 
   const enableTransactions = portalSettings?.enable_transactions === true;
   const enableRevenues = portalSettings?.enable_revenues === true;
-  const enableVendors = enableTransactions && portalSettings?.enable_vendors === true;
+  const enableVendors =
+    enableTransactions && portalSettings?.enable_vendors === true;
 
-  const years = useMemo(() => (availableYears ?? []).slice().sort((a, b) => b - a), [availableYears]);
+  const years = useMemo(
+    () => (availableYears ?? []).slice().sort((a, b) => b - a),
+    [availableYears]
+  );
 
   const selectedYear: number | null = useMemo(() => {
     if (!years.length) return null;
@@ -140,22 +171,49 @@ export default function ParadiseHomeClient({
     return rows;
   }, [deptBudgetActuals]);
 
-  const { totalBudget, totalActuals, variance, execPct, deptCount, txCount, topDepartment } =
-    useMemo(() => {
-      const totalBudget = departmentsForYear.reduce((sum, d) => sum + d.budget, 0);
-      const totalActuals = departmentsForYear.reduce((sum, d) => sum + d.actuals, 0);
-      const variance = totalActuals - totalBudget;
-      const execPct = totalBudget > 0 ? totalActuals / totalBudget : 0;
-      const deptCount = departmentsForYear.length;
+  const {
+    totalBudget,
+    totalActuals,
+    variance,
+    execPct,
+    deptCount,
+    txCount,
+    topDepartment,
+  } = useMemo(() => {
+    const totalBudget = departmentsForYear.reduce(
+      (sum, d) => sum + d.budget,
+      0
+    );
+    const totalActuals = departmentsForYear.reduce(
+      (sum, d) => sum + d.actuals,
+      0
+    );
+    const variance = totalActuals - totalBudget;
+    const execPct = totalBudget > 0 ? totalActuals / totalBudget : 0;
+    const deptCount = departmentsForYear.length;
 
-      const txCount = enableTransactions
-        ? (vendorSummaries ?? []).reduce((sum, v) => sum + Number(v.txn_count || 0), 0)
-        : 0;
+    const txCount = enableTransactions
+      ? (vendorSummaries ?? []).reduce(
+          (sum, v) => sum + Number(v.txn_count || 0),
+          0
+        )
+      : 0;
 
-      const topDepartment = departmentsForYear.length > 0 ? departmentsForYear[0].department_name : null;
+    const topDepartment =
+      departmentsForYear.length > 0
+        ? departmentsForYear[0].department_name
+        : null;
 
-      return { totalBudget, totalActuals, variance, execPct, deptCount, txCount, topDepartment };
-    }, [departmentsForYear, enableTransactions, vendorSummaries]);
+    return {
+      totalBudget,
+      totalActuals,
+      variance,
+      execPct,
+      deptCount,
+      txCount,
+      topDepartment,
+    };
+  }, [departmentsForYear, enableTransactions, vendorSummaries]);
 
   const execPctDisplay = `${Math.round(execPct * 100)}%`;
   const hasBudgetData = totalBudget > 0;
@@ -166,9 +224,15 @@ export default function ParadiseHomeClient({
     CITY_CONFIG.accentColor ||
     CITY_CONFIG.primaryColor;
 
-  const cityName = portalSettings?.city_name || CITY_CONFIG.displayName || "Your City";
-  const tagline = portalSettings?.tagline || CITY_CONFIG.tagline || "Financial Transparency Portal";
-  const heroMessage = portalSettings?.hero_message || "Explore how public dollars are budgeted and spent.";
+  const cityName =
+    portalSettings?.city_name || CITY_CONFIG.displayName || "Your City";
+  const tagline =
+    portalSettings?.tagline ||
+    CITY_CONFIG.tagline ||
+    "Financial Transparency Portal";
+  const heroMessage =
+    portalSettings?.hero_message ||
+    "Explore how public dollars are budgeted and spent.";
 
   const heroImageUrl = portalSettings?.hero_image_url || null;
   const heroBackground = portalSettings?.background_color || "#020617";
@@ -176,7 +240,9 @@ export default function ParadiseHomeClient({
 
   const fiscalYearNote = getFiscalYearPublicLabel(portalSettings);
 
-  const hasAnyDataForSelectedYear = hasBudgetData || (enableTransactions && recentTransactions.length > 0);
+  const hasAnyDataForSelectedYear =
+    hasBudgetData ||
+    (enableTransactions && recentTransactions.length > 0);
 
   const freshnessText = useMemo(() => {
     if (!dataFreshness) return null;
@@ -200,7 +266,10 @@ export default function ParadiseHomeClient({
   const topVendors = useMemo(() => {
     return (vendorSummaries ?? [])
       .map((v) => ({
-        name: v.vendor && v.vendor.trim().length > 0 ? v.vendor.trim() : "Unspecified",
+        name:
+          v.vendor && v.vendor.trim().length > 0
+            ? v.vendor.trim()
+            : "Unspecified",
         total: Number(v.total_amount || 0),
       }))
       .filter((v) => v.total > 0)
@@ -209,18 +278,36 @@ export default function ParadiseHomeClient({
   }, [vendorSummaries]);
 
   return (
-    <div id="main-content" className="mx-auto max-w-6xl space-y-6 px-3 py-6 sm:px-4 sm:py-8">
+    <div
+      id="main-content"
+      className="mx-auto max-w-6xl space-y-6 px-3 py-6 sm:px-4 sm:py-8"
+    >
       {/* Hero */}
-      <section className="overflow-hidden rounded-2xl border border-slate-900/10 bg-slate-900 text-slate-50 shadow-lg" aria-labelledby="overview-hero-title">
+      <section
+        className="overflow-hidden rounded-2xl border border-slate-900/10 bg-slate-900 text-slate-50 shadow-lg"
+        aria-labelledby="overview-hero-title"
+        aria-label="Budget and spending overview hero"
+      >
         <div className="relative">
           {heroImageUrl ? (
             <div className="absolute inset-0 opacity-20" aria-hidden="true">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={heroImageUrl} alt="" className="h-full w-full object-cover" />
-              <div className="absolute inset-0" style={{ backgroundColor: heroOverlay }} />
+              <img
+                src={heroImageUrl}
+                alt=""
+                className="h-full w-full object-cover"
+              />
+              <div
+                className="absolute inset-0"
+                style={{ backgroundColor: heroOverlay }}
+              />
             </div>
           ) : (
-            <div className="absolute inset-0" style={{ backgroundColor: heroBackground }} aria-hidden="true" />
+            <div
+              className="absolute inset-0"
+              style={{ backgroundColor: heroBackground }}
+              aria-hidden="true"
+            />
           )}
 
           <div className="relative grid gap-6 p-5 sm:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)] sm:p-7 lg:p-8">
@@ -228,12 +315,21 @@ export default function ParadiseHomeClient({
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-300">
                 Public financial transparency portal
               </p>
-              <h1 id="overview-hero-title" className="mt-2 text-xl font-semibold leading-tight text-slate-50 sm:text-2xl">
+              <h1
+                id="overview-hero-title"
+                className="mt-2 text-xl font-semibold leading-tight text-slate-50 sm:text-2xl"
+              >
                 {cityName} Budget &amp; Spending Overview
               </h1>
               <p className="mt-1 text-sm text-slate-100/90">{tagline}</p>
-              <p className="mt-2 text-xs text-slate-200/90 sm:max-w-md">{heroMessage}</p>
-              {fiscalYearNote && <p className="mt-1 text-[11px] text-slate-300 sm:max-w-md">{fiscalYearNote}</p>}
+              <p className="mt-2 text-xs text-slate-200/90 sm:max-w-md">
+                {heroMessage}
+              </p>
+              {fiscalYearNote && (
+                <p className="mt-1 text-[11px] text-slate-300 sm:max-w-md">
+                  {fiscalYearNote}
+                </p>
+              )}
 
               <div className="mt-4 flex flex-wrap gap-2">
                 <Link
@@ -255,9 +351,13 @@ export default function ParadiseHomeClient({
 
             <div className="flex flex-col justify-between gap-3 rounded-xl bg-slate-900/60 p-3 text-xs shadow-inner sm:p-4">
               <div className="flex items-center justify-between">
-                <div className="rounded-full bg-slate-800/80 px-2 py-1 text-[10px] font-medium uppercase tracking-[0.16em] text-slate-200">
+                <div
+                  className="rounded-full bg-slate-800/80 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-200"
+                  aria-live="polite"
+                >
                   Fiscal year {yearLabel ? yearLabel : "not selected"}
                 </div>
+
                 {enableActuals && hasBudgetData && (
                   <div className="rounded-full bg-emerald-500/90 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-950">
                     {execPctDisplay}
@@ -267,9 +367,13 @@ export default function ParadiseHomeClient({
 
               <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
                 <div className="rounded-lg bg-slate-950/50 p-3">
-                  <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">Budget</div>
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+                    Budget
+                  </div>
                   <div className="mt-1 text-sm font-semibold text-slate-50">
-                    {hasBudgetData ? formatCurrency(totalBudget) : "Awaiting data"}
+                    {hasBudgetData
+                      ? formatCurrency(totalBudget)
+                      : "Awaiting data"}
                   </div>
                   <p className="mt-1 text-[11px] text-slate-400">
                     Govwide adopted budget for the selected fiscal year.
@@ -278,12 +382,16 @@ export default function ParadiseHomeClient({
 
                 {enableActuals && (
                   <div className="rounded-lg bg-slate-950/50 p-3">
-                    <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">Spent to date</div>
+                    <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+                      Spent to date
+                    </div>
                     <div className="mt-1 text-sm font-semibold text-slate-50">
-                      {hasBudgetData ? formatCurrency(totalActuals) : "Awaiting data"}
+                      {hasBudgetData
+                        ? formatCurrency(totalActuals)
+                        : "Awaiting data"}
                     </div>
                     <p className="mt-1 text-[11px] text-slate-400">
-                      Actual expenditures recorded against the budget so far.
+                      Actual expenditures recorded against the budget.
                     </p>
                   </div>
                 )}
@@ -292,17 +400,20 @@ export default function ParadiseHomeClient({
               <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
                 <div className="flex flex-wrap gap-2 text-[11px] text-slate-300">
                   <span>
-                    Departments: <span className="font-semibold">{deptCount || "—"}</span>
+                    Departments:{" "}
+                    <span className="font-semibold">{deptCount || "—"}</span>
                   </span>
                   {enableTransactions && (
                     <span>
-                      Transactions: <span className="font-semibold">{txCount || "—"}</span>
+                      Transactions:{" "}
+                      <span className="font-semibold">{txCount || "—"}</span>
                     </span>
                   )}
                 </div>
                 {enableActuals && hasBudgetData && (
                   <div className="text-[11px] text-slate-300">
-                    <span className="font-semibold">{execPctDisplay}</span> of budget spent so far.
+                    <span className="font-semibold">{execPctDisplay}</span> of
+                    budget spent.
                   </div>
                 )}
               </div>
@@ -313,12 +424,18 @@ export default function ParadiseHomeClient({
 
       {!hasAnyDataForSelectedYear ? (
         <CardContainer>
-          <section aria-label="No data available for selected fiscal year" className="space-y-2">
-            <h2 className="text-sm font-semibold text-slate-900">Data not yet available for this fiscal year</h2>
+          <section
+            aria-label="No data available for selected fiscal year"
+            className="space-y-2"
+          >
+            <h2 className="text-sm font-semibold text-slate-900">
+              Data not yet available for this fiscal year
+            </h2>
             <p className="text-sm leading-relaxed text-slate-700">
               There are no budgets or published spending data loaded for{" "}
               {yearLabel ? `fiscal year ${yearLabel}` : "the selected year"}.
-              Try choosing a different fiscal year from the menu above, or check back after new data is published.
+              Try choosing a different fiscal year from the menu above, or check
+              back after new data is published.
             </p>
           </section>
         </CardContainer>
@@ -337,28 +454,59 @@ export default function ParadiseHomeClient({
                 accentColor={accentColor}
                 enableTransactions={enableTransactions}
               />
-              {freshnessText && <p className="mt-2 text-xs text-slate-600">Data last updated — {freshnessText}</p>}
+
+              {freshnessText && (
+                <p
+                  className="mt-2 inline-flex items-center gap-2 rounded-full bg-slate-50 px-3 py-1 text-[11px] text-slate-600"
+                  aria-label={`Data coverage for this dashboard: ${freshnessText}`}
+                >
+                  <span
+                    className="h-1.5 w-1.5 rounded-full bg-emerald-500"
+                    aria-hidden="true"
+                  />
+                  <span className="font-medium text-slate-700">
+                    Data coverage
+                  </span>
+                  <span aria-hidden="true">·</span>
+                  <span>{freshnessText}</span>
+                </p>
+              )}
             </CardContainer>
           )}
 
           {enableRevenues && (
             <CardContainer>
-              <HomeRevenueSummary revenues={revenues} years={years} accentColor={accentColor} />
+              <HomeRevenueSummary
+                revenues={revenues}
+                years={years}
+                accentColor={accentColor}
+              />
             </CardContainer>
           )}
 
           {enableActuals && (
             <div className="grid gap-6 lg:grid-cols-[2fr,1.3fr]">
               <CardContainer>
-                <section aria-label="Budget vs Actuals by Department" className="space-y-3">
+                <section
+                  aria-label="Budget vs Actuals by Department"
+                  className="space-y-3"
+                >
                   <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
                     <div>
-                      <h2 className="text-sm font-semibold text-slate-800">Budget vs Actuals by Department</h2>
+                      <h2 className="text-sm font-semibold tracking-tight text-slate-900 sm:text-base">
+                        Budget vs Actuals by Department
+                      </h2>
                       <p className="text-sm text-slate-600">
-                        Top departments by budget and their corresponding spending for {yearLabel ?? "the selected year"}.
+                        Top departments by budget and their corresponding
+                        spending for{" "}
+                        {yearLabel ?? "the selected year"}
+                        .
                       </p>
                     </div>
-                    <Link href={cityHref("/departments")} className="mt-1 text-xs font-semibold text-slate-700 underline-offset-2 hover:underline">
+                    <Link
+                      href={cityHref("/departments")}
+                      className="mt-1 text-xs font-semibold text-slate-700 underline-offset-2 hover:underline"
+                    >
                       View all departments
                     </Link>
                   </div>
@@ -372,18 +520,22 @@ export default function ParadiseHomeClient({
               </CardContainer>
 
               <CardContainer>
-                <section aria-labelledby="home-multiyear-heading" className="space-y-2">
+                <section
+                  aria-labelledby="home-multiyear-heading"
+                  className="space-y-2"
+                >
                   <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
                     <div>
-                      <h2 id="home-multiyear-heading" className="text-sm font-semibold text-slate-800">
+                      <h2
+                        id="home-multiyear-heading"
+                        className="text-sm font-semibold tracking-tight text-slate-900 sm:text-base"
+                      >
                         Budget &amp; Spending Over Time
                       </h2>
                       <p className="text-sm text-slate-600">
-                        Compare adopted budgets and actual spending across multiple fiscal years.
+                        Compare adopted budgets and actual spending across
+                        multiple fiscal years.
                       </p>
-                    </div>
-                    <div className="text-xs text-slate-600">
-                      Showing <span className="font-semibold">{years.length} {years.length === 1 ? "year" : "years"}</span>.
                     </div>
                   </div>
 
@@ -403,34 +555,54 @@ export default function ParadiseHomeClient({
                     ? "Compare budgets, actuals, and spending patterns across departments."
                     : "Compare adopted budgets across departments."
                 }
+                accentColor={accentColor}
               />
-              <DepartmentsGrid year={selectedYear ?? years[0]} departments={departmentsForYear} />
+              <DepartmentsGrid
+                year={selectedYear ?? years[0]}
+                departments={departmentsForYear}
+              />
             </CardContainer>
 
             {enableTransactions && (
               <div className="space-y-4">
                 {enableVendors && (
                   <CardContainer>
-                    <section aria-label="Top vendors" className="space-y-2">
+                    <section
+                      aria-label="Top vendors"
+                      className="space-y-2"
+                    >
                       <div className="flex items-end justify-between gap-3">
                         <div className="min-w-0">
-                          <h2 className="text-sm font-semibold text-slate-800">Top Vendors</h2>
+                          <h2 className="text-sm font-semibold tracking-tight text-slate-900 sm:text-base">
+                            Top Vendors
+                          </h2>
                           <p className="text-sm text-slate-600">
-                            Vendors ranked by total spending for {yearLabel ?? "the selected year"}.
+                            Vendors ranked by total spending for{" "}
+                            {yearLabel ?? "the selected year"}.
                           </p>
                         </div>
-                        <Link href={cityHref("/vendors")} className="text-xs font-semibold text-slate-700 underline-offset-2 hover:underline">
+                        <Link
+                          href={cityHref("/vendors")}
+                          className="text-xs font-semibold text-slate-700 underline-offset-2 hover:underline"
+                        >
                           View vendors
                         </Link>
                       </div>
 
                       {topVendors.length === 0 ? (
-                        <p className="text-sm text-slate-600">No vendor summary data available for this year.</p>
+                        <p className="text-sm text-slate-600">
+                          No vendor summary data available for this year.
+                        </p>
                       ) : (
                         <ul className="divide-y divide-slate-200 rounded-lg border border-slate-200 bg-white">
                           {topVendors.map((v) => (
-                            <li key={v.name} className="flex items-center justify-between gap-3 px-3 py-2">
-                              <span className="truncate text-sm text-slate-800">{v.name}</span>
+                            <li
+                              key={v.name}
+                              className="flex items-center justify-between gap-3 px-3 py-2"
+                            >
+                              <span className="truncate text-sm text-slate-800">
+                                {v.name}
+                              </span>
                               <span className="whitespace-nowrap font-mono text-sm text-slate-900">
                                 {formatCurrency(v.total)}
                               </span>

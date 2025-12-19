@@ -6,7 +6,7 @@ import CardContainer from "@/components/CardContainer";
 import { CITY_CONFIG } from "@/lib/cityConfig";
 import { cityHref } from "@/lib/cityRouting";
 import type { PortalSettings } from "@/lib/queries";
-import { formatCurrency } from "@/lib/format";
+import { formatCurrency, formatNumber } from "@/lib/format";
 
 type Props = {
   portalSettings: PortalSettings | null;
@@ -44,30 +44,60 @@ function getFiscalYearPublicLabel(
     return explicitLabel.trim();
   }
 
-  const startMonth =
-    (anySettings?.fiscal_year_start_month as number | null | undefined) ?? 1;
-  const startDay =
-    (anySettings?.fiscal_year_start_day as number | null | undefined) ?? 1;
+  const startMonth = anySettings?.fiscal_year_start_month as
+    | number
+    | null
+    | undefined;
+  const startDay = anySettings?.fiscal_year_start_day as
+    | number
+    | null
+    | undefined;
+  const endMonth = anySettings?.fiscal_year_end_month as
+    | number
+    | null
+    | undefined;
+  const endDay = anySettings?.fiscal_year_end_day as
+    | number
+    | null
+    | undefined;
 
-  if (startMonth === 1 && startDay === 1) {
-    return "Fiscal year aligns with the calendar year (January 1 – December 31).";
+  if (!startMonth || !startDay || !endMonth || !endDay) {
+    return null;
   }
 
-  const startMonthName =
-    MONTH_NAMES[startMonth] || "January";
+  const startMonthName = MONTH_NAMES[startMonth] ?? "";
+  const endMonthName = MONTH_NAMES[endMonth] ?? "";
 
-  const endMonthIndex = ((startMonth + 10) % 12) + 1;
-  const endMonthName =
-    MONTH_NAMES[endMonthIndex] || "December";
+  const startDayClamped = Math.max(
+    1,
+    Math.min(LAST_DAY_OF_MONTH[startMonth] ?? 31, startDay)
+  );
+  const endDayClamped = Math.max(
+    1,
+    Math.min(LAST_DAY_OF_MONTH[endMonth] ?? 31, endDay)
+  );
 
-const endDay = LAST_DAY_OF_MONTH[endMonthIndex] ?? 30;
-return `Fiscal year runs ${startMonthName} ${startDay} – ${endMonthName} ${endDay}.`;
+  if (!startMonthName || !endMonthName) return null;
 
+  const startLabel = `${startMonthName} ${String(startDayClamped).padStart(
+    2,
+    "0"
+  )}`;
+  const endLabel = `${endMonthName} ${String(endDayClamped).padStart(2, "0")}`;
+
+  return `Fiscal year runs ${startLabel} – ${endLabel}.`;
 }
 
 export default function LandingClient({ portalSettings }: Props) {
   const cityName =
     portalSettings?.city_name || CITY_CONFIG.displayName || "Your City";
+  const cityInitials = cityName
+    .split(" ")
+    .filter(Boolean)
+    .map((word) => word[0])
+    .join("")
+    .slice(0, 3)
+    .toUpperCase();
 
   const tagline =
     portalSettings?.tagline ||
@@ -79,8 +109,7 @@ export default function LandingClient({ portalSettings }: Props) {
     "Welcome to your government’s financial transparency portal. Explore how public dollars are planned, spent, and invested.";
 
   const heroImageUrl = portalSettings?.hero_image_url || null;
-  const heroBackground =
-    portalSettings?.background_color || "#020617";
+  const heroBackground = portalSettings?.background_color || "#020617";
   const heroOverlay = "rgba(15, 23, 42, 0.65)";
   const sealUrl = portalSettings?.seal_url || null;
 
@@ -98,8 +127,13 @@ export default function LandingClient({ portalSettings }: Props) {
     portalSettings?.story_capital_projects ??
     "Share key capital projects completed or underway—streets, facilities, parks, and infrastructure.";
 
-  const statPopulation = portalSettings?.stat_population?.trim() || "";
-  const statEmployees = portalSettings?.stat_employees?.trim() || "";
+  // NEW: nicer formatting for stats
+  const statPopulationRaw = portalSettings?.stat_population?.trim() || "";
+  const statEmployeesRaw = portalSettings?.stat_employees?.trim() || "";
+  const statPopulation =
+    statPopulationRaw ? formatNumber(statPopulationRaw) : "";
+  const statEmployees =
+    statEmployeesRaw ? formatNumber(statEmployeesRaw) : "";
   const statSquareMiles = portalSettings?.stat_square_miles?.trim() || "";
   const statAnnualBudgetRaw =
     portalSettings?.stat_annual_budget?.trim() || "";
@@ -128,11 +162,9 @@ export default function LandingClient({ portalSettings }: Props) {
       ? true
       : !!portalSettings.enable_actuals;
 
-  const enableTransactions =
-    portalSettings?.enable_transactions === true;
+  const enableTransactions = portalSettings?.enable_transactions === true;
 
-  const enableRevenues =
-    portalSettings?.enable_revenues === true;
+  const enableRevenues = portalSettings?.enable_revenues === true;
 
   const enableVendors =
     enableTransactions && portalSettings?.enable_vendors === true;
@@ -140,420 +172,415 @@ export default function LandingClient({ portalSettings }: Props) {
   const leaderName = portalSettings?.leader_name?.trim() || "";
   const leaderTitle = portalSettings?.leader_title?.trim() || "";
   const leaderMessage = portalSettings?.leader_message?.trim() || "";
-  const leaderPhotoUrl = portalSettings?.leader_photo_url?.trim() || "";
+  const leaderPhotoUrl = portalSettings?.leader_photo_url || null;
 
-  const hasLeaderBlock =
-    showLeadership && !!(leaderName || leaderTitle || leaderMessage);
+  const project1Title = portalSettings?.project1_title?.trim() || "Project 1";
+  const project1Summary =
+    portalSettings?.project1_summary?.trim() || "P 1 Summary";
+  const project1ImageUrl = portalSettings?.project1_image_url || null;
 
-  const projects = [
-    {
-      title: portalSettings?.project1_title?.trim() || "",
-      summary: portalSettings?.project1_summary?.trim() || "",
-      imageUrl: portalSettings?.project1_image_url?.trim() || "",
-    },
-    {
-      title: portalSettings?.project2_title?.trim() || "",
-      summary: portalSettings?.project2_summary?.trim() || "",
-      imageUrl: portalSettings?.project2_image_url?.trim() || "",
-    },
-    {
-      title: portalSettings?.project3_title?.trim() || "",
-      summary: portalSettings?.project3_summary?.trim() || "",
-      imageUrl: portalSettings?.project3_image_url?.trim() || "",
-    },
-  ].filter((p) => p.title || p.summary || p.imageUrl);
+  const project2Title = portalSettings?.project2_title?.trim() || "Project 2";
+  const project2Summary =
+    portalSettings?.project2_summary?.trim() || "P 2 Summary";
+  const project2ImageUrl = portalSettings?.project2_image_url || null;
 
-  const quickLinkBase =
-    "flex items-center justify-between rounded-md px-2 py-1.5 text-xs hover:bg-slate-900/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-1 focus-visible:ring-offset-slate-900";
+  const project3Title = portalSettings?.project3_title?.trim() || "Project 3";
+  const project3Summary =
+    portalSettings?.project3_summary?.trim() || "P 3 Summary";
+  const project3ImageUrl = portalSettings?.project3_image_url || null;
+
+  const showHero = true;
 
   return (
-    <div
-      id="main-content"
-      className="mx-auto max-w-6xl space-y-6 px-3 py-6 sm:px-4 sm:py-8"
-    >
-      {/* HERO */}
-      <section
-        aria-label={`${cityName} transparency portal introduction`}
-        className="relative overflow-hidden rounded-2xl border border-slate-900/10 bg-slate-900 px-4 py-6 text-slate-50 shadow-sm sm:px-6 sm:py-8 md:px-8 md:py-10"
-        style={{ backgroundColor: heroBackground }}
-      >
-        {heroImageUrl && (
-          <div
-            className="pointer-events-none absolute inset-0 opacity-25"
-            aria-hidden="true"
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={heroImageUrl}
-              alt=""
-              className="h-full w-full object-cover"
-            />
+    <div className="w-full">
+      {/* Hero */}
+      {showHero && (
+        <div
+          className="relative w-full overflow-hidden border-b border-slate-200"
+          style={{ backgroundColor: heroBackground }}
+        >
+          {heroImageUrl ? (
             <div
-              className="absolute inset-0"
-              style={{ backgroundColor: heroOverlay }}
+              className="absolute inset-0 bg-cover bg-center"
+              style={{ backgroundImage: `url(${heroImageUrl})` }}
+              aria-hidden={true}
             />
-          </div>
-        )}
+          ) : (
+            <div className="absolute inset-0" aria-hidden={true} />
+          )}
 
-        <div className="relative flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-          {/* Left: text + CTAs */}
-          <div className="max-w-xl text-slate-50">
-            {sealUrl && (
-              <div className="mb-3 flex items-center gap-4">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={sealUrl}
-                  alt={`${cityName} city seal`}
-                  className="h-14 w-14 rounded-full border border-slate-700 bg-slate-950 object-contain shadow-sm"
-                />
-                <div className="flex flex-col">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-slate-200">
-                    Official seal
-                  </span>
-                  <span className="text-sm font-medium text-slate-50">
-                    {cityName}
-                  </span>
+          <div
+            className="absolute inset-0"
+            style={{ backgroundColor: heroOverlay }}
+            aria-hidden={true}
+          />
+
+          <div className="relative mx-auto max-w-6xl px-4 py-10 sm:px-6 sm:py-14 lg:px-10">
+            <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0">
+                <div className="flex items-center gap-3">
+<div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 text-sm font-semibold text-white">
+  {cityInitials || "YC"}
+</div>
+
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-white/90">
+                      {cityName}
+                    </p>
+                    <p className="text-sm text-white/70">{tagline}</p>
+                  </div>
+                </div>
+
+                {sealUrl && (
+                  <div className="mt-6 flex items-center gap-3">
+                    <img
+                      src={sealUrl}
+                      alt={`Official seal ${cityName}`}
+                      className="h-12 w-12 rounded-full bg-white/10 object-contain"
+                      loading="lazy"
+                    />
+                    <span className="text-xs text-white/70">Official seal</span>
+                  </div>
+                )}
+
+                {portalSettings?.tagline && (
+                  <p className="mt-6 text-sm font-semibold text-white/90">
+                    {portalSettings.tagline}
+                  </p>
+                )}
+
+                {fiscalYearNote && (
+                  <p className="mt-1 text-sm italic text-white/70">
+                    {fiscalYearNote}
+                  </p>
+                )}
+
+                <h1 className="mt-6 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+                  {cityName} Transparency Portal
+                </h1>
+
+                <p className="mt-3 max-w-2xl text-base text-white/80 sm:text-lg">
+                  {heroMessage}
+                </p>
+
+                <div className="mt-6 flex flex-wrap gap-3">
+                  <Link
+                    href={cityHref("/overview")}
+                    className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"
+                  >
+                    Go to Overview
+                  </Link>
+
+                  {enableActuals && (
+                    <Link
+                      href={cityHref("/analytics")}
+                      className="rounded-xl border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold text-white hover:bg-white/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"
+                    >
+                      View Analytics
+                    </Link>
+                  )}
                 </div>
               </div>
-            )}
 
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-200">
-              {tagline}
-            </p>
-            {fiscalYearNote && (
-              <p className="mt-1 text-[11px] text-slate-200">
-                {fiscalYearNote}
-              </p>
-            )}
-            <h1 className="mt-2 text-2xl font-semibold sm:text-3xl">
-              {cityName} Transparency Portal
-            </h1>
-            <p className="mt-3 text-sm text-slate-100/90">
-              {heroMessage}
-            </p>
+              <div className="w-full sm:max-w-sm">
+                <CardContainer>
+                  <div className="space-y-3">
+                    <p className="text-sm font-semibold text-slate-900">
+                      Explore the data
+                    </p>
 
-            <div className="mt-5 flex flex-wrap gap-2">
-              <Link
-                href={cityHref("/overview")}
-                className="inline-flex items-center justify-center rounded-full bg-slate-50 px-4 py-1.5 text-xs font-semibold text-slate-900 shadow-sm hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"
-              >
-                Go to Overview
-              </Link>
-              {enableActuals && (
-                <Link
-                  href={cityHref("/analytics")}
-                  className="inline-flex items-center justify-center rounded-full border border-slate-300/60 bg-slate-900/40 px-4 py-1.5 text-xs font-semibold text-slate-50 hover:bg-slate-800/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"
-                >
-                  View Analytics
-                </Link>
-              )}
+                    <div className="space-y-2">
+                      <Link
+                        href={cityHref("/overview")}
+                        className="block rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                      >
+                        <span className="font-medium text-slate-900">
+                          Overview dashboard
+                        </span>{" "}
+                        Budget & spending
+                      </Link>
+
+                      <Link
+                        href={cityHref("/budget")}
+                        className="block rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                      >
+                        <span className="font-medium text-slate-900">
+                          Budget Explorer
+                        </span>{" "}
+                        Adopted budgets
+                      </Link>
+
+                      {enableActuals && (
+                        <Link
+                          href={cityHref("/departments")}
+                          className="block rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                        >
+                          <span className="font-medium text-slate-900">
+                            Departments
+                          </span>{" "}
+                          Spending by service area
+                        </Link>
+                      )}
+
+                      {enableRevenues && (
+                        <Link
+                          href={cityHref("/revenues")}
+                          className="block rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                        >
+                          <span className="font-medium text-slate-900">
+                            Revenues
+                          </span>{" "}
+                          Where funding comes from
+                        </Link>
+                      )}
+
+                      {enableTransactions && (
+                        <Link
+                          href={cityHref("/transactions")}
+                          className="block rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                        >
+                          <span className="font-medium text-slate-900">
+                            Transactions
+                          </span>{" "}
+                          Payments & vendors
+                        </Link>
+                      )}
+                    </div>
+                  </div>
+                </CardContainer>
+              </div>
             </div>
-          </div>
-
-          {/* Right: quick nav list */}
-          <div className="w-full max-w-xs rounded-xl bg-slate-900/60 p-3 text-xs text-slate-100 shadow-sm">
-            <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-200">
-              Explore the data
-            </p>
-            <ul className="space-y-1.5">
-              {/* Overview – always available (no default “active” state) */}
-              <li>
-                <Link
-                  href={cityHref("/overview")}
-                  className={quickLinkBase}
-                >
-                  <span>Overview dashboard</span>
-                  <span className="text-xs text-slate-200">
-                    Budget &amp; spending
-                  </span>
-                </Link>
-              </li>
-
-              {/* Budget – always available */}
-              <li>
-                <Link
-                  href={cityHref("/budget")}
-                  className={quickLinkBase}
-                >
-                  <span>Budget Explorer</span>
-                  <span className="text-xs text-slate-200">
-                    Adopted budgets
-                  </span>
-                </Link>
-              </li>
-
-              {/* Departments – only if Actuals module is enabled */}
-              {enableActuals && (
-                <li>
-                  <Link
-                    href={cityHref("/departments")}
-                    className={quickLinkBase}
-                  >
-                    <span>Departments</span>
-                    <span className="text-xs text-slate-200">
-                      Spending by service area
-                    </span>
-                  </Link>
-                </li>
-              )}
-
-              {/* Revenues – only if Revenues module is enabled */}
-              {enableRevenues && (
-                <li>
-                  <Link
-                    href={cityHref("/revenues")}
-                    className={quickLinkBase}
-                  >
-                    <span>Revenues</span>
-                    <span className="text-xs text-slate-200">
-                      Where funding comes from
-                    </span>
-                  </Link>
-                </li>
-              )}
-
-              {/* Transactions – only if Transactions module is enabled */}
-              {enableTransactions && (
-                <li>
-                  <Link
-                    href={cityHref("/transactions")}
-                    className={quickLinkBase}
-                  >
-                    <span>Transactions</span>
-                    <span className="text-xs text-slate-200">
-                      {enableVendors
-                        ? "Payments &amp; vendors"
-                        : "Payments"}
-                    </span>
-                  </Link>
-                </li>
-              )}
-            </ul>
           </div>
         </div>
-      </section>
+      )}
 
-      {/* Leadership welcome */}
-      {hasLeaderBlock && (
-        <CardContainer>
-          <section
-            aria-label="Leadership message"
-            className="mt-0 flex flex-col gap-4 rounded-2xl border border-slate-200 bg-slate-50/80 p-4 sm:flex-row sm:items-start sm:p-5"
-          >
-            {leaderPhotoUrl && (
-              <div className="flex-shrink-0">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={leaderPhotoUrl}
-                  alt={leaderName || "City leader"}
-                  className="h-16 w-16 rounded-full border border-slate-200 object-cover sm:h-20 sm:w-20"
-                />
-              </div>
-            )}
-            <div className="space-y-1">
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-600">
+      {/* Main content */}
+      <div className="mx-auto max-w-6xl space-y-6 px-4 py-8 sm:px-6 lg:px-10">
+        {/* Leadership */}
+        {showLeadership && (leaderName || leaderMessage) && (
+          <CardContainer>
+            <section aria-label="Leadership message" className="space-y-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
                 Leadership message
               </p>
-              {(leaderName || leaderTitle) && (
-                <p className="text-sm font-semibold text-slate-900">
-                  {leaderName}
-                  {leaderTitle && (
-                    <span className="font-normal text-slate-600">
-                      {leaderName ? " — " : ""}
-                      {leaderTitle}
-                    </span>
+
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+                {leaderPhotoUrl && (
+                  <img
+                    src={leaderPhotoUrl}
+                    alt=""
+                    className="h-16 w-16 rounded-xl border border-slate-200 object-cover"
+                    loading="lazy"
+                  />
+                )}
+
+                <div className="min-w-0">
+                  {leaderName && (
+                    <p className="text-sm font-semibold text-slate-900">
+                      {leaderName}
+                      {leaderTitle ? (
+                        <span className="text-slate-500">
+                          {" "}
+                          — {leaderTitle}
+                        </span>
+                      ) : null}
+                    </p>
                   )}
-                </p>
-              )}
-              {leaderMessage && (
-                <p className="text-sm leading-relaxed text-slate-700">
-                  {leaderMessage}
-                </p>
-              )}
-            </div>
-          </section>
-        </CardContainer>
-      )}
 
-      {/* About our community */}
-      {showStory && (
-        <CardContainer>
-          <section
-            aria-label="About our community"
-            className="space-y-2"
-          >
-            <h2 className="text-sm font-semibold text-slate-900">
-              About our community
-            </h2>
-            <p className="text-sm leading-relaxed text-slate-700">
-              {storyCityDescription}
-            </p>
-          </section>
-        </CardContainer>
-      )}
-
-      {/* City stats */}
-      {showStats &&
-        (statPopulation ||
-          statEmployees ||
-          statSquareMiles ||
-          statAnnualBudgetFormatted) && (
-          <CardContainer>
-            <section
-              aria-label="City statistics"
-              className="space-y-3"
-            >
-              <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-                <div>
-                  <h2 className="text-sm font-semibold text-slate-900">
-                    At a glance
-                  </h2>
-                  <p className="text-xs text-slate-600">
-                    Key figures that help put your community’s budget and
-                    services in context.
-                  </p>
+                  {leaderMessage && (
+                    <p className="mt-2 text-sm text-slate-700">
+                      {leaderMessage}
+                    </p>
+                  )}
                 </div>
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                {statPopulation && (
-                  <div className="rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-3">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-600">
-                      Population
-                    </p>
-                    <p className="mt-1 text-base font-semibold text-slate-900">
-                      {statPopulation}
-                    </p>
-                  </div>
-                )}
-
-                {statEmployees && (
-                  <div className="rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-3">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-600">
-                      City employees
-                    </p>
-                    <p className="mt-1 text-base font-semibold text-slate-900">
-                      {statEmployees}
-                    </p>
-                  </div>
-                )}
-
-                {statSquareMiles && (
-                  <div className="rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-3">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-600">
-                      Area (sq. miles)
-                    </p>
-                    <p className="mt-1 text-base font-semibold text-slate-900">
-                      {statSquareMiles}
-                    </p>
-                  </div>
-                )}
-
-                {statAnnualBudgetFormatted && (
-                  <div className="rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-3">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-600">
-                      Annual budget
-                    </p>
-                    <p className="mt-1 text-base font-semibold text-slate-900">
-                      {statAnnualBudgetFormatted}
-                    </p>
-                    <p className="mt-1 text-[11px] text-slate-600">
-                      All funds, adopted.
-                    </p>
-                  </div>
-                )}
               </div>
             </section>
           </CardContainer>
         )}
 
-      {/* Year in review */}
-      {showYearReview && (
-        <CardContainer>
-          <section
-            aria-label="Year in review"
-            className="space-y-2"
-          >
-            <h2 className="text-sm font-semibold text-slate-900">
-              Year in review
-            </h2>
-            <p className="text-sm leading-relaxed text-slate-700">
-              {storyYearAchievements}
-            </p>
-          </section>
-        </CardContainer>
-      )}
+        {/* About */}
+        {showStory && (
+          <CardContainer>
+            <section aria-label="About our community" className="space-y-3">
+              <h2 className="text-sm font-semibold text-slate-900">
+                About our community
+              </h2>
+              <p className="text-sm text-slate-700">
+                {storyCityDescription}
+              </p>
+            </section>
+          </CardContainer>
+        )}
 
-      {/* Capital projects overview */}
-      {showCapitalProjects && (
-        <CardContainer>
-          <section
-            aria-label="Capital projects overview"
-            className="space-y-2"
-          >
-            <h2 className="text-sm font-semibold text-slate-900">
-              Capital projects
-            </h2>
-            <p className="text-sm leading-relaxed text-slate-700">
-              {storyCapitalProjects}
-            </p>
-          </section>
-        </CardContainer>
-      )}
+        {/* At a glance */}
+        {showStats &&
+          (statPopulation ||
+            statEmployees ||
+            statSquareMiles ||
+            statAnnualBudgetFormatted) && (
+            <CardContainer>
+              <section
+                aria-label="City statistics"
+                className="space-y-3"
+              >
+                <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+                  <div>
+                    <h2 className="text-sm font-semibold text-slate-900">
+                      At a glance
+                    </h2>
+                    <p className="text-xs text-slate-600">
+                      Key figures that help put your community’s budget and
+                      services in context.
+                    </p>
+                  </div>
+                </div>
 
-      {/* Featured projects */}
-      {showProjects && projects.length > 0 && (
-        <CardContainer>
-          <section
-            aria-label="Featured city projects"
-            className="space-y-3"
-          >
-            <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                  {statPopulation && (
+                    <div className="rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-3">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-600">
+                        Population
+                      </p>
+                      <p className="mt-1 text-base font-semibold text-slate-900">
+                        {statPopulation}
+                      </p>
+                    </div>
+                  )}
+
+                  {statEmployees && (
+                    <div className="rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-3">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-600">
+                        City employees
+                      </p>
+                      <p className="mt-1 text-base font-semibold text-slate-900">
+                        {statEmployees}
+                      </p>
+                    </div>
+                  )}
+
+                  {statSquareMiles && (
+                    <div className="rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-3">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-600">
+                        Area (sq. miles)
+                      </p>
+                      <p className="mt-1 text-base font-semibold text-slate-900">
+                        {statSquareMiles}
+                      </p>
+                    </div>
+                  )}
+
+                  {statAnnualBudgetFormatted && (
+                    <div className="rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-3">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-600">
+                        Annual budget
+                      </p>
+                      <p className="mt-1 text-base font-semibold text-slate-900">
+                        {statAnnualBudgetFormatted}
+                      </p>
+                      <p className="mt-1 text-[11px] text-slate-600">
+                        All funds, adopted.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </section>
+            </CardContainer>
+          )}
+
+        {/* Year in review */}
+        {showYearReview && (
+          <CardContainer>
+            <section aria-label="Year in review" className="space-y-3">
+              <h2 className="text-sm font-semibold text-slate-900">
+                Year in review
+              </h2>
+              <p className="text-sm text-slate-700">
+                {storyYearAchievements}
+              </p>
+            </section>
+          </CardContainer>
+        )}
+
+        {/* Capital projects */}
+        {showCapitalProjects && (
+          <CardContainer>
+            <section aria-label="Capital projects" className="space-y-3">
+              <h2 className="text-sm font-semibold text-slate-900">
+                Capital projects
+              </h2>
+              <p className="text-sm text-slate-700">
+                {storyCapitalProjects}
+              </p>
+            </section>
+          </CardContainer>
+        )}
+
+        {/* Featured projects */}
+        {showProjects && (
+          <CardContainer>
+            <section aria-label="Featured projects" className="space-y-4">
               <div>
                 <h2 className="text-sm font-semibold text-slate-900">
                   Featured projects
                 </h2>
-                <p className="text-xs text-slate-600">
+                <p className="mt-1 text-xs text-slate-600">
                   A selection of major capital and community projects your
                   local government has delivered or is working on.
                 </p>
               </div>
-            </div>
 
-            <div className="grid gap-4 md:grid-cols-3">
-              {projects.map((project, idx) => (
-                <article
-                  key={idx}
-                  className="flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm"
-                >
-                  {project.imageUrl && (
-                    <div className="h-32 w-full overflow-hidden border-b border-slate-100">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={project.imageUrl}
-                        alt={project.title || `Project ${idx + 1}`}
-                        className="h-full w-full object-cover"
-                      />
-                    </div>
-                  )}
-                  <div className="p-4">
-                    {project.title && (
-                      <h3 className="text-sm font-semibold text-slate-900">
-                        {project.title}
-                      </h3>
-                    )}
-                    {project.summary && (
-                      <p className="mt-2 text-sm leading-relaxed text-slate-700">
-                        {project.summary}
-                      </p>
-                    )}
-                  </div>
-                </article>
-              ))}
-            </div>
-          </section>
-        </CardContainer>
-      )}
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+                {[1, 2, 3].map((i) => {
+                  const title =
+                    i === 1 ? project1Title : i === 2 ? project2Title : project3Title;
+                  const summary =
+                    i === 1
+                      ? project1Summary
+                      : i === 2
+                      ? project2Summary
+                      : project3Summary;
+                  const imageUrl =
+                    i === 1
+                      ? project1ImageUrl
+                      : i === 2
+                      ? project2ImageUrl
+                      : project3ImageUrl;
+
+                  return (
+                    <article
+                      key={i}
+                      className="overflow-hidden rounded-xl border border-slate-200 bg-white"
+                    >
+                      {imageUrl ? (
+                        <img
+                          src={imageUrl}
+                          alt=""
+                          className="h-36 w-full object-cover"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div
+                          className="h-36 w-full bg-slate-100"
+                          aria-hidden={true}
+                        />
+                      )}
+
+                      <div className="p-4">
+                        <h3 className="text-sm font-semibold text-slate-900">
+                          {title}
+                        </h3>
+                        <p className="mt-2 text-sm text-slate-700">
+                          {summary}
+                        </p>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            </section>
+          </CardContainer>
+        )}
+      </div>
     </div>
   );
 }

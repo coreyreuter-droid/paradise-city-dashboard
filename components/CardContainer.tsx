@@ -1,6 +1,9 @@
-export default function CardContainer({ children }: { children: React.ReactNode }) {
+// components/CardContainer.tsx
+import type { ReactNode } from "react";
+
+export default function CardContainer({ children }: { children: ReactNode }) {
   return (
-    <div className="rounded-lg bg-white p-4 sm:p-6 shadow w-full max-w-full">
+    <div className="w-full max-w-full rounded-xl border border-slate-200/80 bg-white p-4 shadow-sm sm:p-6">
       {children}
     </div>
   );
