@@ -335,23 +335,30 @@ export async function getAvailableFiscalYears(): Promise<number[]> {
  * Used by /transactions and other filters.
  */
 export async function getTransactionYears(): Promise<number[]> {
-  const [budgetsRes, actualsRes, txRes] = await Promise.all([
-    supabase.from("budgets").select("fiscal_year"),
-    supabase.from("actuals").select("fiscal_year"),
-    supabase.from("transactions").select("fiscal_year"),
-  ]);
+  const { data, error } = await supabase
+    .from("transaction_year_department")
+    .select("fiscal_year")
+    .order("fiscal_year", { ascending: false });
 
-  if (budgetsRes.error) console.error("getTransactionYears budgets error:", budgetsRes.error);
-  if (actualsRes.error) console.error("getTransactionYears actuals error:", actualsRes.error);
-  if (txRes.error) console.error("getTransactionYears tx error:", txRes.error);
+  if (error) {
+    console.error("getTransactionYears error:", error);
+    throw error;
+  }
 
-  const years = new Set<number>();
-  (budgetsRes.data ?? []).forEach((r: any) => years.add(Number(r.fiscal_year)));
-  (actualsRes.data ?? []).forEach((r: any) => years.add(Number(r.fiscal_year)));
-  (txRes.data ?? []).forEach((r: any) => years.add(Number(r.fiscal_year)));
+  const seen = new Set<number>();
+  const out: number[] = [];
 
-  return Array.from(years).filter((y) => Number.isFinite(y)).sort((a, b) => b - a);
+  (data ?? []).forEach((r: any) => {
+    const year = Number(r?.fiscal_year);
+    if (Number.isFinite(year) && !seen.has(year)) {
+      seen.add(year);
+      out.push(year);
+    }
+  });
+
+  return out;
 }
+
 
 export async function getBudgetsForYear(fiscalYear: number): Promise<BudgetRow[]> {
   return fetchAllRows<BudgetRow>("budgets", (q) => q.eq("fiscal_year", fiscalYear));
@@ -681,19 +688,46 @@ export async function getTransactionsForDepartment(
  */
 export async function getRevenueYears(): Promise<number[]> {
   const { data, error } = await supabase
-    .from("revenues")
-    .select("fiscal_year");
+    .from("revenue_year_totals")
+    .select("fiscal_year")
+    .order("fiscal_year", { ascending: false });
 
   if (error) {
     console.error("getRevenueYears error:", error);
     throw error;
   }
 
-  const set = new Set<number>();
+  const seen = new Set<number>();
+  const out: number[] = [];
+
   (data ?? []).forEach((r: any) => {
-    const v = Number(r?.fiscal_year);
-    if (!Number.isNaN(v)) set.add(v);
+    const year = Number(r?.fiscal_year);
+    if (Number.isFinite(year) && !seen.has(year)) {
+      seen.add(year);
+      out.push(year);
+    }
   });
 
-  return Array.from(set).sort((a, b) => b - a);
+  return out;
+}
+
+export async function getRevenueYearTotals(): Promise<
+  Array<{ year: number; total: number }>
+> {
+  const { data, error } = await supabase
+    .from("revenue_year_totals")
+    .select("fiscal_year,total_revenue")
+    .order("fiscal_year", { ascending: false });
+
+  if (error) {
+    console.error("getRevenueYearTotals error:", error);
+    throw error;
+  }
+
+  return (data ?? [])
+    .map((r: any) => ({
+      year: Number(r?.fiscal_year),
+      total: Number(r?.total_revenue ?? 0),
+    }))
+    .filter((r) => Number.isFinite(r.year));
 }

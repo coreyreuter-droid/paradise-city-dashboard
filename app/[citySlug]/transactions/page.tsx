@@ -82,21 +82,24 @@ function getFiscalYearPublicLabelFromSettings(
     return "Fiscal year aligns with the calendar year (January 1 – December 31).";
   }
 
-  const startMonthName = MONTH_NAMES[startMonth] || "January";
+const startMonthName = MONTH_NAMES[startMonth] || "January";
 
-  // End month is the month before the start month in the following year.
-  // For example, start July 1 -> end June 30.
-  const endMonthIndex = ((startMonth + 10) % 12) + 1;
-  const endMonthName = MONTH_NAMES[endMonthIndex] || "December";
+// End month is the month before the start month in the following year.
+// For example, start July 1 -> end June 30.
+const endMonthIndex = ((startMonth + 10) % 12) + 1;
+const endMonthName = MONTH_NAMES[endMonthIndex] || "December";
 
-  // Use the last day of the end month (non-leap year is fine for this message).
-  const LAST_DAY_OF_MONTH = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-  const endDay = LAST_DAY_OF_MONTH[endMonthIndex] ?? 30;
+// Use the last day of the end month (non-leap year is fine for this message).
+const LAST_DAY_OF_MONTH = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+const endDay = LAST_DAY_OF_MONTH[endMonthIndex] ?? 30;
 
-  return `Fiscal year runs ${startMonthName} ${startDay} – ${endMonthName} ${endDay}.`;
+return `Fiscal year runs ${startMonthName} ${startDay} – ${endMonthName} ${endDay}.`;
+
 }
 
-export default async function TransactionsPage({ searchParams }: PageProps) {
+export default async function TransactionsPage({
+  searchParams,
+}: PageProps) {
   const resolvedSearchParams = await searchParams;
 
   const [yearsRaw, settings] = await Promise.all([
@@ -110,7 +113,8 @@ export default async function TransactionsPage({ searchParams }: PageProps) {
     return <UnpublishedMessage settings={portalSettings} />;
   }
 
-  const fiscalYearNote = getFiscalYearPublicLabelFromSettings(portalSettings);
+  const fiscalYearNote =
+    getFiscalYearPublicLabelFromSettings(portalSettings);
 
   const enableTransactions = portalSettings?.enable_transactions === true;
 
@@ -118,7 +122,8 @@ export default async function TransactionsPage({ searchParams }: PageProps) {
     notFound();
   }
 
-  const enableVendors = enableTransactions && portalSettings?.enable_vendors === true;
+  const enableVendors =
+    enableTransactions && portalSettings?.enable_vendors === true;
 
   const years = (yearsRaw ?? []).slice().sort((a, b) => b - a);
 
@@ -127,21 +132,17 @@ export default async function TransactionsPage({ searchParams }: PageProps) {
     const yearParam = pickFirst(resolvedSearchParams.year);
     const parsedYear = yearParam ? Number(yearParam) : NaN;
     selectedYear =
-      Number.isFinite(parsedYear) && years.includes(parsedYear) ? parsedYear : years[0];
+      Number.isFinite(parsedYear) && years.includes(parsedYear)
+        ? parsedYear
+        : years[0];
   }
 
   const pageParam = pickFirst(resolvedSearchParams.page);
   const parsedPage = pageParam ? Number(pageParam) : NaN;
   const page = Number.isFinite(parsedPage) && parsedPage > 0 ? parsedPage : 1;
 
-  const department = pickFirst(resolvedSearchParams.department) ?? "all";
-
-  // ✅ MINIMAL FIX:
-  // "all" is a UI sentinel, not a real department name.
-  // If we pass "all" into getTransactionsPage, lib/queries.ts treats it as a real filter:
-  //   eq("department_name", "all")
-  // ...which returns zero rows.
-  const departmentForQuery = department === "all" ? undefined : department;
+  const department =
+    pickFirst(resolvedSearchParams.department) ?? "all";
 
   const rawVendorQuery = pickFirst(resolvedSearchParams.q) ?? null;
   const vendorQuery = enableVendors ? rawVendorQuery : null;
@@ -153,13 +154,14 @@ export default async function TransactionsPage({ searchParams }: PageProps) {
   if (selectedYear != null) {
     departments = await getTransactionDepartmentsForYear(selectedYear);
 
-    const pageResult = await getTransactionsPage({
-      fiscalYear: selectedYear,
-      department: departmentForQuery, // ✅ ONLY CHANGE THAT MATTERS
-      vendorQuery: vendorQuery ?? undefined,
-      page,
-      pageSize: PAGE_SIZE,
-    });
+const pageResult = await getTransactionsPage({
+  fiscalYear: selectedYear,
+  department: department === "all" ? undefined : department,
+  vendorQuery: vendorQuery ?? undefined,
+  page,
+  pageSize: PAGE_SIZE,
+});
+
 
     transactions = pageResult.rows ?? [];
     totalCount = pageResult.totalCount;
@@ -174,7 +176,7 @@ export default async function TransactionsPage({ searchParams }: PageProps) {
       page={page}
       pageSize={PAGE_SIZE}
       departments={departments}
-      departmentFilter={department} // keep UI showing "all"
+      departmentFilter={department}
       vendorQuery={vendorQuery}
       enableVendors={enableVendors}
       fiscalYearNote={fiscalYearNote ?? undefined}
