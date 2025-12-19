@@ -65,6 +65,7 @@ function formatFreshnessDate(iso: string | null): string | null {
 }
 
 const MONTH_NAMES = ["", "January","February","March","April","May","June","July","August","September","October","November","December"];
+const LAST_DAY_OF_MONTH = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
 
 function getFiscalYearPublicLabel(portalSettings: PortalSettings | null): string | null {
   if (!portalSettings) return null;
@@ -84,7 +85,9 @@ function getFiscalYearPublicLabel(portalSettings: PortalSettings | null): string
   const endMonthIndex = ((startMonth + 10) % 12) + 1;
   const endMonthName = MONTH_NAMES[endMonthIndex] || "December";
 
-  return `Fiscal year runs ${startMonthName} ${startDay} – ${endMonthName} ${startDay}.`;
+const endDay = LAST_DAY_OF_MONTH[endMonthIndex] ?? 30;
+return `Fiscal year runs ${startMonthName} ${startDay} – ${endMonthName} ${endDay}.`;
+
 }
 
 export default function ParadiseHomeClient({

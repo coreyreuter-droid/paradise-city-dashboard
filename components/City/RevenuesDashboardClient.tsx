@@ -57,6 +57,20 @@ const PIE_COLORS = [
 
 const REVENUE_LINE_COLOR = "#0f766e";
 
+const CURRENCY_COMPACT = new Intl.NumberFormat("en-US", {
+  notation: "compact",
+  compactDisplay: "short",
+  maximumFractionDigits: 1,
+});
+
+function formatCurrencyCompactTick(value: number) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return "";
+  const abs = Math.abs(n);
+  const sign = n < 0 ? "-" : "";
+  return `${sign}$${CURRENCY_COMPACT.format(abs)}`;
+}
+
 function buildSearchUrl(
   pathname: string,
   currentParams: URLSearchParams,
@@ -517,19 +531,18 @@ formatter={(value: any, name?: string) => {
                           axisLine={false}
                         />
                         <YAxis
-                          tickFormatter={(v: number) =>
-                            formatCurrency(v)
-                          }
+                          tickFormatter={formatCurrencyCompactTick}
                           tickLine={false}
                           axisLine={false}
                         />
+
                         <Tooltip
                           labelFormatter={(label) =>
                             `Fiscal year ${label}`
                           }
                           formatter={(value: any, name) =>
                             typeof value === "number"
-                              ? [formatCurrency(value), name]
+                              ? [formatCurrencyCompactTick(value), name]
                               : [value, name]
                           }
                         />

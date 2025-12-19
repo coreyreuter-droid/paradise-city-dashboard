@@ -27,6 +27,7 @@ const MONTH_NAMES = [
   "November",
   "December",
 ];
+const LAST_DAY_OF_MONTH = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
 
 function getFiscalYearPublicLabel(
   portalSettings: PortalSettings | null
@@ -59,7 +60,9 @@ function getFiscalYearPublicLabel(
   const endMonthName =
     MONTH_NAMES[endMonthIndex] || "December";
 
-  return `Fiscal year runs ${startMonthName} ${startDay} – ${endMonthName} ${startDay}.`;
+const endDay = LAST_DAY_OF_MONTH[endMonthIndex] ?? 30;
+return `Fiscal year runs ${startMonthName} ${startDay} – ${endMonthName} ${endDay}.`;
+
 }
 
 export default function LandingClient({ portalSettings }: Props) {
