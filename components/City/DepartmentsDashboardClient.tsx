@@ -123,7 +123,7 @@ export default function DepartmentsDashboardClient({
         cell: (dept: DepartmentSummary) => (
           <Link
             href={`${cityHref(`/departments/${encodeURIComponent(dept.department_name || "Unspecified")}`)}${yearParam}`}
-            className="font-medium text-sky-700 hover:underline"
+            className="font-medium text-slate-800 hover:underline"
           >
             {dept.department_name || "Unspecified"}
           </Link>

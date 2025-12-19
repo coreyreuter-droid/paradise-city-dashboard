@@ -348,7 +348,7 @@ export default function DepartmentDetailClient({
                 }
                 className={
                   enableVendors
-                    ? "whitespace-nowrap text-sky-700 hover:underline"
+                    ? "whitespace-nowrap text-slate-800 hover:underline"
                     : "whitespace-nowrap text-slate-700"
                 }
                 aria-disabled={!enableVendors}
@@ -695,7 +695,7 @@ export default function DepartmentDetailClient({
                             <button
                               type="button"
                               onClick={() => setActiveVendor(v.name)}
-                              className="truncate pr-2 text-left text-sky-700 hover:underline"
+                              className="truncate pr-2 text-left text-slate-800 hover:underline"
                             >
                               {v.name}
                             </button>
@@ -706,7 +706,7 @@ export default function DepartmentDetailClient({
                           <div className="mt-1 flex items-center gap-2">
                             <div className="h-1.5 flex-1 rounded-full bg-slate-100">
                               <div
-                                className="h-1.5 rounded-full bg-sky-500"
+                                className="h-1.5 rounded-full bg-slate-900"
                                 style={{
                                   width: `${Math.max(
                                     2,

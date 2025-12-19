@@ -69,7 +69,7 @@ export default function DepartmentsGrid({ year, departments }: Props) {
               <Link
                 key={deptName}
                 href={href}
-                className="block rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-xs text-slate-700 shadow-sm transition hover:border-sky-400 hover:bg-white hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2"
+                className="block rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-xs text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-white hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
               >
                 <div className="mb-2 flex items-start justify-between gap-2">
                   <div>

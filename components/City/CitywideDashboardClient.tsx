@@ -401,7 +401,7 @@ const { yoyDomain, yoyTicks } = useMemo(() => {
                 </div>
                 <Link
                   href={cityHref("/revenues")}
-                  className="inline-flex items-center rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+                  className="inline-flex items-center rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
                 >
                   View Revenues
                 </Link>
@@ -451,7 +451,7 @@ const { yoyDomain, yoyTicks } = useMemo(() => {
                 <div className="mt-1 text-sm text-slate-600">Overall execution across all departments.</div>
                 <div className="mt-3 h-2 w-full rounded-full bg-slate-100">
                   <div
-                    className={`h-2 rounded-full ${execPct <= 100 ? "bg-sky-500" : "bg-red-500"}`}
+                    className={`h-2 rounded-full ${execPct <= 100 ? "bg-slate-900" : "bg-red-500"}`}
                     style={{ width: `${Math.max(0, Math.min(execPctClamped, 100))}%` }}
                     aria-hidden="true"
                   />
@@ -573,13 +573,13 @@ formatter={(value: any, name?: string) => {
                                   return <Cell key={entry.name} fill={color} />;
                                 })}
                               </Pie>
-                              <Tooltip
-formatter={(value: any, name?: string) => {
-  const key = name ?? "";
-  return [value, key];
-}}
-
-                              />
+                            <Tooltip
+                              formatter={(value: any, name?: string) => {
+                                const key = name ?? "";
+                                return [formatCurrency(Number(value ?? 0)), key];
+                              }}
+                            />
+   
                             </PieChart>
                           </ResponsiveContainer>
                         </div>
@@ -888,7 +888,7 @@ formatter={(value: any, name?: string) => {
                             <li key={r.department_name} className="flex items-start justify-between gap-3">
                               <Link
                                 href={`${cityHref(`/departments/${encodeURIComponent(r.department_name)}`)}?year=${yearValue}`}
-                                className="min-w-0 flex-1 truncate text-sm font-medium text-sky-700 hover:underline"
+                                className="min-w-0 flex-1 truncate text-sm font-medium text-slate-800 hover:underline"
                               >
                                 {r.department_name}
                               </Link>
@@ -905,8 +905,10 @@ formatter={(value: any, name?: string) => {
 
                   <div className="pt-1">
                     <Link href={cityHref("/departments")} className="text-sm font-medium text-slate-800 hover:underline">
+                      View all departments →
                     </Link>
                   </div>
+
                 </section>
               </CardContainer>
 
@@ -954,7 +956,7 @@ formatter={(value: any, name?: string) => {
                     )}
 
                     <div className="pt-2">
-                      <Link href={cityHref("/vendors")} className="text-sm font-medium text-sky-700 hover:underline">
+                      <Link href={cityHref("/vendors")} className="text-sm font-medium text-slate-800 hover:underline">
                         View all vendors →
                       </Link>
                     </div>

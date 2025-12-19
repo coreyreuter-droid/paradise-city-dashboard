@@ -327,7 +327,7 @@ export default function DepartmentBudgetClient(props: Props) {
                 </label>
                 <select
                   id="dept-year-select"
-                  className="rounded-md border border-slate-300 bg-white px-2 py-1 text-xs text-slate-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-1"
+                  className="rounded-md border border-slate-300 bg-white px-2 py-1 text-xs text-slate-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-1"
                   value={year}
                   onChange={(e) =>
                     handleYearChange(Number(e.target.value) || null)
@@ -349,7 +349,7 @@ export default function DepartmentBudgetClient(props: Props) {
           <button
             type="button"
             onClick={() => handleTabChange("overview")}
-            className={`rounded-full px-3 py-1 font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 ${
+            className={`rounded-full px-3 py-1 font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 ${
               activeTab === "overview"
                 ? "bg-slate-900 text-slate-50 shadow-sm"
                 : "bg-white text-slate-700 hover:bg-slate-100"
@@ -362,7 +362,7 @@ export default function DepartmentBudgetClient(props: Props) {
           <button
             type="button"
             onClick={() => handleTabChange("vendors")}
-            className={`rounded-full px-3 py-1 font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 ${
+            className={`rounded-full px-3 py-1 font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 ${
               activeTab === "vendors"
                 ? "bg-slate-900 text-slate-50 shadow-sm"
                 : "bg-white text-slate-700 hover:bg-slate-100"
@@ -375,7 +375,7 @@ export default function DepartmentBudgetClient(props: Props) {
           <button
             type="button"
             onClick={() => handleTabChange("transactions")}
-            className={`rounded-full px-3 py-1 font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 ${
+            className={`rounded-full px-3 py-1 font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 ${
               activeTab === "transactions"
                 ? "bg-slate-900 text-slate-50 shadow-sm"
                 : "bg-white text-slate-700 hover:bg-slate-100"
@@ -590,7 +590,7 @@ formatter={(value: any, name?: string) => {
                 <div className="mt-3 h-2 w-full rounded-full bg-slate-100">
                   <div
                     className={`h-2 rounded-full ${
-                      execPctRaw <= 100 ? "bg-sky-500" : "bg-red-500"
+                      execPctRaw <= 100 ? "bg-slate-900" : "bg-red-500"
                     }`}
                     style={{
                       width: `${Math.max(0, Math.min(execPctRaw, 150))}%`,

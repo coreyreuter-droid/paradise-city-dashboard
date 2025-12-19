@@ -39,11 +39,14 @@ function getFiscalYearNoteFromSettings(settings: Record<string, unknown> | null)
   const startDay =
     Number.isFinite(parsedDay) && parsedDay >= 1 && parsedDay <= 31 ? parsedDay : 1;
 
-  const startMonthName = MONTH_NAMES[(startMonth - 1 + MONTH_NAMES.length) % MONTH_NAMES.length];
-  const endMonthIndex = (startMonth - 2 + MONTH_NAMES.length) % MONTH_NAMES.length;
-  const endMonthName = MONTH_NAMES[endMonthIndex];
+    const start = new Date(Date.UTC(2000, startMonth - 1, startDay));
+  const end = new Date(start.getTime() - 24 * 60 * 60 * 1000);
 
-  return `Fiscal year runs from ${startMonthName} ${startDay.toString()} to ${endMonthName} ${startDay.toString()} of the following year.`;
+  const startMonthName = MONTH_NAMES[start.getUTCMonth()];
+  const endMonthName = MONTH_NAMES[end.getUTCMonth()];
+
+  return `Fiscal year runs from ${startMonthName} ${start.getUTCDate()} to ${endMonthName} ${end.getUTCDate()}.`;
+
 }
 
 export default async function AnalyticsPage({

@@ -9,9 +9,10 @@ import { cityHref } from "@/lib/cityRouting";
 
 type Props = {
   redirect: string;
+  cityName?: string | null;
 };
 
-export default function LoginClient({ redirect }: Props) {
+export default function LoginClient({ redirect, cityName }: Props) {
   const [email, setEmail] = useState("");
   const [sending, setSending] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(
@@ -83,7 +84,8 @@ export default function LoginClient({ redirect }: Props) {
     }
   }
 
-  const cityName = CITY_CONFIG.displayName || "Your City";
+const displayCityName = cityName || CITY_CONFIG.displayName || "Your City";
+
 
   return (
     <main
@@ -95,7 +97,7 @@ export default function LoginClient({ redirect }: Props) {
       <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white px-5 py-6 shadow-sm sm:px-6 sm:py-7">
         <header className="mb-4">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-            {cityName}
+            {displayCityName}
           </p>
           <h1
             id="login-title"
@@ -129,7 +131,7 @@ export default function LoginClient({ redirect }: Props) {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="name@city.gov"
-              className="h-9 w-full rounded-md border border-slate-300 bg-white px-2 text-sm text-slate-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+              className="h-9 w-full rounded-md border border-slate-300 bg-white px-2 text-sm text-slate-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
             />
             <p className="mt-1 text-xs text-slate-500">
               Use the email address your administrator added to this
@@ -140,7 +142,7 @@ export default function LoginClient({ redirect }: Props) {
           <button
             type="submit"
             disabled={sending}
-            className="mt-2 inline-flex w-full items-center justify-center rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2"
+            className="mt-2 inline-flex w-full items-center justify-center rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
           >
             {sending ? "Sending sign-in link…" : "Send sign-in link"}
           </button>
@@ -150,7 +152,7 @@ export default function LoginClient({ redirect }: Props) {
           <div
             ref={messageRef}
             tabIndex={-1}
-            className="mt-4 rounded-md border px-3 py-2 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2"
+            className="mt-4 rounded-md border px-3 py-2 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
             role={errorMessage ? "alert" : "status"}
             aria-live={errorMessage ? "assertive" : "polite"}
           >
@@ -166,7 +168,7 @@ export default function LoginClient({ redirect }: Props) {
         <div className="mt-4 flex items-center justify-between gap-2 text-xs text-slate-600">
           <Link
             href={cityHref("/")}
-            className="font-medium text-slate-700 underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2"
+            className="font-medium text-slate-700 underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
           >
             Return to public site
           </Link>
