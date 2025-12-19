@@ -340,11 +340,12 @@ export default function ParadiseSidebar() {
   };
 
   return (
-    <header
-      role="banner"
-      aria-label={`${portalTitle} site navigation`}
-      className="flex flex-col sm:flex-none"
-    >
+  <header
+    role="banner"
+    aria-label={`${portalTitle} site navigation`}
+    className="flex flex-col sm:flex-none sm:w-72 lg:w-80"
+  >
+
       {/* MOBILE HEADER + TOGGLE (sm:hidden) */}
       <div className="flex items-center justify-between border-b border-slate-200 bg-white/95 px-3 py-2 shadow-sm sm:hidden">
         <div className="flex items-center gap-2">
@@ -474,10 +475,12 @@ export default function ParadiseSidebar() {
       )}
 
       {/* DESKTOP SIDEBAR (sm+ only) */}
-      <aside
-        className="hidden w-64 flex-none border-r border-slate-200 bg-white/95 px-3 py-4 shadow-sm sm:flex sm:flex-col lg:w-72"
-        aria-label="Primary sidebar navigation"
-      >
+<aside
+  className="hidden sm:flex fixed inset-y-0 left-0 w-72 lg:w-80 flex-col border-r border-slate-200 bg-white/95 px-3 py-4 shadow-sm"
+  aria-label="Primary sidebar navigation"
+>
+
+
         {/* Brand */}
         <div className="mb-5 flex items-center gap-3 px-2">
           <div>

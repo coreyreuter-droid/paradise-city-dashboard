@@ -22,6 +22,8 @@ import BudgetByDepartmentChart from "../Analytics/BudgetByDepartmentChart";
 import { formatCurrency, formatPercent } from "@/lib/format";
 import { cityHref } from "@/lib/cityRouting";
 import type { BudgetActualsYearDeptRow, VendorYearSummary } from "@/lib/queries";
+import { getMillionDomain } from "@/lib/chartDomain";
+
 
 const BUDGET_COLOR = "#334155";
 const ACTUAL_COLOR = "#0f766e";
@@ -231,9 +233,64 @@ export default function CitywideDashboardClient({
     return buildTopNPlusOther(base, 7);
   }, [deptSummaries]);
 
-  const yoyTrendData = useMemo(() => {
-    return (yoyTotals ?? []).slice();
-  }, [yoyTotals]);
+const yoyTrendData = useMemo(() => {
+  return (yoyTotals ?? []).slice();
+}, [yoyTotals]);
+
+const { yoyDomain, yoyTicks } = useMemo(() => {
+  if (!yoyTrendData || yoyTrendData.length === 0) {
+    return { yoyDomain: undefined, yoyTicks: undefined };
+  }
+
+  let min = Number.POSITIVE_INFINITY;
+  let max = Number.NEGATIVE_INFINITY;
+
+  for (const row of yoyTrendData) {
+    const b = Number(row.Budget ?? 0);
+    const a = Number(row.Actuals ?? 0);
+
+    if (Number.isFinite(b)) {
+      min = Math.min(min, b);
+      max = Math.max(max, b);
+    }
+    if (Number.isFinite(a)) {
+      min = Math.min(min, a);
+      max = Math.max(max, a);
+    }
+  }
+
+  if (!Number.isFinite(min) || !Number.isFinite(max)) {
+    return { yoyDomain: undefined, yoyTicks: undefined };
+  }
+
+  // convert to millions
+  let minM = min / 1_000_000;
+  let maxM = max / 1_000_000;
+
+  // if flat, force a small band
+  if (minM === maxM) {
+    minM -= 0.1;
+    maxM += 0.1;
+  }
+
+  // snap bounds to 0.1M
+  const lowerM = Math.floor(minM * 10) / 10;
+  const upperM = Math.ceil(maxM * 10) / 10;
+
+  // build ticks every 0.1M
+  const ticks: number[] = [];
+  for (let v = lowerM; v <= upperM + 1e-9; v += 0.1) {
+    ticks.push(Number(v.toFixed(1)) * 1_000_000);
+  }
+
+  return {
+    yoyDomain: [lowerM * 1_000_000, upperM * 1_000_000] as [number, number],
+    yoyTicks: ticks,
+  };
+}, [yoyTrendData]);
+
+
+
 
   const deptYearVarianceRows: DeptYearVarianceRow[] = useMemo(() => {
     if (!deptAllYears || deptAllYears.length === 0 || years.length === 0) return [];
@@ -286,7 +343,7 @@ export default function CitywideDashboardClient({
       const variance = d.actuals - d.budget;
       const pct = d.percentSpent;
 
-      if (Math.abs(pct - 100) <= 1) onTargetCount += 1;
+      if (Math.abs(pct - 100) <= 5) onTargetCount += 1;
       else if (variance > 0) overBudgetCount += 1;
       else underBudgetCount += 1;
     });
@@ -589,54 +646,54 @@ formatter={(value: any, name?: string) => {
               <CardContainer>
                 <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
                   <div className="min-w-0">
-                    <h2 className="text-sm font-semibold text-slate-800">Govwide Budget vs Actuals & Categories</h2>
+                    <h2 className="text-sm font-semibold text-slate-800">
+                      Govwide Budget vs Actuals
+                    </h2>
                     <p className="text-sm text-slate-600">
-                      Govwide view of budget, actuals, and top spending categories for {yearLabel}.
+                      Govwide view of budget and actuals for {yearLabel}.
                     </p>
+
                   </div>
                   <div className="text-sm text-slate-600">{yearLabel} • Govwide totals</div>
                 </div>
 
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2 text-sm min-w-0">
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-600">Budget</span>
-                      <span className="font-mono text-slate-900">{formatCurrency(totalBudget)}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-600">Actuals</span>
-                      <span className="font-mono text-slate-900">{formatCurrency(totalActuals)}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-600">Variance</span>
-                      <span
-                        className={`font-mono ${
-                          variance < 0 ? "text-emerald-700" : variance > 0 ? "text-red-700" : "text-slate-900"
-                        }`}
-                      >
-                        {formatCurrency(variance)}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-600">% of budget spent</span>
-                      <span className="font-mono text-slate-900">{formatPercent(execPct)}</span>
-                    </div>
+<div className="grid gap-4">
+  <div className="space-y-2 text-sm min-w-0">
+    {/* Budget / Actuals / Variance / % spent – leave this block exactly as-is */}
+    <div className="flex items-center justify-between">
+      <span className="text-slate-600">Budget</span>
+      <span className="font-mono text-slate-900">{formatCurrency(totalBudget)}</span>
+    </div>
+    <div className="flex items-center justify-between">
+      <span className="text-slate-600">Actuals</span>
+      <span className="font-mono text-slate-900">{formatCurrency(totalActuals)}</span>
+    </div>
+    <div className="flex items-center justify-between">
+      <span className="text-slate-600">Variance</span>
+      <span
+        className={`font-mono ${
+          variance < 0 ? "text-emerald-700" : variance > 0 ? "text-red-700" : "text-slate-900"
+        }`}
+      >
+        {formatCurrency(variance)}
+      </span>
+    </div>
+    <div className="flex items-center justify-between">
+      <span className="text-slate-600">% of budget spent</span>
+      <span className="font-mono text-slate-900">{formatPercent(execPct)}</span>
+    </div>
 
-                    <div className="mt-2 text-sm text-slate-600">
-                      Budget execution above 100% indicates total actual spending higher than the adopted budget.
-                    </div>
-                  </div>
+    <div className="mt-2 text-sm text-slate-600">
+      Budget execution above 100% indicates total actual spending higher than the adopted budget.
+    </div>
+  </div>
+
+
 
                   <div className="min-w-0">
-                    <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-600">
-                      Top spending categories
-                    </h3>
-                    <p className="text-sm text-slate-600">
-                      Category breakdown isn’t available in summary mode yet.
-                      <br />
-                      (If we want it back, we’ll add a summarized category table/view in Supabase.)
-                    </p>
-                  </div>
+
+</div>
+
                 </div>
               </CardContainer>
 
@@ -660,7 +717,12 @@ formatter={(value: any, name?: string) => {
                           <LineChart data={yoyTrendData} margin={{ top: 10, right: 30, left: 10, bottom: 20 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                             <XAxis dataKey="year" tickLine={false} axisLine={false} />
-                            <YAxis tickFormatter={formatAxisCurrencyShort} tickLine={false} axisLine={false} />
+<YAxis
+  domain={yoyDomain}
+    ticks={yoyTicks}
+  tickFormatter={formatAxisCurrencyShort}
+/>
+
                             <Tooltip
                               labelFormatter={(label) => `Fiscal year ${label}`}
                               formatter={(value: any, name) =>
@@ -718,7 +780,7 @@ formatter={(value: any, name?: string) => {
                                 const varianceVal = cell.variance;
                                 const pct = cell.percentSpent;
                                 const isOver = varianceVal > 0;
-                                const isNear = Math.abs(pct - 100) <= 1;
+                                const isNear = Math.abs(pct - 100) <= 5;
 
                                 const bgClass = isNear
                                   ? "bg-slate-100 text-slate-700"
@@ -755,12 +817,33 @@ formatter={(value: any, name?: string) => {
                         <span className="font-semibold text-red-700">{deptAdditionalStats.overBudgetCount}</span>
                       </div>
                     </div>
+                    <p className="mt-1 text-[11px] text-slate-500">
+  Near budget is defined as spending within ±5% of the adopted budget for the selected year.
+</p>
+
                   </div>
                 )}
               </CardContainer>
             </div>
 
             <div className="space-y-6 min-w-0">
+                            <CardContainer>
+                <div className="space-y-2 text-sm text-slate-600">
+                  <h2 className="text-sm font-semibold text-slate-800">How to use this page</h2>
+                  <p>
+                    Use this govwide view to quickly answer high-level questions about budget execution, spending trends,
+                    and department performance across your government.
+                  </p>
+                  <p>
+                    Drill down into the{" "}
+                    <Link href={cityHref("/departments")} className="text-sm font-medium text-slate-800 hover:underline">
+                      Departments
+                    </Link>{" "}
+                    view to see department-level detail.
+                  </p>
+                </div>
+              </CardContainer>
+
               <CardContainer>
                 <section aria-label="Top movers" className="space-y-3">
                   <div>
@@ -781,7 +864,7 @@ formatter={(value: any, name?: string) => {
                             <li key={r.department_name} className="flex items-start justify-between gap-3">
                               <Link
                                 href={`${cityHref(`/departments/${encodeURIComponent(r.department_name)}`)}?year=${yearValue}`}
-                                className="min-w-0 flex-1 truncate text-sm font-medium text-sky-700 hover:underline"
+                                className="min-w-0 flex-1 truncate text-sm font-medium text-slate-800 hover:underline"
                               >
                                 {r.department_name}
                               </Link>
@@ -821,8 +904,7 @@ formatter={(value: any, name?: string) => {
                   </div>
 
                   <div className="pt-1">
-                    <Link href={cityHref("/departments")} className="text-sm font-medium text-sky-700 hover:underline">
-                      View all departments →
+                    <Link href={cityHref("/departments")} className="text-sm font-medium text-slate-800 hover:underline">
                     </Link>
                   </div>
                 </section>
@@ -900,7 +982,7 @@ formatter={(value: any, name?: string) => {
 
                     <p>
                       Use the{" "}
-                      <Link href={cityHref("/transactions")} className="font-medium text-sky-700 hover:underline">
+                      <Link href={cityHref("/transactions")} className="text-sm font-medium text-slate-800 hover:underline">
                         Transactions
                       </Link>{" "}
                       page to filter by department{enableVendors ? ", vendor" : ""} or keyword and export CSVs.
@@ -909,22 +991,7 @@ formatter={(value: any, name?: string) => {
                 </CardContainer>
               )}
 
-              <CardContainer>
-                <div className="space-y-2 text-sm text-slate-600">
-                  <h2 className="text-sm font-semibold text-slate-800">How to use this page</h2>
-                  <p>
-                    Use this govwide view to quickly answer high-level questions about budget execution, spending trends,
-                    and department performance across your government.
-                  </p>
-                  <p>
-                    Drill down into the{" "}
-                    <Link href={cityHref("/departments")} className="font-medium text-sky-700 hover:underline">
-                      Departments
-                    </Link>{" "}
-                    view to see department-level detail.
-                  </p>
-                </div>
-              </CardContainer>
+
             </div>
           </div>
         </div>

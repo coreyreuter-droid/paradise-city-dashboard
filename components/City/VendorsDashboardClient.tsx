@@ -118,8 +118,7 @@ export default function VendorsDashboardClient({
               href={`${cityHref("/transactions")}?q=${encodeURIComponent(
                 row.name
               )}${selectedYear ? `&year=${selectedYear}` : ""}`}
-              className="text-sm font-medium underline-offset-2 hover:underline"
-              style={accentColor ? { color: accentColor } : undefined}
+              className="text-sm font-medium text-slate-800 underline-offset-2 hover:underline"
             >
               {row.name}
             </Link>
@@ -146,7 +145,7 @@ export default function VendorsDashboardClient({
         ),
       },
     ],
-    [accentColor, selectedYear]
+    [selectedYear]
   );
 
   return (
