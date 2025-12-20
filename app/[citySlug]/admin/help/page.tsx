@@ -35,7 +35,7 @@ export default function AdminHelpPage() {
                 </p>
                 <Link
                   href="#getting-ready"
-                  className="mt-1 inline-flex text-[11px] font-semibold text-sky-700 underline-offset-2 hover:underline"
+                  className="mt-1 inline-flex text-[11px] font-semibold text-slate-800 underline-offset-2 hover:underline"
                 >
                   Jump to section →
                 </Link>
@@ -49,7 +49,7 @@ export default function AdminHelpPage() {
                 </p>
                 <Link
                   href="#uploads"
-                  className="mt-1 inline-flex text-[11px] font-semibold text-sky-700 underline-offset-2 hover:underline"
+                  className="mt-1 inline-flex text-[11px] font-semibold text-slate-800 underline-offset-2 hover:underline"
                 >
                   Jump to section →
                 </Link>
@@ -64,7 +64,7 @@ export default function AdminHelpPage() {
                 </p>
                 <Link
                   href="#modules"
-                  className="mt-1 inline-flex text-[11px] font-semibold text-sky-700 underline-offset-2 hover:underline"
+                  className="mt-1 inline-flex text-[11px] font-semibold text-slate-800 underline-offset-2 hover:underline"
                 >
                   Jump to section →
                 </Link>

@@ -109,7 +109,7 @@ export default function AdminShell({
             <Link
               href={cityHref("/")}
               aria-label="View public transparency site"
-              className="inline-flex items-center rounded-full border border-slate-200 px-3 py-2 font-medium text-slate-700 shadow-sm hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+              className="inline-flex items-center rounded-full border border-slate-200 px-3 py-2 font-medium text-slate-700 shadow-sm hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
             >
               View public site
             </Link>
@@ -181,10 +181,10 @@ export default function AdminShell({
                   const active = isActive(item.href);
 
                   const base =
-                    "whitespace-nowrap rounded-t-lg px-3 py-2 font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white";
+                    "whitespace-nowrap rounded-t-lg px-3 py-2 font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 focus-visible:ring-offset-white";
 
                   const activeClasses =
-                    "border-b-2 border-sky-600 bg-slate-50 text-slate-900";
+                    "border-b-2 border-slate-900 bg-slate-50 text-slate-900";
                   const inactiveClasses =
                     "border-b-2 border-transparent text-slate-500 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900";
 

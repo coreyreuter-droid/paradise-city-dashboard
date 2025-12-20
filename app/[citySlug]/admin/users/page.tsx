@@ -456,7 +456,7 @@ export default function AdminUsersPage() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="e.g. finance director"
-                className="h-9 w-full rounded-md border border-slate-200 bg-white px-2 text-sm text-slate-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+                className="h-9 w-full rounded-md border border-slate-200 bg-white px-2 text-sm text-slate-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
               />
             </div>
             <div className="flex flex-col gap-2 sm:w-56">
@@ -468,7 +468,7 @@ export default function AdminUsersPage() {
                 onChange={(e) =>
                   setRoleFilter(e.target.value as RoleFilter)
                 }
-                className="h-9 w-full rounded-md border border-slate-200 bg-white px-2 text-sm text-slate-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+                className="h-9 w-full rounded-md border border-slate-200 bg-white px-2 text-sm text-slate-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
               >
                 <option value="all">All roles</option>
                 <option value="super_admin">Super admins</option>
@@ -515,7 +515,7 @@ export default function AdminUsersPage() {
                       setInviteEmail(e.target.value)
                     }
                     placeholder="name@city.gov"
-                    className="h-9 w-full rounded-md border border-slate-200 bg-white px-2 text-sm text-slate-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+                    className="h-9 w-full rounded-md border border-slate-200 bg-white px-2 text-sm text-slate-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
                   />
                 </div>
                 <div className="sm:w-40">
@@ -529,7 +529,7 @@ export default function AdminUsersPage() {
                         e.target.value as AssignableRole
                       )
                     }
-                    className="h-9 w-full rounded-md border border-slate-200 bg-white px-2 text-sm text-slate-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+                    className="h-9 w-full rounded-md border border-slate-200 bg-white px-2 text-sm text-slate-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
                   >
                     <option value="admin">Admin</option>
                     <option value="viewer">Viewer</option>
@@ -539,7 +539,7 @@ export default function AdminUsersPage() {
                   <button
                     type="submit"
                     disabled={inviteLoading}
-                    className="inline-flex h-9 items-center rounded-md bg-slate-900 px-3 py-2 text-xs font-medium text-white shadow-sm hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+                    className="inline-flex h-9 items-center rounded-md bg-slate-900 px-3 py-2 text-xs font-medium text-white shadow-sm hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
                   >
                     {inviteLoading ? "Sending…" : "Send invite"}
                   </button>
@@ -566,7 +566,7 @@ export default function AdminUsersPage() {
               tabIndex={-1}
               aria-live="assertive"
               role="alert"
-              className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+              className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
             >
               {actionMessage && (
                 <p className="font-medium text-emerald-700">
@@ -675,7 +675,7 @@ export default function AdminUsersPage() {
                                     )
                                   }
                                   disabled={updatingUserId === u.id}
-                                  className="h-8 rounded-md border border-slate-200 bg-white px-2 text-xs text-slate-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+                                  className="h-8 rounded-md border border-slate-200 bg-white px-2 text-xs text-slate-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
                                 >
                                   <option value="super_admin">
                                     Super admin
@@ -713,7 +713,7 @@ export default function AdminUsersPage() {
                                   disabled={
                                     removingUserId === u.id
                                   }
-                                  className="rounded-full border border-slate-300 px-2 py-1 text-[0.75rem] font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+                                  className="rounded-full border border-slate-300 px-2 py-1 text-[0.75rem] font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
                                 >
                                   {removingUserId === u.id
                                     ? "Removing…"

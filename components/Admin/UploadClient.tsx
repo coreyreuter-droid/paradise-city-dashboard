@@ -738,7 +738,7 @@ export default function UploadClient() {
         </div>
         <a
           href={cityHref("/admin/upload/history")}
-          className="text-sm font-medium text-slate-700 underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2"
+          className="text-sm font-medium text-slate-700 underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
         >
           View upload history
         </a>
@@ -756,7 +756,7 @@ export default function UploadClient() {
           id="upload-table-select"
           value={table}
           onChange={(e) => setTable(e.target.value)}
-          className="rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+          className="rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
         >
           <option value="budgets">budgets</option>
           <option value="actuals">actuals</option>
@@ -770,7 +770,7 @@ export default function UploadClient() {
           <button
             type="button"
             onClick={handleDownloadTemplate}
-            className="rounded-md border border-slate-300 px-3 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2"
+            className="rounded-md border border-slate-300 px-3 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
           >
             Download template
           </button>
@@ -859,7 +859,7 @@ export default function UploadClient() {
                   inputMode="numeric"
                   value={replaceYear}
                   onChange={(e) => setReplaceYear(e.target.value)}
-                  className="w-24 rounded-md border border-slate-300 px-2 py-1 text-xs text-slate-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+                  className="w-24 rounded-md border border-slate-300 px-2 py-1 text-xs text-slate-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
                   aria-describedby="replace-year-help"
                 />
               </div>
@@ -877,7 +877,7 @@ export default function UploadClient() {
                   onChange={(e) =>
                     setReplaceYearConfirm(e.target.value)
                   }
-                  className="w-full rounded-md border border-slate-300 px-2 py-1 text-xs text-slate-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+                  className="w-full rounded-md border border-slate-300 px-2 py-1 text-xs text-slate-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
                   placeholder="Type the same fiscal year again to confirm"
                 />
               </div>
@@ -927,7 +927,7 @@ export default function UploadClient() {
 
         <label
           htmlFor="upload-file-input"
-          className="flex cursor-pointer items-center justify-between gap-3 rounded-md border border-dashed border-slate-300 bg-slate-50 px-3 py-3 text-sm hover:border-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2"
+          className="flex cursor-pointer items-center justify-between gap-3 rounded-md border border-dashed border-slate-300 bg-slate-50 px-3 py-3 text-sm hover:border-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
           aria-describedby="upload-file-help"
         >
           <div className="flex flex-col">
@@ -1136,7 +1136,7 @@ export default function UploadClient() {
               type="button"
               onClick={handleConfirmUpload}
               disabled={loading}
-              className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2"
+              className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
             >
               {loading ? "Uploading..." : "Confirm upload"}
             </button>
@@ -1148,7 +1148,7 @@ export default function UploadClient() {
                 setPendingYearsInData([]);
               }}
               disabled={loading}
-              className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2"
+              className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
             >
               Back
             </button>
@@ -1161,7 +1161,7 @@ export default function UploadClient() {
         type="button"
         onClick={handlePrepareUpload}
         disabled={loading}
-        className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2"
+        className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
       >
         {loading
           ? "Processing..."
@@ -1176,7 +1176,7 @@ export default function UploadClient() {
           ref={messageRef}
           tabIndex={-1}
           className={
-            "mt-4 whitespace-pre-wrap text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 " +
+            "mt-4 whitespace-pre-wrap text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 " +
             (messageIsError ? "text-red-700" : "text-emerald-700")
           }
           role={messageIsError ? "alert" : "status"}

@@ -61,8 +61,8 @@ export default function ParadiseHomeMultiYearChart({ yearTotals }: Props) {
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-            <XAxis dataKey="year" tickLine={false} axisLine={{ stroke: "#cbd5f5" }} tick={{ fontSize: 11, fill: "#475569" }} />
-            <YAxis tickFormatter={yTickFormatter} tickLine={false} axisLine={{ stroke: "#cbd5f5" }} tick={{ fontSize: 11, fill: "#475569" }} />
+            <XAxis dataKey="year" tickLine={false} axisLine={{ stroke: "#e2e8f0" }} tick={{ fontSize: 11, fill: "#475569" }} />
+            <YAxis tickFormatter={yTickFormatter} tickLine={false} axisLine={{ stroke: "#e2e8f0" }} tick={{ fontSize: 11, fill: "#475569" }} />
             <Tooltip
               formatter={(value: any, name: any) => [
                 formatCurrency(Number(value)),

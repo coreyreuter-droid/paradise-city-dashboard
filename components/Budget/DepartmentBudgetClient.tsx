@@ -442,7 +442,7 @@ formatter={(value: any, name?: string) => {
                         barSize={18}
                       >
                         {chartData.map((entry, index) => (
-                          <Cell key={`budget-${index}`} fill="#cbd5f5" />
+                          <Cell key={`budget-${index}`} fill="#334155" />
                         ))}
                       </Bar>
                       <Bar

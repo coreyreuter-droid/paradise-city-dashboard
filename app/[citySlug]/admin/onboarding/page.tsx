@@ -320,9 +320,9 @@ export default function AdminOnboardingPage() {
                     <button
                       type="button"
                       onClick={() => setActiveStep(step.key)}
-                      className={`flex h-full w-full flex-col justify-between rounded-xl border px-3 py-2 text-left text-sm outline-none transition focus-visible:ring-2 focus-visible:ring-sky-500 ${
+                      className={`flex h-full w-full flex-col justify-between rounded-xl border px-3 py-2 text-left text-sm outline-none transition focus-visible:ring-2 focus-visible:ring-slate-900 ${
                         isActive
-                          ? "border-sky-500 bg-sky-50"
+                          ? "border-slate-900 bg-slate-50"
                           : "border-slate-200 bg-slate-50 hover:bg-slate-100"
                       }`}
                       aria-current={isActive ? "step" : undefined}
@@ -395,7 +395,7 @@ export default function AdminOnboardingPage() {
                       </p>
                       <Link
                         href={cityHref("/admin/settings")}
-                        className="inline-flex items-center justify-center rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+                        className="inline-flex items-center justify-center rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
                       >
                         Edit basic settings
                       </Link>
@@ -441,7 +441,7 @@ export default function AdminOnboardingPage() {
                       </p>
                       <Link
                         href={cityHref("/admin/settings")}
-                        className="inline-flex items-center justify-center rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+                        className="inline-flex items-center justify-center rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
                       >
                         Edit branding
                       </Link>
@@ -481,7 +481,7 @@ export default function AdminOnboardingPage() {
                       </p>
                       <Link
                         href={cityHref("/admin/upload?table=budgets")}
-                        className="rounded-md bg-slate-900 px-3 py-1.5 text-xs font-medium text-white outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+                        className="rounded-md bg-slate-900 px-3 py-1.5 text-xs font-medium text-white outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
                       >
                         Upload CSV
                       </Link>
@@ -506,7 +506,7 @@ export default function AdminOnboardingPage() {
                       </p>
                       <Link
                         href={cityHref("/admin/upload?table=actuals")}
-                        className="rounded-md bg-slate-900 px-3 py-1.5 text-xs font-medium text-white outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+                        className="rounded-md bg-slate-900 px-3 py-1.5 text-xs font-medium text-white outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
                       >
                         Upload CSV
                       </Link>
@@ -533,7 +533,7 @@ export default function AdminOnboardingPage() {
                       </p>
                       <Link
                         href={cityHref("/admin/upload?table=transactions")}
-                        className="rounded-md bg-slate-900 px-3 py-1.5 text-xs font-medium text-white outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+                        className="rounded-md bg-slate-900 px-3 py-1.5 text-xs font-medium text-white outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
                       >
                         Upload CSV
                       </Link>
@@ -560,7 +560,7 @@ export default function AdminOnboardingPage() {
                       </p>
                       <Link
                         href={cityHref("/admin/upload?table=revenues")}
-                        className="rounded-md bg-slate-900 px-3 py-1.5 text-xs font-medium text-white outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+                        className="rounded-md bg-slate-900 px-3 py-1.5 text-xs font-medium text-white outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
                       >
                         Upload CSV
                       </Link>
@@ -608,7 +608,7 @@ export default function AdminOnboardingPage() {
                       </p>
                       <Link
                         href={cityHref("/")}
-                        className="inline-flex items-center justify-center rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+                        className="inline-flex items-center justify-center rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
                       >
                         Open public preview
                       </Link>
@@ -676,7 +676,7 @@ export default function AdminOnboardingPage() {
               type="button"
               onClick={goPrevious}
               disabled={!hasPrevious}
-              className={`inline-flex items-center justify-center rounded-md border px-3 py-2 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-sky-500 ${
+              className={`inline-flex items-center justify-center rounded-md border px-3 py-2 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-slate-900 ${
                 hasPrevious
                   ? "border-slate-300 text-slate-700 hover:bg-slate-50"
                   : "cursor-not-allowed border-slate-100 text-slate-400"
@@ -688,7 +688,7 @@ export default function AdminOnboardingPage() {
               type="button"
               onClick={goNext}
               disabled={!hasNext}
-              className={`inline-flex items-center justify-center rounded-md px-3 py-2 text-sm font-medium text-white outline-none focus-visible:ring-2 focus-visible:ring-sky-500 ${
+              className={`inline-flex items-center justify-center rounded-md px-3 py-2 text-sm font-medium text-white outline-none focus-visible:ring-2 focus-visible:ring-slate-900 ${
                 hasNext
                   ? "bg-slate-900 hover:bg-slate-800"
                   : "cursor-not-allowed bg-slate-400"

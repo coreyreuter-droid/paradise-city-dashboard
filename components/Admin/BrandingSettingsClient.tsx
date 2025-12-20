@@ -112,7 +112,7 @@ const THEME_PRESETS: ThemePreset[] = [
     id: "civic-classic",
     name: "Civic Classic",
     primary: "#0F172A", // dark slate header
-    accent: "#0369A1", // sky accent
+    accent: "#0f766e", // teal accent
     background: "#020617", // very dark background
   },
   {
@@ -241,7 +241,7 @@ export default function BrandingSettingsClient() {
                 city_name: "Your City Name",
                 tagline: "Transparent Budget. Empowered Citizens.",
                 primary_color: "#0F172A",
-                accent_color: "#0369A1",
+                accent_color: "#0f766e",
                 background_color: "#020617",
                 logo_url: null,
                 hero_image_url: null,
@@ -1493,11 +1493,11 @@ export default function BrandingSettingsClient() {
                     handleFieldChange("accent_color", e.target.value)
                   }
                   className="flex-1 rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
-                  placeholder="#0369A1"
+                  placeholder="#0f766e"
                 />
                 <input
                   type="color"
-                  value={settings.accent_color ?? "#0369A1"}
+                  value={settings.accent_color ?? "#0f766e"}
                   onChange={(e) =>
                     handleFieldChange("accent_color", e.target.value)
                   }

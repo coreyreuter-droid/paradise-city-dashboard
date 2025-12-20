@@ -297,7 +297,7 @@ export default function AdminOverviewPage() {
                 </div>
                 <Link
                   href={cityHref("/admin/upload/history")}
-                  className="mt-1 text-xs font-semibold text-sky-700 underline-offset-2 hover:underline"
+                  className="mt-1 text-xs font-semibold text-slate-800 underline-offset-2 hover:underline"
                 >
                   View history
                 </Link>
@@ -325,7 +325,7 @@ export default function AdminOverviewPage() {
               <div className="mt-3 flex flex-wrap gap-2 text-xs">
                 <Link
                   href={cityHref("/admin/upload")}
-                  className="font-semibold text-sky-700 underline-offset-2 hover:underline"
+                  className="font-semibold text-slate-800 underline-offset-2 hover:underline"
                 >
                   Upload data →
                 </Link>
@@ -405,7 +405,7 @@ type TileProps = {
 
 function AdminTile({ title, description, links }: TileProps) {
   return (
-    <div className="flex h-full flex-col rounded-2xl border border-slate-200 bg-white px-4 py-4 text-left text-sm text-slate-700 shadow-sm transition hover:border-slate-300 hover:shadow-md focus-within:ring-2 focus-within:ring-sky-500 focus-within:ring-offset-2">
+    <div className="flex h-full flex-col rounded-2xl border border-slate-200 bg-white px-4 py-4 text-left text-sm text-slate-700 shadow-sm transition hover:border-slate-300 hover:shadow-md focus-within:ring-2 focus-within:ring-slate-900 focus-within:ring-offset-2">
       <div className="mt-1 text-sm font-semibold text-slate-900">
         {title}
       </div>
@@ -417,7 +417,7 @@ function AdminTile({ title, description, links }: TileProps) {
           <Link
             key={link.href}
             href={link.href}
-            className="font-semibold text-sky-700 underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2"
+            className="font-semibold text-slate-800 underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
           >
             {link.label} →
           </Link>
