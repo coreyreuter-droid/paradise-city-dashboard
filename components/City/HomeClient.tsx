@@ -538,17 +538,14 @@ className="inline-flex items-center justify-center rounded-full px-3 py-1.5 text
                         .
                       </p>
                     </div>
-                    <Link
-                      href={cityHref("/departments")}
-                      className="mt-1 text-xs font-semibold underline-offset-2 hover:underline"
-                      style={
-                        accentColor
-                          ? { color: accentColor }
-                          : undefined
-                      }
-                    >
-                      View all departments
-                    </Link>
+                      <Link
+                        href={cityHref("/departments")}
+                        className="mt-1 text-xs font-semibold text-slate-800 underline-offset-2 hover:underline"
+                      >
+                        View all departments
+                      </Link>
+
+
                   </div>
 
                   <BudgetCharts
@@ -630,17 +627,13 @@ className="inline-flex items-center justify-center rounded-full px-3 py-1.5 text
                             {yearLabel ?? "the selected year"}.
                           </p>
                         </div>
-                        <Link
-                          href={cityHref("/vendors")}
-                          className="text-xs font-semibold underline-offset-2 hover:underline"
-                          style={
-                            accentColor
-                              ? { color: accentColor }
-                              : undefined
-                          }
-                        >
-                          View vendors
-                        </Link>
+                          <Link
+                            href={cityHref("/vendors")}
+                            className="text-xs font-semibold text-slate-800 underline-offset-2 hover:underline"
+                          >
+                            View vendors
+                          </Link>
+
                       </div>
 
                       {topVendors.length === 0 ? (

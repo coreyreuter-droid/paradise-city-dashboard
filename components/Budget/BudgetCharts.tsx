@@ -150,6 +150,7 @@ export default function BudgetCharts({
         >
           Department spending chart
         </h4>
+
         <p
           id="dept-spend-chart-desc"
           className="text-xs text-slate-500"
