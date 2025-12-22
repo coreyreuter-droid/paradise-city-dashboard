@@ -243,29 +243,41 @@ export async function getBudgetActualsSummaryAllYears(): Promise<BudgetActualsYe
 export async function getBudgetActualsYearTotals(): Promise<
   Array<{ year: number; Budget: number; Actuals: number; Variance: number }>
 > {
+  // Use the year+department rollup (which already exists and includes the full year range)
   const { data, error } = await supabase
-    .from("budget_actuals_year_totals")
-    .select("*")
-    .order("fiscal_year", { ascending: true });
+    .from("budget_actuals_year_department")
+    .select("fiscal_year, budget_amount, actual_amount");
 
   if (error) {
     console.error("getBudgetActualsYearTotals error:", error);
     return [];
   }
 
-  const rows = (data ?? []) as any[];
-  return rows.map((r) => {
-const budget = Number(r.total_budget ?? 0);
-const actual = Number(r.total_actuals ?? 0);
+  const byYear = new Map<number, { budget: number; actuals: number }>();
 
-    return {
-      year: Number(r.fiscal_year),
-      Budget: budget,
-      Actuals: actual,
-      Variance: actual - budget,
-    };
-  });
+  for (const r of (data ?? []) as any[]) {
+    const year = Number(r.fiscal_year);
+    if (!Number.isFinite(year)) continue;
+
+    const budget = Number(r.budget_amount ?? 0);
+    const actuals = Number(r.actual_amount ?? 0);
+
+    const cur = byYear.get(year) ?? { budget: 0, actuals: 0 };
+    cur.budget += Number.isFinite(budget) ? budget : 0;
+    cur.actuals += Number.isFinite(actuals) ? actuals : 0;
+    byYear.set(year, cur);
+  }
+
+  return Array.from(byYear.entries())
+    .sort((a, b) => a[0] - b[0]) // ascending for charts
+    .map(([year, totals]) => ({
+      year,
+      Budget: totals.budget,
+      Actuals: totals.actuals,
+      Variance: totals.actuals - totals.budget,
+    }));
 }
+
 
 /* =========================
    Revenues

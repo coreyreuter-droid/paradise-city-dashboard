@@ -817,9 +817,11 @@ formatter={(value: any, name?: string) => {
                         <span className="font-semibold text-red-700">{deptAdditionalStats.overBudgetCount}</span>
                       </div>
                     </div>
-                    <p className="mt-1 text-[11px] text-slate-500">
-  Near budget is defined as spending within ±5% of the adopted budget for the selected year.
+<p className="mt-1 text-[11px] text-slate-500">
+  Counts reflect fiscal year{" "}
+  <span className="font-semibold text-slate-700">{yearLabel}</span>. Near budget means spending within ±5% of the adopted budget.
 </p>
+
 
                   </div>
                 )}

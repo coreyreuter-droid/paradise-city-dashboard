@@ -577,9 +577,10 @@ className="inline-flex items-center justify-center rounded-full px-3 py-1.5 text
                     <div className="text-xs text-slate-600">
                       Showing{" "}
                       <span className="font-semibold">
-                        {years.length}{" "}
-                        {years.length === 1 ? "year" : "years"}
+                        {yearTotals.length}{" "}
+                        {yearTotals.length === 1 ? "year" : "years"}
                       </span>
+
                       .
                     </div>
                   </div>

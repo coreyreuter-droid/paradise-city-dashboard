@@ -141,13 +141,14 @@ function SectionCard({
     <CardContainer>
       <section aria-label={ariaLabel}>
         {/* Stretch to card edges so the rail touches the outside */}
-        <div className="relative -mx-4 -my-4 overflow-hidden px-4 py-4">
-          {/* Left accent rail */}
-          <div
-            aria-hidden={true}
-            className="absolute inset-y-0 left-0 w-1"
-            style={{ backgroundColor: accent, opacity: 0.25 }}
-          />
+          <div className="group relative -mx-4 -my-4 overflow-hidden px-4 py-4">
+            {/* Left accent rail */}
+            <div
+              aria-hidden={true}
+              className="absolute inset-y-0 left-0 w-1 opacity-20 transition-opacity duration-200 group-hover:opacity-35 group-focus-within:opacity-35"
+              style={{ backgroundColor: accent }}
+            />
+
 
           <div className="pl-3">
             <div className="flex items-start justify-between gap-3">
@@ -171,7 +172,9 @@ function SectionCard({
               </div>
             </div>
 
+            <div className="mt-3 h-px bg-slate-100" aria-hidden={true} />
             <div className="mt-3">{children}</div>
+
           </div>
         </div>
       </section>
@@ -399,6 +402,14 @@ export default function LandingClient({ portalSettings }: Props) {
     "#0f172a";
 
   const [shareStatus, setShareStatus] = useState<"idle" | "copied" | "failed">("idle");
+  const [expandedProjects, setExpandedProjects] = useState<Record<number, boolean>>({});
+
+  const toggleProject = (projectIndex: number) => {
+    setExpandedProjects((prev) => ({
+      ...prev,
+      [projectIndex]: !prev[projectIndex],
+    }));
+  };
 
   const topQuestions: QuickLink[] = useMemo(() => {
     const items: QuickLink[] = [
@@ -800,6 +811,7 @@ export default function LandingClient({ portalSettings }: Props) {
                         i === 1 ? project1Summary : i === 2 ? project2Summary : project3Summary;
                       const imageUrl =
                         i === 1 ? project1ImageUrl : i === 2 ? project2ImageUrl : project3ImageUrl;
+                      const isExpanded = !!expandedProjects[i];
 
                       return (
                         <article
@@ -817,10 +829,28 @@ export default function LandingClient({ portalSettings }: Props) {
                             <div className="h-40 w-full bg-slate-100" aria-hidden={true} />
                           )}
 
-                          <div className="p-4">
-                            <h3 className="text-sm font-semibold text-slate-900">{title}</h3>
-                            <p className="mt-2 line-clamp-3 text-sm text-slate-700">{summary}</p>
-                          </div>
+<div className="p-4">
+  <h3 className="text-sm font-semibold text-slate-900">{title}</h3>
+
+  <p
+    id={`project-summary-${i}`}
+    className={`mt-2 text-sm text-slate-700 ${isExpanded ? "" : "line-clamp-3"}`}
+  >
+    {summary}
+  </p>
+
+  <button
+    type="button"
+    onClick={() => toggleProject(i)}
+    aria-expanded={isExpanded}
+    aria-controls={`project-summary-${i}`}
+    className="mt-3 inline-flex items-center text-xs font-semibold text-slate-800 underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
+  >
+    {isExpanded ? "Read less" : "Read more"}
+    <span className="sr-only"> about {title}</span>
+  </button>
+</div>
+
                         </article>
                       );
                     })}
