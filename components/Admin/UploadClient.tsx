@@ -327,6 +327,18 @@ function validateAndBuildRecords(
 
     }
 
+        // Normalize period to YYYY-MM (accept YYYY-M too) for actuals and revenues
+    if (table === "actuals" || table === "revenues") {
+      if (typeof rec["period"] === "string") {
+        const m = /^(\d{4})[-/](\d{1,2})$/.exec(rec["period"].trim());
+        if (m) {
+          const yyyy = m[1];
+          const mm = String(Number(m[2])).padStart(2, "0");
+          rec["period"] = `${yyyy}-${mm}`;
+        }
+      }
+    }
+
     // Type-specific validations
     const fy = rec["fiscal_year"];
 
@@ -417,8 +429,8 @@ function validateAndBuildRecords(
         issues.push({
           row: rowNum,
           field: "period",
-          message:
-            'Invalid period value. Expected "YYYY-MM" where MM is 01–12 (we also accept "YYYY-M" and will normalize).',
+           message:
+            'Invalid period. Use a calendar month "YYYY-MM" (e.g. "2027-08"). Fiscal year is derived from period using the city FY start (July-start example: 2027-08 belongs to FY2028). We also accept "YYYY-M" and normalize it.',
 
         });
       }
@@ -469,6 +481,7 @@ export default function UploadClient() {
   const [previewMessage, setPreviewMessage] = useState<string | null>(null);
 
   const messageRef = useRef<HTMLDivElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (message && messageRef.current) {
@@ -484,6 +497,41 @@ export default function UploadClient() {
   function setInfo(msg: string) {
     setMessage(msg);
     setMessageIsError(false);
+  }
+
+    function resetUploadState() {
+    setFile(null);
+
+    setPreviewHeaders(null);
+    setPreviewRows(null);
+    setPreviewMessage(null);
+
+    setPreflight(null);
+    setPendingRecords(null);
+    setPendingYearsInData([]);
+
+    setMessage(null);
+    setMessageIsError(false);
+
+    setReplaceTableConfirmed(false);
+    setReplaceYear("");
+    setReplaceYearConfirm("");
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  }
+
+  function handleTableChange(nextTable: string) {
+    if (nextTable === table) return;
+
+    // Reset everything so we don't accidentally upload the wrong file to the wrong dataset.
+    resetUploadState();
+
+    // Default to the safest mode when switching datasets.
+    setMode("append");
+
+    setTable(nextTable);
   }
 
     async function refreshCoverageWarnings() {
@@ -773,6 +821,12 @@ export default function UploadClient() {
       setReplaceTableConfirmed(false);
       setReplaceYear("");
       setReplaceYearConfirm("");
+      setFile(null);
+      setPreviewHeaders(null);
+      setPreviewRows(null);
+      setPreviewMessage(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+
       await refreshCoverageWarnings();
 
     } catch (err: any) {
@@ -828,14 +882,35 @@ export default function UploadClient() {
             revenues. Use the template to ensure columns match exactly.
           </p>
           {table === "transactions" && (
-            <p className="mt-1 text-[11px] text-slate-500">
-              For transactions, dates may be entered as{" "}
-              <span className="font-mono">MM/DD/YYYY</span> (e.g.{" "}
-              <span className="font-mono">7/1/2024</span>) or{" "}
-              <span className="font-mono">YYYY-MM-DD</span>. They will
-              be normalized automatically.
+            <p className="mt-2 rounded-md border border-red-200 bg-red-50 p-2 text-xs text-red-800">
+              <span className="font-semibold">Important:</span> Transactions use a calendar date (
+              <span className="font-mono">MM/DD/YYYY</span> or{" "}
+              <span className="font-mono">YYYY-MM-DD</span>) and we derive the fiscal year from the date
+              using the city’s fiscal-year start (June 30 vs July 1 flips FY).
             </p>
           )}
+
+          {(table === "actuals" || table === "revenues") && (
+            <p className="mt-2 rounded-md border border-red-200 bg-red-50 p-2 text-xs text-red-800">
+              <span className="font-semibold">Important:</span> For {table},{" "}
+              <span className="font-mono">period</span> is a <span className="font-semibold">calendar month</span>{" "}
+              (<span className="font-mono">YYYY-MM</span>, e.g.{" "}
+              <span className="font-mono">2027-08</span>). The portal derives{" "}
+              <span className="font-mono">fiscal_year</span> from <span className="font-mono">period</span>{" "}
+              using the city’s FY start (FY labeled by ending year). Example (July-start):{" "}
+              <span className="font-mono">2027-08</span> belongs to <span className="font-semibold">FY2028</span>.
+            </p>
+          )}
+
+          {table === "budgets" && (
+            <p className="mt-2 rounded-md border border-red-200 bg-red-50 p-2 text-xs text-red-800">
+              <span className="font-semibold">Important:</span> Budgets use{" "}
+              <span className="font-semibold">fiscal years labeled by ending year</span>.{" "}
+              <span className="font-mono">FY2028</span> = Jul 2027–Jun 2028 (July-start example).{" "}
+              Don’t upload calendar-year labeling by mistake.
+            </p>
+          )}
+
         </div>
         <a
           href={cityHref("/admin/upload/history")}
@@ -870,7 +945,7 @@ export default function UploadClient() {
         <select
           id="upload-table-select"
           value={table}
-          onChange={(e) => setTable(e.target.value)}
+          onChange={(e) => handleTableChange(e.target.value)}
           className="rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
         >
           <option value="budgets">budgets</option>
@@ -1062,6 +1137,8 @@ export default function UploadClient() {
           type="file"
           accept=".csv"
           className="sr-only"
+          ref={fileInputRef}
+
           onChange={async (e) => {
             const f = e.target.files?.[0] ?? null;
             setFile(f);
@@ -1271,19 +1348,17 @@ export default function UploadClient() {
         </section>
       )}
 
-      {/* Upload button */}
-      <button
-        type="button"
-        onClick={handlePrepareUpload}
-        disabled={loading}
-        className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
-      >
-        {loading
-          ? "Processing..."
-          : preflight
-          ? "Recalculate summary"
-          : "Review & confirm upload"}
-      </button>
+      {!preflight && (
+        <button
+          type="button"
+          onClick={handlePrepareUpload}
+          disabled={loading}
+          className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
+        >
+          {loading ? "Processing..." : "Review upload"}
+        </button>
+      )}
+
 
       {/* Status message */}
       {message && (

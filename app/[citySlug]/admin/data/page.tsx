@@ -70,7 +70,43 @@ function DeleteFYButton({
   const [confirmText, setConfirmText] = useState("");
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [rowCount, setRowCount] = useState<number | null>(null);
+  const [countLoading, setCountLoading] = useState(false);
+  const [countErr, setCountErr] = useState<string | null>(null);
+
   const required = String(year);
+
+    useEffect(() => {
+    if (!open) return;
+
+    let cancelled = false;
+
+    (async () => {
+      setCountLoading(true);
+      setCountErr(null);
+      setRowCount(null);
+
+      const { count, error } = await supabase
+        .from(table)
+        .select("*", { count: "exact", head: true })
+        .eq("fiscal_year", year);
+
+      if (cancelled) return;
+
+      if (error) {
+        setCountErr(error.message);
+        setCountLoading(false);
+        return;
+      }
+
+      setRowCount(typeof count === "number" ? count : 0);
+      setCountLoading(false);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open, table, year]);
 
   async function runDelete() {
     setErr(null);
@@ -124,7 +160,14 @@ function DeleteFYButton({
       {!open ? (
         <button
           type="button"
-          onClick={() => setOpen(true)}
+          onClick={() => {
+            setOpen(true);
+            setConfirmText("");
+            setErr(null);
+            setCountErr(null);
+            setRowCount(null);
+          }}
+
           className="rounded-md border border-red-300 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-800 hover:bg-red-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
         >
           Delete FY{year}
@@ -136,6 +179,19 @@ function DeleteFYButton({
           </p>
           <p className="mt-1 text-xs text-red-800">
             This deletes rows where <span className="font-mono">fiscal_year = {year}</span>.
+          </p>
+
+          <p className="mt-1 text-xs text-red-800">
+            {countLoading
+              ? "Counting rows to delete…"
+              : countErr
+              ? `Could not estimate rows: ${countErr}`
+              : rowCount != null
+              ? `Estimated rows to delete: ${rowCount.toLocaleString()}`
+              : null}
+          </p>
+          <p className="mt-1 text-xs text-red-800">
+            This also clears portal summary tables so the citizen site updates immediately.
           </p>
 
           <div className="mt-2 flex flex-col gap-2">
