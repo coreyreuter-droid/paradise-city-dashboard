@@ -20,12 +20,14 @@ const NAV_ITEMS: { href: string; label: string }[] = [
   { href: "", label: "Overview" },
   { href: "upload", label: "Data upload" },
   { href: "upload/history", label: "Upload history" },
+  { href: "data", label: "Data management" },
   { href: "settings", label: "Branding & settings" },
   { href: "users", label: "Users & roles" },
   { href: "onboarding", label: "Onboarding checklist" },
   { href: "publish", label: "Publish status" },
   { href: "help", label: "Help & FAQs" },
 ];
+
 
 type PublishState = "unknown" | "published" | "draft";
 

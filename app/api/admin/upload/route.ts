@@ -546,6 +546,29 @@ if (table === "budgets" || table === "actuals") {
             .join(", ")}.`
         : "";
 
+            // Refresh rollups for affected fiscal years so citizen portal updates immediately.
+    const affectedYears = (yearsInData ?? []).filter((y) => Number.isFinite(y));
+
+    if ((table === "budgets" || table === "actuals") && affectedYears.length > 0) {
+      for (const fy of affectedYears) {
+        const { error: e } = await supabaseAdmin.rpc(
+          "refresh_budget_actuals_rollup_for_year",
+          { _fy: fy }
+        );
+        if (e) throw new Error(`Failed to refresh budget/actual rollups for FY${fy}: ${e.message}`);
+      }
+    }
+
+    if (table === "transactions" && affectedYears.length > 0) {
+      for (const fy of affectedYears) {
+        const { error: e } = await supabaseAdmin.rpc(
+          "refresh_transaction_rollups_for_year",
+          { _fy: fy }
+        );
+        if (e) throw new Error(`Failed to refresh transaction rollups for FY${fy}: ${e.message}`);
+      }
+    }
+
     return NextResponse.json({
       ok: true,
       message: `Successfully ${action} "${table}" with ${insertedCount} record(s).${summaryMsg}`,

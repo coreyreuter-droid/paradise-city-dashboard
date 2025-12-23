@@ -116,6 +116,8 @@ function statusCircle(status: HealthStatus) {
 export default function AdminOnboardingPage() {
   const [status, setStatus] = useState<OnboardingStatus>(INITIAL_STATUS);
   const [activeStep, setActiveStep] = useState<StepKey>("basic");
+  const [coverageWarnings, setCoverageWarnings] = useState<string[]>([]);
+
 
   useEffect(() => {
     let cancelled = false;
@@ -234,6 +236,60 @@ export default function AdminOnboardingPage() {
           count("transactions"),
           count("revenues"),
         ]);
+
+              async function maxFiscalYear(table: string): Promise<number | null> {
+        const { data, error } = await supabase
+          .from(table)
+          .select("fiscal_year")
+          .order("fiscal_year", { ascending: false })
+          .limit(1);
+
+        if (error) {
+          console.error(`Onboarding: error reading max fiscal_year from ${table}`, error);
+          return null;
+        }
+
+        const row = data && data[0];
+        const fy = row?.fiscal_year;
+        return typeof fy === "number" ? fy : fy != null ? Number(fy) : null;
+      }
+
+      const [maxBudgetFY, maxActualsFY, maxRevenuesFY] = await Promise.all([
+        maxFiscalYear("budgets"),
+        maxFiscalYear("actuals"),
+        maxFiscalYear("revenues"),
+      ]);
+
+      const actualsEnabled = ps ? ps.enable_actuals !== false : true;
+      const revenuesFeatureEnabled = ps ? ps.enable_revenues === true : false;
+
+      const warnings: string[] = [];
+
+      if (
+        actualsEnabled &&
+        maxBudgetFY != null &&
+        maxActualsFY != null &&
+        maxActualsFY > maxBudgetFY
+      ) {
+        warnings.push(
+          `Actuals include FY${maxActualsFY}, but budgets are only loaded through FY${maxBudgetFY}. Upload the adopted budget for FY${maxActualsFY} (or remove those actuals) to avoid showing $0 budget for that year.`
+        );
+      }
+
+      if (
+        revenuesFeatureEnabled &&
+        maxBudgetFY != null &&
+        maxRevenuesFY != null &&
+        maxRevenuesFY > maxBudgetFY
+      ) {
+        warnings.push(
+          `Revenues include FY${maxRevenuesFY}, but budgets are only loaded through FY${maxBudgetFY}. Upload the adopted budget for FY${maxRevenuesFY} (or remove those revenues) to avoid mismatched year coverage.`
+        );
+      }
+
+      if (!cancelled) {
+        setCoverageWarnings(warnings);
+      }
 
       const mapCount = (value: number): HealthStatus =>
         value > 0 ? "pass" : "fail";
@@ -451,124 +507,134 @@ export default function AdminOnboardingPage() {
               </div>
             )}
 
-            {activeStep === "data" && (
-              <div className="space-y-4">
-                <h2 className="text-base font-semibold text-slate-900">
-                  Step 3 – Data upload
-                </h2>
-                <p className="text-sm text-slate-600">
-                  Load at least one full fiscal year of data for each module you
-                  plan to show. You can always add more years later. On the
-                  upload page, you can download a CSV template for each table.
-                </p>
+{activeStep === "data" && (
+  <div className="space-y-4">
+    <h2 className="text-base font-semibold text-slate-900">
+      Step 3 – Data upload
+    </h2>
+    <p className="text-sm text-slate-600">
+      Load at least one full fiscal year of data for each module you
+      plan to show. You can always add more years later. On the
+      upload page, you can download a CSV template for each table.
+    </p>
 
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {/* Budgets */}
-                  <div className="flex flex-col justify-between rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                    <div className="flex items-start gap-3">
-                      {statusCircle(status.datasets.budgets)}
-                      <div>
-                        <p className="font-medium text-slate-900">Budgets</p>
-                        <p className="mt-1 text-xs text-slate-600">
-                          At least one year of adopted budget detail is
-                          required.
-                        </p>
-                      </div>
-                    </div>
-                    <div className="mt-3 flex items-center justify-between">
-                      <p className="text-xs text-slate-500">
-                        Status: {statusLabel(status.datasets.budgets)}
-                      </p>
-                      <Link
-                        href={cityHref("/admin/upload?table=budgets")}
-                        className="rounded-md bg-slate-900 px-3 py-1.5 text-xs font-medium text-white outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
-                      >
-                        Upload CSV
-                      </Link>
-                    </div>
-                  </div>
+    {coverageWarnings.length > 0 && (
+      <div
+        className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-slate-900"
+        role="status"
+      >
+        <p className="font-semibold">Data coverage warning</p>
+        <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-800">
+          {coverageWarnings.map((w, idx) => (
+            <li key={idx}>{w}</li>
+          ))}
+        </ul>
+      </div>
+    )}
 
-                  {/* Actuals */}
-                  <div className="flex flex-col justify-between rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                    <div className="flex items-start gap-3">
-                      {statusCircle(status.datasets.actuals)}
-                      <div>
-                        <p className="font-medium text-slate-900">Actuals</p>
-                        <p className="mt-1 text-xs text-slate-600">
-                          Year-to-date or full fiscal year actuals to compare
-                          against the budget.
-                        </p>
-                      </div>
-                    </div>
-                    <div className="mt-3 flex items-center justify-between">
-                      <p className="text-xs text-slate-500">
-                        Status: {statusLabel(status.datasets.actuals)}
-                      </p>
-                      <Link
-                        href={cityHref("/admin/upload?table=actuals")}
-                        className="rounded-md bg-slate-900 px-3 py-1.5 text-xs font-medium text-white outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
-                      >
-                        Upload CSV
-                      </Link>
-                    </div>
-                  </div>
+    <div className="grid gap-3 sm:grid-cols-2">
+      {/* Budgets */}
+      <div className="flex flex-col justify-between rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="flex items-start gap-3">
+          {statusCircle(status.datasets.budgets)}
+          <div>
+            <p className="font-medium text-slate-900">Budgets</p>
+            <p className="mt-1 text-xs text-slate-600">
+              At least one year of adopted budget detail is required.
+            </p>
+          </div>
+        </div>
+        <div className="mt-3 flex items-center justify-between">
+          <p className="text-xs text-slate-500">
+            Status: {statusLabel(status.datasets.budgets)}
+          </p>
+          <Link
+            href={cityHref("/admin/upload?table=budgets")}
+            className="rounded-md bg-slate-900 px-3 py-1.5 text-xs font-medium text-white outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
+          >
+            Upload CSV
+          </Link>
+        </div>
+      </div>
 
-                  {/* Transactions */}
-                  <div className="flex flex-col justify-between rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                    <div className="flex items-start gap-3">
-                      {statusCircle(status.datasets.transactions)}
-                      <div>
-                        <p className="font-medium text-slate-900">
-                          Transactions
-                        </p>
-                        <p className="mt-1 text-xs text-slate-600">
-                          Line-item spending detail used by the Transactions
-                          Explorer.
-                        </p>
-                      </div>
-                    </div>
-                    <div className="mt-3 flex items-center justify-between">
-                      <p className="text-xs text-slate-500">
-                        Status: {statusLabel(status.datasets.transactions)}
-                      </p>
-                      <Link
-                        href={cityHref("/admin/upload?table=transactions")}
-                        className="rounded-md bg-slate-900 px-3 py-1.5 text-xs font-medium text-white outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
-                      >
-                        Upload CSV
-                      </Link>
-                    </div>
-                  </div>
+      {/* Actuals */}
+      <div className="flex flex-col justify-between rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="flex items-start gap-3">
+          {statusCircle(status.datasets.actuals)}
+          <div>
+            <p className="font-medium text-slate-900">Actuals</p>
+            <p className="mt-1 text-xs text-slate-600">
+              Year-to-date or full fiscal year actuals to compare
+              against the budget.
+            </p>
+          </div>
+        </div>
+        <div className="mt-3 flex items-center justify-between">
+          <p className="text-xs text-slate-500">
+            Status: {statusLabel(status.datasets.actuals)}
+          </p>
+          <Link
+            href={cityHref("/admin/upload?table=actuals")}
+            className="rounded-md bg-slate-900 px-3 py-1.5 text-xs font-medium text-white outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
+          >
+            Upload CSV
+          </Link>
+        </div>
+      </div>
 
-                  {/* Revenues */}
-                  <div className="flex flex-col justify-between rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                    <div className="flex items-start gap-3">
-                      {statusCircle(status.datasets.revenues)}
-                      <div>
-                        <p className="font-medium text-slate-900">
-                          Revenues
-                        </p>
-                        <p className="mt-1 text-xs text-slate-600">
-                          Revenue detail powering the Revenues Explorer and
-                          summaries.
-                        </p>
-                      </div>
-                    </div>
-                    <div className="mt-3 flex items-center justify-between">
-                      <p className="text-xs text-slate-500">
-                        Status: {statusLabel(status.datasets.revenues)}
-                      </p>
-                      <Link
-                        href={cityHref("/admin/upload?table=revenues")}
-                        className="rounded-md bg-slate-900 px-3 py-1.5 text-xs font-medium text-white outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
-                      >
-                        Upload CSV
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
+      {/* Transactions */}
+      <div className="flex flex-col justify-between rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="flex items-start gap-3">
+          {statusCircle(status.datasets.transactions)}
+          <div>
+            <p className="font-medium text-slate-900">Transactions</p>
+            <p className="mt-1 text-xs text-slate-600">
+              Line-item spending detail used by the Transactions
+              Explorer.
+            </p>
+          </div>
+        </div>
+        <div className="mt-3 flex items-center justify-between">
+          <p className="text-xs text-slate-500">
+            Status: {statusLabel(status.datasets.transactions)}
+          </p>
+          <Link
+            href={cityHref("/admin/upload?table=transactions")}
+            className="rounded-md bg-slate-900 px-3 py-1.5 text-xs font-medium text-white outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
+          >
+            Upload CSV
+          </Link>
+        </div>
+      </div>
+
+      {/* Revenues */}
+      <div className="flex flex-col justify-between rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="flex items-start gap-3">
+          {statusCircle(status.datasets.revenues)}
+          <div>
+            <p className="font-medium text-slate-900">Revenues</p>
+            <p className="mt-1 text-xs text-slate-600">
+              Revenue detail powering the Revenues Explorer and
+              summaries.
+            </p>
+          </div>
+        </div>
+        <div className="mt-3 flex items-center justify-between">
+          <p className="text-xs text-slate-500">
+            Status: {statusLabel(status.datasets.revenues)}
+          </p>
+          <Link
+            href={cityHref("/admin/upload?table=revenues")}
+            className="rounded-md bg-slate-900 px-3 py-1.5 text-xs font-medium text-white outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
+          >
+            Upload CSV
+          </Link>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
+
 
             {activeStep === "preview" && (
               <div className="space-y-4">

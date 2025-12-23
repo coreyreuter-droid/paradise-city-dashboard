@@ -106,10 +106,11 @@ export async function getRecentTransactionsForYear(
 
 export async function getPortalFiscalYears(): Promise<number[]> {
   const [budgetYears, txYears, revenueYears] = await Promise.all([
-    supabase.from("budget_actuals_year_department").select("fiscal_year"),
-    supabase.from("transaction_year_department").select("fiscal_year"),
-    supabase.from("revenues").select("fiscal_year"),
+    supabase.from("budget_actuals_year_totals").select("fiscal_year"),
+    supabase.from("transaction_year_totals").select("fiscal_year"),
+    supabase.from("revenue_year_totals").select("fiscal_year"),
   ]);
+
 
   const years = new Set<number>();
 
@@ -121,6 +122,7 @@ export async function getPortalFiscalYears(): Promise<number[]> {
     .filter((y) => Number.isFinite(y))
     .sort((a, b) => b - a);
 }
+
 
 /* =========================
    Summary tables

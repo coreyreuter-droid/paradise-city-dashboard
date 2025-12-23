@@ -1,281 +1,314 @@
 // app/[citySlug]/admin/data/page.tsx
-import { notFound } from "next/navigation";
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
 import AdminGuard from "@/components/Auth/AdminGuard";
 import AdminShell from "@/components/Admin/AdminShell";
-import {
-  getAvailableFiscalYears,
-  getRevenueYears,
-  getTransactionYears,
-  getPortalSettings,
-} from "@/lib/queries";
-import { supabaseAdmin } from "@/lib/supabaseService";
-import DeleteYearButton from "@/components/Admin/DeleteYearButton";
+import { supabase } from "@/lib/supabase";
+import { cityHref } from "@/lib/cityRouting";
 
-export const revalidate = 0;
+type TableKey = "budgets" | "actuals" | "transactions" | "revenues";
 
-const ALLOWED_TABLES = [
-  "budgets",
-  "actuals",
-  "transactions",
-  "revenues",
-] as const;
-
-type AllowedTable = (typeof ALLOWED_TABLES)[number];
-
-type PageProps = {
-  params: { citySlug: string };
+type YearState = {
+  loading: boolean;
+  years: number[];
+  error: string | null;
 };
 
-async function getModuleYears() {
-  const [budgetYearsRaw, revenueYearsRaw, txYearsRaw, settings] =
-    await Promise.all([
-      getAvailableFiscalYears(),
-      getRevenueYears(),
-      getTransactionYears(),
-      getPortalSettings(),
-    ]);
+const TABLES: Array<{ key: TableKey; label: string; description: string }> = [
+  {
+    key: "budgets",
+    label: "Budgets",
+    description: "Adopted budget detail. Deleting an FY removes that fiscal year’s budget rows.",
+  },
+  {
+    key: "actuals",
+    label: "Actuals",
+    description: "Actuals by period. Deleting an FY removes that fiscal year’s actuals rows.",
+  },
+  {
+    key: "transactions",
+    label: "Transactions",
+    description: "Line-item payments. Deleting an FY removes that fiscal year’s transaction rows.",
+  },
+  {
+    key: "revenues",
+    label: "Revenues",
+    description: "Revenues by period. Deleting an FY removes that fiscal year’s revenue rows.",
+  },
+];
 
-  const portalSettings = settings;
-
-  if (!portalSettings) {
-    notFound();
-  }
-
-  // Ensure consistent sort order: newest → oldest for all modules
-  const budgetYears = [...(budgetYearsRaw ?? [])].sort((a, b) => b - a);
-  const actualsYears = [...budgetYears]; // actuals should mirror budgets
-  const revenueYears = [...(revenueYearsRaw ?? [])].sort((a, b) => b - a);
-  const transactionYears = [...(txYearsRaw ?? [])].sort((a, b) => b - a);
-
-  return {
-    portalSettings,
-    budgetYears,
-    actualsYears,
-    revenueYears,
-    transactionYears,
-  };
-}
-
-// Server action for deleting a fiscal year from a given table.
-async function deleteYearAction(formData: FormData) {
-  "use server";
-
-  const tableRaw = formData.get("table");
-  const fiscalYearRaw = formData.get("fiscalYear");
-
-  const table = typeof tableRaw === "string" ? tableRaw : "";
-  const fiscalYear = Number(fiscalYearRaw);
-
-  if (!ALLOWED_TABLES.includes(table as AllowedTable)) {
-    console.error("DeleteYearAction: invalid table", table);
-    return;
-  }
-
-  if (!Number.isFinite(fiscalYear) || fiscalYear <= 0) {
-    console.error("DeleteYearAction: invalid fiscalYear", fiscalYearRaw);
-    return;
-  }
-
-  // Perform the delete using supabaseAdmin (bypass RLS).
-  const { error } = await supabaseAdmin
-    .from(table)
-    .delete()
-    .eq("fiscal_year", fiscalYear);
+async function fetchDistinctFiscalYears(table: TableKey): Promise<number[]> {
+  const { data, error } = await supabase.rpc("get_fiscal_years_for_table", {
+    _table: table,
+  });
 
   if (error) {
-    console.error("DeleteYearAction: delete error", {
-      table,
-      fiscalYear,
-      error,
-    });
-    return;
+    throw new Error(error.message);
   }
 
-  // Optional: log somewhere else if you want; uploads are already logged in data_uploads.
+  const years: number[] = (data ?? [])
+    .map((r: any) => Number(r.fiscal_year))
+    .filter((n: number) => Number.isFinite(n));
+
+  years.sort((a: number, b: number) => b - a);
+  return years;
 }
 
-export default async function DataManagementPage({}: PageProps) {
-  const {
-    portalSettings,
-    budgetYears,
-    actualsYears,
-    revenueYears,
-    transactionYears,
-  } = await getModuleYears();
 
-  const govName = portalSettings.city_name || "Your gov";
 
-  const anyYears =
-    budgetYears.length ||
-    actualsYears.length ||
-    revenueYears.length ||
-    transactionYears.length;
+function DeleteFYButton({
+  table,
+  year,
+  onDeleted,
+}: {
+  table: TableKey;
+  year: number;
+  onDeleted: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [confirmText, setConfirmText] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const required = String(year);
+
+  async function runDelete() {
+    setErr(null);
+
+    if (confirmText.trim() !== required) {
+      setErr(`Type ${required} to confirm.`);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session?.access_token) {
+        setErr("No admin session found. Please log in again.");
+        setLoading(false);
+        return;
+      }
+
+      const resp = await fetch("/api/admin/delete-fiscal-year", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ table, fiscalYear: year }),
+      });
+
+      const json = await resp.json();
+
+      if (!resp.ok) {
+        setErr(json?.error || "Delete failed.");
+        setLoading(false);
+        return;
+      }
+
+      setOpen(false);
+      setConfirmText("");
+      onDeleted();
+    } catch (e: any) {
+      setErr(e?.message || "Delete failed.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="text-right">
+      {!open ? (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="rounded-md border border-red-300 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-800 hover:bg-red-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
+        >
+          Delete FY{year}
+        </button>
+      ) : (
+        <div className="mt-2 rounded-xl border border-red-200 bg-red-50 p-3 text-left">
+          <p className="text-xs font-semibold text-red-900">
+            Delete FY{year} from <span className="font-mono">{table}</span>
+          </p>
+          <p className="mt-1 text-xs text-red-800">
+            This deletes rows where <span className="font-mono">fiscal_year = {year}</span>.
+          </p>
+
+          <div className="mt-2 flex flex-col gap-2">
+            <label className="text-xs font-medium text-red-900">
+              Confirm fiscal year
+              <input
+                value={confirmText}
+                onChange={(e) => setConfirmText(e.target.value)}
+                className="mt-1 w-full rounded-md border border-red-200 bg-white px-2 py-1 text-xs text-slate-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
+                placeholder={`Type ${required} to confirm`}
+              />
+            </label>
+
+            {err && <p className="text-xs text-red-800">{err}</p>}
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={runDelete}
+                disabled={loading}
+                className="rounded-md bg-red-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-800 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
+              >
+                {loading ? "Deleting…" : "Confirm delete"}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setOpen(false);
+                  setConfirmText("");
+                  setErr(null);
+                }}
+                className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function AdminDataManagementPage() {
+  const [states, setStates] = useState<Record<TableKey, YearState>>({
+    budgets: { loading: true, years: [], error: null },
+    actuals: { loading: true, years: [], error: null },
+    transactions: { loading: true, years: [], error: null },
+    revenues: { loading: true, years: [], error: null },
+  });
+
+  async function refreshOne(table: TableKey) {
+    setStates((prev) => ({
+      ...prev,
+      [table]: { ...prev[table], loading: true, error: null },
+    }));
+
+    try {
+      const years = await fetchDistinctFiscalYears(table);
+      setStates((prev) => ({
+        ...prev,
+        [table]: { loading: false, years, error: null },
+      }));
+    } catch (e: any) {
+      setStates((prev) => ({
+        ...prev,
+        [table]: { loading: false, years: [], error: e?.message || "Failed to load years." },
+      }));
+    }
+  }
+
+  useEffect(() => {
+    (async () => {
+      await Promise.all(TABLES.map((t) => refreshOne(t.key)));
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const allYears = useMemo(() => {
+    const set = new Set<number>();
+    for (const t of TABLES) {
+      states[t.key].years.forEach((y) => set.add(y));
+    }
+    return Array.from(set).sort((a, b) => b - a);
+  }, [states]);
 
   return (
     <AdminGuard>
       <AdminShell
         title="Data management"
-        description={`Review and delete historical fiscal-year data for ${govName}.`}
+        description="Delete fiscal-year datasets (FY), so you can retain only the years you want (e.g., last 5 FYs)."
+        actions={
+          <a
+            href={cityHref("/admin/upload")}
+            className="rounded-md border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
+          >
+            Go to uploads
+          </a>
+        }
       >
-        <div className="space-y-6">
-          <section className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-            <h2 className="mb-1 text-sm font-semibold">
-              Dangerous actions — use with care
-            </h2>
-            <p>
-              Deleting a fiscal year is permanent. This will remove{" "}
-              <span className="font-semibold">
-                all rows with that fiscal_year
-              </span>{" "}
-              from the selected table. Use this to enforce retention (for
-              example, only keeping the last 5 fiscal years) or to clean up
-              bad uploads before reloading data. You will be asked to confirm
-              each deletion.
-            </p>
-          </section>
+        <div className="space-y-4">
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+            <p className="font-semibold text-slate-900">Important</p>
+            <ul className="mt-2 list-disc space-y-1 pl-5 text-sm">
+              <li>
+                Deletes are based on <span className="font-mono">fiscal_year</span> (FY ending year),
+                not calendar year.
+              </li>
+              <li>
+                If you want to keep only the last 5 fiscal years, delete older FYs from each dataset.
+              </li>
+            </ul>
+          </div>
 
-          <section className="space-y-4">
-            <h2 className="text-sm font-semibold text-slate-900">
-              Module data by fiscal year
-            </h2>
+          {allYears.length === 0 ? (
+            <div className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-600">
+              No fiscal years detected yet. Upload data first.
+            </div>
+          ) : null}
 
-            {!anyYears ? (
-              <p className="text-sm text-slate-600">
-                No fiscal-year data found yet. Upload budgets, actuals,
-                transactions, or revenues to see available years.
-              </p>
-            ) : (
-              <div className="grid gap-4 md:grid-cols-2">
-                {/* Budgets */}
-                <div className="rounded-xl border border-slate-200 bg-white p-4">
-                  <h3 className="text-sm font-semibold text-slate-900">
-                    Budgets
-                  </h3>
-                  <p className="mt-1 text-xs text-slate-600">
-                    Adopted budgets loaded into the portal. Typically you
-                    should retain at least 3–5 fiscal years.
-                  </p>
-                  {budgetYears.length === 0 ? (
-                    <p className="mt-2 text-sm text-slate-600">
-                      No budget data found.
-                    </p>
+          <div className="grid gap-4 lg:grid-cols-2">
+            {TABLES.map((t) => {
+              const st = states[t.key];
+
+              return (
+                <div key={t.key} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-900">{t.label}</p>
+                      <p className="mt-1 text-xs text-slate-600">{t.description}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => refreshOne(t.key)}
+                      className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
+                    >
+                      Refresh
+                    </button>
+                  </div>
+
+                  {st.loading ? (
+                    <p className="mt-3 text-xs text-slate-500">Loading fiscal years…</p>
+                  ) : st.error ? (
+                    <p className="mt-3 text-xs text-red-700">{st.error}</p>
+                  ) : st.years.length === 0 ? (
+                    <p className="mt-3 text-xs text-slate-500">No years found.</p>
                   ) : (
-                    <ul className="mt-2 space-y-1 text-sm text-slate-700">
-                      {budgetYears.map((year) => (
-                        <li
-                          key={year}
-                          className="flex items-center justify-between gap-2"
+                    <div className="mt-4 space-y-2">
+                      {st.years.map((y) => (
+                        <div
+                          key={y}
+                          className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2"
                         >
-                          <span>FY {year}</span>
-                          <DeleteYearButton
-                            table="budgets"
-                            fiscalYear={year}
-                            action={deleteYearAction}
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold text-slate-900">FY{y}</p>
+                            <p className="text-[11px] text-slate-500">
+                              Deletes rows where fiscal_year = {y}
+                            </p>
+                          </div>
+
+                          <DeleteFYButton
+                            table={t.key}
+                            year={y}
+                            onDeleted={() => refreshOne(t.key)}
                           />
-                        </li>
+                        </div>
                       ))}
-                    </ul>
+                    </div>
                   )}
                 </div>
-
-                {/* Actuals */}
-                <div className="rounded-xl border border-slate-200 bg-white p-4">
-                  <h3 className="text-sm font-semibold text-slate-900">
-                    Actuals
-                  </h3>
-                  <p className="mt-1 text-xs text-slate-600">
-                    Actual spending data used for Analytics and BvA views.
-                    Retention should usually match budgets.
-                  </p>
-                  {actualsYears.length === 0 ? (
-                    <p className="mt-2 text-sm text-slate-600">
-                      No actuals data found.
-                    </p>
-                  ) : (
-                    <ul className="mt-2 space-y-1 text-sm text-slate-700">
-                      {actualsYears.map((year) => (
-                        <li
-                          key={year}
-                          className="flex items-center justify-between gap-2"
-                        >
-                          <span>FY {year}</span>
-                          <DeleteYearButton
-                            table="actuals"
-                            fiscalYear={year}
-                            action={deleteYearAction}
-                          />
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-
-                {/* Transactions */}
-                <div className="rounded-xl border border-slate-200 bg-white p-4">
-                  <h3 className="text-sm font-semibold text-slate-900">
-                    Transactions
-                  </h3>
-                  <p className="mt-1 text-xs text-slate-600">
-                    Line-item spending detail. Deleting a year here removes
-                    those transactions from the public explorer.
-                  </p>
-                  {transactionYears.length === 0 ? (
-                    <p className="mt-2 text-sm text-slate-600">
-                      No transaction data found.
-                    </p>
-                  ) : (
-                    <ul className="mt-2 space-y-1 text-sm text-slate-700">
-                      {transactionYears.map((year) => (
-                        <li
-                          key={year}
-                          className="flex items-center justify-between gap-2"
-                        >
-                          <span>FY {year}</span>
-                          <DeleteYearButton
-                            table="transactions"
-                            fiscalYear={year}
-                            action={deleteYearAction}
-                          />
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-
-                {/* Revenues */}
-                <div className="rounded-xl border border-slate-200 bg-white p-4">
-                  <h3 className="text-sm font-semibold text-slate-900">
-                    Revenues
-                  </h3>
-                  <p className="mt-1 text-xs text-slate-600">
-                    Revenue records used by the Revenues explorer and
-                    Analytics summaries.
-                  </p>
-                  {revenueYears.length === 0 ? (
-                    <p className="mt-2 text-sm text-slate-600">
-                      No revenue data found.
-                    </p>
-                  ) : (
-                    <ul className="mt-2 space-y-1 text-sm text-slate-700">
-                      {revenueYears.map((year) => (
-                        <li
-                          key={year}
-                          className="flex items-center justify-between gap-2"
-                        >
-                          <span>FY {year}</span>
-                          <DeleteYearButton
-                            table="revenues"
-                            fiscalYear={year}
-                            action={deleteYearAction}
-                          />
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              </div>
-            )}
-          </section>
+              );
+            })}
+          </div>
         </div>
       </AdminShell>
     </AdminGuard>

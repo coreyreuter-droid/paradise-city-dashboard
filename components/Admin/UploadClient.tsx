@@ -439,6 +439,7 @@ export default function UploadClient() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [messageIsError, setMessageIsError] = useState(false);
+  const [coverageWarnings, setCoverageWarnings] = useState<string[]>([]);
 
   const [preflight, setPreflight] = useState<PreflightSummary | null>(null);
   const [pendingRecords, setPendingRecords] = useState<
@@ -468,6 +469,86 @@ export default function UploadClient() {
     setMessage(msg);
     setMessageIsError(false);
   }
+
+    async function refreshCoverageWarnings() {
+    try {
+      const { data: psRows, error: psError } = await supabase
+        .from("portal_settings")
+        .select("enable_actuals, enable_revenues")
+        .limit(1);
+
+      if (psError) {
+        console.error("UploadClient: error loading portal_settings", psError);
+        setCoverageWarnings([]);
+        return;
+      }
+
+      const ps = psRows && psRows[0];
+
+      const actualsEnabled = ps ? ps.enable_actuals !== false : true;
+      const revenuesFeatureEnabled = ps ? ps.enable_revenues === true : false;
+
+      async function maxFiscalYear(tableName: string): Promise<number | null> {
+        const { data, error } = await supabase
+          .from(tableName)
+          .select("fiscal_year")
+          .order("fiscal_year", { ascending: false })
+          .limit(1);
+
+        if (error) {
+          console.error(
+            `UploadClient: error reading max fiscal_year from ${tableName}`,
+            error
+          );
+          return null;
+        }
+
+        const row = data && data[0];
+        const fy = row?.fiscal_year;
+        return typeof fy === "number" ? fy : fy != null ? Number(fy) : null;
+      }
+
+      const [maxBudgetFY, maxActualsFY, maxRevenuesFY] = await Promise.all([
+        maxFiscalYear("budgets"),
+        maxFiscalYear("actuals"),
+        maxFiscalYear("revenues"),
+      ]);
+
+      const warnings: string[] = [];
+
+      if (
+        actualsEnabled &&
+        maxBudgetFY != null &&
+        maxActualsFY != null &&
+        maxActualsFY > maxBudgetFY
+      ) {
+        warnings.push(
+          `Actuals include FY${maxActualsFY}, but budgets are only loaded through FY${maxBudgetFY}. Upload the adopted budget for FY${maxActualsFY} (or remove those actuals) to avoid showing $0 budget for that year.`
+        );
+      }
+
+      if (
+        revenuesFeatureEnabled &&
+        maxBudgetFY != null &&
+        maxRevenuesFY != null &&
+        maxRevenuesFY > maxBudgetFY
+      ) {
+        warnings.push(
+          `Revenues include FY${maxRevenuesFY}, but budgets are only loaded through FY${maxBudgetFY}. Upload the adopted budget for FY${maxRevenuesFY} (or remove those revenues) to avoid mismatched year coverage.`
+        );
+      }
+
+      setCoverageWarnings(warnings);
+    } catch (err) {
+      console.error("UploadClient: failed to compute coverage warnings", err);
+      setCoverageWarnings([]);
+    }
+  }
+
+    useEffect(() => {
+    refreshCoverageWarnings();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function handlePrepareUpload() {
     if (!file) {
@@ -658,6 +739,8 @@ export default function UploadClient() {
 
       if (!resp.ok) {
         console.error("Upload API error:", resp.status, result);
+
+
         setError(
           result?.error ||
             "Upload failed on the server. Please try again or contact support."
@@ -674,6 +757,8 @@ export default function UploadClient() {
       setReplaceTableConfirmed(false);
       setReplaceYear("");
       setReplaceYearConfirm("");
+      await refreshCoverageWarnings();
+
     } catch (err: any) {
       console.error(err);
       setError("Upload failed: " + (err?.message || "Unknown error"));
@@ -743,6 +828,20 @@ export default function UploadClient() {
           View upload history
         </a>
       </div>
+
+      {coverageWarnings.length > 0 && (
+        <div
+          className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-slate-900"
+          role="status"
+        >
+          <p className="font-semibold">Data coverage warning</p>
+          <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-800">
+            {coverageWarnings.map((w, idx) => (
+              <li key={idx}>{w}</li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* Table selector */}
       <div className="mb-4">
