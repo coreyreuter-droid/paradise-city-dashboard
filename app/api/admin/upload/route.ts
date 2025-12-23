@@ -192,6 +192,16 @@ function normalizeFiscalYearForRecord(
 
 
   if (table === "actuals" || table === "revenues") {
+        // Normalize period to YYYY-MM (accept YYYY-M too)
+    if (typeof cloned.period === "string") {
+      const m = /^(\d{4})[-/](\d{1,2})$/.exec(cloned.period.trim());
+      if (m) {
+        const yyyy = m[1];
+        const mm = String(Number(m[2])).padStart(2, "0");
+        cloned.period = `${yyyy}-${mm}`;
+      }
+    }
+
     // Prefer deriving from an actual date if present; otherwise derive from period (month) using startDay.
     const candidateDate =
       typeof cloned.date === "string" && cloned.date.trim().length > 0

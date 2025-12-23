@@ -176,15 +176,16 @@ function getUniqueFiscalYearsFromRows(rows: any[]): number[] {
   return Array.from(years).sort((a, b) => a - b);
 }
 
-// period: YYYY-PP where PP is 01–12
+// period: accept YYYY-M or YYYY-MM (we normalize to YYYY-MM before upload)
 function isValidPeriod(value: unknown): boolean {
   if (typeof value !== "string") return false;
   const trimmed = value.trim();
-  if (!/^\d{4}-\d{2}$/.test(trimmed)) return false;
 
-  const [yearStr, periodStr] = trimmed.split("-");
-  const year = Number(yearStr);
-  const period = Number(periodStr);
+  const m = /^(\d{4})[-/](\d{1,2})$/.exec(trimmed);
+  if (!m) return false;
+
+  const year = Number(m[1]);
+  const period = Number(m[2]);
 
   if (!Number.isInteger(year) || !Number.isInteger(period)) return false;
   if (!isReasonableYear(year)) return false;
@@ -192,6 +193,7 @@ function isValidPeriod(value: unknown): boolean {
 
   return true;
 }
+
 
 function isBadDeptName(value: unknown): boolean {
   if (typeof value !== "string") return true;
@@ -310,6 +312,19 @@ function validateAndBuildRecords(
       } else {
         rec[numericCol] = parsed;
       }
+          // Normalize period to YYYY-MM (accept YYYY-M too) for actuals and revenues
+    
+          if (table === "actuals" || table === "revenues") {
+      if (typeof rec["period"] === "string") {
+        const m = /^(\d{4})[-/](\d{1,2})$/.exec(rec["period"].trim());
+        if (m) {
+          const yyyy = m[1];
+          const mm = String(Number(m[2])).padStart(2, "0");
+          rec["period"] = `${yyyy}-${mm}`;
+        }
+      }
+    }
+
     }
 
     // Type-specific validations
@@ -403,7 +418,8 @@ function validateAndBuildRecords(
           row: rowNum,
           field: "period",
           message:
-            'Invalid period value. Expected format "YYYY-PP" where PP is 01–12 (e.g. "2024-01").',
+            'Invalid period value. Expected "YYYY-MM" where MM is 01–12 (we also accept "YYYY-M" and will normalize).',
+
         });
       }
     }

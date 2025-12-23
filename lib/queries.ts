@@ -3,8 +3,10 @@
 // Single source of truth for Supabase reads.
 // Summary tables are preferred for performance on large datasets.
 
+
 import { supabase } from "./supabase";
 import type { ActualRow, BudgetRow, TransactionRow, RevenueRow } from "./schema";
+
 
 const PAGE_SIZE = 1000;
 
@@ -105,7 +107,8 @@ export async function getRecentTransactionsForYear(
 ========================= */
 
 export async function getPortalFiscalYears(): Promise<number[]> {
-  const [budgetYears, txYears, revenueYears] = await Promise.all([
+    const [budgetYears, txYears, revenueYears] = await Promise.all([
+
     supabase.from("budget_actuals_year_totals").select("fiscal_year"),
     supabase.from("transaction_year_totals").select("fiscal_year"),
     supabase.from("revenue_year_totals").select("fiscal_year"),
@@ -350,6 +353,7 @@ export async function getAvailableFiscalYears(): Promise<number[]> {
  */
 export async function getTransactionYears(): Promise<number[]> {
   const { data, error } = await supabase
+
     .from("transaction_year_department")
     .select("fiscal_year")
     .order("fiscal_year", { ascending: false });
