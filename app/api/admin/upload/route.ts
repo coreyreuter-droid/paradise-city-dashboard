@@ -98,21 +98,54 @@ function computeFiscalYearFromDate(
   return afterStart ? year + 1 : year;
 }
 
+function computeFiscalPeriodFromDate(
+  dateStr: string | null | undefined,
+  config: FiscalConfig
+): number | null {
+  if (!dateStr || typeof dateStr !== "string") return null;
+
+  const d = new Date(dateStr);
+  if (Number.isNaN(d.getTime())) return null;
+
+  const month = d.getUTCMonth() + 1; // 1–12
+  const day = d.getUTCDate();
+  const { startMonth, startDay } = config;
+
+  // If FY month boundaries start on startDay, then dates before startDay belong to the prior fiscal month.
+  let effectiveMonth = month;
+  if (startDay > 1 && day < startDay) {
+    effectiveMonth = month - 1;
+    if (effectiveMonth === 0) effectiveMonth = 12;
+  }
+
+  const fiscalPeriod = ((effectiveMonth - startMonth + 12) % 12) + 1; // 1–12
+  return fiscalPeriod;
+}
+
 /**
  * Try to derive a date string from a "period" field like "2024-01" or "2024-1".
  * We assume day 1 of that month.
  */
-function deriveDateFromPeriod(period: unknown): string | null {
+function deriveDateFromPeriod(period: unknown, startDay: number): string | null {
   if (!period || typeof period !== "string") return null;
 
   const trimmed = period.trim();
-  // Basic patterns: "YYYY-MM" or "YYYY-M"
   const match = /^(\d{4})[-/](\d{1,2})$/.exec(trimmed);
   if (!match) return null;
 
-  const year = match[1];
-  const month = match[2].padStart(2, "0");
-  return `${year}-${month}-01`;
+  const yearNum = Number(match[1]);
+  const monthNum = Number(match[2]);
+
+  if (!Number.isFinite(yearNum) || !Number.isFinite(monthNum)) return null;
+  if (monthNum < 1 || monthNum > 12) return null;
+
+  // Clamp startDay to the last day of that month
+  const lastDay = new Date(Date.UTC(yearNum, monthNum, 0)).getUTCDate(); // monthNum is 1-based; day=0 => last day prev month
+  const day = Math.min(Math.max(1, Number(startDay) || 1), lastDay);
+
+  const mm = String(monthNum).padStart(2, "0");
+  const dd = String(day).padStart(2, "0");
+  return `${yearNum}-${mm}-${dd}`;
 }
 
 /**
@@ -149,43 +182,46 @@ function normalizeFiscalYearForRecord(
 
   if (table === "transactions") {
     const fyFromDate = computeFiscalYearFromDate(cloned.date, config);
-    if (fyFromDate != null) {
-      cloned.fiscal_year = fyFromDate;
-    }
+    const fpFromDate = computeFiscalPeriodFromDate(cloned.date, config);
+
+    if (fyFromDate != null) cloned.fiscal_year = fyFromDate;
+    if (fpFromDate != null) cloned.fiscal_period = fpFromDate;
+
     return cloned;
   }
+
 
   if (table === "actuals" || table === "revenues") {
-    // If fiscal_year is already numeric, keep it.
-    if (
-      cloned.fiscal_year != null &&
-      cloned.fiscal_year !== "" &&
-      Number.isFinite(Number(cloned.fiscal_year))
-    ) {
-      cloned.fiscal_year = Number(cloned.fiscal_year);
+    // Prefer deriving from an actual date if present; otherwise derive from period (month) using startDay.
+    const candidateDate =
+      typeof cloned.date === "string" && cloned.date.trim().length > 0
+        ? cloned.date
+        : deriveDateFromPeriod(cloned.period, config.startDay);
+
+    if (candidateDate) {
+      const fy = computeFiscalYearFromDate(candidateDate, config);
+      const fp = computeFiscalPeriodFromDate(candidateDate, config);
+
+      if (fy != null) cloned.fiscal_year = fy;
+      if (fp != null) cloned.fiscal_period = fp;
+
       return cloned;
     }
 
-    // Else try from "date"
-    const fyFromDate = computeFiscalYearFromDate(cloned.date, config);
-    if (fyFromDate != null) {
-      cloned.fiscal_year = fyFromDate;
-      return cloned;
+    // If we cannot derive, fall back to whatever is provided (but coerce to numbers if possible).
+    if (cloned.fiscal_year != null && cloned.fiscal_year !== "") {
+      const n = Number(cloned.fiscal_year);
+      if (Number.isFinite(n)) cloned.fiscal_year = n;
     }
 
-    // Else try from "period"
-    const derivedDate = deriveDateFromPeriod(cloned.period);
-    if (derivedDate) {
-      const fyFromPeriod = computeFiscalYearFromDate(derivedDate, config);
-      if (fyFromPeriod != null) {
-        cloned.fiscal_year = fyFromPeriod;
-        return cloned;
-      }
+    if (cloned.fiscal_period != null && cloned.fiscal_period !== "") {
+      const p = Number(cloned.fiscal_period);
+      if (Number.isFinite(p)) cloned.fiscal_period = p;
     }
 
-    // Fallback: leave as-is (could be null)
     return cloned;
   }
+
 
   return cloned;
 }
@@ -514,20 +550,22 @@ export async function POST(req: NextRequest) {
       await recomputeTransactionSummaries(yearsInData);
     }
 
+    
     // 9) Recompute budget/actual summaries if budgets or actuals were uploaded
-if (table === "budgets" || table === "actuals") {
-  if (yearsInData.length === 0) {
-    return NextResponse.json(
-      {
-        error:
-          "Upload succeeded, but no fiscal years were detected after normalization. Cannot recompute budget/actuals summaries.",
-      },
-      { status: 500 }
-    );
-  }
+    if (table === "budgets" || table === "actuals") {
+      if (yearsInData.length === 0) {
+        return NextResponse.json(
+          {
+            error:
+              "Upload succeeded, but no fiscal years were detected after normalization. Cannot recompute budget/actuals summaries.",
+          },
+          { status: 500 }
+        );
+      }
 
-  await recomputeBudgetActualsSummaries(yearsInData);
-}
+      await recomputeBudgetActualsSummaries(yearsInData);
+    }
+
 
     let action: string;
     if (mode === "append") {
@@ -546,7 +584,8 @@ if (table === "budgets" || table === "actuals") {
             .join(", ")}.`
         : "";
 
-            // Refresh rollups for affected fiscal years so citizen portal updates immediately.
+    // Refresh rollups for affected fiscal years so citizen portal updates immediately.
+    // This MUST be non-fatal. Recompute RPCs already guarantee correctness.
     const affectedYears = (yearsInData ?? []).filter((y) => Number.isFinite(y));
 
     if ((table === "budgets" || table === "actuals") && affectedYears.length > 0) {
@@ -555,7 +594,11 @@ if (table === "budgets" || table === "actuals") {
           "refresh_budget_actuals_rollup_for_year",
           { _fy: fy }
         );
-        if (e) throw new Error(`Failed to refresh budget/actual rollups for FY${fy}: ${e.message}`);
+        if (e) {
+          console.warn(
+            `Non-fatal: Failed to refresh budget/actual rollups for FY${fy}: ${e.message}`
+          );
+        }
       }
     }
 
@@ -565,9 +608,29 @@ if (table === "budgets" || table === "actuals") {
           "refresh_transaction_rollups_for_year",
           { _fy: fy }
         );
-        if (e) throw new Error(`Failed to refresh transaction rollups for FY${fy}: ${e.message}`);
+        if (e) {
+          console.warn(
+            `Non-fatal: Failed to refresh transaction rollups for FY${fy}: ${e.message}`
+          );
+        }
       }
     }
+
+
+    if (table === "transactions" && affectedYears.length > 0) {
+      for (const fy of affectedYears) {
+        const { error: e } = await supabaseAdmin.rpc(
+          "refresh_transaction_rollups_for_year",
+          { _fy: fy }
+        );
+        if (e) {
+          console.warn(
+            `Non-fatal: failed to refresh transaction rollups for FY${fy}: ${e.message}`
+          );
+        }
+      }
+    }
+
 
     return NextResponse.json({
       ok: true,
