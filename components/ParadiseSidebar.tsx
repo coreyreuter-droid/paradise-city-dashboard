@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { CITY_CONFIG } from "@/lib/cityConfig";
 import { supabase } from "@/lib/supabase";
 import { CITY_SLUG, cityHref } from "@/lib/cityRouting";
@@ -47,6 +47,51 @@ export default function ParadiseSidebar({
   const [branding] = useState<PortalBranding | null>(initialBranding);
   const [mobileOpen, setMobileOpen] = useState(false);
 
+  const mobileNavRef = useRef<HTMLElement>(null);
+  const mobileToggleRef = useRef<HTMLButtonElement>(null);
+
+  // Focus trap and Escape key for mobile menu
+  useEffect(() => {
+    if (!mobileOpen) return;
+
+    const navElement = mobileNavRef.current;
+    if (!navElement) return;
+
+    // Focus the close button when menu opens
+    const closeButton = navElement.querySelector<HTMLButtonElement>(
+      'button[aria-label="Close navigation"]'
+    );
+    closeButton?.focus();
+
+    // Handle Escape key
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setMobileOpen(false);
+        mobileToggleRef.current?.focus();
+        return;
+      }
+
+      // Focus trap: cycle through focusable elements
+      if (e.key === "Tab") {
+        const focusable = navElement.querySelectorAll<HTMLElement>(
+          'a[href], button, [tabindex]:not([tabindex="-1"])'
+        );
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last?.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first?.focus();
+        }
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [mobileOpen]);
   // whether dashboard nav should be visible (published OR admin)
   const [showDashboardNav, setShowDashboardNav] = useState(initialIsPublished);
   const [isAdminUser, setIsAdminUser] = useState(false);
@@ -292,7 +337,7 @@ export default function ParadiseSidebar({
   <header
     role="banner"
     aria-label={`${portalTitle} site navigation`}
-    className="flex flex-col sm:flex-none sm:w-72 lg:w-80"
+className="flex flex-col sm:flex-none sm:w-56 lg:w-64 xl:w-72"
   >
 
       {/* MOBILE HEADER + TOGGLE (sm:hidden) */}
@@ -325,7 +370,8 @@ export default function ParadiseSidebar({
           </div>
         </div>
 
-        <button
+<button
+          ref={mobileToggleRef}
           type="button"
           onClick={() => setMobileOpen((v) => !v)}
           className="inline-flex items-center justify-center rounded-md border border-slate-200 bg-white px-2 py-1 text-slate-700 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
@@ -351,7 +397,8 @@ export default function ParadiseSidebar({
             onClick={closeMobile}
           />
           {/* Drawer */}
-          <nav
+<nav
+            ref={mobileNavRef}
             id="city-nav-panel"
             className="absolute inset-y-0 right-0 w-64 max-w-[80%] bg-white shadow-xl"
             aria-label="Primary navigation"
@@ -425,7 +472,7 @@ export default function ParadiseSidebar({
 
       {/* DESKTOP SIDEBAR (sm+ only) */}
 <aside
-  className="hidden sm:flex fixed inset-y-0 left-0 w-72 lg:w-80 flex-col border-r border-slate-200 bg-white/95 px-3 py-4 shadow-sm"
+className="hidden sm:flex fixed inset-y-0 left-0 w-56 lg:w-64 xl:w-72 flex-col border-r border-slate-200 bg-white/95 px-3 py-4 shadow-sm"
   aria-label="Primary sidebar navigation"
 >
 

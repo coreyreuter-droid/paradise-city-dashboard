@@ -1,6 +1,7 @@
 // app/api/transactions/export/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { rateLimit } from "@/lib/rateLimit";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -18,6 +19,29 @@ function csvSafe(value: unknown): string {
 }
 
 export async function GET(req: NextRequest) {
+  // Rate limit: 10 requests per hour per IP
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0] ?? 
+             req.headers.get("x-real-ip") ?? 
+             "unknown";
+  
+  const { allowed, remaining, resetInSeconds } = rateLimit(
+    `export:${ip}`,
+    10,
+    60 * 60 * 1000 // 1 hour
+  );
+console.log(`Rate limit check: IP=${ip}, allowed=${allowed}, remaining=${remaining}`);
+  if (!allowed) {
+    return NextResponse.json(
+      { error: `Too many export requests. Try again in ${Math.ceil(resetInSeconds / 60)} minutes.` },
+      { 
+        status: 429,
+        headers: {
+          "Retry-After": String(resetInSeconds),
+          "X-RateLimit-Remaining": "0",
+        }
+      }
+    );
+  }
   try {
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
