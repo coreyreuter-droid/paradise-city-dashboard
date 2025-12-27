@@ -105,7 +105,7 @@ export default function BudgetCharts({
                 width: `${Math.min(execPct, 100)}%`,
                 background:
                   execPct <= 100
-                    ? "linear-gradient(to right, #22c55e, #16a34a)"
+                    ? "linear-gradient(to right, #15803d, #16a34a)"
                     : "linear-gradient(to right, #f97316, #b91c1c)",
               }}
               aria-hidden="true"
@@ -226,7 +226,7 @@ formatter={(value?: number, name?: any) => [
                 const pct = entry.PercentSpent;
                 const under =
                   typeof pct === "number" && pct <= 100;
-                const fill = under ? "#22c55e" : "#ef4444";
+                const fill = under ? "#15803d" : "#b91c1c";
                 return (
                   <Cell
                     key={`actual-${index}`}
@@ -251,7 +251,7 @@ formatter={(value?: number, name?: any) => [
               className="inline-block h-full w-1/2 float-left"
               style={{
                 background:
-                  "linear-gradient(to right, #22c55e, #16a34a)",
+                  "linear-gradient(to right, #15803d, #16a34a)",
               }}
             />
             <span

@@ -12,6 +12,9 @@ if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
 
 // NOTE: You must have a public Storage bucket called "branding" in Supabase.
 
+// Max file size: 10MB (in bytes)
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
+
 export async function POST(req: NextRequest) {
   try {
     // 1) Authenticate caller
@@ -83,6 +86,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // 3) Check file size
+    if (file.size > MAX_FILE_SIZE) {
+      return NextResponse.json(
+        { error: "File too large. Maximum size is 10MB." },
+        { status: 400 }
+      );
+    }
+
+    // 4) Check file type
     if (!file.type.startsWith("image/")) {
       return NextResponse.json(
         {
@@ -111,7 +123,7 @@ export async function POST(req: NextRequest) {
       String(ext).toLowerCase().replace(/[^a-z0-9]/g, "") || "png";
     const path = `${kind}/${user.id}-${Date.now()}.${safeExt}`;
 
-    // 3) Upload to Storage using service role
+    // 5) Upload to Storage using service role
     const bucket = "branding";
 
     const { data: uploadData, error: uploadError } =

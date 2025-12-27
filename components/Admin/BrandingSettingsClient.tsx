@@ -133,7 +133,7 @@ const THEME_PRESETS: ThemePreset[] = [
     id: "lakefront",
     name: "Lakefront",
     primary: "#0C4A6E", // deep blue header
-    accent: "#22C55E", // fresh green accent
+    accent: "#15803d", // fresh green accent
     background: "#020617", // dark neutral background
   },
 ];
