@@ -1,14 +1,7 @@
 // app/api/admin/users/set-role/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
 import { supabaseAdmin } from "@/lib/supabaseService";
-
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-
-if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-  throw new Error("Missing Supabase URL or anon key env vars");
-}
+import { requireSuperAdmin } from "@/lib/auth";
 
 // Valid roles that can be assigned
 const VALID_ROLES = ["viewer", "admin", "super_admin"] as const;
@@ -16,16 +9,6 @@ type Role = (typeof VALID_ROLES)[number];
 
 export async function POST(req: NextRequest) {
   try {
-    // 1) Extract and validate the access token
-    const authHeader = req.headers.get("authorization") ?? "";
-    const token = authHeader.replace(/^Bearer\s+/i, "").trim();
-
-    if (!token) {
-      return NextResponse.json(
-        { error: "Missing access token" },
-        { status: 401 }
-      );
-    }
 
     // 2) Parse request body - accept either "role" or "newRole" field
     const body = await req.json();
@@ -46,52 +29,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 3) Create authed client using caller's access token
-    const supabaseAuthed = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      global: {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      },
-      auth: {
-        persistSession: false,
-      },
-    });
-
-    // 4) Get the current user (caller)
-    const {
-      data: { user },
-      error: userError,
-    } = await supabaseAuthed.auth.getUser();
-
-    if (userError || !user) {
-      console.error("set-role: getUser error", userError);
-      return NextResponse.json(
-        { error: "Invalid or expired session" },
-        { status: 401 }
-      );
-    }
-
-    // 5) Verify caller is super_admin (only super_admins can change roles)
-    const { data: callerProfile, error: callerProfileError } =
-      await supabaseAuthed.from("profiles").select("role").eq("id", user.id).single();
-
-    if (callerProfileError) {
-      console.error("set-role: caller profile error", callerProfileError);
-      return NextResponse.json(
-        { error: "Failed to verify permissions" },
-        { status: 500 }
-      );
-    }
-
-    const callerRole = callerProfile?.role as string | null;
-
-    if (callerRole !== "super_admin") {
-      return NextResponse.json(
-        { error: "Only super_admin can change user roles" },
-        { status: 403 }
-      );
-    }
+// Authenticate and verify super_admin role
+    const auth = await requireSuperAdmin(req);
+    if (!auth.success) return auth.error;
+    const { user } = auth.data;
 
     // 6) Prevent super_admin from demoting themselves
     if (userId === user.id && effectiveRole !== "super_admin") {

@@ -1,6 +1,7 @@
 // app/api/admin/delete-fiscal-year/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseService";
+import { requireAdmin } from "@/lib/auth";
 
 const ALLOWED_TABLES = new Set(["budgets", "actuals", "transactions", "revenues"]);
 
@@ -20,34 +21,9 @@ async function safeDeleteSummaryYear(summaryTable: string, fiscalYear: number) {
 
 export async function POST(req: NextRequest) {
   try {
-    const authHeader = req.headers.get("authorization") ?? "";
-    const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
-
-    if (!token) {
-      return NextResponse.json({ error: "Missing Bearer token." }, { status: 401 });
-    }
-
-    const { data: userData, error: userErr } = await supabaseAdmin.auth.getUser(token);
-    if (userErr || !userData?.user) {
-      return NextResponse.json({ error: "Invalid session." }, { status: 401 });
-    }
-
-    const userId = userData.user.id;
-
-    const { data: profile, error: profileErr } = await supabaseAdmin
-      .from("profiles")
-      .select("role")
-      .eq("id", userId)
-      .maybeSingle();
-
-    if (profileErr) {
-      return NextResponse.json({ error: "Failed to verify admin role." }, { status: 403 });
-    }
-
-    const role = (profile?.role ?? "") as string;
-    if (role !== "admin" && role !== "super_admin") {
-      return NextResponse.json({ error: "Not authorized." }, { status: 403 });
-    }
+// Authenticate and verify admin role
+    const auth = await requireAdmin(req);
+    if (!auth.success) return auth.error;
 
     const body = (await req.json()) as { table?: string; fiscalYear?: number };
     const table = body.table;

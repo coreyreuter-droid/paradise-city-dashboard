@@ -1,14 +1,7 @@
 // app/api/admin/hero-image/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
 import { supabaseAdmin } from "@/lib/supabaseService";
-
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-
-if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-  throw new Error("Missing Supabase URL or anon key env vars");
-}
+import { requireAdmin } from "@/lib/auth";
 
 // NOTE: You must have a public Storage bucket called "branding" in Supabase.
 
@@ -17,63 +10,11 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
 export async function POST(req: NextRequest) {
   try {
-    // 1) Authenticate caller
-    const authHeader = req.headers.get("authorization") ?? "";
-    const token = authHeader.startsWith("Bearer ")
-      ? authHeader.slice("Bearer ".length)
-      : null;
 
-    if (!token) {
-      return NextResponse.json(
-        { error: "Missing Authorization bearer token" },
-        { status: 401 }
-      );
-    }
-
-    const supabaseAuthed = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      global: {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      },
-      auth: {
-        persistSession: false,
-      },
-    });
-
-    const {
-      data: { user },
-      error: userError,
-    } = await supabaseAuthed.auth.getUser();
-
-    if (userError || !user) {
-      console.error("Branding upload: getUser error", userError);
-      return NextResponse.json(
-        { error: "Invalid or expired session" },
-        { status: 401 }
-      );
-    }
-
-    // Check admin or super_admin role
-    const { data: profile, error: profileError } = await supabaseAuthed
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .single();
-
-    if (profileError) {
-      console.error("Branding upload: profile error", profileError);
-    }
-
-    const role = profile?.role as string | null;
-    const isAdmin = role === "admin" || role === "super_admin";
-
-    if (!isAdmin) {
-      return NextResponse.json(
-        { error: "Admin privileges required" },
-        { status: 403 }
-      );
-    }
+    // Authenticate and verify admin role
+    const auth = await requireAdmin(req);
+    if (!auth.success) return auth.error;
+    const { user } = auth.data;
 
     // 2) Parse multipart form
     const formData = await req.formData();

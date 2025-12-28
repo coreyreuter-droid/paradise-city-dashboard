@@ -1,14 +1,7 @@
 // app/api/admin/users/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
 import { supabaseAdmin } from "@/lib/supabaseService";
-
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-
-if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-  throw new Error("Missing Supabase URL or anon key env vars");
-}
+import { requireAdmin } from "@/lib/auth";
 
 type ProfileRow = {
   id: string;
@@ -18,61 +11,11 @@ type ProfileRow = {
 
 export async function GET(req: NextRequest) {
   try {
-    const authHeader = req.headers.get("authorization") ?? "";
-    const token = authHeader.replace(/^Bearer\s+/i, "").trim();
-
-    if (!token) {
-      return NextResponse.json(
-        { error: "Missing access token" },
-        { status: 401 }
-      );
-    }
-
-    // 1) Authed client using caller's access token
-    const supabaseAuthed = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      global: {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      },
-      auth: {
-        persistSession: false,
-      },
-    });
-
-    const {
-      data: { user },
-      error: userError,
-    } = await supabaseAuthed.auth.getUser();
-
-    if (userError || !user) {
-      console.error("Admin users: getUser error", userError);
-      return NextResponse.json(
-        { error: "Invalid or expired session" },
-        { status: 401 }
-      );
-    }
-
-    // 2) Validate admin/super_admin role via RLS-protected profiles
-    const { data: profile, error: profileError } = await supabaseAuthed
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .single();
-
-    if (profileError) {
-      console.error("Admin users: profile error", profileError);
-    }
-
-    const role = profile?.role as string | null;
-    const isAdmin = role === "admin" || role === "super_admin";
-
-    if (!isAdmin) {
-      return NextResponse.json(
-        { error: "Admin privileges required" },
-        { status: 403 }
-      );
-    }
+// Authenticate and verify admin role
+    const auth = await requireAdmin(req);
+    if (!auth.success) return auth.error;
+    const { profile } = auth.data;
+    const role = profile.role;
 
     // 3) Load profiles with service-role (bypass RLS)
     const {
