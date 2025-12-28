@@ -16,13 +16,17 @@ type Props = {
 };
 
 // Use *relative* admin paths. "" means /admin (overview)
-const NAV_ITEMS: { href: string; label: string }[] = [
+// Split into two rows for cleaner layout
+const NAV_ROW_1: { href: string; label: string }[] = [
   { href: "", label: "Overview" },
   { href: "upload", label: "Data upload" },
   { href: "upload/history", label: "Upload history" },
   { href: "data", label: "Data management" },
   { href: "settings", label: "Branding & settings" },
   { href: "users", label: "Users & roles" },
+];
+
+const NAV_ROW_2: { href: string; label: string }[] = [
   { href: "onboarding", label: "Onboarding checklist" },
   { href: "publish", label: "Publish status" },
   { href: "help", label: "Help & FAQs" },
@@ -88,6 +92,30 @@ export default function AdminShell({
     };
   }, []);
 
+  const renderNavItem = (item: { href: string; label: string }) => {
+    const hrefFull = buildFullHref(item.href);
+    const active = isActive(item.href);
+
+    const base =
+      "block text-center whitespace-nowrap px-2 py-2.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 focus-visible:ring-offset-white";
+
+    const activeClasses =
+      "bg-slate-100 border-b-2 border-slate-900 text-slate-900";
+    const inactiveClasses =
+      "border-b-2 border-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-700";
+
+    return (
+      <Link
+        key={item.href || "overview"}
+        href={hrefFull}
+        aria-current={active ? "page" : undefined}
+        className={`${base} ${active ? activeClasses : inactiveClasses}`}
+      >
+        {item.label}
+      </Link>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Global admin banner */}
@@ -148,7 +176,7 @@ export default function AdminShell({
             )}
 
             {/* Page header + actions */}
-            <header className="mb-3 flex flex-wrap items-start justify-between gap-3">
+            <header className="mb-4 flex flex-wrap items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
                   Admin
@@ -172,39 +200,21 @@ export default function AdminShell({
               )}
             </header>
 
-            {/* Admin nav tabs */}
+            {/* Admin nav tabs - two rows with CSS grid */}
             <nav
               aria-label="Admin navigation"
-              className="mb-4 border-b border-slate-200"
+              className="mb-6"
             >
-              <ul className="-mb-px flex flex-wrap gap-1 text-xs">
-                {NAV_ITEMS.map((item) => {
-                  const hrefFull = buildFullHref(item.href);
-                  const active = isActive(item.href);
-
-                  const base =
-                    "whitespace-nowrap rounded-t-lg px-3 py-2 font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 focus-visible:ring-offset-white";
-
-                  const activeClasses =
-                    "border-b-2 border-slate-900 bg-slate-50 text-slate-900";
-                  const inactiveClasses =
-                    "border-b-2 border-transparent text-slate-500 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900";
-
-                  return (
-                    <li key={item.href || "overview"}>
-                      <Link
-                        href={hrefFull}
-                        aria-current={active ? "page" : undefined}
-                        className={`${base} ${
-                          active ? activeClasses : inactiveClasses
-                        }`}
-                      >
-                        {item.label}
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
+              {/* Row 1 - 6 tabs */}
+              <div className="grid grid-cols-6 border-b border-slate-200">
+                {NAV_ROW_1.map(renderNavItem)}
+              </div>
+              {/* Row 2 - 3 tabs aligned to first 3 columns */}
+              <div className="grid grid-cols-6 border-b border-slate-200">
+                {NAV_ROW_2.map(renderNavItem)}
+                {/* Empty cells for columns 4-6 */}
+                <div className="col-span-3" />
+              </div>
             </nav>
 
             {/* Page content region */}

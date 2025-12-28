@@ -170,7 +170,7 @@ export default function TransactionsDashboardClient({
       vendorQuery &&
       vendorQuery.trim().length > 0
     ) {
-      filters.push(`Vendor contains “${vendorQuery.trim()}”`);
+      filters.push(`Vendor contains "${vendorQuery.trim()}"`);
     }
     return filters;
   }, [selectedYear, effectiveDeptFilter, vendorQuery, enableVendors]);
@@ -266,7 +266,7 @@ export default function TransactionsDashboardClient({
         sortable: true,
         sortAccessor: (row) =>
           (row.department_name || "").toLowerCase(),
-        cellClassName: "whitespace-nowrap",
+        cellClassName: "max-w-[160px]",
         cell: (row) =>
           row.department_name ? (
             <Link
@@ -289,7 +289,7 @@ export default function TransactionsDashboardClient({
         sortable: true,
         sortAccessor: (row) =>
           (row.account_name || "").toLowerCase(),
-        cellClassName: "whitespace-nowrap",
+        cellClassName: "max-w-[140px]",
         cell: (row) =>
           row.account_name ? (
             <span>{row.account_name}</span>
@@ -305,7 +305,7 @@ export default function TransactionsDashboardClient({
         sortable: true,
         sortAccessor: (row) =>
           (row.vendor || "").toLowerCase(),
-        cellClassName: "whitespace-nowrap",
+        cellClassName: "max-w-[160px]",
         cell: (row) =>
           row.vendor ? (
             <span>{row.vendor}</span>
@@ -321,10 +321,10 @@ export default function TransactionsDashboardClient({
         sortable: true,
         sortAccessor: (row) =>
           (row.description || "").toLowerCase(),
-        cellClassName: "max-w-[320px]",
+        cellClassName: "max-w-[200px] truncate",
         cell: (row) =>
           row.description ? (
-            <span>{row.description}</span>
+            <span title={row.description}>{row.description}</span>
           ) : (
             <span className="italic text-slate-600">
               Unspecified
