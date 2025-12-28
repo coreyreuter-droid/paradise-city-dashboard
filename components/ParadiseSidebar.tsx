@@ -24,6 +24,7 @@ type PortalBranding = {
   tagline: string | null;
   primary_color: string | null;
   accent_color: string | null;
+  background_color: string | null;
   logo_url: string | null;
 
   enable_actuals: boolean;
@@ -92,11 +93,12 @@ export default function ParadiseSidebar({
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [mobileOpen]);
+
   // whether dashboard nav should be visible (published OR admin)
   const [showDashboardNav, setShowDashboardNav] = useState(initialIsPublished);
   const [isAdminUser, setIsAdminUser] = useState(false);
 
-    useEffect(() => {
+  useEffect(() => {
     let cancelled = false;
 
     async function loadAdminState() {
@@ -169,13 +171,7 @@ export default function ParadiseSidebar({
     branding?.city_name || CITY_CONFIG.displayName || "Civic Transparency";
 
   const portalTagline =
-    branding?.tagline || "Public-facing Financial Transparency Portal";
-
-  const accent =
-    branding?.primary_color ||
-    branding?.accent_color ||
-    CITY_CONFIG.primaryColor ||
-    "#2563eb";
+    branding?.tagline || "Citizen Transparency";
 
   const initials = portalTitle
     .split(" ")
@@ -190,7 +186,8 @@ export default function ParadiseSidebar({
 
   const closeMobile = () => setMobileOpen(false);
 
-  const renderNavList = (variant: "desktop" | "mobile") => {
+  // Desktop nav styling (dark themed sidebar)
+  const renderDesktopNavList = () => {
     const enableActuals = branding?.enable_actuals !== false;
     const enableTransactions = branding?.enable_transactions === true;
     const enableRevenues = branding?.enable_revenues === true;
@@ -201,13 +198,7 @@ export default function ParadiseSidebar({
         {/* Dashboard group – now conditional */}
         {showDashboardNav && (
           <div>
-            <p
-              className={
-                variant === "desktop"
-                  ? "px-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500"
-                  : "px-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500"
-              }
-            >
+            <p className="px-2 text-xs font-semibold uppercase tracking-[0.18em] text-white/50">
               Dashboard
             </p>
             <ul className="mt-2 space-y-1">
@@ -221,13 +212,10 @@ export default function ParadiseSidebar({
                   return null;
                 }
 
-                if (
-                  item.path === "/transactions" &&
-                  !enableTransactions
-                ) {
+                if (item.path === "/transactions" && !enableTransactions) {
                   return null;
                 }
-              
+
                 if (item.path === "/vendors" && !enableVendors) {
                   return null;
                 }
@@ -236,7 +224,126 @@ export default function ParadiseSidebar({
                   return null;
                 }
 
-                // Budget is always on by design; Home/Overview unaffected by flags.
+                const href = cityHref(item.path);
+                const active = isActive(item.path);
+                const isDepartmentsItem = item.path === "/departments";
+
+                // Desktop dark themed styles
+                const baseClasses =
+                  "group flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[rgb(var(--accent-rgb))] focus-visible:ring-offset-[rgb(var(--surface-rgb))]";
+
+                // Active: accent left border + tinted background + semibold
+                const activeClasses =
+                  "bg-[rgb(var(--accent-rgb)/0.15)] border-l-[3px] border-[rgb(var(--accent-rgb))] text-white font-semibold";
+                const inactiveClasses =
+                  "text-white/70 hover:bg-white/10 hover:text-white border-l-[3px] border-transparent";
+
+                return (
+                  <li key={item.path}>
+                    <Link
+                      href={href}
+                      className={`${baseClasses} ${
+                        active ? activeClasses : inactiveClasses
+                      }`}
+                      aria-current={active ? "page" : undefined}
+                    >
+                      <span
+                        className={`inline-block h-1.5 w-1.5 rounded-full transition ${
+                          active
+                            ? "bg-[rgb(var(--accent-rgb))]"
+                            : "bg-white/30 group-hover:bg-white/60"
+                        }`}
+                      />
+                      <span className="truncate">{item.label}</span>
+                    </Link>
+
+                    {/* Nested department label under Departments when viewing a specific dept */}
+                    {isDepartmentsItem && currentDepartmentLabel && (
+                      <div className="mt-1 pl-6 pr-3">
+                        <div className="truncate text-xs text-white/50">
+                          <span className="mr-1 text-white/30">›</span>
+                          {currentDepartmentLabel}
+                        </div>
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
+
+        {/* Admin nav – single entry point to Admin home */}
+        {isAdminUser && (
+          <div className="mt-6">
+            <p className="px-2 text-xs font-semibold uppercase tracking-[0.18em] text-white/50">
+              Admin
+            </p>
+            <ul className="mt-2 space-y-1">
+              <li>
+                <Link
+                  href={adminHomeHref}
+                  className={`group flex items-center gap-2 rounded-lg px-3 py-2 text-xs transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[rgb(var(--accent-rgb))] focus-visible:ring-offset-[rgb(var(--surface-rgb))] ${
+                    adminActive
+                      ? "bg-[rgb(var(--accent-rgb)/0.15)] border-l-[3px] border-[rgb(var(--accent-rgb))] text-white font-semibold"
+                      : "text-white/70 hover:bg-white/10 hover:text-white border-l-[3px] border-transparent"
+                  }`}
+                  aria-current={adminActive ? "page" : undefined}
+                >
+                  <span
+                    className={`inline-block h-1 w-1 rounded-full transition ${
+                      adminActive
+                        ? "bg-[rgb(var(--accent-rgb))]"
+                        : "bg-white/30 group-hover:bg-white/60"
+                    }`}
+                  />
+                  <span className="truncate">Admin home</span>
+                </Link>
+              </li>
+            </ul>
+          </div>
+        )}
+      </>
+    );
+  };
+
+  // Mobile nav styling (keep light for simplicity)
+  const renderMobileNavList = () => {
+    const enableActuals = branding?.enable_actuals !== false;
+    const enableTransactions = branding?.enable_transactions === true;
+    const enableRevenues = branding?.enable_revenues === true;
+    const enableVendors = enableTransactions && branding?.enable_vendors === true;
+
+    return (
+      <>
+        {/* Dashboard group – now conditional */}
+        {showDashboardNav && (
+          <div>
+            <p className="px-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+              Dashboard
+            </p>
+            <ul className="mt-2 space-y-1">
+              {navItems.map((item) => {
+                // Strict feature gating on nav visibility
+                if (
+                  (item.path === "/analytics" ||
+                    item.path === "/departments") &&
+                  !enableActuals
+                ) {
+                  return null;
+                }
+
+                if (item.path === "/transactions" && !enableTransactions) {
+                  return null;
+                }
+
+                if (item.path === "/vendors" && !enableVendors) {
+                  return null;
+                }
+
+                if (item.path === "/revenues" && !enableRevenues) {
+                  return null;
+                }
 
                 const href = cityHref(item.path);
                 const active = isActive(item.path);
@@ -245,20 +352,15 @@ export default function ParadiseSidebar({
                 const baseClasses =
                   "group flex items-center gap-2 rounded-xl px-3 py-2 text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-slate-900 focus-visible:ring-offset-slate-50";
 
-                const activeClasses =
-                  variant === "desktop"
-                    ? "bg-slate-900 text-white shadow-sm"
-                    : "bg-slate-900 text-white shadow-sm";
+                const activeClasses = "bg-slate-900 text-white shadow-sm";
                 const inactiveClasses =
-                  variant === "desktop"
-                    ? "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
-                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900";
+                  "text-slate-600 hover:bg-slate-100 hover:text-slate-900";
 
                 return (
                   <li key={item.path}>
                     <Link
                       href={href}
-                      onClick={variant === "mobile" ? closeMobile : undefined}
+                      onClick={closeMobile}
                       className={`${baseClasses} ${
                         active ? activeClasses : inactiveClasses
                       }`}
@@ -291,55 +393,46 @@ export default function ParadiseSidebar({
         )}
 
         {/* Admin nav – single entry point to Admin home */}
-{isAdminUser && (
-  <div className="mt-6">
-    <p
-      className={
-        variant === "desktop"
-          ? "px-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500"
-          : "px-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500"
-      }
-    >
-      Admin
-    </p>
-    <ul className="mt-2 space-y-1">
-      <li>
-        <Link
-          href={adminHomeHref}
-          onClick={variant === "mobile" ? closeMobile : undefined}
-          className={`group flex items-center gap-2 rounded-xl px-3 py-2 text-xs transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-slate-900 focus-visible:ring-offset-slate-50 ${
-            adminActive
-              ? "bg-slate-900 text-white shadow-sm"
-              : "text-slate-500 hover:bg-slate-100 hover:text-slate-900"
-          }`}
-          aria-current={adminActive ? "page" : undefined}
-        >
-          <span
-            className={`inline-block h-1 w-1 rounded-full transition ${
-              adminActive
-                ? "bg-white"
-                : "bg-slate-300 group-hover:bg-slate-500"
-            }`}
-          />
-          <span className="truncate">Admin home</span>
-        </Link>
-      </li>
-    </ul>
-  </div>
-)}
-
-
+        {isAdminUser && (
+          <div className="mt-6">
+            <p className="px-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+              Admin
+            </p>
+            <ul className="mt-2 space-y-1">
+              <li>
+                <Link
+                  href={adminHomeHref}
+                  onClick={closeMobile}
+                  className={`group flex items-center gap-2 rounded-xl px-3 py-2 text-xs transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-slate-900 focus-visible:ring-offset-slate-50 ${
+                    adminActive
+                      ? "bg-slate-900 text-white shadow-sm"
+                      : "text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+                  }`}
+                  aria-current={adminActive ? "page" : undefined}
+                >
+                  <span
+                    className={`inline-block h-1 w-1 rounded-full transition ${
+                      adminActive
+                        ? "bg-white"
+                        : "bg-slate-300 group-hover:bg-slate-500"
+                    }`}
+                  />
+                  <span className="truncate">Admin home</span>
+                </Link>
+              </li>
+            </ul>
+          </div>
+        )}
       </>
     );
   };
 
   return (
-  <header
-    role="banner"
-    aria-label={`${portalTitle} site navigation`}
-className="flex flex-col sm:flex-none sm:w-56 lg:w-64 xl:w-72"
-  >
-
+    <header
+      role="banner"
+      aria-label={`${portalTitle} site navigation`}
+      className="flex flex-col sm:flex-none sm:w-56 lg:w-64 xl:w-72"
+    >
       {/* MOBILE HEADER + TOGGLE (sm:hidden) */}
       <div className="flex items-center justify-between border-b border-slate-200 bg-white/95 px-3 py-2 shadow-sm sm:hidden">
         <div className="flex items-center gap-2">
@@ -353,10 +446,7 @@ className="flex flex-col sm:flex-none sm:w-56 lg:w-64 xl:w-72"
               />
             </div>
           ) : (
-            <div
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-xs font-semibold text-white shadow-sm"
-              style={{ background: accent }}
-            >
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[rgb(var(--primary-rgb))] text-xs font-semibold text-white shadow-sm">
               {initials || "C"}
             </div>
           )}
@@ -370,7 +460,7 @@ className="flex flex-col sm:flex-none sm:w-56 lg:w-64 xl:w-72"
           </div>
         </div>
 
-<button
+        <button
           ref={mobileToggleRef}
           type="button"
           onClick={() => setMobileOpen((v) => !v)}
@@ -397,7 +487,7 @@ className="flex flex-col sm:flex-none sm:w-56 lg:w-64 xl:w-72"
             onClick={closeMobile}
           />
           {/* Drawer */}
-<nav
+          <nav
             ref={mobileNavRef}
             id="city-nav-panel"
             className="absolute inset-y-0 right-0 w-64 max-w-[80%] bg-white shadow-xl"
@@ -415,10 +505,7 @@ className="flex flex-col sm:flex-none sm:w-56 lg:w-64 xl:w-72"
                     />
                   </div>
                 ) : (
-                  <div
-                    className="flex h-8 w-8 items-center justify-center rounded-lg text-xs font-semibold text-white shadow-sm"
-                    style={{ background: accent }}
-                  >
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[rgb(var(--primary-rgb))] text-xs font-semibold text-white shadow-sm">
                     {initials || "C"}
                   </div>
                 )}
@@ -444,7 +531,7 @@ className="flex flex-col sm:flex-none sm:w-56 lg:w-64 xl:w-72"
 
             <div className="flex h-[calc(100%-3rem)] flex-col justify-between overflow-y-auto px-3 py-3">
               <div className="space-y-6">
-                {renderNavList("mobile")}
+                {renderMobileNavList()}
               </div>
 
               <div className="mt-6 border-t border-slate-100 pt-3">
@@ -457,12 +544,12 @@ className="flex flex-col sm:flex-none sm:w-56 lg:w-64 xl:w-72"
                       </span>
                     </p>
                   </div>
-                  <span
-                    className="inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-semibold text-white"
-                    style={{ backgroundColor: accent }}
-                  >
-                    {initials || "C"}
-                  </span>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src="/civiportal-logo.png"
+                    alt="CiviPortal"
+                    className="h-5 w-5 rounded-full object-contain"
+                  />
                 </div>
               </div>
             </div>
@@ -470,18 +557,16 @@ className="flex flex-col sm:flex-none sm:w-56 lg:w-64 xl:w-72"
         </div>
       )}
 
-      {/* DESKTOP SIDEBAR (sm+ only) */}
-<aside
-className="hidden sm:flex fixed inset-y-0 left-0 w-56 lg:w-64 xl:w-72 flex-col border-r border-slate-200 bg-white/95 px-3 py-4 shadow-sm"
-  aria-label="Primary sidebar navigation"
->
-
-
+      {/* DESKTOP SIDEBAR (sm+ only) - Dark themed */}
+      <aside
+        className="hidden sm:flex fixed inset-y-0 left-0 w-56 lg:w-64 xl:w-72 flex-col bg-[rgb(var(--surface-rgb))] px-3 py-4 shadow-lg"
+        aria-label="Primary sidebar navigation"
+      >
         {/* Brand */}
         <div className="mb-5 flex items-center gap-3 px-2">
           <div>
             {branding?.logo_url ? (
-              <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-white">
+              <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-white">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={branding.logo_url}
@@ -490,19 +575,16 @@ className="hidden sm:flex fixed inset-y-0 left-0 w-56 lg:w-64 xl:w-72 flex-col b
                 />
               </div>
             ) : (
-              <div
-                className="flex h-9 w-9 items-center justify-center rounded-xl text-sm font-semibold text-white shadow-sm"
-                style={{ background: accent }}
-              >
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[rgb(var(--primary-rgb))] text-sm font-semibold text-white shadow-sm">
                 {initials || "C"}
               </div>
             )}
           </div>
           <div className="min-w-0">
-            <div className="truncate text-sm font-semibold text-slate-900">
+            <div className="truncate text-sm font-semibold text-white">
               {portalTitle}
             </div>
-            <div className="truncate text-xs text-slate-500">
+            <div className="truncate text-xs text-white/60">
               {portalTagline}
             </div>
           </div>
@@ -510,26 +592,26 @@ className="hidden sm:flex fixed inset-y-0 left-0 w-56 lg:w-64 xl:w-72 flex-col b
 
         {/* Main nav */}
         <nav className="mt-1 flex-1 space-y-6 overflow-y-auto pb-6">
-          {renderNavList("desktop")}
+          {renderDesktopNavList()}
         </nav>
 
         {/* Footer */}
-        <div className="mt-auto border-t border-slate-100 pt-3">
-          <div className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2">
+        <div className="mt-auto border-t border-white/10 pt-3">
+          <div className="flex items-center justify-between rounded-lg bg-white/5 px-3 py-2">
             <div>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-white/50">
                 Powered by{" "}
-                <span className="font-semibold text-slate-800">
+                <span className="font-semibold text-white/70">
                   CiviPortal
                 </span>
               </p>
             </div>
-            <span
-              className="inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-semibold text-white"
-              style={{ backgroundColor: accent }}
-            >
-              {initials || "C"}
-            </span>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/civiportal-logo.png"
+              alt="CiviPortal"
+              className="h-5 w-5 rounded-full object-contain"
+            />
           </div>
         </div>
       </aside>

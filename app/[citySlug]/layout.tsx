@@ -5,12 +5,14 @@ import ParadiseSidebar from "@/components/ParadiseSidebar";
 import { CITY_CONFIG } from "@/lib/cityConfig";
 import { supabaseAdmin } from "@/lib/supabaseService";
 import CityShell from "@/components/City/CityShell";
+import { generateThemeVars } from "@/lib/theme";
 
 type PortalSettingsRow = {
   city_name: string | null;
   tagline: string | null;
   primary_color: string | null;
   accent_color: string | null;
+  background_color: string | null;
   logo_url: string | null;
 
   is_published: boolean;
@@ -25,7 +27,7 @@ async function getPortalSettings(): Promise<PortalSettingsRow | null> {
     const { data, error } = await supabaseAdmin
       .from("portal_settings")
       .select(
-        "city_name, tagline, primary_color, accent_color, logo_url, is_published, enable_actuals, enable_transactions, enable_vendors, enable_revenues"
+        "city_name, tagline, primary_color, accent_color, background_color, logo_url, is_published, enable_actuals, enable_transactions, enable_vendors, enable_revenues"
       )
       .eq("id", 1)
       .maybeSingle();
@@ -70,6 +72,13 @@ export default async function CityLayout({
 }) {
   const settings = await getPortalSettings();
 
+  // Generate CSS custom properties for theme colors
+  const themeVars = generateThemeVars(
+    settings?.primary_color ?? null,
+    settings?.accent_color ?? null,
+    settings?.background_color ?? null
+  );
+
   const accent =
     settings?.accent_color ??
     settings?.primary_color ??
@@ -85,12 +94,13 @@ export default async function CityLayout({
     (settings?.tagline && settings.tagline.trim()) ||
     CITY_CONFIG.tagline;
 
-      const initialBranding = settings
+  const initialBranding = settings
     ? {
         city_name: settings.city_name ?? null,
         tagline: settings.tagline ?? null,
         primary_color: settings.primary_color ?? null,
         accent_color: settings.accent_color ?? null,
+        background_color: settings.background_color ?? null,
         logo_url: settings.logo_url ?? null,
         enable_actuals: settings.enable_actuals,
         enable_transactions: settings.enable_transactions,
@@ -102,7 +112,10 @@ export default async function CityLayout({
   const initialIsPublished = settings ? settings.is_published : true;
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col sm:flex-row overflow-x-hidden">
+    <div
+      className="min-h-screen bg-slate-50 flex flex-col sm:flex-row overflow-x-hidden"
+      style={themeVars as React.CSSProperties}
+    >
       {/* Accessible skip link – first focusable element */}
       <a
         href="#main-content"
@@ -116,7 +129,6 @@ export default async function CityLayout({
         initialBranding={initialBranding}
         initialIsPublished={initialIsPublished}
       />
-
 
       {/* Single <main> landmark for all city pages */}
       <main

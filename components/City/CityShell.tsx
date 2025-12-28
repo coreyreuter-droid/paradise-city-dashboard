@@ -37,22 +37,22 @@ export default function CityShell({
     <>
       {/* Shared top hero/banner for all city dashboard pages */}
       <header
-        className="relative w-full border-b border-slate-200 bg-slate-50 text-slate-900"
+        className="relative w-full border-b border-slate-200 bg-slate-50"
         aria-label={`${displayName} portal header`}
         style={{
           borderTopColor: accent,
           borderTopWidth: "3px",
         }}
       >
-        {/* Decorative, very subtle accent gradient */}
+        {/* Decorative accent gradient - enhanced visibility */}
         <div
-          className="pointer-events-none absolute inset-0 opacity-25"
+          className="pointer-events-none absolute inset-0 opacity-[0.35]"
           aria-hidden={true}
         >
           <div
             className="h-full w-full"
             style={{
-              backgroundImage: `radial-gradient(circle at 0 0, ${accent} 0, transparent 55%), radial-gradient(circle at 100% 0, ${accent} 0, transparent 55%)`,
+              backgroundImage: `radial-gradient(circle at 0 0, ${accent} 0, transparent 50%), radial-gradient(circle at 100% 0, ${accent} 0, transparent 50%)`,
             }}
           />
         </div>
@@ -61,7 +61,8 @@ export default function CityShell({
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
             Financial transparency dashboards
           </p>
-          <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl lg:text-[1.9rem]">
+          {/* Main heading uses primary color */}
+          <h1 className="mt-1 text-2xl font-semibold tracking-tight text-[rgb(var(--primary-rgb))] sm:text-3xl lg:text-[1.9rem]">
             {displayName} Financial Transparency
           </h1>
           {tagline && (

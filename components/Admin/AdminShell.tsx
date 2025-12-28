@@ -97,10 +97,11 @@ export default function AdminShell({
     const active = isActive(item.href);
 
     const base =
-      "block text-center whitespace-nowrap px-2 py-2.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 focus-visible:ring-offset-white";
+      "block text-center whitespace-nowrap px-2 py-2.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent-rgb))] focus-visible:ring-offset-2 focus-visible:ring-offset-white";
 
+    // Active: accent underline + subtle accent tint + primary text
     const activeClasses =
-      "bg-slate-100 border-b-2 border-slate-900 text-slate-900";
+      "bg-[rgb(var(--accent-rgb)/0.08)] border-b-2 border-[rgb(var(--accent-rgb))] text-[rgb(var(--primary-rgb))] font-semibold";
     const inactiveClasses =
       "border-b-2 border-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-700";
 
@@ -128,7 +129,7 @@ export default function AdminShell({
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
               {CITY_CONFIG.displayName}
             </p>
-            <h1 className="truncate text-base font-semibold text-slate-900">
+            <h1 className="truncate text-base font-semibold text-[rgb(var(--primary-rgb))]">
               Admin portal
             </h1>
             <p className="mt-0.5 line-clamp-1 text-xs text-slate-500">
@@ -139,7 +140,7 @@ export default function AdminShell({
             <Link
               href={cityHref("/")}
               aria-label="View public transparency site"
-              className="inline-flex items-center rounded-full border border-slate-200 px-3 py-2 font-medium text-slate-700 shadow-sm hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+              className="inline-flex items-center rounded-full border border-slate-200 px-3 py-2 font-medium text-slate-700 shadow-sm hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent-rgb))] focus-visible:ring-offset-2 focus-visible:ring-offset-white"
             >
               View public site
             </Link>
@@ -183,7 +184,7 @@ export default function AdminShell({
                 </p>
                 <h2
                   id="admin-page-title"
-                  className="mt-1 truncate text-sm font-semibold text-slate-900 sm:text-base"
+                  className="mt-1 truncate text-sm font-semibold text-[rgb(var(--primary-rgb))] sm:text-base"
                 >
                   {title}
                 </h2>

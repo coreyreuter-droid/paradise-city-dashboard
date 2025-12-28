@@ -311,14 +311,6 @@ type QuickLink = {
 export default function LandingClient({ portalSettings }: Props) {
   const cityName = portalSettings?.city_name || CITY_CONFIG.displayName || "Your City";
 
-  const cityInitials = cityName
-    .split(" ")
-    .filter(Boolean)
-    .map((word) => word[0])
-    .join("")
-    .slice(0, 3)
-    .toUpperCase();
-
   const tagline =
     portalSettings?.tagline || CITY_CONFIG.tagline || "Financial Transparency Portal";
 
@@ -548,15 +540,9 @@ export default function LandingClient({ portalSettings }: Props) {
         <div className="relative mx-auto max-w-6xl px-4 py-10 sm:px-6 sm:py-14 lg:px-10">
           <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 text-sm font-semibold text-white">
-                  {cityInitials || "YC"}
-                </div>
-
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-white/90">{cityName}</p>
-                  <p className="text-sm text-white/70">{tagline}</p>
-                </div>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-white/90">{cityName}</p>
+                <p className="text-sm text-white/70">{tagline}</p>
               </div>
 
               {sealUrl && (

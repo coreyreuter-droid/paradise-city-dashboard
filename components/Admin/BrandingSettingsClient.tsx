@@ -8,6 +8,7 @@ import {
   ChangeEvent,
 } from "react";
 import { supabase } from "@/lib/supabase";
+import { validateBrandColors, type ColorValidationResult } from "@/lib/theme";
 
 type PortalSettings = {
   id: number;
@@ -204,6 +205,9 @@ export default function BrandingSettingsClient() {
     null,
   ]);
 
+  // Color validation warnings
+  const [colorWarnings, setColorWarnings] = useState<string[]>([]);
+
   useEffect(() => {
     let cancelled = false;
 
@@ -353,6 +357,23 @@ export default function BrandingSettingsClient() {
     }
   }, [saveState]);
 
+  // Validate colors when they change
+  useEffect(() => {
+    if (!settings) return;
+    
+    const result = validateBrandColors(
+      settings.primary_color,
+      settings.accent_color,
+      settings.background_color
+    );
+    
+    setColorWarnings(result.warnings);
+  }, [
+    settings?.primary_color,
+    settings?.accent_color,
+    settings?.background_color,
+  ]);
+
   function handleFieldChange<K extends keyof PortalSettings>(
     key: K,
     value: PortalSettings[K]
@@ -388,7 +409,7 @@ export default function BrandingSettingsClient() {
     e: ChangeEvent<HTMLInputElement>
   ) {
     const file = e.target.files?.[0] ?? null;
-    setProjectFiles((prev) => {
+    setProjectFiles((prev: (File | null)[]) => {
       const next = [...prev];
       next[index] = file;
       return next;
@@ -472,14 +493,22 @@ export default function BrandingSettingsClient() {
         projectImageUrls[i] = url;
       }
 
+      // Validate and auto-correct colors for accessibility
+      const colorValidation = validateBrandColors(
+        settings.primary_color,
+        settings.accent_color,
+        settings.background_color
+      );
+      const { correctedColors } = colorValidation;
+
       const { data, error } = await supabase
         .from("portal_settings")
         .update({
           city_name: settings.city_name,
           tagline: settings.tagline,
-          primary_color: settings.primary_color,
-          accent_color: settings.accent_color,
-          background_color: settings.background_color,
+          primary_color: correctedColors.primary,
+          accent_color: correctedColors.accent,
+          background_color: correctedColors.surface,
           logo_url: logoUrl,
           hero_image_url: heroUrl,
           hero_message: settings.hero_message,
@@ -1543,6 +1572,24 @@ export default function BrandingSettingsClient() {
               </p>
             </div>
           </div>
+
+          {/* Color validation warnings */}
+          {colorWarnings.length > 0 && (
+            <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2">
+              <p className="text-xs font-semibold text-amber-800">
+                Color accessibility warnings:
+              </p>
+              <ul className="mt-1 list-inside list-disc space-y-0.5 text-xs text-amber-700">
+                {colorWarnings.map((warning: string, index: number) => (
+                  <li key={index}>{warning}</li>
+                ))}
+              </ul>
+              <p className="mt-2 text-[11px] text-amber-600">
+                These warnings help ensure your portal meets accessibility standards.
+                Colors that don&apos;t meet contrast requirements may be auto-corrected when you save.
+              </p>
+            </div>
+          )}
 
           {/* Logo URL + upload */}
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
