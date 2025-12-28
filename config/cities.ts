@@ -49,11 +49,11 @@ export const CITY_REGISTRY: CityDefinition[] = [
 // ---------- ACTIVE CITY SELECTION ----------
 
 export function getActiveCity(): CityDefinition {
-  const slug = process.env.NEXT_PUBLIC_CITY_SLUG || "paradise";
+const slug = process.env.NEXT_PUBLIC_CITY_SLUG || "portal";
 
-  const def =
-    CITY_REGISTRY.find((c) => c.slug === slug) ||
-    CITY_REGISTRY.find((c) => c.slug === "paradise");
+const def =
+  CITY_REGISTRY.find((c) => c.slug === slug) ||
+  CITY_REGISTRY.find((c) => c.slug === "portal");
 
   if (!def) {
     throw new Error(
