@@ -28,10 +28,10 @@ export type CityDefinition = {
 
 export const CITY_REGISTRY: CityDefinition[] = [
   {
-    slug: "paradise",
-    displayName: "Paradise City",
-    shortName: "Paradise",
-    initials: "PC",
+    slug: "portal",
+    displayName: "Government Portal",
+    shortName: "Gov Portal",
+    initials: "",
     defaultTagline: "Public-facing financial transparency for your community.",
     defaultTheme: {
       primaryColor: "#0f766e",
