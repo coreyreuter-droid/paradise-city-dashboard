@@ -51,7 +51,7 @@ export default function FiscalYearSelect({
     router.push(`${pathname}?${params.toString()}`);
   };
 
-  const showPills = sortedYears.length > 0 && sortedYears.length <= 4;
+  const showPills = sortedYears.length > 0 && sortedYears.length <= 6;
 
   if (showPills) {
     return (

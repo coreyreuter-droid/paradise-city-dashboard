@@ -353,7 +353,7 @@ export default function TransactionsDashboardClient({
     selectedYear ?? (years.length > 0 ? years[0] : undefined);
 
   return (
-    <div id="main-content" className="min-h-screen bg-slate-50">
+    <div id="main-content" className="min-h-screen">
       <div className="mx-auto max-w-6xl px-4 py-8">
         <SectionHeader
           eyebrow="Transactions"
