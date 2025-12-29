@@ -87,10 +87,10 @@ export default function SankeyChart({ revenues, departments, height = 400 }: Pro
       topRevenues.push(["Other Sources", otherRevenueTotal]);
     }
 
-    // Sort departments and take top 6, combine rest into "Other"
+    // Sort departments and take top 8, combine rest into "Other"
     const deptSorted = [...departments].sort((a, b) => b.actuals - a.actuals);
     const topDepts = deptSorted.slice(0, 8);
-    const otherDeptTotal = deptSorted.slice(6).reduce((sum, d) => sum + d.actuals, 0);
+    const otherDeptTotal = deptSorted.slice(8).reduce((sum, d) => sum + d.actuals, 0);
 
     const totalRevenue = topRevenues.reduce((sum, [, v]) => sum + v, 0);
     const totalSpending = topDepts.reduce((sum, d) => sum + d.actuals, 0) + otherDeptTotal;
@@ -109,10 +109,10 @@ export default function SankeyChart({ revenues, departments, height = 400 }: Pro
       });
     });
 
-    // Center node (Government Fund)
+    // Center node (City Fund)
     nodes.push({
       id: "center",
-      label: "Government Fund",
+      label: "City Fund",
       value: Math.max(totalRevenue, totalSpending),
       color: COLORS.center,
       column: 1,
@@ -309,7 +309,7 @@ export default function SankeyChart({ revenues, departments, height = 400 }: Pro
       {/* Column labels */}
       <div className="mb-3 flex justify-between text-xs font-semibold uppercase tracking-wide text-slate-500">
         <span>Revenue Sources</span>
-        <span>Government Fund</span>
+        <span>City Fund</span>
         <span>Departments</span>
       </div>
 
@@ -317,7 +317,7 @@ export default function SankeyChart({ revenues, departments, height = 400 }: Pro
         className="relative w-full" 
         style={{ height }}
         role="img"
-        aria-label={`Sankey diagram showing money flow: ${formatCompact(totalRevenue)} in revenue flowing through our government fund to departments spending ${formatCompact(totalSpending)}`}
+        aria-label={`Sankey diagram showing money flow: ${formatCompact(totalRevenue)} in revenue flowing through city fund to departments spending ${formatCompact(totalSpending)}`}
       >
         <svg 
           width="100%" 
