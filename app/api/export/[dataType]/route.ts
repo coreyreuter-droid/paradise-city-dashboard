@@ -85,7 +85,7 @@ export async function GET(req: NextRequest, context: Context) {
     return NextResponse.json({ error: `Invalid data type: ${dataType}` }, { status: 400 });
   }
 
-  // Rate limit: 10 requests per hour per IP
+// Rate limit: 20 requests per hour per IP
   const ip =
     req.headers.get("x-forwarded-for")?.split(",")[0] ??
     req.headers.get("x-real-ip") ??
@@ -97,9 +97,10 @@ export async function GET(req: NextRequest, context: Context) {
     .digest("hex")
     .slice(0, 16);
 
+  // Hourly limit: 20 per hour
   const { allowed, remaining, resetInSeconds } = await rateLimitAsync(
     `export:${ipHash}`,
-    10,
+    20,
     60 * 60 * 1000
   );
 
@@ -114,6 +115,30 @@ export async function GET(req: NextRequest, context: Context) {
         status: 429,
         headers: {
           "Retry-After": String(resetInSeconds),
+          "X-RateLimit-Remaining": "0",
+        },
+      }
+    );
+  }
+
+  // Daily limit: 50 per day
+  const { allowed: dailyAllowed, resetInSeconds: dailyReset } = await rateLimitAsync(
+    `export-daily:${ipHash}`,
+    50,
+    24 * 60 * 60 * 1000
+  );
+
+  if (!dailyAllowed) {
+    return NextResponse.json(
+      {
+        error: `Daily export limit reached. Try again in ${Math.ceil(
+          dailyReset / 3600
+        )} hours.`,
+      },
+      {
+        status: 429,
+        headers: {
+          "Retry-After": String(dailyReset),
           "X-RateLimit-Remaining": "0",
         },
       }
