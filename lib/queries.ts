@@ -107,26 +107,31 @@ export async function getRecentTransactionsForYear(
 ========================= */
 
 export async function getPortalFiscalYears(): Promise<number[]> {
-  // Source-of-truth years across all published datasets.
-  // Do NOT use rollup tables here; rollups are caches and can drift.
-  const [b, a, t, r] = await Promise.all([
-    supabase.from("budgets").select("fiscal_year"),
-    supabase.from("actuals").select("fiscal_year"),
-    supabase.from("transactions").select("fiscal_year"),
-    supabase.from("revenues").select("fiscal_year"),
+  // IMPORTANT: Portal-wide years should come from summary/rollup sources (fast + consistent for the UI).
+  const [budgetYears, txYears, revenueYears] = await Promise.all([
+    supabase.from("budget_actuals_year_totals").select("fiscal_year"),
+    supabase.from("transaction_year_totals").select("fiscal_year"),
+    supabase.from("revenue_year_totals").select("fiscal_year"),
   ]);
 
   const years = new Set<number>();
 
-  if (!b.error) (b.data ?? []).forEach((row: any) => years.add(Number(row?.fiscal_year)));
-  if (!a.error) (a.data ?? []).forEach((row: any) => years.add(Number(row?.fiscal_year)));
-  if (!t.error) (t.data ?? []).forEach((row: any) => years.add(Number(row?.fiscal_year)));
-  if (!r.error) (r.data ?? []).forEach((row: any) => years.add(Number(row?.fiscal_year)));
+  if (!budgetYears.error)
+    (budgetYears.data ?? []).forEach((r: any) =>
+      years.add(Number(r?.fiscal_year))
+    );
+  if (!txYears.error)
+    (txYears.data ?? []).forEach((r: any) => years.add(Number(r?.fiscal_year)));
+  if (!revenueYears.error)
+    (revenueYears.data ?? []).forEach((r: any) =>
+      years.add(Number(r?.fiscal_year))
+    );
 
   return Array.from(years)
     .filter((y) => Number.isFinite(y))
-    .sort((x, y) => y - x);
+    .sort((a, b) => b - a);
 }
+
 
 
 
@@ -355,10 +360,8 @@ export async function getAvailableFiscalYears(): Promise<number[]> {
  * Used by /transactions and other filters.
  */
 export async function getTransactionYears(): Promise<number[]> {
-  // IMPORTANT: year selectors must be derived from the source table, not rollup tables.
-  // Rollups are caches and can drift if not rebuilt; the source table is the truth.
   const { data, error } = await supabase
-    .from("transactions")
+    .from("transaction_year_department")
     .select("fiscal_year")
     .order("fiscal_year", { ascending: false });
 
@@ -380,6 +383,7 @@ export async function getTransactionYears(): Promise<number[]> {
 
   return out;
 }
+
 
 
 
@@ -710,9 +714,8 @@ export async function getTransactionsForDepartment(
  * Legacy: distinct fiscal years present in revenues.
  */
 export async function getRevenueYears(): Promise<number[]> {
-  // Same logic as transactions: derive years from the source table.
   const { data, error } = await supabase
-    .from("revenues")
+    .from("revenue_year_totals")
     .select("fiscal_year")
     .order("fiscal_year", { ascending: false });
 
@@ -723,6 +726,7 @@ export async function getRevenueYears(): Promise<number[]> {
 
   const seen = new Set<number>();
   const out: number[] = [];
+
   (data ?? []).forEach((r: any) => {
     const year = Number(r?.fiscal_year);
     if (Number.isFinite(year) && !seen.has(year)) {
@@ -733,6 +737,7 @@ export async function getRevenueYears(): Promise<number[]> {
 
   return out;
 }
+
 
 
 export async function getRevenueYearTotals(): Promise<
