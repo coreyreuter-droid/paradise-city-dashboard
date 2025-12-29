@@ -25,6 +25,10 @@ export type DataTableProps<T> = {
    * Hide pagination controls when the parent is doing server-side pagination.
    */
   showPagination?: boolean;
+  /**
+   * Accessible caption for the table (visible to screen readers).
+   */
+  caption?: string;
 };
 
 export default function DataTable<T>({
@@ -35,6 +39,7 @@ export default function DataTable<T>({
   initialSortKey,
   initialSortDirection = "asc",
   showPagination = true,
+  caption,
 }: DataTableProps<T>) {
   const [sortKey, setSortKey] = useState<string | null>(
     initialSortKey ?? null
@@ -152,10 +157,17 @@ export default function DataTable<T>({
 
   return (
     <>
-      <div className="overflow-x-auto">
-        <div className="max-h-[70vh] overflow-y-auto">
-          <table className="min-w-full border-collapse text-left text-sm">
-            <thead className="sticky top-0 z-10 border-b border-slate-200 bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-600">
+      {/* Screen reader announcement for table state changes */}
+      <div aria-live="polite" aria-atomic="true" className="sr-only">
+        {`Showing ${paged.length} of ${total} records${sortKey ? `, sorted by ${sortKey} ${sortDirection === 'asc' ? 'ascending' : 'descending'}` : ''}`}
+      </div>
+
+      <div className="relative">
+        <div className="overflow-x-auto">
+          <div className="max-h-[70vh] overflow-y-auto">
+            <table className="min-w-full border-collapse text-left text-sm">
+              {caption && <caption className="sr-only">{caption}</caption>}
+              <thead className="sticky top-0 z-10 border-b border-slate-200 bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-600">
               <tr>
                 {columns.map((col) => {
                   const isSorted = sortKey === col.key;
@@ -176,6 +188,9 @@ export default function DataTable<T>({
                     .filter(Boolean)
                     .join(" ");
 
+                  // Check if header should be right-aligned
+                  const isRightAligned = col.headerClassName?.includes("text-right");
+
                   return (
                     <th
                       key={col.key}
@@ -189,7 +204,7 @@ export default function DataTable<T>({
                           onClick={() =>
                             handleHeaderClick(col.key, col)
                           }
-                          className="inline-flex items-center gap-1 text-left"
+                          className={`inline-flex items-center gap-1 ${isRightAligned ? "ml-auto" : ""}`}
                         >
                           <span>{col.header}</span>
                           {renderSortIcon(col.key)}
@@ -244,6 +259,12 @@ export default function DataTable<T>({
           </table>
         </div>
       </div>
+      {/* Mobile scroll indicator - shows fade on right edge */}
+      <div 
+        className="pointer-events-none absolute right-0 top-0 h-full w-6 bg-gradient-to-l from-white to-transparent sm:hidden" 
+        aria-hidden="true"
+      />
+    </div>
 
       {showPagination && total > 0 && (
         <div className="mt-3 flex items-center justify-between text-xs text-slate-600">

@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseService";
 import { requireAdmin } from "@/lib/auth";
+import { requireCsrf } from "@/lib/csrf";
 
 // NOTE: You must have a public Storage bucket called "branding" in Supabase.
 
@@ -10,6 +11,9 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
 export async function POST(req: NextRequest) {
   try {
+    // Verify CSRF token
+    const csrfError = await requireCsrf(req);
+    if (csrfError) return csrfError;
 
     // Authenticate and verify admin role
     const auth = await requireAdmin(req);

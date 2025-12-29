@@ -181,7 +181,7 @@ export default function TransactionsDashboardClient({
         cell: (row) =>
           row.department_name ? (
             <Link
-              className="text-slate-800 hover:underline"
+              className="text-slate-800 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-1 rounded"
               href={`${cityHref(
                 `/departments/${encodeURIComponent(row.department_name)}`
               )}${selectedYear ? `?year=${selectedYear}` : ""}`}

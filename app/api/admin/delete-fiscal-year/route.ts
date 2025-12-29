@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseService";
 import { requireAdmin } from "@/lib/auth";
+import { requireCsrf } from "@/lib/csrf";
 
 const ALLOWED_TABLES = new Set(["budgets", "actuals", "transactions", "revenues"]);
 
@@ -21,7 +22,11 @@ async function safeDeleteSummaryYear(summaryTable: string, fiscalYear: number) {
 
 export async function POST(req: NextRequest) {
   try {
-// Authenticate and verify admin role
+    // Verify CSRF token
+    const csrfError = await requireCsrf(req);
+    if (csrfError) return csrfError;
+
+    // Authenticate and verify admin role
     const auth = await requireAdmin(req);
     if (!auth.success) return auth.error;
 

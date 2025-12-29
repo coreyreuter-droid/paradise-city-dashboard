@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import React from "react";
 import "./globals.css";
 import { Inter } from "next/font/google";
+import { CsrfProvider } from "@/components/CsrfProvider";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -23,8 +24,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.variable} antialiased`}>
-        {/* Skip link for keyboard and screen reader users */}
-        {children}
+        <CsrfProvider>
+          {children}
+        </CsrfProvider>
       </body>
     </html>
   );

@@ -6,6 +6,7 @@ import AdminGuard from "@/components/Auth/AdminGuard";
 import AdminShell from "@/components/Admin/AdminShell";
 import { supabase } from "@/lib/supabase";
 import { cityHref } from "@/lib/cityRouting";
+import { csrfFetch } from "@/components/CsrfProvider";
 
 type TableKey = "budgets" | "actuals" | "transactions" | "revenues";
 
@@ -128,7 +129,7 @@ function DeleteFYButton({
         return;
       }
 
-      const resp = await fetch("/api/admin/delete-fiscal-year", {
+      const resp = await csrfFetch("/api/admin/delete-fiscal-year", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

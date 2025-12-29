@@ -423,9 +423,10 @@ export default function RevenuesDashboardClient({
       header: "Total revenue",
       sortable: true,
       sortAccessor: (row) => row.total,
-      cellClassName: "whitespace-nowrap text-right",
+      headerClassName: "text-right",
+      cellClassName: "whitespace-nowrap text-right font-mono",
       cell: (row) => (
-        <span className="font-mono text-sm">
+        <span className="text-sm">
           {formatCurrency(row.total)}
         </span>
       ),
@@ -435,6 +436,7 @@ export default function RevenuesDashboardClient({
       header: "Records",
       sortable: true,
       sortAccessor: (row) => row.count,
+      headerClassName: "text-right",
       cellClassName: "whitespace-nowrap text-right",
       cell: (row) => (
         <span className="text-sm">
@@ -447,9 +449,10 @@ export default function RevenuesDashboardClient({
       header: "Avg per record",
       sortable: true,
       sortAccessor: (row) => row.avg,
-      cellClassName: "whitespace-nowrap text-right",
+      headerClassName: "text-right",
+      cellClassName: "whitespace-nowrap text-right font-mono",
       cell: (row) => (
-        <span className="font-mono text-sm">
+        <span className="text-sm">
           {formatCurrency(row.avg)}
         </span>
       ),

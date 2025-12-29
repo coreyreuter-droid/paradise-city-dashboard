@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState, useRef } from "react";
 import AdminGuard from "@/components/Auth/AdminGuard";
 import AdminShell from "@/components/Admin/AdminShell";
 import { supabase } from "@/lib/supabase";
+import { csrfFetch } from "@/components/CsrfProvider";
 
 type AdminUser = {
   id: string;
@@ -233,7 +234,7 @@ export default function AdminUsersPage() {
     setActionError(null);
 
     try {
-      const res = await fetch("/api/admin/users/invite", {
+      const res = await csrfFetch("/api/admin/users/invite", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -278,7 +279,7 @@ export default function AdminUsersPage() {
     setActionMessage(null);
 
     try {
-      const res = await fetch("/api/admin/users/set-role", {
+      const res = await csrfFetch("/api/admin/users/set-role", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -317,7 +318,7 @@ export default function AdminUsersPage() {
     setActionMessage(null);
 
     try {
-      const res = await fetch("/api/admin/users/remove-admin", {
+      const res = await csrfFetch("/api/admin/users/remove-admin", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -363,7 +364,7 @@ export default function AdminUsersPage() {
     setActionMessage(null);
 
     try {
-      const res = await fetch("/api/admin/users/delete", {
+      const res = await csrfFetch("/api/admin/users/delete", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

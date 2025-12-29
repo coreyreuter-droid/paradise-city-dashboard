@@ -1,6 +1,7 @@
 // app/api/export/[dataType]/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { createHash } from "crypto";
 import { rateLimitAsync } from "@/lib/rateLimit";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -90,8 +91,14 @@ export async function GET(req: NextRequest, context: Context) {
     req.headers.get("x-real-ip") ??
     "unknown";
 
+  // Hash IP for privacy (GDPR/CCPA compliance)
+  const ipHash = createHash("sha256")
+    .update(ip + (process.env.RATE_LIMIT_SALT || "civiportal"))
+    .digest("hex")
+    .slice(0, 16);
+
   const { allowed, remaining, resetInSeconds } = await rateLimitAsync(
-    `export:${ip}`,
+    `export:${ipHash}`,
     10,
     60 * 60 * 1000
   );

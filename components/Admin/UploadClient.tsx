@@ -5,6 +5,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { cityHref } from "@/lib/cityRouting";
 import { parseCsv } from "@/lib/csvParser";
+import { csrfFetch } from "@/components/CsrfProvider";
 
 const TABLE_SCHEMAS: Record<
   string,
@@ -780,7 +781,7 @@ export default function UploadClient() {
         return;
       }
 
-      const resp = await fetch("/api/admin/upload", {
+      const resp = await csrfFetch("/api/admin/upload", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

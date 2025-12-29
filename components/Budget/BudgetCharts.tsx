@@ -40,8 +40,8 @@ const formatAxisCurrency = (v: number) => {
 };
 
 const shortenLabel = (name: string) => {
-  if (name.length <= 20) return name;
-  return name.slice(0, 17) + "…";
+  if (name.length <= 14) return name;
+  return name.slice(0, 11) + "…";
 };
 
 export default function BudgetCharts({
@@ -190,8 +190,8 @@ export default function BudgetCharts({
             <YAxis
               type="category"
               dataKey="name"
-              width={120}
-              tick={{ fontSize: 11 }}
+              width={100}
+              tick={{ fontSize: 10 }}
               tickFormatter={(name: string) =>
                 shortenLabel(name)
               }

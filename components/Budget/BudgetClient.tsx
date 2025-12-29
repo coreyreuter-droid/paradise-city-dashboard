@@ -80,7 +80,6 @@ export default function BudgetClient({ years, deptBudgetActuals }: Props) {
       {
         key: "department_name",
         header: "Department",
-        align: "left",
         cell: (row: DepartmentSummary) => {
           const name = row.department_name || "Unspecified";
           return (
@@ -98,7 +97,8 @@ export default function BudgetClient({ years, deptBudgetActuals }: Props) {
       {
         key: "budget",
         header: "Budget",
-        align: "right",
+        headerClassName: "text-right",
+        cellClassName: "text-right font-mono",
         cell: (row: DepartmentSummary) => (
           <span>{formatCurrency(row.budget)}</span>
         ),
@@ -106,7 +106,8 @@ export default function BudgetClient({ years, deptBudgetActuals }: Props) {
       {
         key: "actuals",
         header: "Actuals",
-        align: "right",
+        headerClassName: "text-right",
+        cellClassName: "text-right font-mono",
         cell: (row: DepartmentSummary) => (
           <span>{formatCurrency(row.actuals)}</span>
         ),
@@ -114,7 +115,8 @@ export default function BudgetClient({ years, deptBudgetActuals }: Props) {
       {
         key: "percentSpent",
         header: "% spent",
-        align: "right",
+        headerClassName: "text-right",
+        cellClassName: "text-right",
         cell: (row: DepartmentSummary) => (
           <span>{formatPercent(row.percentSpent, 1)}</span>
         ),
@@ -122,7 +124,8 @@ export default function BudgetClient({ years, deptBudgetActuals }: Props) {
       {
         key: "variance",
         header: "Variance",
-        align: "right",
+        headerClassName: "text-right",
+        cellClassName: "text-right font-mono",
         cell: (row: DepartmentSummary) => {
           const v = row.budget - row.actuals;
           const color =

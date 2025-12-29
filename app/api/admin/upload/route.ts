@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseService";
 import { requireAdmin } from "@/lib/auth";
+import { requireCsrf } from "@/lib/csrf";
 
 type Mode = "append" | "replace_year" | "replace_table";
 
@@ -23,6 +24,32 @@ type FiscalConfig = {
   startMonth: number; // 1–12
   startDay: number; // 1–31
 };
+
+/**
+ * Sanitize a record to prevent XSS attacks.
+ * Strips script tags and escapes dangerous HTML characters from string values.
+ */
+function sanitizeRecord(record: Record<string, any>): Record<string, any> {
+  const sanitized: Record<string, any> = {};
+  for (const [key, value] of Object.entries(record)) {
+    if (typeof value === 'string') {
+      // Remove script tags and event handlers
+      let safe = value
+        .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+        .replace(/on\w+\s*=/gi, '')
+        .replace(/javascript:/gi, '');
+      // Escape HTML entities for display safety
+      safe = safe
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+      sanitized[key] = safe;
+    } else {
+      sanitized[key] = value;
+    }
+  }
+  return sanitized;
+}
 
 /**
  * Load fiscal-year start config from portal_settings.
@@ -288,6 +315,10 @@ async function recomputeBudgetActualsSummaries(years: number[]) {
 
 export async function POST(req: NextRequest) {
   try {
+    // 0) Verify CSRF token
+    const csrfError = await requireCsrf(req);
+    if (csrfError) return csrfError;
+
     // 1) Authenticate and verify admin role
     const auth = await requireAdmin(req);
     if (!auth.success) return auth.error;
@@ -345,9 +376,11 @@ export async function POST(req: NextRequest) {
     // 4) Load fiscal-year config and normalize fiscal_year on records
     const fiscalConfig = await getFiscalConfig();
 
-    const normalizedRecords = body.records.map((rec) =>
-      normalizeFiscalYearForRecord(rec, table, fiscalConfig)
-    );
+    // Sanitize and normalize records
+    const normalizedRecords = body.records.map((rec) => {
+      const sanitized = sanitizeRecord(rec);
+      return normalizeFiscalYearForRecord(sanitized, table, fiscalConfig);
+    });
 
     // Compute years present in data *after* FY normalization
     const yearsInData = Array.from(
@@ -653,22 +686,6 @@ if (table === "revenues") {
         }
       }
     }
-
-
-    if (table === "transactions" && affectedYears.length > 0) {
-      for (const fy of affectedYears) {
-        const { error: e } = await supabaseAdmin.rpc(
-          "refresh_transaction_rollups_for_year",
-          { _fy: fy }
-        );
-        if (e) {
-          console.warn(
-            `Non-fatal: failed to refresh transaction rollups for FY${fy}: ${e.message}`
-          );
-        }
-      }
-    }
-
 
     return NextResponse.json({
       ok: true,

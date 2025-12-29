@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseService";
 import { requireSuperAdmin } from "@/lib/auth";
+import { requireCsrf } from "@/lib/csrf";
 
 // Valid roles that can be assigned
 const VALID_ROLES = ["viewer", "admin", "super_admin"] as const;
@@ -9,6 +10,9 @@ type Role = (typeof VALID_ROLES)[number];
 
 export async function POST(req: NextRequest) {
   try {
+    // Verify CSRF token
+    const csrfError = await requireCsrf(req);
+    if (csrfError) return csrfError;
 
     // 2) Parse request body - accept either "role" or "newRole" field
     const body = await req.json();

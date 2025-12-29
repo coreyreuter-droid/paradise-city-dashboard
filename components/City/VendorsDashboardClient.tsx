@@ -118,7 +118,7 @@ export default function VendorsDashboardClient({
               href={`${cityHref("/transactions")}?q=${encodeURIComponent(
                 row.name
               )}${selectedYear ? `&year=${selectedYear}` : ""}`}
-              className="text-sm font-medium text-slate-800 underline-offset-2 hover:underline"
+              className="text-sm font-medium text-slate-800 underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-1 rounded"
             >
               {row.name}
             </Link>

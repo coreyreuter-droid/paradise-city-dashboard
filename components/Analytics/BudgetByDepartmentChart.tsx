@@ -30,8 +30,8 @@ const formatAxisCurrencyShort = (v: number) => {
 };
 
 const shortenLabel = (name: string) => {
-  if (name.length <= 28) return name;
-  return name.slice(0, 25) + "…";
+  if (name.length <= 18) return name;
+  return name.slice(0, 15) + "…";
 };
 
 export default function BudgetByDepartmentChart({
@@ -89,8 +89,8 @@ export default function BudgetByDepartmentChart({
               type="category"
               dataKey="department_name"
               tickFormatter={shortenLabel}
-              width={180}
-              tick={{ fontSize: 11, fill: "#475569" }}
+              width={140}
+              tick={{ fontSize: 10, fill: "#475569" }}
             />
           <Tooltip
             formatter={(value: any, name?: string) => {

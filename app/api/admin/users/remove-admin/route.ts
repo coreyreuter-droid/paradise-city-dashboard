@@ -2,10 +2,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseService";
 import { requireSuperAdmin } from "@/lib/auth";
+import { requireCsrf } from "@/lib/csrf";
 
 export async function POST(req: NextRequest) {
   try {
-// Authenticate and verify super_admin role
+    // Verify CSRF token
+    const csrfError = await requireCsrf(req);
+    if (csrfError) return csrfError;
+
+    // Authenticate and verify super_admin role
     const auth = await requireSuperAdmin(req);
     if (!auth.success) return auth.error;
     const { user: caller } = auth.data;
