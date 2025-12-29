@@ -412,7 +412,7 @@ export default function LandingClient({ portalSettings }: Props) {
       },
       {
         href: cityHref("/budget"),
-        label: "What did the City adopt for this year?",
+        label: "What did our Gov adopt for this year?",
         sublabel: "Explore the adopted budget by department.",
       },
     ];
@@ -436,7 +436,7 @@ export default function LandingClient({ portalSettings }: Props) {
     if (enableTransactions) {
       items.push({
         href: cityHref("/transactions"),
-        label: "What payments has the City made?",
+        label: "What payments have we made?",
         sublabel: "Search transactions and filter by vendor or category.",
       });
     }
@@ -695,7 +695,7 @@ export default function LandingClient({ portalSettings }: Props) {
                 href={cityHref("/overview")}
                 eyebrow="Explore"
                 title="Explore dashboards"
-                description="Use summaries and charts to understand city finances."
+                description="Use summaries and charts to understand our finances."
                 accent={accent}
                 viz="line"
               />
@@ -847,7 +847,7 @@ export default function LandingClient({ portalSettings }: Props) {
           </div>
 
           {/* SIDEBAR column */}
-          <aside className="space-y-6 lg:col-span-4" aria-label="Key city statistics">
+          <aside className="space-y-6 lg:col-span-4" aria-label="Key gov statistics">
             {/* At a glance (unchanged) */}
             {showStats &&
               (statPopulation || statEmployees || statSquareMiles || statAnnualBudgetFormatted) && (
@@ -888,7 +888,7 @@ export default function LandingClient({ portalSettings }: Props) {
                         {statEmployees && (
                           <div className="rounded-xl border border-slate-200 bg-white p-4">
                             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-600">
-                              City employees
+                              Gov employees
                             </p>
                             <p className="mt-1 text-lg font-semibold text-slate-900">
                               {statEmployees}

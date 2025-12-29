@@ -416,7 +416,7 @@ export default function AdminOnboardingPage() {
                   Step 1 – Basic setup
                 </h2>
                 <p className="text-sm text-slate-600">
-                  Confirm the city name, fiscal year configuration, and which
+                  Confirm the org name, fiscal year configuration, and which
                   modules you plan to use. These settings control routing and
                   which pages are visible to residents.
                 </p>
@@ -427,7 +427,7 @@ export default function AdminOnboardingPage() {
                       {statusCircle(status.basic)}
                       <div>
                         <p className="font-medium text-slate-900">
-                          City details & modules
+                          Gov details & modules
                         </p>
                         <p className="mt-1 text-sm text-slate-600">
                           City name, fiscal year label, and which modules are
@@ -467,7 +467,7 @@ export default function AdminOnboardingPage() {
                   Step 2 – Branding
                 </h2>
                 <p className="text-sm text-slate-600">
-                  Make the portal feel like an official city property with your
+                  Make the portal feel like an official gov property with your
                   logo, seal, colors, and homepage messaging.
                 </p>
 

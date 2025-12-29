@@ -109,10 +109,10 @@ export default function SankeyChart({ revenues, departments, height = 400 }: Pro
       });
     });
 
-    // Center node (City Fund)
+    // Center node(Government Fund)
     nodes.push({
       id: "center",
-      label: "City Fund",
+      label: "Government Fund",
       value: Math.max(totalRevenue, totalSpending),
       color: COLORS.center,
       column: 1,
@@ -309,7 +309,7 @@ export default function SankeyChart({ revenues, departments, height = 400 }: Pro
       {/* Column labels */}
       <div className="mb-3 flex justify-between text-xs font-semibold uppercase tracking-wide text-slate-500">
         <span>Revenue Sources</span>
-        <span>City Fund</span>
+        <span>Government Fund</span>
         <span>Departments</span>
       </div>
 
@@ -317,7 +317,7 @@ export default function SankeyChart({ revenues, departments, height = 400 }: Pro
         className="relative w-full" 
         style={{ height }}
         role="img"
-        aria-label={`Sankey diagram showing money flow: ${formatCompact(totalRevenue)} in revenue flowing through city fund to departments spending ${formatCompact(totalSpending)}`}
+        aria-label={`Sankey diagram showing money flow: ${formatCompact(totalRevenue)} in revenue flowing through our government to departments spending ${formatCompact(totalSpending)}`}
       >
         <svg 
           width="100%" 

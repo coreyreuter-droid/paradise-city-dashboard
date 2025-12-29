@@ -431,7 +431,7 @@ function validateAndBuildRecords(
           row: rowNum,
           field: "period",
            message:
-            'Invalid period. Use a calendar month "YYYY-MM" (e.g. "2027-08"). Fiscal year is derived from period using the city FY start (July-start example: 2027-08 belongs to FY2028). We also accept "YYYY-M" and normalize it.',
+            'Invalid period. Use a calendar month "YYYY-MM" (e.g. "2027-08"). Fiscal year is derived from period using the FY start (July-start example: 2027-08 belongs to FY2028). We also accept "YYYY-M" and normalize it.',
 
         });
       }

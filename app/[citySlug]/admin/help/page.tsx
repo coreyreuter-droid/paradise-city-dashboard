@@ -17,7 +17,7 @@ export default function AdminHelpPage() {
           {/* Intro */}
           <section aria-label="Help overview" className="space-y-2">
             <p className="text-xs text-slate-600">
-              This page is designed to help city staff manage CiviPortal on their own—especially during annual
+              This page is designed to help our staff manage CiviPortal on their own—especially during annual
               budget cycles—without needing to contact the vendor for every question.
             </p>
 

@@ -1,0 +1,11 @@
+{
+	"folders": [
+		{
+			"name": "paradise-city-dashboard",
+			"path": "."
+		}
+	],
+	"settings": {
+		"typescript.tsdk": "node_modules\\typescript\\lib"
+	}
+}

@@ -242,7 +242,7 @@ export default function BrandingSettingsClient() {
             const { data: inserted, error: insertError } = await supabase
               .from("portal_settings")
               .insert({
-                city_name: "Your City Name",
+                city_name: "Your Gov Name",
                 tagline: "Transparent Budget. Empowered Citizens.",
                 primary_color: "#0F172A",
                 accent_color: "#0f766e",
@@ -920,7 +920,7 @@ export default function BrandingSettingsClient() {
           {/* City name */}
           <div>
             <label className="mb-1 block text-sm font-medium text-slate-700">
-              City name
+              Gov name
             </label>
             <input
               type="text"
@@ -951,7 +951,7 @@ export default function BrandingSettingsClient() {
               placeholder="e.g. Transparent Budget. Empowered Citizens."
             />
             <p className="mt-1 text-xs text-slate-500">
-              Short message shown under the city name.
+              Short message shown under the gov name.
             </p>
           </div>
 
@@ -1089,7 +1089,7 @@ export default function BrandingSettingsClient() {
                   }
                 />
                 <span className="text-xs">
-                  <span className="font-medium">City stats</span>
+                  <span className="font-medium">Gov stats</span>
                   <span className="block text-[11px] text-slate-500">
                     Population, employees, area, and annual budget.
                   </span>
@@ -1124,7 +1124,7 @@ export default function BrandingSettingsClient() {
           {/* Story: City description */}
           <div>
             <label className="mb-1 block text-sm font-medium text-slate-700">
-              City description (About our community)
+              Gov description (About our community)
             </label>
             <textarea
               value={settings.story_city_description ?? ""}
@@ -1195,8 +1195,8 @@ export default function BrandingSettingsClient() {
               Leadership welcome (optional)
             </h2>
             <p className="text-xs text-slate-500">
-              Share a short message from the mayor or city manager about the
-              city’s commitment to transparency.
+              Share a short message from the mayor or city manager about 
+              our commitment to transparency.
             </p>
 
             <div className="grid gap-4 sm:grid-cols-2">
@@ -1268,7 +1268,7 @@ export default function BrandingSettingsClient() {
           {/* City stats */}
           <div className="mt-4 space-y-3 border-t border-slate-200 pt-4">
             <h2 className="text-sm font-semibold text-slate-900">
-              City stats (optional)
+              Gov stats (optional)
             </h2>
             <p className="text-xs text-slate-500">
               Key figures that help residents understand the size and scale of
@@ -1293,7 +1293,7 @@ export default function BrandingSettingsClient() {
 
               <div>
                 <label className="mb-1 block text-sm font-medium text-slate-700">
-                  City employees
+                  Gov employees
                 </label>
                 <input
                   type="text"
@@ -1730,7 +1730,7 @@ export default function BrandingSettingsClient() {
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             <div className="space-y-1">
               <label className="mb-1 block text-sm font-medium text-slate-700">
-                City seal URL (optional)
+                Gov seal URL (optional)
               </label>
               <input
                 type="text"
@@ -1742,13 +1742,13 @@ export default function BrandingSettingsClient() {
                 placeholder="https://example.com/seal.png"
               />
               <p className="mt-1 text-xs text-slate-500">
-                Optional city seal displayed alongside your branding.
+                Optional gov seal displayed alongside your branding.
               </p>
             </div>
 
             <div className="space-y-1 rounded-md bg-slate-50 p-3 text-xs text-slate-600">
               <p className="font-semibold">
-                Upload city seal (PNG/JPG/WEBP)
+                Upload gov seal (PNG/JPG/WEBP)
               </p>
               <input
                 type="file"
@@ -1770,14 +1770,14 @@ export default function BrandingSettingsClient() {
                     {sealFile ? (
                       <img
                         src={URL.createObjectURL(sealFile)}
-                        alt="City seal preview"
+                        alt="Gov seal preview"
                         className="h-full w-full object-contain"
                       />
                     ) : (
                       settings.seal_url && (
                         <img
                           src={settings.seal_url}
-                          alt="City seal preview"
+                          alt="Gov seal preview"
                           className="h-full w-full object-contain"
                         />
                       )
