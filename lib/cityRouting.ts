@@ -1,15 +1,16 @@
 // lib/cityRouting.ts
 // Turns relative routes into /<citySlug>/x URLs consistently.
-// Used by ALL components instead of hardcoded "/paradise".
 
 import { getActiveCity } from "../config/cities";
 
 const ACTIVE_CITY = getActiveCity();
 
-export const CITY_SLUG = ACTIVE_CITY.slug;
+// Allow Vercel/env to override the slug (client-safe because it's NEXT_PUBLIC_)
+export const CITY_SLUG =
+  (process.env.NEXT_PUBLIC_CITY_SLUG || "").trim() ||
+  ACTIVE_CITY.slug;
 
-// Build a consistent URL: cityHref("/departments") -> "/paradise/departments"
-// Handles missing slashes, bare strings, etc.
+// Build a consistent URL: cityHref("/departments") -> "/portal/departments"
 export function cityHref(path: string = "/"): string {
   const cleaned =
     path === "/"
