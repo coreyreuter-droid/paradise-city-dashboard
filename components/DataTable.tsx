@@ -114,30 +114,39 @@ export default function DataTable<T>({
   const renderSortIcon = (key: string) => {
     if (!sortKey || sortKey !== key) {
       return (
-        <span className="ml-1 text-[10px] text-slate-400">
-          ↕
-        </span>
+        <>
+          <span className="ml-1 text-[10px] text-slate-400" aria-hidden="true">
+            ↕
+          </span>
+          <span className="sr-only">Click to sort</span>
+        </>
       );
     }
 
     if (sortDirection === "asc") {
       return (
-        <span
-          aria-hidden="true"
-          className="ml-1 text-[10px] text-slate-600"
-        >
-          ▲
-        </span>
+        <>
+          <span
+            aria-hidden="true"
+            className="ml-1 text-[10px] text-slate-600"
+          >
+            ▲
+          </span>
+          <span className="sr-only">Sorted ascending, click to sort descending</span>
+        </>
       );
     }
 
     return (
-      <span
-        aria-hidden="true"
-        className="ml-1 text-[10px] text-slate-600"
-      >
-        ▼
-      </span>
+      <>
+        <span
+          aria-hidden="true"
+          className="ml-1 text-[10px] text-slate-600"
+        >
+          ▼
+        </span>
+        <span className="sr-only">Sorted descending, click to sort ascending</span>
+      </>
     );
   };
 

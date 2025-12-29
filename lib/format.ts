@@ -1,5 +1,24 @@
 // lib/format.ts
 
+/**
+ * Sanitize user input for use in Postgres ILIKE queries.
+ * Escapes special pattern characters to prevent SQL injection.
+ * Also limits length to prevent DoS.
+ */
+export function sanitizeSearchInput(input: string, maxLength = 100): string {
+  if (!input || typeof input !== "string") return "";
+  
+  // Escape Postgres LIKE pattern special characters: % _ \
+  // The backslash must be escaped first to avoid double-escaping
+  const escaped = input
+    .replace(/\\/g, "\\\\")
+    .replace(/%/g, "\\%")
+    .replace(/_/g, "\\_");
+  
+  // Trim and limit length
+  return escaped.trim().slice(0, maxLength);
+}
+
 export const formatCurrency = (
   value: number | null | undefined
 ): string => {

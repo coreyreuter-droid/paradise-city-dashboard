@@ -72,7 +72,8 @@ export default function FiscalYearSelect({
                 key={year}
                 type="button"
                 onClick={() => setYear(value)}
-                className={`rounded-full px-2 py-1 text-xs font-medium ${
+                aria-pressed={active}
+                className={`rounded-full px-2 py-1 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-1 ${
                   active
                     ? "bg-white text-slate-900 shadow-sm"
                     : "text-slate-700 hover:bg-white/60"

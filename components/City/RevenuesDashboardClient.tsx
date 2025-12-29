@@ -1,16 +1,14 @@
 // components/City/RevenuesDashboardClient.tsx
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import {
   usePathname,
   useRouter,
   useSearchParams,
 } from "next/navigation";
 import {
-  PieChart,
-  Pie,
-  Cell,
+  Treemap,
   LineChart,
   Line,
   CartesianGrid,
@@ -45,16 +43,17 @@ type RevenueSourceRow = {
 
 type DistributionSlice = { name: string; value: number };
 
-const PIE_COLORS = [
+// Colors for treemap - gradient from dark to light for visual hierarchy
+const TREEMAP_COLORS = [
   "#0f172a", // slate-900
+  "#1e293b", // slate-800
   "#334155", // slate-700
+  "#475569", // slate-600
   "#64748b", // slate-500
-  "#0f766e", // teal-700 (status/positive alt)
-  "#15803d", // green-700 (positive)
-  "#b45309", // amber-700 (warning)
-  "#b91c1c", // red-700 (negative)
+  "#0f766e", // teal-700
+  "#15803d", // green-700
+  "#b45309", // amber-700
 ];
-
 
 const REVENUE_LINE_COLOR = "#0f172a";
 
@@ -145,6 +144,151 @@ function buildDistribution(
   ];
 }
 
+// Treemap cell position for HTML overlay
+type CellPosition = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  name: string;
+  value: number;
+  color: string;
+};
+
+// Global store for cell positions (updated during render)
+let cellCollector: CellPosition[] = [];
+
+// Custom treemap content - rectangles only, captures positions for HTML labels
+interface TreemapContentProps {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  name: string;
+  value: number;
+  index: number;
+  depth: number;
+  colors: string[];
+}
+
+function TreemapContent(props: TreemapContentProps) {
+  const { x, y, width, height, name, value, index, depth, colors } = props;
+  
+  // Only render leaf nodes
+  if (depth !== 1) return null;
+  
+  const color = colors[index % colors.length];
+
+  // Round positions to whole pixels
+  const rx = Math.round(x);
+  const ry = Math.round(y);
+  const rw = Math.round(width);
+  const rh = Math.round(height);
+
+  // Collect cell position for HTML overlay
+  if (rw > 0 && rh > 0) {
+    cellCollector.push({ x: rx, y: ry, width: rw, height: rh, name, value, color });
+  }
+  
+  return (
+    <g>
+      <rect
+        x={rx}
+        y={ry}
+        width={rw}
+        height={rh}
+        fill={color}
+        stroke="#fff"
+        strokeWidth={2}
+        rx={4}
+        ry={4}
+        role="img"
+        aria-label={`${name}: ${formatCurrency(value)}`}
+      />
+    </g>
+  );
+}
+
+// Custom tooltip for treemap
+interface TreemapTooltipProps {
+  active?: boolean;
+  payload?: Array<{
+    payload: {
+      name: string;
+      value: number;
+    };
+  }>;
+}
+
+function TreemapTooltip({ active, payload }: TreemapTooltipProps) {
+  if (!active || !payload || payload.length === 0) return null;
+  
+  const data = payload[0].payload;
+  
+  return (
+    <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-lg">
+      <p className="text-sm font-semibold text-slate-900">{data.name}</p>
+      <p className="text-sm text-slate-600">{formatCurrency(data.value)}</p>
+    </div>
+  );
+}
+
+// HTML Label overlay component - renders crisp text on top of treemap
+function TreemapLabels({ cells }: { cells: CellPosition[] }) {
+  return (
+    <div 
+      className="pointer-events-none absolute inset-0"
+      aria-hidden="true"
+    >
+      {cells.map((cell, i) => {
+        const showFullLabel = cell.width > 80 && cell.height > 50;
+        const showShortLabel = cell.width > 50 && cell.height > 30;
+        const showValue = cell.width > 60 && cell.height > 45;
+        
+        if (!showFullLabel && !showShortLabel) return null;
+        
+        // Truncate name for display
+        const displayName = cell.name.length > 15 ? cell.name.slice(0, 12) + "…" : cell.name;
+        const shortName = cell.name.length > 8 ? cell.name.slice(0, 6) + "…" : cell.name;
+        
+        return (
+          <div
+            key={`${cell.name}-${i}`}
+            className="absolute flex flex-col items-center justify-center overflow-hidden"
+            style={{
+              left: cell.x,
+              top: cell.y,
+              width: cell.width,
+              height: cell.height,
+            }}
+          >
+            <span 
+              className="text-white font-medium leading-tight text-center px-1 truncate max-w-full"
+              style={{ 
+                fontSize: showFullLabel ? 13 : 11,
+                textShadow: '0 1px 3px rgba(0,0,0,0.4)',
+              }}
+            >
+              {showFullLabel ? displayName : shortName}
+            </span>
+            {showValue && (
+              <span 
+                className="text-white/90 leading-tight"
+                style={{ 
+                  fontSize: 11,
+                  textShadow: '0 1px 3px rgba(0,0,0,0.4)',
+                }}
+              >
+                {formatCurrencyCompactTick(cell.value)}
+              </span>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function RevenuesDashboardClient({
   years,
   selectedYear,
@@ -160,6 +304,10 @@ export default function RevenuesDashboardClient({
   const [queryInput, setQueryInput] = useState<string>(
     sourceQuery ?? ""
   );
+  
+  // Track treemap cell positions for HTML labels
+  const [cellPositions, setCellPositions] = useState<CellPosition[]>([]);
+  const treemapContainerRef = useRef<HTMLDivElement>(null);
 
   const yearLabel =
     selectedYear ?? (years.length > 0 ? years[0] : undefined);
@@ -232,6 +380,30 @@ export default function RevenuesDashboardClient({
     }));
     return buildDistribution(base);
   }, [sourceRows]);
+
+  // Treemap data format
+  const treemapData = useMemo(() => {
+    return distributionSlices.map((slice, index) => ({
+      name: slice.name,
+      value: slice.value,
+      fill: TREEMAP_COLORS[index % TREEMAP_COLORS.length],
+    }));
+  }, [distributionSlices]);
+
+  // Update cell positions after treemap renders
+  useEffect(() => {
+    // Small delay to let Recharts render first
+    const timer = setTimeout(() => {
+      if (cellCollector.length > 0) {
+        setCellPositions([...cellCollector]);
+      }
+    }, 50);
+    
+    return () => clearTimeout(timer);
+  }, [treemapData]);
+
+  // Clear collector before each render
+  cellCollector = [];
 
   const columns: DataTableColumn<RevenueSourceRow>[] = [
     {
@@ -405,7 +577,7 @@ export default function RevenuesDashboardClient({
       <CardContainer>
         <section aria-label="Revenue charts" className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
-            {/* Distribution by source */}
+            {/* Distribution by source - Treemap */}
             <figure
               role="group"
               aria-labelledby="revenue-distribution-heading"
@@ -424,7 +596,7 @@ export default function RevenuesDashboardClient({
                   className="text-sm text-slate-600"
                 >
                   How total recorded revenues are distributed across
-                  sources for {yearLabel ?? "this year"}.
+                  sources for {yearLabel ?? "this year"}. Larger areas represent higher revenue.
                 </p>
               </div>
 
@@ -434,36 +606,47 @@ export default function RevenuesDashboardClient({
                 </p>
               ) : (
                 <>
-                  <div className="h-56 w-full min-w-0 overflow-hidden sm:h-64">
+                  {/* Treemap visualization with HTML label overlay */}
+                  <div 
+                    ref={treemapContainerRef}
+                    className="relative h-64 w-full min-w-0 overflow-hidden sm:h-72"
+                    role="img"
+                    aria-label={`Treemap showing revenue distribution: ${distributionSlices.map(s => `${s.name} ${formatCurrency(s.value)}`).join(', ')}`}
+                  >
                     <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={distributionSlices}
-                          dataKey="value"
-                          nameKey="name"
-                          outerRadius="80%"
-                          paddingAngle={1}
-                        >
-                          {distributionSlices.map((entry, index) => (
-                            <Cell
-                              key={entry.name}
-                              fill={PIE_COLORS[index % PIE_COLORS.length]}
-                            />
-                          ))}
-                        </Pie>
-                        <Tooltip
-formatter={(value: any, name?: string) => {
-  const key = name ?? "";
-  return [formatCurrency(Number(value ?? 0)), key];
-}}
-
-                        />
-                      </PieChart>
+                      <Treemap
+                        data={treemapData}
+                        dataKey="value"
+                        aspectRatio={4 / 3}
+                        stroke="#fff"
+                        content={
+                          <TreemapContent 
+                            x={0} 
+                            y={0} 
+                            width={0} 
+                            height={0} 
+                            name="" 
+                            value={0} 
+                            index={0} 
+                            depth={1}
+                            colors={TREEMAP_COLORS}
+                          />
+                        }
+                      >
+                        <Tooltip content={<TreemapTooltip />} />
+                      </Treemap>
                     </ResponsiveContainer>
+                    
+                    {/* HTML labels overlay - renders crisp text */}
+                    <TreemapLabels cells={cellPositions} />
                   </div>
 
+                  {/* Accessible data table - always visible for screen readers and mobile */}
                   <div className="overflow-x-auto">
-                    <table className="mt-3 min-w-full border border-slate-200 text-sm">
+                    <table 
+                      className="mt-3 min-w-full border border-slate-200 text-sm"
+                      aria-label="Revenue distribution data"
+                    >
                       <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-600">
                         <tr>
                           <th scope="col" className="px-3 py-2 text-left">
@@ -478,7 +661,7 @@ formatter={(value: any, name?: string) => {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-200">
-                        {distributionSlices.map((slice) => {
+                        {distributionSlices.map((slice, index) => {
                           const total = distributionSlices.reduce(
                             (sum, s) => sum + s.value,
                             0
@@ -494,7 +677,14 @@ formatter={(value: any, name?: string) => {
                                 scope="row"
                                 className="px-3 py-2 text-left font-medium text-slate-800"
                               >
-                                {slice.name}
+                                <span className="flex items-center gap-2">
+                                  <span 
+                                    className="inline-block h-3 w-3 flex-shrink-0 rounded-sm"
+                                    style={{ backgroundColor: TREEMAP_COLORS[index % TREEMAP_COLORS.length] }}
+                                    aria-hidden="true"
+                                  />
+                                  {slice.name}
+                                </span>
                               </th>
                               <td className="px-3 py-2 text-right text-slate-700">
                                 {formatCurrency(slice.value)}
@@ -685,7 +875,7 @@ formatter={(value: any, name?: string) => {
             <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
               <span className="font-semibold">Active filters:</span>{" "}
               <span className="ml-1 inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-xs">
-                <span>Source contains “{sourceQuery.trim()}”</span>
+                <span>Source contains "{sourceQuery.trim()}"</span>
               </span>
             </div>
           )}

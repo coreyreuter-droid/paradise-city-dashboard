@@ -4,6 +4,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { cityHref } from "@/lib/cityRouting";
+import { parseCsv } from "@/lib/csvParser";
 
 const TABLE_SCHEMAS: Record<
   string,
@@ -653,12 +654,8 @@ export default function UploadClient() {
     try {
       const text = await file.text();
 
-      // Basic CSV parsing (no quoted commas handling yet)
-      const rows = text
-        .trim()
-        .split("\n")
-        .filter((line) => line.length > 0)
-        .map((line) => line.split(","));
+      // Parse CSV properly (handles quoted fields with commas)
+      const rows = parseCsv(text);
 
       if (rows.length < 2) {
         setError("CSV appears to be empty or missing data rows.");
@@ -1153,17 +1150,15 @@ export default function UploadClient() {
 
             try {
               const text = await f.text();
-              const lines = text
-                .trim()
-                .split("\n")
-                .filter((line) => line.length > 0);
+              
+              // Parse CSV properly (handles quoted fields with commas)
+              const rows = parseCsv(text);
 
-              if (lines.length === 0) {
+              if (rows.length === 0) {
                 setPreviewMessage("File appears to be empty.");
                 return;
               }
 
-              const rows = lines.map((line) => line.split(","));
               const headers = rows[0].map((h) => h.trim());
               const dataRows = rows.slice(1, 21); // preview first 20 rows
 

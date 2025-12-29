@@ -12,6 +12,7 @@ import ParadiseHomeMultiYearChart from "@/components/City/HomeMultiYearChart";
 import DepartmentsGrid from "@/components/City/HomeDepartmentsGrid";
 import RecentTransactionsCard from "@/components/City/HomeRecentTransactionsCard";
 import HomeRevenueSummary from "@/components/City/HomeRevenueSummary";
+import SankeyChart from "@/components/City/SankeyChart";
 import { CITY_CONFIG } from "@/lib/cityConfig";
 import { cityHref } from "@/lib/cityRouting";
 import type {
@@ -21,6 +22,7 @@ import type {
 } from "@/lib/queries";
 import type { TransactionRow, RevenueRow } from "@/lib/types";
 import { formatCurrency } from "@/lib/format";
+
 
 type FreshnessEntry = {
   table: string;
@@ -505,8 +507,29 @@ className="inline-flex items-center justify-center rounded-full px-3 py-1.5 text
                 </p>
               )}
             </CardContainer>
+            
           )}
-
+          {/* Money Flow Sankey */}
+          {enableRevenues && revenues.length > 0 && departmentsForYear.length > 0 && (
+            <CardContainer>
+              <section aria-label="Money flow visualization" className="space-y-3">
+                <div>
+                  <h2 className="text-sm font-semibold tracking-tight text-slate-900 sm:text-base">
+                    Follow the Money
+                  </h2>
+                  <p className="text-sm text-slate-600">
+                    See how revenue flows through the city fund to departments for{" "}
+                    {yearLabel ?? "the selected year"}.
+                  </p>
+                </div>
+                <SankeyChart
+                  revenues={revenues}
+                  departments={departmentsForYear}
+                  height={480}
+                />
+              </section>
+            </CardContainer>
+          )}
           {/* Revenue summary */}
           {enableRevenues && (
             <CardContainer>

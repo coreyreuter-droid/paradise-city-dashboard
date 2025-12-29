@@ -1,7 +1,8 @@
 // app/api/transactions/export/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { rateLimit } from "@/lib/rateLimit";
+import { rateLimitAsync } from "@/lib/rateLimit";
+import { sanitizeSearchInput } from "@/lib/format";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -24,12 +25,12 @@ export async function GET(req: NextRequest) {
              req.headers.get("x-real-ip") ?? 
              "unknown";
   
-  const { allowed, remaining, resetInSeconds } = rateLimit(
+  const { allowed, remaining, resetInSeconds } = await rateLimitAsync(
     `export:${ip}`,
     10,
     60 * 60 * 1000 // 1 hour
   );
-console.log(`Rate limit check: IP=${ip}, allowed=${allowed}, remaining=${remaining}`);
+  
   if (!allowed) {
     return NextResponse.json(
       { error: `Too many export requests. Try again in ${Math.ceil(resetInSeconds / 60)} minutes.` },
@@ -115,14 +116,17 @@ console.log(`Rate limit check: IP=${ip}, allowed=${allowed}, remaining=${remaini
       }
 
       if (searchQuery) {
-        if (enableVendors) {
-          // Vendor + description search
-          query = query.or(
-            `vendor.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%`
-          );
-        } else {
-          // Only description search when vendor names are disabled
-          query = query.ilike("description", `%${searchQuery}%`);
+        const sanitized = sanitizeSearchInput(searchQuery);
+        if (sanitized) {
+          if (enableVendors) {
+            // Vendor + description search
+            query = query.or(
+              `vendor.ilike.%${sanitized}%,description.ilike.%${sanitized}%`
+            );
+          } else {
+            // Only description search when vendor names are disabled
+            query = query.ilike("description", `%${sanitized}%`);
+          }
         }
       }
 

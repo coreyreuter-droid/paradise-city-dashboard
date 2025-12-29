@@ -98,9 +98,16 @@ export default function BudgetCharts({
         </div>
 
         <div className="mt-3">
-          <div className="h-2.5 w-full overflow-hidden rounded-full bg-slate-200" >
+          <div 
+            className="h-2.5 w-full overflow-hidden rounded-full bg-slate-200"
+            role="progressbar"
+            aria-valuenow={Math.round(execPct)}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-label={`Budget execution: ${Math.round(execPct)}% spent`}
+          >
             <div
-              className="h-full rounded-full"
+              className="h-full rounded-full transition-all duration-300"
               style={{
                 width: `${Math.min(execPct, 100)}%`,
                 background:
@@ -111,7 +118,7 @@ export default function BudgetCharts({
               aria-hidden="true"
             />
           </div>
-          <div className="mt-1 flex justify-between text-xs text-slate-500">
+          <div className="mt-1 flex justify-between text-xs text-slate-500" aria-hidden="true">
             <span>0%</span>
             <span>100%</span>
           </div>

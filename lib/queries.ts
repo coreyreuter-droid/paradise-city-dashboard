@@ -5,6 +5,7 @@
 
 
 import { supabase } from "./supabase";
+import { sanitizeSearchInput } from "./format";
 import type { ActualRow, BudgetRow, TransactionRow, RevenueRow } from "./schema";
 
 
@@ -161,7 +162,10 @@ export async function getVendorSummariesForYear(
     .limit(limit);
 
   if (search && search.trim()) {
-    q = q.ilike("vendor", `%${search.trim()}%`);
+    const sanitized = sanitizeSearchInput(search);
+    if (sanitized) {
+      q = q.ilike("vendor", `%${sanitized}%`);
+    }
   }
 
   const { data, error } = await q;
@@ -532,10 +536,16 @@ export async function getTransactions(
   if (accountCode) query = query.eq("account_code", accountCode);
 
   if (vendorSearch && vendorSearch.trim().length > 0) {
-    query = query.ilike("vendor", `%${vendorSearch.trim()}%`);
+    const sanitized = sanitizeSearchInput(vendorSearch);
+    if (sanitized) {
+      query = query.ilike("vendor", `%${sanitized}%`);
+    }
   }
   if (descriptionSearch && descriptionSearch.trim().length > 0) {
-    query = query.ilike("description", `%${descriptionSearch.trim()}%`);
+    const sanitized = sanitizeSearchInput(descriptionSearch);
+    if (sanitized) {
+      query = query.ilike("description", `%${sanitized}%`);
+    }
   }
   if (typeof minAmount === "number") query = query.gte("amount", minAmount);
   if (typeof maxAmount === "number") query = query.lte("amount", maxAmount);
@@ -578,7 +588,10 @@ export async function getTransactionsPage(options: {
   if (department) query = query.eq("department_name", department);
 
   if (vendorQuery && vendorQuery.trim().length > 0) {
-    query = query.ilike("vendor", `%${vendorQuery.trim()}%`);
+    const sanitized = sanitizeSearchInput(vendorQuery);
+    if (sanitized) {
+      query = query.ilike("vendor", `%${sanitized}%`);
+    }
   }
 
   // Newest first

@@ -480,11 +480,14 @@ export default function ParadiseSidebar({
 
       {/* MOBILE SLIDE-OUT NAV */}
       {mobileOpen && (
-        <div className="fixed inset-0 z-40 sm:hidden">
-          {/* Backdrop */}
-          <div
-            className="absolute inset-0 bg-black/30"
+        <div className="fixed inset-0 z-40 sm:hidden" role="dialog" aria-modal="true" aria-label="Navigation menu">
+          {/* Backdrop - using button for keyboard accessibility */}
+          <button
+            type="button"
+            className="absolute inset-0 h-full w-full bg-black/30 cursor-default"
             onClick={closeMobile}
+            aria-label="Close navigation menu"
+            tabIndex={-1}
           />
           {/* Drawer */}
           <nav
