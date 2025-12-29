@@ -6,10 +6,13 @@ import Link from "next/link";
 import type { DepartmentYearTxSummary, BudgetActualsYearDeptRow } from "@/lib/queries";
 import CardContainer from "../CardContainer";
 import SectionHeader from "../SectionHeader";
+import NarrativeSummary from "../NarrativeSummary";
 import FiscalYearSelect from "../FiscalYearSelect";
 import DataTable, { DataTableColumn } from "../DataTable";
 import { formatCurrency, formatPercent } from "@/lib/format";
+import { buildDepartmentsNarrative } from "@/lib/narrativeHelpers";
 import { cityHref } from "@/lib/cityRouting";
+import { CITY_CONFIG } from "@/lib/cityConfig";
 
 type DepartmentSummary = {
   department_name: string;
@@ -188,6 +191,40 @@ export default function DepartmentsDashboardClient({
     return baseColumns.filter((col) => col.key !== "txCount");
   }, [baseColumns, enableTransactions]);
 
+  // Determine if actuals are available
+  const hasActuals = summaries.some((d) => d.actuals > 0);
+
+  // Build narrative summary
+  const narrative = useMemo(() => {
+    const cityName = CITY_CONFIG.displayName || "This organization";
+    
+    // Find top budget department
+    const topBudgetDept = summaries[0];
+    
+    // Find top execution department (with meaningful budget)
+    const deptsWithBudget = summaries.filter((d) => d.budget > 0);
+    const topExecDept = deptsWithBudget.sort((a, b) => b.percentSpent - a.percentSpent)[0];
+    
+    // Count over-budget departments
+    const overBudgetCount = summaries.filter((d) => d.percentSpent > 100).length;
+
+    return buildDepartmentsNarrative({
+      cityName,
+      year: selectedYear,
+      deptCount,
+      totalBudget,
+      totalActuals,
+      topBudgetDept: topBudgetDept?.department_name || null,
+      topBudgetAmount: topBudgetDept?.budget || 0,
+      topExecDept: topExecDept?.department_name || null,
+      topExecPct: topExecDept?.percentSpent || 0,
+      overBudgetCount,
+      enableActuals: hasActuals,
+      enableTransactions,
+      totalTxCount: totalTx,
+    });
+  }, [summaries, selectedYear, deptCount, totalBudget, totalActuals, totalTx, hasActuals, enableTransactions]);
+
   return (
     <div id="main-content" className="min-h-screen bg-slate-50">
       <div className="mx-auto max-w-6xl px-4 py-8">
@@ -203,7 +240,8 @@ export default function DepartmentsDashboardClient({
   }
 />
 
-
+        {/* Narrative Summary */}
+        {narrative && <NarrativeSummary narrative={narrative} className="mb-4" />}
 
         <nav aria-label="Breadcrumb" className="mb-4 flex items-center gap-1 px-1 text-sm text-slate-600">
           <ol className="flex items-center gap-1">

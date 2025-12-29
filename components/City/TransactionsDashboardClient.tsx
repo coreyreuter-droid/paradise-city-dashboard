@@ -75,58 +75,6 @@ function buildSearchUrl(
   return qs ? `${pathname}?${qs}` : pathname;
 }
 
-function csvSafe(value: unknown): string {
-  if (value === null || value === undefined) return "";
-  const str = String(value);
-  if (str.includes(",") || str.includes("\"") || str.includes("\n")) {
-    return `"${str.replace(/"/g, '""')}"`;
-  }
-  return str;
-}
-
-function buildPageCsv(
-  rows: TransactionRow[],
-  enableVendors: boolean
-): string {
-  const header = [
-    "Date",
-    "Fiscal year",
-    "Fund code",
-    "Fund name",
-    "Department",
-    "Account code",
-    "Account name",
-    ...(enableVendors ? ["Vendor"] : []),
-    "Description",
-    "Amount",
-  ];
-
-  const body = rows.map((t) => {
-    const base = [
-      csvSafe(t.date),
-      csvSafe(t.fiscal_year),
-      csvSafe(t.fund_code),
-      csvSafe(t.fund_name),
-      csvSafe(t.department_name),
-      csvSafe(t.account_code),
-      csvSafe(t.account_name),
-    ];
-
-    const vendorPart = enableVendors
-      ? [csvSafe(t.vendor)]
-      : [];
-
-    const rest = [
-      csvSafe(t.description),
-      csvSafe(t.amount),
-    ];
-
-    return [...base, ...vendorPart, ...rest];
-  });
-
-  return [header.join(","), ...body.map((r) => r.join(","))].join("\n");
-}
-
 export default function TransactionsDashboardClient({
   transactions,
   years,
@@ -175,27 +123,6 @@ export default function TransactionsDashboardClient({
     return filters;
   }, [selectedYear, effectiveDeptFilter, vendorQuery, enableVendors]);
 
-  const exportAllHref = useMemo(() => {
-    const params = new URLSearchParams();
-    if (selectedYear != null) {
-      params.set("year", String(selectedYear));
-    }
-    if (effectiveDeptFilter && effectiveDeptFilter !== "all") {
-      params.set("department", effectiveDeptFilter);
-    }
-    if (
-      enableVendors &&
-      vendorQuery &&
-      vendorQuery.trim().length > 0
-    ) {
-      params.set("q", vendorQuery.trim());
-    }
-    const qs = params.toString();
-    return qs
-      ? `/api/transactions/export?${qs}`
-      : `/api/transactions/export`;
-  }, [selectedYear, effectiveDeptFilter, vendorQuery, enableVendors]);
-
   const handleSearchSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (!enableVendors) return;
@@ -231,22 +158,6 @@ export default function TransactionsDashboardClient({
       page: String(clamped),
     });
     router.push(url);
-  };
-
-  const handleDownloadPageCsv = () => {
-    if (transactions.length === 0) return;
-    const csv = buildPageCsv(transactions, enableVendors);
-    const blob = new Blob([csv], {
-      type: "text/csv;charset=utf-8;",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `transactions_page_${page}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
   };
 
   const baseColumns: DataTableColumn<TransactionRow>[] = useMemo(
@@ -360,8 +271,8 @@ export default function TransactionsDashboardClient({
           title="Spending Detail"
           description={
             enableVendors
-              ? "Search, filter, and export individual transactions for the selected fiscal year."
-              : "Search and export individual transactions for the selected fiscal year. Vendor names have been disabled for this city."
+              ? "Search and filter individual transactions for the selected fiscal year."
+              : "Search and filter individual transactions for the selected fiscal year. Vendor names have been disabled for this portal."
           }
           fiscalNote={fiscalYearNote}
           rightSlot={
@@ -516,39 +427,20 @@ export default function TransactionsDashboardClient({
             </section>
           </CardContainer>
 
-          {/* Table + export + pagination */}
+          {/* Table + pagination */}
           <CardContainer>
             <section
               aria-label="Transactions list"
               className="space-y-3"
             >
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <div className="space-y-1">
-                  <h2 className="text-sm font-semibold text-slate-900">
-                    Transactions
-                  </h2>
-                  <p className="text-sm text-slate-600">
-                    {totalCount.toLocaleString("en-US")} transaction{totalCount === 1 ? "" : "s"} found. Page {page} of{" "}
-                    {totalPages}. Use the export options to download
-                    data as CSV.
-                  </p>
-                </div>
-
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={handleDownloadPageCsv}
-                    className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-1"
-                  >
-                    Download this page (CSV)
-                  </button>
-                  <a
-                    href={exportAllHref}
-                    className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-1"
-                  >
-                    Download all results
-                  </a>
-                </div>
+              <div className="space-y-1">
+                <h2 className="text-sm font-semibold text-slate-900">
+                  Transactions
+                </h2>
+                <p className="text-sm text-slate-600">
+                  {totalCount.toLocaleString("en-US")} transaction{totalCount === 1 ? "" : "s"} found. Page {page} of{" "}
+                  {totalPages}.
+                </p>
               </div>
 
               {transactions.length === 0 ? (

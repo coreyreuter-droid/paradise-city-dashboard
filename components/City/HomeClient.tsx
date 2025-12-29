@@ -13,6 +13,8 @@ import DepartmentsGrid from "@/components/City/HomeDepartmentsGrid";
 import RecentTransactionsCard from "@/components/City/HomeRecentTransactionsCard";
 import HomeRevenueSummary from "@/components/City/HomeRevenueSummary";
 import SankeyChart from "@/components/City/SankeyChart";
+import NarrativeSummary from "@/components/NarrativeSummary";
+import { buildHomeNarrative } from "@/lib/narrativeHelpers";
 import { CITY_CONFIG } from "@/lib/cityConfig";
 import { cityHref } from "@/lib/cityRouting";
 import type {
@@ -280,6 +282,63 @@ export default function ParadiseHomeClient({
       .slice(0, 8);
   }, [vendorSummaries]);
 
+  // Build narrative summary
+  const narrative = useMemo(() => {
+    // Get top revenue source
+    const revenueByCategory = new Map<string, number>();
+    for (const r of revenues) {
+      const cat = r.category?.trim() || "Other";
+      const amt = Number(r.amount || 0);
+      if (amt > 0) {
+        revenueByCategory.set(cat, (revenueByCategory.get(cat) || 0) + amt);
+      }
+    }
+    const topRevenueSource = Array.from(revenueByCategory.entries())
+      .sort((a, b) => b[1] - a[1])[0]?.[0] || null;
+
+    // Get top department spending
+    const topDeptSpending = departmentsForYear[0]?.actuals || 0;
+
+    return buildHomeNarrative({
+      cityName,
+      year: selectedYear,
+      totalBudget,
+      totalActuals,
+      execPct,
+      deptCount,
+      topDepartment,
+      topDepartmentSpending: topDeptSpending,
+      revenueTotal: revenueTotal ?? null,
+      topRevenueSource,
+      txCount,
+      vendorCount: topVendors.length > 0 ? (vendorSummaries ?? []).length : 0,
+      yearTotals,
+      enableActuals,
+      enableTransactions,
+      enableVendors,
+      enableRevenues,
+    });
+  }, [
+    cityName,
+    selectedYear,
+    totalBudget,
+    totalActuals,
+    execPct,
+    deptCount,
+    topDepartment,
+    departmentsForYear,
+    revenueTotal,
+    revenues,
+    txCount,
+    topVendors,
+    vendorSummaries,
+    yearTotals,
+    enableActuals,
+    enableTransactions,
+    enableVendors,
+    enableRevenues,
+  ]);
+
   return (
     <div
       id="main-content"
@@ -509,6 +568,12 @@ className="inline-flex items-center justify-center rounded-full px-3 py-1.5 text
             </CardContainer>
             
           )}
+
+          {/* Narrative Summary */}
+          {narrative && (
+            <NarrativeSummary narrative={narrative} />
+          )}
+
           {/* Money Flow Sankey */}
           {enableRevenues && revenues.length > 0 && departmentsForYear.length > 0 && (
             <CardContainer>

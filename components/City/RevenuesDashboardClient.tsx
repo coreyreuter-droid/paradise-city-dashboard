@@ -20,10 +20,13 @@ import {
 } from "recharts";
 import type { RevenueRow } from "@/lib/types";
 import { formatCurrency } from "@/lib/format";
+import { buildRevenuesNarrative } from "@/lib/narrativeHelpers";
 import CardContainer from "../CardContainer";
 import SectionHeader from "../SectionHeader";
+import NarrativeSummary from "../NarrativeSummary";
 import FiscalYearSelect from "../FiscalYearSelect";
 import DataTable, { DataTableColumn } from "../DataTable";
+import { CITY_CONFIG } from "@/lib/cityConfig";
 
 type Props = {
   years: number[];
@@ -483,6 +486,24 @@ export default function RevenuesDashboardClient({
   const showingFiltered =
     sourceQuery && sourceQuery.trim().length > 0;
 
+  // Build narrative summary
+  const narrative = useMemo(() => {
+    const cityName = CITY_CONFIG.displayName || "This organization";
+    const topSources = sourceRows.slice(0, 3).map((r) => ({
+      name: r.source,
+      value: r.total,
+    }));
+
+    return buildRevenuesNarrative({
+      cityName,
+      year: selectedYear,
+      totalRevenue,
+      sourceCount: totalSources,
+      topSources,
+      yearTotals,
+    });
+  }, [selectedYear, totalRevenue, totalSources, sourceRows, yearTotals]);
+
   return (
     <div
       id="main-content"
@@ -500,6 +521,8 @@ export default function RevenuesDashboardClient({
   }
 />
 
+      {/* Narrative Summary */}
+      {narrative && <NarrativeSummary narrative={narrative} />}
 
       {/* Summary KPIs */}
       <CardContainer>

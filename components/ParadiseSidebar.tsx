@@ -17,6 +17,7 @@ const navItems = [
   { path: "/revenues", label: "Revenues" },
   { path: "/transactions", label: "Transactions" },
   { path: "/vendors", label: "Vendors" },
+  { path: "/download", label: "Download" },
 ];
 
 type PortalBranding = {

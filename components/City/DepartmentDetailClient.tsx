@@ -21,11 +21,14 @@ import type {
 } from "@/lib/types";
 import CardContainer from "../CardContainer";
 import SectionHeader from "../SectionHeader";
+import NarrativeSummary from "../NarrativeSummary";
 import FiscalYearSelect from "../FiscalYearSelect";
 import DataTable, {
   DataTableColumn,
 } from "../DataTable";
 import { cityHref } from "@/lib/cityRouting";
+import { buildDepartmentDetailNarrative } from "@/lib/narrativeHelpers";
+import { CITY_CONFIG } from "@/lib/cityConfig";
 
 type Props = {
   departmentName?: string;
@@ -438,6 +441,44 @@ export default function DepartmentDetailClient({
     [activeVendorTx]
   );
 
+  // Build narrative summary
+  const narrative = useMemo(() => {
+    const hasActuals = selectedYearTotals.actuals > 0;
+    const hasTx = deptTxForYear.length > 0;
+    const topVendor = deptVendorSummaries[0];
+    
+    // Get previous year actuals for YoY comparison
+    const prevYear = selectedYear ? selectedYear - 1 : null;
+    const prevYearActuals = prevYear
+      ? multiYearSeries.find((s) => s.year === prevYear)?.actuals ?? null
+      : null;
+
+    return buildDepartmentDetailNarrative({
+      cityName: CITY_CONFIG.displayName || "This organization",
+      year: selectedYear ?? null,
+      departmentName: displayName,
+      budget: selectedYearTotals.budget,
+      actuals: selectedYearTotals.actuals,
+      execPct: selectedYearTotals.percentSpent / 100, // Convert to 0-1
+      txCount: deptTxForYear.length,
+      vendorCount: deptVendorSummaries.length,
+      topVendor: topVendor?.name || null,
+      topVendorAmount: topVendor?.total || 0,
+      prevYearActuals,
+      enableActuals: hasActuals,
+      enableTransactions: hasTx,
+      enableVendors,
+    });
+  }, [
+    displayName,
+    selectedYear,
+    selectedYearTotals,
+    deptTxForYear,
+    deptVendorSummaries,
+    multiYearSeries,
+    enableVendors,
+  ]);
+
   return (
     <div id="main-content" className="min-h-screen bg-slate-50">
       <div className="mx-auto max-w-6xl px-4 py-8">
@@ -458,6 +499,9 @@ export default function DepartmentDetailClient({
             ) : null
           }
         />
+
+        {/* Narrative Summary */}
+        {narrative && <NarrativeSummary narrative={narrative} className="mb-4" />}
 
         {/* Breadcrumb */}
         <nav

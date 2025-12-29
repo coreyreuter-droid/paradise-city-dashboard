@@ -5,7 +5,9 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import CardContainer from "../CardContainer";
 import SectionHeader from "../SectionHeader";
+import NarrativeSummary from "../NarrativeSummary";
 import { formatCurrency, formatPercent } from "@/lib/format";
+import { buildBudgetNarrative } from "@/lib/narrativeHelpers";
 import DataTable, { DataTableColumn } from "../DataTable";
 import FiscalYearSelect from "../FiscalYearSelect";
 import BudgetByDepartmentChart from "@/components/Analytics/BudgetByDepartmentChart";
@@ -139,6 +141,33 @@ export default function BudgetClient({ years, deptBudgetActuals }: Props) {
   const accentColor =
     CITY_CONFIG.accentColor || CITY_CONFIG.primaryColor || undefined;
 
+  // Build narrative summary
+  const narrative = useMemo(() => {
+    const cityName = CITY_CONFIG.displayName || "This organization";
+    const topDept = departments[0];
+    const topDeptPct = totals.budget > 0 ? (topDept?.budget / totals.budget) * 100 : 0;
+    
+    // Find over-budget departments
+    const overBudgetDepts = departments
+      .filter((d) => d.percentSpent > 100)
+      .sort((a, b) => b.percentSpent - a.percentSpent)
+      .map((d) => ({ name: d.department_name, pct: d.percentSpent }));
+
+    return buildBudgetNarrative({
+      cityName,
+      year: selectedYear,
+      totalBudget: totals.budget,
+      totalActuals: totals.actuals,
+      execPct: totals.execPct / 100, // Convert to 0-1
+      deptCount,
+      topDepartment: topDept?.department_name || null,
+      topDepartmentBudget: topDept?.budget || 0,
+      topDepartmentPct: topDeptPct,
+      overBudgetDepts,
+      enableActuals: hasAnyActualsForSelectedYear,
+    });
+  }, [departments, totals, selectedYear, deptCount, hasAnyActualsForSelectedYear]);
+
   return (
     <div className="mx-auto max-w-6xl space-y-6 px-3 py-6 sm:px-4 sm:py-8">
       <SectionHeader
@@ -174,6 +203,9 @@ export default function BudgetClient({ years, deptBudgetActuals }: Props) {
           </li>
         </ol>
       </nav>
+
+      {/* Narrative Summary */}
+      {narrative && <NarrativeSummary narrative={narrative} />}
 
       <div className="space-y-6">
         <CardContainer>
