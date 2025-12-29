@@ -87,14 +87,18 @@ export async function rateLimitAsync(
       return memoryRateLimit(key, limit, windowMs);
     }
 
-    // Clean up old entries periodically (1% chance per request)
+// Clean up old entries periodically (1% chance per request)
     if (Math.random() < 0.01) {
-      supabaseAdmin
-        .from("rate_limits")
-        .delete()
-        .lt("created_at", windowStart)
-        .then(() => {})
-        .catch(() => {});
+      void (async () => {
+        try {
+          await supabaseAdmin
+            .from("rate_limits")
+            .delete()
+            .lt("created_at", windowStart);
+        } catch {
+          // Ignore cleanup errors
+        }
+      })();
     }
 
     return {
