@@ -583,7 +583,7 @@ className="inline-flex items-center justify-center rounded-full px-3 py-1.5 text
                     Follow the Money
                   </h2>
                   <p className="text-sm text-slate-600">
-                    See how revenue flows through the city fund to departments for{" "}
+                    See how revenue flows through our government to departments for{" "}
                     {yearLabel ?? "the selected year"}.
                   </p>
                 </div>
