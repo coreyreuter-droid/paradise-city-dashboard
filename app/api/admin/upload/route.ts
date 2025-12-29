@@ -429,6 +429,71 @@ export async function POST(req: NextRequest) {
       }
     }
 
+// 5b) IMPORTANT: keep derived summary tables consistent.
+// If you "replace_table" (wipe and re-upload), years that are no longer present MUST be removed
+// from summary tables too — otherwise you get "ghost years" in dropdowns and charts.
+// We treat summary deletes as non-fatal if the target is a VIEW, since views update automatically.
+const safeDeleteSummary = async (
+  summaryTable: string,
+  applyFilter: (q: any) => any
+) => {
+  const { error } = await applyFilter(
+    supabaseAdmin.from(summaryTable).delete()
+  );
+  if (error) {
+    console.warn(
+      `Non-fatal: could not delete summary rows from ${summaryTable}: ${error.message}`
+    );
+  }
+};
+
+// Transactions summaries
+if (table === "transactions") {
+  if (mode === "replace_table") {
+    await safeDeleteSummary("transaction_year_department", (q) =>
+      q.gte("fiscal_year", 0)
+    );
+    await safeDeleteSummary("transaction_year_vendor", (q) =>
+      q.gte("fiscal_year", 0)
+    );
+  } else if (mode === "replace_year" && replaceYear) {
+    await safeDeleteSummary("transaction_year_department", (q) =>
+      q.eq("fiscal_year", replaceYear)
+    );
+    await safeDeleteSummary("transaction_year_vendor", (q) =>
+      q.eq("fiscal_year", replaceYear)
+    );
+  }
+}
+
+// Budget/Actuals combined summaries
+if (table === "budgets" || table === "actuals") {
+  if (mode === "replace_table") {
+    await safeDeleteSummary("budget_actuals_year_totals", (q) =>
+      q.gte("fiscal_year", 0)
+    );
+    await safeDeleteSummary("budget_actuals_year_department", (q) =>
+      q.gte("fiscal_year", 0)
+    );
+  } else if (mode === "replace_year" && replaceYear) {
+    await safeDeleteSummary("budget_actuals_year_totals", (q) =>
+      q.eq("fiscal_year", replaceYear)
+    );
+    await safeDeleteSummary("budget_actuals_year_department", (q) =>
+      q.eq("fiscal_year", replaceYear)
+    );
+  }
+}
+
+// Revenue summaries (if materialized as a table; if it's a view, delete is ignored)
+if (table === "revenues") {
+  if (mode === "replace_table") {
+    await safeDeleteSummary("revenue_year_totals", (q) => q.gte("fiscal_year", 0));
+  } else if (mode === "replace_year" && replaceYear) {
+    await safeDeleteSummary("revenue_year_totals", (q) => q.eq("fiscal_year", replaceYear));
+  }
+}
+
     // 6) Insert new records in chunks using service role
     const totalRecords = normalizedRecords.length;
     let insertedCount = 0;
@@ -514,7 +579,29 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      await recomputeBudgetActualsSummaries(yearsInData);
+            // For replace_table, budgets/actuals rollups must be recomputed for ALL years present in either table.
+      let yearsToRecompute = yearsInData;
+      if (mode === "replace_table") {
+        const otherTable = table === "budgets" ? "actuals" : "budgets";
+        const { data: otherData, error: otherErr } = await supabaseAdmin
+          .from(otherTable)
+          .select("fiscal_year");
+        if (otherErr) {
+          console.warn(
+            `Non-fatal: could not fetch fiscal years from ${otherTable} while recomputing budget/actuals summaries: ${otherErr.message}`
+          );
+        } else {
+          const otherYears = (otherData ?? [])
+            .map((r: any) => Number(r?.fiscal_year))
+            .filter((y: any) => Number.isFinite(y));
+          yearsToRecompute = Array.from(
+            new Set([...(yearsInData ?? []), ...otherYears])
+          );
+        }
+      }
+
+      await recomputeBudgetActualsSummaries(yearsToRecompute);
+
     }
 
 
