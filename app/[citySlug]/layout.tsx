@@ -133,12 +133,12 @@ export default async function CityLayout({
 
       {/* Single <main> landmark for all city pages */}
       <main
-        id="main-content"
-        role="main"
-        aria-label={`${displayName} financial transparency content`}
-        className="flex-1"
-      >
-        <CityShell
+  id="main-content"
+  role="main"
+  aria-label={`${displayName} financial transparency content`}
+  className="flex-1 pt-12 sm:pt-0"
+>
+          <CityShell
           accent={accent}
           displayName={displayName}
           tagline={tagline}
