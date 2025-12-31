@@ -435,7 +435,7 @@ export default function ParadiseSidebar({
       className="flex flex-col sm:flex-none sm:w-56 lg:w-64 xl:w-72"
     >
       {/* MOBILE HEADER + TOGGLE (sm:hidden) */}
-      <div className="flex items-center justify-between border-b border-slate-200 bg-white/95 px-3 py-2 shadow-sm sm:hidden">
+      <div className="sticky top-0 z-30 flex items-center justify-between border-b border-slate-200 bg-white/95 px-3 py-2 shadow-sm backdrop-blur-sm sm:hidden">
         <div className="flex items-center gap-2">
           {branding?.logo_url ? (
             <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-white">

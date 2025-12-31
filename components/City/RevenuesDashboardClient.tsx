@@ -602,14 +602,14 @@ export default function RevenuesDashboardClient({
       {/* Charts: distribution + YOY trend */}
       <CardContainer>
         <section aria-label="Revenue charts" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2">
+<div className="grid gap-4 md:grid-cols-2 overflow-hidden">
             {/* Distribution by source - Treemap */}
-            <figure
-              role="group"
-              aria-labelledby="revenue-distribution-heading"
-              aria-describedby="revenue-distribution-desc"
-              className="space-y-3"
-            >
+<figure
+  role="group"
+  aria-labelledby="revenue-distribution-heading"
+  aria-describedby="revenue-distribution-desc"
+  className="min-w-0 overflow-hidden space-y-3"
+>
               <div>
                 <h2
                   id="revenue-distribution-heading"
@@ -668,7 +668,7 @@ export default function RevenuesDashboardClient({
                   </div>
 
                   {/* Accessible data table - always visible for screen readers and mobile */}
-                  <div className="overflow-x-auto">
+<div className="overflow-x-auto -mx-1 px-1">
                     <table 
                       className="mt-3 min-w-full border border-slate-200 text-sm"
                       aria-label="Revenue distribution data"
