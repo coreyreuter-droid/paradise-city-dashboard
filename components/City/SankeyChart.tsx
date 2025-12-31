@@ -81,8 +81,8 @@ export default function SankeyChart({ revenues, departments, height = 400 }: Pro
     const revenueSorted = Array.from(revenueMap.entries())
       .sort((a, b) => b[1] - a[1]);
     
-    const topRevenues = revenueSorted.slice(0, 8);
-    const otherRevenueTotal = revenueSorted.slice(5).reduce((sum, [, v]) => sum + v, 0);
+      const topRevenues = revenueSorted.slice(0, 8);
+      const otherRevenueTotal = revenueSorted.slice(8).reduce((sum, [, v]) => sum + v, 0);
     if (otherRevenueTotal > 0) {
       topRevenues.push(["Other Sources", otherRevenueTotal]);
     }

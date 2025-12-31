@@ -412,7 +412,7 @@ export default function LandingClient({ portalSettings }: Props) {
       },
       {
         href: cityHref("/budget"),
-        label: "What did our Gov adopt for this year?",
+        label: "What was adopted for this fiscal year?",
         sublabel: "Explore the adopted budget by department.",
       },
     ];

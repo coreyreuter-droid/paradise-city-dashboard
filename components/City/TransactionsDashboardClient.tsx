@@ -471,7 +471,7 @@ export default function TransactionsDashboardClient({
                     <span className="font-semibold">
                       {totalCount.toLocaleString("en-US")}
                     </span>{" "}
-                    transactions on this page.
+                    transactions.
                   </div>
                   <div className="flex items-center gap-2">
                     <button
