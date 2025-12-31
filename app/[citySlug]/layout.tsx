@@ -6,6 +6,7 @@ import { CITY_CONFIG } from "@/lib/cityConfig";
 import { supabaseAdmin } from "@/lib/supabaseService";
 import CityShell from "@/components/City/CityShell";
 import { generateThemeVars } from "@/lib/theme";
+import LegalFooter from "@/components/LegalFooter";
 
 type PortalSettingsRow = {
   city_name: string | null;
@@ -144,7 +145,10 @@ export default async function CityLayout({
         >
           {children}
         </CityShell>
+              <LegalFooter />
       </main>
+
+
     </div>
   );
 }

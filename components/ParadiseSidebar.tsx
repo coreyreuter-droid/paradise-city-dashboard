@@ -537,25 +537,6 @@ export default function ParadiseSidebar({
               <div className="space-y-6">
                 {renderMobileNavList()}
               </div>
-
-              <div className="mt-6 border-t border-slate-100 pt-3">
-                <div className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2">
-                  <div>
-                    <p className="text-xs text-slate-500">
-                      Powered by{" "}
-                      <span className="font-semibold text-slate-800">
-                        CiviPortal
-                      </span>
-                    </p>
-                  </div>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src="/civiportal-logo.png"
-                    alt="CiviPortal"
-                    className="h-5 w-5 rounded-full object-contain"
-                  />
-                </div>
-              </div>
             </div>
           </nav>
         </div>
@@ -598,26 +579,6 @@ export default function ParadiseSidebar({
         <nav className="mt-1 flex-1 space-y-6 overflow-y-auto pb-6">
           {renderDesktopNavList()}
         </nav>
-
-        {/* Footer */}
-        <div className="mt-auto border-t border-white/10 pt-3">
-          <div className="flex items-center justify-between rounded-lg bg-white/5 px-3 py-2">
-            <div>
-              <p className="text-xs text-white/50">
-                Powered by{" "}
-                <span className="font-semibold text-white/70">
-                  CiviPortal
-                </span>
-              </p>
-            </div>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/civiportal-logo.png"
-              alt="CiviPortal"
-              className="h-5 w-5 rounded-full object-contain"
-            />
-          </div>
-        </div>
       </aside>
     </header>
   );
