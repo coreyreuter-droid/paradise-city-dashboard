@@ -11,6 +11,7 @@ import { formatCurrency, formatNumber } from "@/lib/format";
 
 type Props = {
   portalSettings: PortalSettings | null;
+  totalBudget: number | null;
 };
 
 const MONTH_NAMES = [
@@ -308,7 +309,7 @@ type QuickLink = {
   sublabel: string;
 };
 
-export default function LandingClient({ portalSettings }: Props) {
+export default function LandingClient({ portalSettings, totalBudget }: Props) {
   const cityName = portalSettings?.city_name || CITY_CONFIG.displayName || "Your City";
 
   const tagline =
@@ -343,13 +344,9 @@ export default function LandingClient({ portalSettings }: Props) {
   const statPopulation = statPopulationRaw ? formatNumber(statPopulationRaw) : "";
   const statEmployees = statEmployeesRaw ? formatNumber(statEmployeesRaw) : "";
   const statSquareMiles = portalSettings?.stat_square_miles?.trim() || "";
-  const statAnnualBudgetRaw = portalSettings?.stat_annual_budget?.trim() || "";
-
-  let statAnnualBudgetFormatted = "";
-  if (statAnnualBudgetRaw) {
-    const n = Number(statAnnualBudgetRaw.replace(/,/g, ""));
-    statAnnualBudgetFormatted = Number.isFinite(n) ? formatCurrency(n) : statAnnualBudgetRaw;
-  }
+  const statAnnualBudgetFormatted = totalBudget && totalBudget > 0 
+    ? formatCurrency(totalBudget) 
+    : "";
 
   // Visibility toggles
   const showLeadership = portalSettings?.show_leadership !== false;
