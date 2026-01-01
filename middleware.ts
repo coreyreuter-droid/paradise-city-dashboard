@@ -24,6 +24,7 @@ const SKIP_PATTERNS = [
   /^\/api\//,           // API routes (have their own rate limiting)
   /^\/admin/,           // Admin routes (require auth)
   /^\/login/,           // Login page
+  /\/auth\/callback/,   // Auth callback (magic link redirect)
   /\.(ico|png|jpg|jpeg|svg|css|js|woff|woff2)$/, // Static files
 ];
 

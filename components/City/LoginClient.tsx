@@ -51,12 +51,13 @@ export default function LoginClient({ redirect, cityName }: Props) {
     setSuccessMessage(null);
 
     try {
+      // Build the callback URL for the current city
+      const origin = typeof window !== "undefined" ? window.location.origin : "";
+      const callbackUrl = `${origin}${cityHref("/auth/callback")}`;
+
       const { error } = await supabase.auth.signInWithOtp({
         email: email.trim(),
-        // NOTE: We keep redirect available as a prop for future use if you
-        // configure Supabase emailRedirectTo. For now, we rely on your
-        // Supabase project's redirect URL configuration.
-        // options: { emailRedirectTo: redirect },
+        options: { emailRedirectTo: callbackUrl },
       });
 
       if (error) {
