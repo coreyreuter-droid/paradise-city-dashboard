@@ -75,9 +75,6 @@ export async function GET(req: NextRequest, context: Context) {
   const params = await context.params;
   const dataType = params?.dataType;
 
-  // Debug logging
-  console.log("Export route called, dataType:", dataType);
-
   // Validate data type early
   const validTypes = ["budgets", "actuals", "transactions", "revenues"];
   if (!dataType || !validTypes.includes(dataType)) {
@@ -362,7 +359,6 @@ export async function GET(req: NextRequest, context: Context) {
     }
 
     const recordCount = Math.min(totalCount ?? 0, MAX_ROWS);
-    console.log(`Export ${dataType}: fetching ${recordCount} of ${totalCount} records`);
 
     if (recordCount === 0) {
       // Return empty CSV with headers
@@ -422,8 +418,6 @@ export async function GET(req: NextRequest, context: Context) {
       // Small delay between batches to be nice to the database
       await new Promise(resolve => setTimeout(resolve, 50));
     }
-    
-    console.log(`Export ${dataType}: completed with ${allRows.length} rows in ${batchCount} batches`);
 
     // Build CSV
     const csvLines: string[] = [];
