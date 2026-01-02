@@ -1,5 +1,5 @@
 // Delayed loading skeleton - prevents flash on fast navigations.
-// If page loads in <150ms, user never sees the spinner.
+// If page loads in <200ms, user never sees the spinner.
 
 export default function Loading() {
   return (
@@ -8,7 +8,7 @@ export default function Loading() {
       role="status"
       aria-label="Loading content"
       style={{
-        animation: "delayedFadeIn 200ms ease-out 150ms forwards",
+        animation: "delayedFadeIn 200ms ease-out 200ms forwards",
       }}
     >
       <div className="text-center">
