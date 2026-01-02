@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import {
   ResponsiveContainer,
   BarChart,
@@ -24,6 +25,16 @@ type Props = {
 };
 
 export default function ParadiseHomeMultiYearChart({ yearTotals }: Props) {
+  // WCAG 2.1 AA: Respect reduced motion preference
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    setPrefersReducedMotion(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setPrefersReducedMotion(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+
   const data = (yearTotals ?? []).map((r) => ({
     year: r.year,
     budget: Number(r.Budget || 0),
@@ -77,8 +88,24 @@ export default function ParadiseHomeMultiYearChart({ yearTotals }: Props) {
               }}
             />
             <Legend verticalAlign="top" align="right" wrapperStyle={{ fontSize: 11 }} />
-            <Bar dataKey="actuals" name="Actuals" fill="#0f766e" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="budget" name="Budget" fill="#4b5563" radius={[4, 4, 0, 0]} />
+            <Bar
+              dataKey="actuals"
+              name="Actuals"
+              fill="#0f766e"
+              radius={[4, 4, 0, 0]}
+              isAnimationActive={!prefersReducedMotion}
+              animationDuration={800}
+              animationEasing="ease-out"
+            />
+            <Bar
+              dataKey="budget"
+              name="Budget"
+              fill="#4b5563"
+              radius={[4, 4, 0, 0]}
+              isAnimationActive={!prefersReducedMotion}
+              animationDuration={800}
+              animationEasing="ease-out"
+            />
           </BarChart>
         </ResponsiveContainer>
       </div>

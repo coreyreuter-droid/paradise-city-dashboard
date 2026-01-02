@@ -1,7 +1,7 @@
 // components/Budget/BudgetCharts.tsx
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import {
   BarChart,
   Bar,
@@ -49,6 +49,16 @@ export default function BudgetCharts({
   departments,
   layout = "two-column",
 }: Props) {
+  // WCAG 2.1 AA: Respect reduced motion preference
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    setPrefersReducedMotion(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setPrefersReducedMotion(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+
   const chartData = useMemo(
     () =>
       departments.map((d) => ({
@@ -213,6 +223,9 @@ formatter={(value?: number, name?: any) => [
               stackId="budget"
               radius={[4, 4, 4, 4]}
               barSize={8}
+              isAnimationActive={!prefersReducedMotion}
+              animationDuration={800}
+              animationEasing="ease-out"
             >
               {chartData.map((entry, index) => (
                 <Cell
@@ -228,6 +241,9 @@ formatter={(value?: number, name?: any) => [
               stackId="actual"
               radius={[4, 4, 4, 4]}
               barSize={8}
+              isAnimationActive={!prefersReducedMotion}
+              animationDuration={800}
+              animationEasing="ease-out"
             >
               {chartData.map((entry, index) => {
                 const pct = entry.PercentSpent;

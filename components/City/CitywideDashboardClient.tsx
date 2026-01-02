@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import Link from "next/link";
 import {
   PieChart,
@@ -134,6 +134,16 @@ export default function CitywideDashboardClient({
   revenueSummary,
   fiscalYearNote,
 }: Props) {
+  // WCAG 2.1 AA: Respect reduced motion preference
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    setPrefersReducedMotion(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setPrefersReducedMotion(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+
   const yearValue =
     selectedYear ?? (years.length > 0 ? years[0] : new Date().getFullYear());
   const yearLabel = yearValue;
@@ -488,6 +498,9 @@ const { yoyDomain, yoyTicks } = useMemo(() => {
                                 nameKey="name"
                                 outerRadius="82%"
                                 paddingAngle={1}
+                                isAnimationActive={!prefersReducedMotion}
+                                animationDuration={800}
+                                animationEasing="ease-out"
                               >
                                 {budgetDistribution.map((entry, index) => {
                                   const isOther = entry.name === "Other";
@@ -566,6 +579,9 @@ formatter={(value: any, name?: string) => {
                                 nameKey="name"
                                 outerRadius="82%"
                                 paddingAngle={1}
+                                isAnimationActive={!prefersReducedMotion}
+                                animationDuration={800}
+                                animationEasing="ease-out"
                               >
                                 {actualsDistribution.map((entry, index) => {
                                   const isOther = entry.name === "Other";
@@ -730,8 +746,8 @@ formatter={(value: any, name?: string) => {
                               }
                             />
                             <Legend verticalAlign="top" align="right" wrapperStyle={{ fontSize: 11 }} />
-                            <Line type="monotone" dataKey="Budget" dot={false} strokeWidth={2} stroke={BUDGET_COLOR} />
-                            <Line type="monotone" dataKey="Actuals" dot={false} strokeWidth={2} stroke={ACTUAL_COLOR} />
+                            <Line type="monotone" dataKey="Budget" dot={false} strokeWidth={2} stroke={BUDGET_COLOR} isAnimationActive={!prefersReducedMotion} animationDuration={800} animationEasing="ease-out" />
+                            <Line type="monotone" dataKey="Actuals" dot={false} strokeWidth={2} stroke={ACTUAL_COLOR} isAnimationActive={!prefersReducedMotion} animationDuration={800} animationEasing="ease-out" />
                           </LineChart>
                         </ResponsiveContainer>
                       </div>

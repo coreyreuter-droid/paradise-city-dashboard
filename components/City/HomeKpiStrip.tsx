@@ -2,6 +2,7 @@
 "use client";
 
 import { formatCurrency } from "@/lib/format";
+import { AnimatedNumber } from "@/components/ui/AnimatedNumber";
 
 type Props = {
   totalBudget: number;
@@ -64,12 +65,16 @@ export default function ParadiseHomeKpiStrip({
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {/* Adopted budget */}
-        <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+        <div className="cursor-default rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-slate-300 hover:shadow-md">
           <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
             Adopted budget
           </p>
           <p className="mt-1 text-base font-semibold text-slate-900">
-            {totalBudget > 0 ? formatCurrency(totalBudget) : "—"}
+            {totalBudget > 0 ? (
+              <AnimatedNumber value={totalBudget} formatFn={formatCurrency} />
+            ) : (
+              "—"
+            )}
           </p>
           <p className="mt-1 text-xs text-slate-600">
             Sum of adopted budgets across all departments for this fiscal year.
@@ -77,12 +82,16 @@ export default function ParadiseHomeKpiStrip({
         </div>
 
         {/* Posted spending */}
-        <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+        <div className="cursor-default rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-slate-300 hover:shadow-md">
           <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
             Posted spending
           </p>
           <p className="mt-1 text-base font-semibold text-slate-900">
-            {totalActuals > 0 ? formatCurrency(totalActuals) : "—"}
+            {totalActuals > 0 ? (
+              <AnimatedNumber value={totalActuals} formatFn={formatCurrency} />
+            ) : (
+              "—"
+            )}
           </p>
           <p className="mt-1 text-xs text-slate-600">
             Expenses recorded against this year to date.
@@ -90,7 +99,7 @@ export default function ParadiseHomeKpiStrip({
         </div>
 
         {/* Budget remaining / over */}
-        <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+        <div className="cursor-default rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-slate-300 hover:shadow-md">
           <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
             Budget remaining
           </p>
@@ -100,9 +109,14 @@ export default function ParadiseHomeKpiStrip({
               isUnderBudget ? "text-emerald-700" : "text-red-700",
             ].join(" ")}
           >
-            {totalBudget > 0 || totalActuals > 0
-              ? formatCurrency(Math.abs(remaining))
-              : "—"}
+            {totalBudget > 0 || totalActuals > 0 ? (
+              <AnimatedNumber
+                value={Math.abs(remaining)}
+                formatFn={formatCurrency}
+              />
+            ) : (
+              "—"
+            )}
           </p>
           <p className="mt-1 text-xs text-slate-600">
             {isUnderBudget
@@ -112,12 +126,15 @@ export default function ParadiseHomeKpiStrip({
         </div>
 
         {/* Execution & activity */}
-        <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+        <div className="cursor-default rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-slate-300 hover:shadow-md">
           <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
             Execution &amp; activity
           </p>
           <p className="mt-1 text-base font-semibold text-slate-900">
-            {execPctDisplay}
+            <AnimatedNumber
+              value={execPctClamped * 100}
+              formatFn={(v) => `${v.toFixed(1)}%`}
+            />
           </p>
           <p className="mt-1 text-xs text-slate-600">
             Departments:{" "}
