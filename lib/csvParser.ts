@@ -81,11 +81,18 @@ export function parseCsv(text: string): string[][] {
   const lines = normalized.split("\n");
 
   for (const line of lines) {
-    // Count quotes to determine if we're inside a quoted field
-    for (const char of line) {
-      if (char === '"') {
+    // Count quotes properly, skipping escaped quotes ("")
+    let i = 0;
+    while (i < line.length) {
+      if (line[i] === '"') {
+        if (inQuotes && i + 1 < line.length && line[i + 1] === '"') {
+          // Escaped quote inside quoted field - skip both
+          i += 2;
+          continue;
+        }
         inQuotes = !inQuotes;
       }
+      i++;
     }
 
     if (currentLine) {

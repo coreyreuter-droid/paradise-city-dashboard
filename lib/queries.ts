@@ -8,6 +8,23 @@ import { supabase } from "./supabase";
 import { sanitizeSearchInput } from "./format";
 import type { ActualRow, BudgetRow, TransactionRow, RevenueRow } from "./schema";
 
+// Internal types for Supabase query results
+type FiscalYearRow = { fiscal_year: number };
+type BudgetActualsRow = {
+  fiscal_year: number;
+  budget_amount: number;
+  actual_amount: number;
+};
+type DepartmentNameRow = { department_name: string };
+type BudgetActualsDeptRow = {
+  department_name: string;
+  budget_amount: number;
+  actual_amount: number;
+};
+type RevenueYearTotalRow = {
+  fiscal_year: number;
+  total_revenue: number;
+};
 
 const PAGE_SIZE = 1000;
 
@@ -117,16 +134,21 @@ export async function getPortalFiscalYears(): Promise<number[]> {
 
   const years = new Set<number>();
 
-  if (!budgetYears.error)
-    (budgetYears.data ?? []).forEach((r: any) =>
-      years.add(Number(r?.fiscal_year))
+  if (!budgetYears.error) {
+    ((budgetYears.data ?? []) as FiscalYearRow[]).forEach((r) =>
+      years.add(Number(r.fiscal_year))
     );
-  if (!txYears.error)
-    (txYears.data ?? []).forEach((r: any) => years.add(Number(r?.fiscal_year)));
-  if (!revenueYears.error)
-    (revenueYears.data ?? []).forEach((r: any) =>
-      years.add(Number(r?.fiscal_year))
+  }
+  if (!txYears.error) {
+    ((txYears.data ?? []) as FiscalYearRow[]).forEach((r) =>
+      years.add(Number(r.fiscal_year))
     );
+  }
+  if (!revenueYears.error) {
+    ((revenueYears.data ?? []) as FiscalYearRow[]).forEach((r) =>
+      years.add(Number(r.fiscal_year))
+    );
+  }
 
   return Array.from(years)
     .filter((y) => Number.isFinite(y))
@@ -151,24 +173,21 @@ export async function getVendorSummariesForYear(
   fiscalYear: number,
   opts?: { limit?: number; search?: string | null }
 ): Promise<VendorYearSummary[]> {
-  const limit = opts?.limit ?? 500;
+  const limitCount = opts?.limit ?? 500;
   const search = opts?.search ?? null;
+  const sanitized = search?.trim() ? sanitizeSearchInput(search) : null;
 
-  let q: any = supabase
+  const query = supabase
     .from("transaction_year_vendor")
     .select("*")
     .eq("fiscal_year", fiscalYear)
     .order("total_amount", { ascending: false })
-    .limit(limit);
+    .limit(limitCount);
 
-  if (search && search.trim()) {
-    const sanitized = sanitizeSearchInput(search);
-    if (sanitized) {
-      q = q.ilike("vendor", `%${sanitized}%`);
-    }
-  }
+  const { data, error } = sanitized
+    ? await query.ilike("vendor", `%${sanitized}%`)
+    : await query;
 
-  const { data, error } = await q;
   if (error) {
     console.error("Error fetching vendor summaries", error);
     return [];
@@ -272,7 +291,7 @@ export async function getBudgetActualsYearTotals(): Promise<
 
   const byYear = new Map<number, { budget: number; actuals: number }>();
 
-  for (const r of (data ?? []) as any[]) {
+  for (const r of (data ?? []) as BudgetActualsRow[]) {
     const year = Number(r.fiscal_year);
     if (!Number.isFinite(year)) continue;
 
@@ -355,7 +374,7 @@ export async function getAvailableFiscalYears(): Promise<number[]> {
     return [];
   }
   const years = new Set<number>();
-  (data ?? []).forEach((r: any) => years.add(Number(r.fiscal_year)));
+  ((data ?? []) as FiscalYearRow[]).forEach((r) => years.add(Number(r.fiscal_year)));
   return Array.from(years).filter((y) => Number.isFinite(y)).sort((a, b) => b - a);
 }
 
@@ -377,8 +396,8 @@ export async function getTransactionYears(): Promise<number[]> {
   const seen = new Set<number>();
   const out: number[] = [];
 
-  (data ?? []).forEach((r: any) => {
-    const year = Number(r?.fiscal_year);
+  ((data ?? []) as FiscalYearRow[]).forEach((r) => {
+    const year = Number(r.fiscal_year);
     if (Number.isFinite(year) && !seen.has(year)) {
       seen.add(year);
       out.push(year);
@@ -631,9 +650,9 @@ export async function getTransactionDepartmentsForYear(
     throw error;
   }
 
-  const names = (data ?? [])
-    .map((r: any) => (r?.department_name ?? "").toString().trim())
-    .filter((s: string) => s.length > 0);
+  const names = ((data ?? []) as DepartmentNameRow[])
+    .map((r) => (r.department_name ?? "").toString().trim())
+    .filter((s) => s.length > 0);
 
   // de-dupe defensively
   return Array.from(new Set(names));
@@ -656,13 +675,13 @@ export async function getBudgetPageDepartmentSummaries(
     throw error;
   }
 
-  return (data ?? []).map((row: any) => {
-    const budget = Number(row?.budget_amount ?? 0);
-    const actuals = Number(row?.actual_amount ?? 0);
+  return ((data ?? []) as BudgetActualsDeptRow[]).map((row) => {
+    const budget = Number(row.budget_amount ?? 0);
+    const actuals = Number(row.actual_amount ?? 0);
     const percentSpent = budget > 0 ? Math.round((actuals / budget) * 100) : 0;
 
     return {
-      department_name: (row?.department_name ?? "Unassigned").toString(),
+      department_name: (row.department_name ?? "Unassigned").toString(),
       budget,
       actuals,
       percentSpent,
@@ -740,8 +759,8 @@ export async function getRevenueYears(): Promise<number[]> {
   const seen = new Set<number>();
   const out: number[] = [];
 
-  (data ?? []).forEach((r: any) => {
-    const year = Number(r?.fiscal_year);
+  ((data ?? []) as FiscalYearRow[]).forEach((r) => {
+    const year = Number(r.fiscal_year);
     if (Number.isFinite(year) && !seen.has(year)) {
       seen.add(year);
       out.push(year);
@@ -766,10 +785,10 @@ export async function getRevenueYearTotals(): Promise<
     throw error;
   }
 
-  return (data ?? [])
-    .map((r: any) => ({
-      year: Number(r?.fiscal_year),
-      total: Number(r?.total_revenue ?? 0),
+  return ((data ?? []) as RevenueYearTotalRow[])
+    .map((r) => ({
+      year: Number(r.fiscal_year),
+      total: Number(r.total_revenue ?? 0),
     }))
     .filter((r) => Number.isFinite(r.year));
 }

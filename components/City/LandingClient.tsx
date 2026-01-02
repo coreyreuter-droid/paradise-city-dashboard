@@ -8,64 +8,12 @@ import { CITY_CONFIG } from "@/lib/cityConfig";
 import { cityHref } from "@/lib/cityRouting";
 import type { PortalSettings } from "@/lib/queries";
 import { formatCurrency, formatNumber } from "@/lib/format";
+import { getFiscalYearLabel } from "@/lib/fiscalYear";
 
 type Props = {
   portalSettings: PortalSettings | null;
   totalBudget: number | null;
 };
-
-const MONTH_NAMES = [
-  "",
-  "January",
-  "February",
-  "March",
-  "April",
-  "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December",
-];
-const LAST_DAY_OF_MONTH = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-
-function getFiscalYearPublicLabel(portalSettings: PortalSettings | null): string | null {
-  if (!portalSettings) return null;
-
-  const anySettings = portalSettings as any;
-  const explicitLabel = anySettings?.fiscal_year_label as string | null | undefined;
-
-  if (explicitLabel && explicitLabel.trim().length > 0) {
-    return explicitLabel.trim();
-  }
-
-  const startMonth = anySettings?.fiscal_year_start_month as number | null | undefined;
-  const startDay = anySettings?.fiscal_year_start_day as number | null | undefined;
-
-  if (!startMonth || !startDay) return null;
-
-  const startMonthName = MONTH_NAMES[startMonth] ?? "";
-  if (!startMonthName) return null;
-
-  const startDayClamped = Math.max(1, Math.min(LAST_DAY_OF_MONTH[startMonth] ?? 31, startDay));
-
-  // End date = day before fiscal year start date
-  const startDate = new Date(Date.UTC(2000, startMonth - 1, startDayClamped));
-  const endDate = new Date(startDate.getTime() - 24 * 60 * 60 * 1000);
-
-  const endMonth = endDate.getUTCMonth() + 1;
-  const endMonthName = MONTH_NAMES[endMonth] ?? "";
-  const endDayClamped = endDate.getUTCDate();
-
-  if (!endMonthName) return null;
-
-  const startLabel = `${startMonthName} ${String(startDayClamped).padStart(2, "0")}`;
-  const endLabel = `${endMonthName} ${String(endDayClamped).padStart(2, "0")}`;
-
-  return `Fiscal year runs ${startLabel} – ${endLabel}.`;
-}
 
 /* ---------- Small inline icons (no deps) ---------- */
 function IconMessage() {
@@ -324,7 +272,7 @@ export default function LandingClient({ portalSettings, totalBudget }: Props) {
   const heroOverlay = "rgba(15, 23, 42, 0.65)";
   const sealUrl = portalSettings?.seal_url || null;
 
-  const fiscalYearNote = getFiscalYearPublicLabel(portalSettings);
+  const fiscalYearNote = getFiscalYearLabel(portalSettings);
 
   const storyCityDescription =
     portalSettings?.story_city_description ??

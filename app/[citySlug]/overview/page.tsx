@@ -15,6 +15,7 @@ import type {
   PortalSettings,
   VendorYearSummary,
   BudgetActualsYearDeptRow,
+  DataUploadLogRow,
 } from "@/lib/queries";
 
 export const revalidate = 60;
@@ -24,7 +25,6 @@ type SearchParams = {
 };
 
 type PageProps = {
-  params: { citySlug: string };
   searchParams: SearchParams | Promise<SearchParams>;
 };
 
@@ -38,7 +38,7 @@ export default async function CityOverviewPage({ searchParams }: PageProps) {
     getBudgetActualsYearTotals(),
   ]);
 
-  const settings = portalSettings as PortalSettings | null;
+  const settings = portalSettings;
 
   if (settings && settings.is_published === false) {
     const cityName = settings.city_name || "Your City";
@@ -100,7 +100,7 @@ export default async function CityOverviewPage({ searchParams }: PageProps) {
         : null;
   }
 
-  const uploadLogs = (uploadLogsRaw ?? []) as any[];
+  const uploadLogs = (uploadLogsRaw ?? []) as DataUploadLogRow[];
 
   type FreshnessEntry = {
     table: string;
@@ -120,10 +120,10 @@ export default async function CityOverviewPage({ searchParams }: PageProps) {
   const dataFreshness: DataFreshnessSummary = {};
 
   tables.forEach((tableName) => {
-    const tableLogs = uploadLogs.filter((log) => log?.table_name === tableName);
+    const tableLogs = uploadLogs.filter((log) => log.table_name === tableName);
 
     if (!tableLogs.length) {
-      (dataFreshness as any)[tableName] = null;
+      dataFreshness[tableName] = null;
       return;
     }
 
@@ -131,21 +131,21 @@ export default async function CityOverviewPage({ searchParams }: PageProps) {
       return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     })[0];
 
-    (dataFreshness as any)[tableName] = {
+    dataFreshness[tableName] = {
       table: tableName,
       fiscalYear:
-        typeof latest?.fiscal_year === "number"
+        typeof latest.fiscal_year === "number"
           ? latest.fiscal_year
-          : latest?.fiscal_year
+          : latest.fiscal_year
           ? Number(latest.fiscal_year)
           : null,
       rowCount:
-        typeof latest?.row_count === "number"
+        typeof latest.row_count === "number"
           ? latest.row_count
-          : latest?.row_count
+          : latest.row_count
           ? Number(latest.row_count)
           : null,
-      lastUploadAt: latest?.created_at ?? null,
+      lastUploadAt: latest.created_at ?? null,
     } satisfies FreshnessEntry;
   });
 

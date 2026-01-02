@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState, ReactNode } from "react";
+import { useMemo, useState, ReactNode } from "react";
 
 type SortDirection = "asc" | "desc";
 

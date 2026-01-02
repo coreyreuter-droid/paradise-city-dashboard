@@ -12,42 +12,10 @@ import {
 } from "@/lib/queries";
 import type { RevenueRow } from "@/lib/types";
 import type { VendorYearSummary, BudgetActualsYearDeptRow } from "@/lib/queries";
+import { getFiscalYearLabel } from "@/lib/fiscalYear";
 import { notFound } from "next/navigation";
 
 type SearchParamsShape = { year?: string };
-
-const MONTH_NAMES = [
-  "January","February","March","April","May","June",
-  "July","August","September","October","November","December",
-];
-
-function getFiscalYearNoteFromSettings(settings: Record<string, unknown> | null): string | null {
-  if (!settings) return null;
-
-  const anySettings = settings as any;
-  const explicitLabel = (anySettings?.fiscal_year_label as string | null | undefined) ?? null;
-  if (explicitLabel && explicitLabel.trim().length > 0) return explicitLabel.trim();
-
-  const rawStartMonth = anySettings?.fiscal_year_start_month;
-  const rawStartDay = anySettings?.fiscal_year_start_day;
-
-  const parsedMonth = Number(rawStartMonth);
-  const parsedDay = Number(rawStartDay);
-
-  const startMonth =
-    Number.isFinite(parsedMonth) && parsedMonth >= 1 && parsedMonth <= 12 ? parsedMonth : 7;
-  const startDay =
-    Number.isFinite(parsedDay) && parsedDay >= 1 && parsedDay <= 31 ? parsedDay : 1;
-
-    const start = new Date(Date.UTC(2000, startMonth - 1, startDay));
-  const end = new Date(start.getTime() - 24 * 60 * 60 * 1000);
-
-  const startMonthName = MONTH_NAMES[start.getUTCMonth()];
-  const endMonthName = MONTH_NAMES[end.getUTCMonth()];
-
-  return `Fiscal year runs from ${startMonthName} ${start.getUTCDate()} to ${endMonthName} ${end.getUTCDate()}.`;
-
-}
 
 export default async function AnalyticsPage({
   searchParams,
@@ -68,9 +36,7 @@ export default async function AnalyticsPage({
   const enableVendors = enableTransactions && portalSettings.enable_vendors === true;
   const enableRevenues = portalSettings.enable_revenues === true;
 
-  const fiscalYearNote = getFiscalYearNoteFromSettings(
-    portalSettings as unknown as Record<string, unknown> | null
-  );
+  const fiscalYearNote = getFiscalYearLabel(portalSettings);
 
   const [years, yoyTotals, deptAllYears] = await Promise.all([
     getPortalFiscalYears(),

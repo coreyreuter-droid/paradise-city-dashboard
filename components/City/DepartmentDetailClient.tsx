@@ -37,7 +37,6 @@ type Props = {
   transactions: TransactionRow[];
   enableVendors: boolean;
   availableYears?: number[];
-  multiYearSeriesOverride?: any;
 };
 
 const formatCurrency = (value: number) =>

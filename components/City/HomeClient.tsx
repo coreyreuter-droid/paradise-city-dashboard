@@ -24,6 +24,7 @@ import type {
 } from "@/lib/queries";
 import type { TransactionRow, RevenueRow } from "@/lib/types";
 import { formatCurrency } from "@/lib/format";
+import { getFiscalYearLabel } from "@/lib/fiscalYear";
 
 
 type FreshnessEntry = {
@@ -70,54 +71,6 @@ function formatFreshnessDate(iso: string | null): string | null {
     day: "numeric",
     year: "numeric",
   });
-}
-
-const MONTH_NAMES = [
-  "",
-  "January",
-  "February",
-  "March",
-  "April",
-  "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December",
-];
-const LAST_DAY_OF_MONTH = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-
-function getFiscalYearPublicLabel(
-  portalSettings: PortalSettings | null
-): string | null {
-  if (!portalSettings) return null;
-
-  const anySettings = portalSettings as any;
-  const explicitLabel = anySettings?.fiscal_year_label as
-    | string
-    | null
-    | undefined;
-  if (explicitLabel && explicitLabel.trim().length > 0) {
-    return explicitLabel.trim();
-  }
-
-  const startMonth =
-    (anySettings?.fiscal_year_start_month as number | null | undefined) ?? 1;
-  const startDay =
-    (anySettings?.fiscal_year_start_day as number | null | undefined) ?? 1;
-
-  if (startMonth === 1 && startDay === 1) {
-    return "Fiscal year aligns with the calendar year (January 1 – December 31).";
-  }
-
-  const startMonthName = MONTH_NAMES[startMonth] || "January";
-  const endMonthIndex = ((startMonth + 10) % 12) + 1;
-  const endMonthName = MONTH_NAMES[endMonthIndex] || "December";
-
-  const endDay = LAST_DAY_OF_MONTH[endMonthIndex] ?? 30;
-  return `Fiscal year runs ${startMonthName} ${startDay} – ${endMonthName} ${endDay}.`;
 }
 
 export default function ParadiseHomeClient({
@@ -243,7 +196,7 @@ export default function ParadiseHomeClient({
   // LESS DARK overlay so branding/background shows through
   const heroOverlay = "rgba(15, 23, 42, 0.45)";
 
-  const fiscalYearNote = getFiscalYearPublicLabel(portalSettings);
+  const fiscalYearNote = getFiscalYearLabel(portalSettings);
 
   const hasAnyDataForSelectedYear =
     hasBudgetData ||
