@@ -1,9 +1,15 @@
+// Delayed loading skeleton - prevents flash on fast navigations.
+// If page loads in <150ms, user never sees the skeleton.
+
 export default function Loading() {
   return (
-    <div 
-      className="w-full"
+    <div
+      className="w-full opacity-0"
       role="status"
       aria-label="Loading dashboard content"
+      style={{
+        animation: "delayedFadeIn 200ms ease-out 150ms forwards",
+      }}
     >
       {/* Main content skeleton - sidebar stays in place via layout */}
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
@@ -39,6 +45,13 @@ export default function Loading() {
         {/* Table skeleton */}
         <div className="mt-6 h-64 animate-pulse rounded-2xl bg-slate-200" />
       </div>
+
+      <style>{`
+        @keyframes delayedFadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+      `}</style>
     </div>
   );
 }
