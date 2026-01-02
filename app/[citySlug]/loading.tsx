@@ -1,49 +1,56 @@
-// Delayed loading skeleton - prevents flash on fast navigations.
-// If page loads in <150ms, user never sees the skeleton.
+// Delayed loading skeleton for Landing page - prevents flash on fast navigations.
+// Mirrors: LandingClient (Hero + navigation tiles + section cards)
 
 export default function Loading() {
   return (
     <div
-      className="w-full opacity-0"
+      className="opacity-0"
       role="status"
-      aria-label="Loading dashboard content"
-      style={{
-        animation: "delayedFadeIn 200ms ease-out 150ms forwards",
-      }}
+      aria-label="Loading landing page"
+      style={{ animation: "delayedFadeIn 200ms ease-out 200ms forwards" }}
     >
-      {/* Main content skeleton - sidebar stays in place via layout */}
-      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-        {/* Header skeleton */}
-        <div className="mb-6 flex items-center justify-between">
-          <div className="space-y-2">
-            <div className="h-3 w-20 animate-pulse rounded bg-slate-200" />
-            <div className="h-6 w-48 animate-pulse rounded bg-slate-200" />
-          </div>
-          <div className="h-8 w-32 animate-pulse rounded-full bg-slate-200" />
+      {/* Hero skeleton */}
+      <div className="relative h-[340px] animate-pulse bg-slate-800 sm:h-[400px]">
+        <div className="mx-auto flex h-full max-w-6xl flex-col items-center justify-center px-4 text-center">
+          <div className="mb-4 h-16 w-16 rounded-full bg-slate-700" />
+          <div className="mb-2 h-10 w-64 rounded bg-slate-700" />
+          <div className="h-5 w-48 rounded bg-slate-700" />
         </div>
+      </div>
 
-        {/* Hero skeleton */}
-        <div className="mb-6 h-48 animate-pulse rounded-2xl bg-slate-200" />
-
-        {/* KPI strip skeleton */}
-        <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-4">
+      {/* Navigation tiles */}
+      <div className="mx-auto -mt-12 max-w-5xl px-4">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {[...Array(4)].map((_, i) => (
             <div
               key={i}
-              className="h-24 animate-pulse rounded-xl bg-slate-200"
-              style={{ animationDelay: `${i * 100}ms` }}
+              className="h-20 animate-pulse rounded-xl bg-white shadow-lg"
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* Content sections */}
+      <div className="mx-auto max-w-6xl space-y-8 px-4 py-12">
+        {/* Section cards grid */}
+        <div className="grid gap-6 md:grid-cols-2">
+          {[...Array(4)].map((_, i) => (
+            <div
+              key={i}
+              className="h-48 animate-pulse rounded-2xl bg-slate-100"
             />
           ))}
         </div>
 
-        {/* Charts skeleton */}
-        <div className="grid gap-6 lg:grid-cols-2">
-          <div className="h-80 animate-pulse rounded-2xl bg-slate-200" />
-          <div className="h-80 animate-pulse rounded-2xl bg-slate-200" />
+        {/* Stats strip */}
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+          {[...Array(4)].map((_, i) => (
+            <div
+              key={i}
+              className="h-24 animate-pulse rounded-xl bg-slate-100"
+            />
+          ))}
         </div>
-
-        {/* Table skeleton */}
-        <div className="mt-6 h-64 animate-pulse rounded-2xl bg-slate-200" />
       </div>
 
       <style>{`
