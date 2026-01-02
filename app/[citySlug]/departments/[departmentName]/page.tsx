@@ -77,18 +77,6 @@ export default async function DepartmentDetailPage({ params, searchParams }: Pag
       ? parsedYear
       : availableYears[0];
 
-  const multiYearSeriesOverride =
-    deptSummaryAllYears.length > 0
-      ? deptSummaryAllYears
-          .map((r) => ({
-            year: Number(r.fiscal_year),
-            budget: Number(r.budget_amount ?? 0),
-            actuals: Number(r.actual_amount ?? 0),
-          }))
-          .filter((p) => Number.isFinite(p.year))
-          .sort((a, b) => a.year - b.year)
-      : undefined;
-
   // Selected-year detail: raw rows scoped to department (fast)
   const [budgetsRaw, actualsRaw, txRaw] = await Promise.all([
     getBudgetsForDepartmentYear(departmentName, selectedYear),
@@ -118,7 +106,6 @@ export default async function DepartmentDetailPage({ params, searchParams }: Pag
       transactions={transactions}
       enableVendors={enableVendors}
       availableYears={availableYears}
-      multiYearSeriesOverride={multiYearSeriesOverride}
     />
   );
 }
