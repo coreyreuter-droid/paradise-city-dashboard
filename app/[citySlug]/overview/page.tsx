@@ -10,6 +10,7 @@ import {
   getVendorSummariesForYear,
   getRecentTransactionsForYear,
 } from "@/lib/queries";
+import { calculateInsights } from "@/lib/insights";
 import type { TransactionRow, RevenueRow } from "@/lib/types";
 import type {
   PortalSettings,
@@ -149,6 +150,18 @@ export default async function CityOverviewPage({ searchParams }: PageProps) {
     } satisfies FreshnessEntry;
   });
 
+  // Calculate department insights for the Overview page
+  const departments = deptBudgetActuals.map((d) => ({
+    department_name: d.department_name || "Unspecified",
+    budget: Number(d.budget_amount || 0),
+    actuals: Number(d.actual_amount || 0),
+    percentSpent: Number(d.budget_amount || 0) > 0
+      ? (Number(d.actual_amount || 0) / Number(d.budget_amount || 0)) * 100
+      : 0,
+  }));
+
+  const insights = calculateInsights({ departments });
+
   return (
     <ParadiseHomeClient
       deptBudgetActuals={deptBudgetActuals}
@@ -160,6 +173,7 @@ export default async function CityOverviewPage({ searchParams }: PageProps) {
       revenues={revenues}
       revenueTotal={revenueTotal}
       dataFreshness={dataFreshness}
+      insights={insights}
     />
   );
 }

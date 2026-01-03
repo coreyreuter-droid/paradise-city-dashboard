@@ -402,12 +402,12 @@ export default function SankeyChart({ revenues, departments, height = 400 }: Pro
                   transform: isCenter ? 'translateX(-50%)' : undefined,
                 }}
               >
-<div className={`flex flex-col rounded bg-white/90 px-1.5 py-0.5 ${isRight ? 'items-end text-right' : isCenter ? 'items-center text-center' : 'items-start'}`}>
-  <span className="text-xs font-semibold text-slate-900 leading-tight whitespace-nowrap">
+<div className={`flex flex-col rounded bg-white border border-slate-200 shadow-sm px-1.5 py-0.5 max-w-[120px] sm:max-w-none ${isRight ? 'items-end text-right' : isCenter ? 'items-center text-center' : 'items-start'}`}>
+  <span className="text-[11px] sm:text-xs font-semibold text-slate-900 leading-tight whitespace-nowrap truncate max-w-full">
     {node.label}
   </span>
   {pos.height > 28 && (
-    <span className="text-[10px] text-slate-600 leading-tight">
+    <span className="text-[10px] font-medium text-slate-700 leading-tight">
       {formatCompact(node.value)}
     </span>
   )}

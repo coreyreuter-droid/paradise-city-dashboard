@@ -1,14 +1,16 @@
 // app/[citySlug]/transactions/page.tsx
 import TransactionsDashboardClient from "@/components/City/TransactionsDashboardClient";
 import UnpublishedMessage from "@/components/City/UnpublishedMessage";
+import DataFreshness from "@/components/DataFreshness";
 import {
   getTransactionYears,
   getTransactionDepartmentsForYear,
   getTransactionsPage,
   getPortalSettings,
+  getDataUploadLogs,
 } from "@/lib/queries";
 import type { TransactionRow } from "@/lib/types";
-import type { PortalSettings } from "@/lib/queries";
+import type { PortalSettings, DataUploadLogRow } from "@/lib/queries";
 import { getFiscalYearLabel } from "@/lib/fiscalYear";
 import { notFound } from "next/navigation";
 
@@ -38,12 +40,20 @@ export default async function TransactionsPage({
 }: PageProps) {
   const resolvedSearchParams = await searchParams;
 
-  const [yearsRaw, settings] = await Promise.all([
+  const [yearsRaw, settings, uploadLogsRaw] = await Promise.all([
     getTransactionYears(),
     getPortalSettings(),
+    getDataUploadLogs(),
   ]);
 
   const portalSettings = settings as PortalSettings | null;
+  const uploadLogs = (uploadLogsRaw ?? []) as DataUploadLogRow[];
+
+  // Get most recent transactions upload
+  const txLogs = uploadLogs.filter((log) => log.table_name === "transactions");
+  const lastUploadAt = txLogs.length > 0
+    ? txLogs.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]?.created_at
+    : null;
 
   if (portalSettings && portalSettings.is_published === false) {
     return <UnpublishedMessage settings={portalSettings} />;
@@ -103,18 +113,23 @@ const pageResult = await getTransactionsPage({
   }
 
   return (
-    <TransactionsDashboardClient
-      transactions={transactions}
-      years={years}
-      selectedYear={selectedYear}
-      totalCount={totalCount}
-      page={page}
-      pageSize={PAGE_SIZE}
-      departments={departments}
-      departmentFilter={department}
-      vendorQuery={vendorQuery}
-      enableVendors={enableVendors}
-      fiscalYearNote={fiscalYearNote ?? undefined}
-    />
+    <>
+      <div className="mb-3 flex items-center justify-end">
+        <DataFreshness lastUploadAt={lastUploadAt} />
+      </div>
+      <TransactionsDashboardClient
+        transactions={transactions}
+        years={years}
+        selectedYear={selectedYear}
+        totalCount={totalCount}
+        page={page}
+        pageSize={PAGE_SIZE}
+        departments={departments}
+        departmentFilter={department}
+        vendorQuery={vendorQuery}
+        enableVendors={enableVendors}
+        fiscalYearNote={fiscalYearNote ?? undefined}
+      />
+    </>
   );
 }

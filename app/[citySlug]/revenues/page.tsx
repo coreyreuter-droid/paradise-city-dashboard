@@ -1,13 +1,15 @@
 // app/[citySlug]/revenues/page.tsx
 import RevenuesDashboardClient from "@/components/City/RevenuesDashboardClient";
 import UnpublishedMessage from "@/components/City/UnpublishedMessage";
+import DataFreshness from "@/components/DataFreshness";
 import {
   getRevenueYears,
   getRevenuesForYear,
   getPortalSettings,
+  getDataUploadLogs,
 } from "@/lib/queries";
 import type { RevenueRow } from "@/lib/types";
-import type { PortalSettings } from "@/lib/queries";
+import type { PortalSettings, DataUploadLogRow } from "@/lib/queries";
 import { getFiscalYearLabel } from "@/lib/fiscalYear";
 import { notFound } from "next/navigation";
 
@@ -39,12 +41,20 @@ export default async function RevenuesPage({
 }: PageProps) {
   const resolvedSearchParams = await searchParams;
 
-  const [yearsRaw, settings] = await Promise.all([
+  const [yearsRaw, settings, uploadLogsRaw] = await Promise.all([
     getRevenueYears(),
     getPortalSettings(),
+    getDataUploadLogs(),
   ]);
 
   const portalSettings = settings as PortalSettings | null;
+  const uploadLogs = (uploadLogsRaw ?? []) as DataUploadLogRow[];
+
+  // Get most recent revenues upload
+  const revenueLogs = uploadLogs.filter((log) => log.table_name === "revenues");
+  const lastUploadAt = revenueLogs.length > 0
+    ? revenueLogs.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]?.created_at
+    : null;
 
   if (portalSettings && portalSettings.is_published === false) {
     return <UnpublishedMessage settings={portalSettings} />;
@@ -100,13 +110,18 @@ export default async function RevenuesPage({
   const sourceQuery = pickFirst(resolvedSearchParams.q) ?? null;
 
   return (
-    <RevenuesDashboardClient
-      years={years}
-      selectedYear={selectedYear}
-      revenues={revenues}
-      sourceQuery={sourceQuery}
-      yearTotals={yearTotals}
-      fiscalYearNote={fiscalYearNote ?? undefined}
-    />
+    <>
+      <div className="mb-3 flex items-center justify-end">
+        <DataFreshness lastUploadAt={lastUploadAt} />
+      </div>
+      <RevenuesDashboardClient
+        years={years}
+        selectedYear={selectedYear}
+        revenues={revenues}
+        sourceQuery={sourceQuery}
+        yearTotals={yearTotals}
+        fiscalYearNote={fiscalYearNote ?? undefined}
+      />
+    </>
   );
 }

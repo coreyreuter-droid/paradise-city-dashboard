@@ -2,12 +2,14 @@
 import { notFound } from "next/navigation";
 import VendorsDashboardClient from "@/components/City/VendorsDashboardClient";
 import UnpublishedMessage from "@/components/City/UnpublishedMessage";
+import DataFreshness from "@/components/DataFreshness";
 import {
   getPortalFiscalYears,
   getPortalSettings,
   getVendorSummariesForYear,
+  getDataUploadLogs,
 } from "@/lib/queries";
-import type { PortalSettings, VendorYearSummary } from "@/lib/queries";
+import type { PortalSettings, VendorYearSummary, DataUploadLogRow } from "@/lib/queries";
 
 export const revalidate = 0;
 
@@ -30,12 +32,20 @@ function pickFirst(value: string | string[] | undefined) {
 export default async function VendorsPage({ searchParams }: PageProps) {
   const resolvedSearchParams = await searchParams;
 
-  const [yearsRaw, settings] = await Promise.all([
+  const [yearsRaw, settings, uploadLogsRaw] = await Promise.all([
     getPortalFiscalYears(),
     getPortalSettings(),
+    getDataUploadLogs(),
   ]);
 
   const portalSettings = settings as PortalSettings | null;
+  const uploadLogs = (uploadLogsRaw ?? []) as DataUploadLogRow[];
+
+  // Get most recent transactions upload (vendors come from transactions)
+  const txLogs = uploadLogs.filter((log) => log.table_name === "transactions");
+  const lastUploadAt = txLogs.length > 0
+    ? txLogs.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]?.created_at
+    : null;
 
   if (portalSettings && portalSettings.is_published === false) {
     return <UnpublishedMessage settings={portalSettings} />;
@@ -69,11 +79,16 @@ export default async function VendorsPage({ searchParams }: PageProps) {
   }
 
   return (
-    <VendorsDashboardClient
-      years={years}
-      selectedYear={selectedYear}
-      vendorSummaries={vendorSummaries}
-      vendorQuery={vendorQuery}
-    />
+    <>
+      <div className="mb-3 flex items-center justify-end">
+        <DataFreshness lastUploadAt={lastUploadAt} />
+      </div>
+      <VendorsDashboardClient
+        years={years}
+        selectedYear={selectedYear}
+        vendorSummaries={vendorSummaries}
+        vendorQuery={vendorQuery}
+      />
+    </>
   );
 }

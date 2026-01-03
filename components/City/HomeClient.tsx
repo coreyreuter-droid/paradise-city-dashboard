@@ -14,6 +14,7 @@ import RecentTransactionsCard from "@/components/City/HomeRecentTransactionsCard
 import HomeRevenueSummary from "@/components/City/HomeRevenueSummary";
 import SankeyChart from "@/components/City/SankeyChart";
 import NarrativeSummary from "@/components/NarrativeSummary";
+import InsightsSection from "@/components/City/InsightsSection";
 import { buildHomeNarrative } from "@/lib/narrativeHelpers";
 import { CITY_CONFIG } from "@/lib/cityConfig";
 import { cityHref } from "@/lib/cityRouting";
@@ -23,6 +24,7 @@ import type {
   BudgetActualsYearDeptRow,
 } from "@/lib/queries";
 import type { TransactionRow, RevenueRow } from "@/lib/types";
+import type { Insight } from "@/lib/insights";
 import { formatCurrency } from "@/lib/format";
 import { getFiscalYearLabel } from "@/lib/fiscalYear";
 
@@ -60,6 +62,7 @@ type Props = {
   revenues?: RevenueRow[];
   revenueTotal?: number | null;
   dataFreshness?: DataFreshnessSummary;
+  insights?: Insight[];
 };
 
 function formatFreshnessDate(iso: string | null): string | null {
@@ -83,6 +86,7 @@ export default function ParadiseHomeClient({
   revenues = [],
   revenueTotal,
   dataFreshness,
+  insights = [],
 }: Props) {
   const searchParams = useSearchParams();
 
@@ -525,6 +529,13 @@ className="inline-flex items-center justify-center rounded-full px-3 py-1.5 text
           {/* Narrative Summary */}
           {narrative && (
             <NarrativeSummary narrative={narrative} />
+          )}
+
+          {/* Key Department Insights - only shown if insights exist */}
+          {insights.length > 0 && selectedYear && (
+            <CardContainer>
+              <InsightsSection insights={insights} fiscalYear={selectedYear} />
+            </CardContainer>
           )}
 
           {/* Money Flow Sankey */}

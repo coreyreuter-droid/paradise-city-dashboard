@@ -474,25 +474,18 @@ export type DataUploadLogRow = {
 
 
 export async function getDataUploadLogs(): Promise<DataUploadLogRow[]> {
-  // Never throw here (Overview should remain stable even if logs are unavailable).
-  const attempt = async (table: string) => {
-    const { data, error } = await supabase
-      .from(table)
-      .select("*")
-      .order("created_at", { ascending: false })
-      .limit(100);
+  const { data, error } = await supabase
+    .from("data_uploads")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(100);
 
-    return { data, error };
-  };
+  if (error) {
+    console.error("getDataUploadLogs error:", error);
+    return [];
+  }
 
-  const first = await attempt("data_upload_logs");
-  if (!first.error) return (first.data ?? []) as DataUploadLogRow[];
-
-  const fallback = await attempt("data_uploads");
-  if (!fallback.error) return (fallback.data ?? []) as DataUploadLogRow[];
-
-  console.error("getDataUploadLogs error:", first.error || fallback.error);
-  return [];
+  return (data ?? []) as DataUploadLogRow[];
 }
 
 /* =========================

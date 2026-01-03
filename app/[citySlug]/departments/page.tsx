@@ -2,13 +2,15 @@
 import { notFound } from "next/navigation";
 import DepartmentsDashboardClient from "@/components/City/DepartmentsDashboardClient";
 import UnpublishedMessage from "@/components/City/UnpublishedMessage";
+import DataFreshness from "@/components/DataFreshness";
 import {
   getPortalFiscalYears,
   getBudgetActualsSummaryForYear,
   getDepartmentTransactionSummariesForYear,
   getPortalSettings,
+  getDataUploadLogs,
 } from "@/lib/queries";
-import type { PortalSettings, DepartmentYearTxSummary, BudgetActualsYearDeptRow } from "@/lib/queries";
+import type { PortalSettings, DepartmentYearTxSummary, BudgetActualsYearDeptRow, DataUploadLogRow } from "@/lib/queries";
 
 export const revalidate = 60;
 
@@ -30,12 +32,22 @@ function pickFirst(value: string | string[] | undefined): string | undefined {
 export default async function DepartmentsPage({ searchParams }: PageProps) {
   const sp = await searchParams;
 
-  const [yearsRaw, settings] = await Promise.all([
+  const [yearsRaw, settings, uploadLogsRaw] = await Promise.all([
     getPortalFiscalYears(),
     getPortalSettings(),
+    getDataUploadLogs(),
   ]);
 
   const portalSettings = settings as PortalSettings | null;
+  const uploadLogs = (uploadLogsRaw ?? []) as DataUploadLogRow[];
+
+  // Get most recent budget or actuals upload
+  const deptLogs = uploadLogs.filter(
+    (log) => log.table_name === "budgets" || log.table_name === "actuals"
+  );
+  const lastUploadAt = deptLogs.length > 0
+    ? deptLogs.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]?.created_at
+    : null;
 
   if (portalSettings && portalSettings.is_published === false) {
     return <UnpublishedMessage settings={portalSettings} />;
@@ -80,11 +92,16 @@ export default async function DepartmentsPage({ searchParams }: PageProps) {
   }
 
   return (
-    <DepartmentsDashboardClient
-      deptBudgetActuals={deptBudgetActuals}
-      txSummaries={txSummaries}
-      years={years}
-      enableTransactions={enableTransactions}
-    />
+    <>
+      <div className="mb-3 flex items-center justify-end">
+        <DataFreshness lastUploadAt={lastUploadAt} />
+      </div>
+      <DepartmentsDashboardClient
+        deptBudgetActuals={deptBudgetActuals}
+        txSummaries={txSummaries}
+        years={years}
+        enableTransactions={enableTransactions}
+      />
+    </>
   );
 }
