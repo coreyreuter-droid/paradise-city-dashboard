@@ -147,7 +147,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
         let q = supabase
           .from("transactions")
           .select("id, date, vendor, description, amount")
-          .textSearch("search_fts", tsQuery, { type: "websearch" })
+          .textSearch("search_fts", tsQuery, { type: "plain" })
           .order("date", { ascending: false })
           .limit(LIMIT_PER_CATEGORY);
 
@@ -212,26 +212,28 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
         return uniqueNames.size;
       })(),
 
-      // 6. Count total transactions using full-text search
+      // 6. Check if there are more transactions (don't count all - too slow)
       (async () => {
         try {
           const tsQuery = sanitized.split(/\s+/).join(' & ');
 
           let q = supabase
             .from("transactions")
-            .select("id", { count: "exact", head: true })
-            .textSearch("search_fts", tsQuery, { type: "websearch" });
+            .select("id")
+            .textSearch("search_fts", tsQuery, { type: "plain" })
+            .limit(4);  // Just check if there's more than 3
 
           if (fiscalYear && Number.isFinite(fiscalYear)) {
             q = q.eq("fiscal_year", fiscalYear);
           }
 
-          const { count, error } = await q;
+          const { data, error } = await q;
           if (error) {
             console.error("Transaction count error:", error);
             return 0;
           }
-          return count || 0;
+          // Return 4 if there are more than 3, otherwise actual count
+          return (data || []).length;
         } catch (err) {
           console.error("Transaction count exception:", err);
           return 0;

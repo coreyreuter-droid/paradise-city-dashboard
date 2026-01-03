@@ -51,6 +51,7 @@ export default function GlobalSearch({ fiscalYear, className = "" }: Props) {
   const [isLoading, setIsLoading] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(false);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -157,23 +158,33 @@ export default function GlobalSearch({ fiscalYear, className = "" }: Props) {
 
   // Navigate to result
   const navigateTo = (item: typeof flatResults[number]) => {
+    setIsNavigating(true);
     setIsOpen(false);
-    setIsMobileOpen(false);
-    setQuery("");
+    // DON'T clear query yet - keep the expanded width
 
+    let href = "";
     if (item.type === "department") {
       // Link to specific department page
       const name = encodeURIComponent(item.data.department_name);
-      router.push(cityHref(`/departments/${name}${fiscalYear ? `?year=${fiscalYear}` : ""}`));
+      href = cityHref(`/departments/${name}${fiscalYear ? `?year=${fiscalYear}` : ""}`);
     } else if (item.type === "vendor") {
       // Link to vendors page filtered to this vendor
       const name = encodeURIComponent(item.data.vendor);
-      router.push(cityHref(`/vendors?q=${name}${fiscalYear ? `&year=${fiscalYear}` : ""}`));
+      href = cityHref(`/vendors?q=${name}${fiscalYear ? `&year=${fiscalYear}` : ""}`);
     } else if (item.type === "transaction") {
       // Link to transactions filtered by vendor
       const vendorName = item.data.vendor || "";
-      router.push(cityHref(`/transactions?q=${encodeURIComponent(vendorName)}${fiscalYear ? `&year=${fiscalYear}` : ""}`));
+      href = cityHref(`/transactions?q=${encodeURIComponent(vendorName)}${fiscalYear ? `&year=${fiscalYear}` : ""}`);
     }
+
+    router.push(href);
+
+    // Clear query after a short delay (lets navigation start)
+    setTimeout(() => {
+      setQuery("");
+      setIsNavigating(false);
+      setIsMobileOpen(false);
+    }, 150);
   };
 
   // Handle keyboard navigation
@@ -230,24 +241,39 @@ export default function GlobalSearch({ fiscalYear, className = "" }: Props) {
 
   // Navigate to "view all" pages
   const viewAllDepartments = () => {
+    setIsNavigating(true);
     setIsOpen(false);
-    setIsMobileOpen(false);
-    setQuery("");
-    router.push(cityHref(`/departments?q=${encodeURIComponent(query)}${fiscalYear ? `&year=${fiscalYear}` : ""}`));
+    const href = cityHref(`/departments?q=${encodeURIComponent(query)}${fiscalYear ? `&year=${fiscalYear}` : ""}`);
+    router.push(href);
+    setTimeout(() => {
+      setQuery("");
+      setIsNavigating(false);
+      setIsMobileOpen(false);
+    }, 150);
   };
 
   const viewAllVendors = () => {
+    setIsNavigating(true);
     setIsOpen(false);
-    setIsMobileOpen(false);
-    setQuery("");
-    router.push(cityHref(`/vendors?q=${encodeURIComponent(query)}${fiscalYear ? `&year=${fiscalYear}` : ""}`));
+    const href = cityHref(`/vendors?q=${encodeURIComponent(query)}${fiscalYear ? `&year=${fiscalYear}` : ""}`);
+    router.push(href);
+    setTimeout(() => {
+      setQuery("");
+      setIsNavigating(false);
+      setIsMobileOpen(false);
+    }, 150);
   };
 
   const viewAllTransactions = () => {
+    setIsNavigating(true);
     setIsOpen(false);
-    setIsMobileOpen(false);
-    setQuery("");
-    router.push(cityHref(`/transactions?q=${encodeURIComponent(query)}${fiscalYear ? `&year=${fiscalYear}` : ""}`));
+    const href = cityHref(`/transactions?q=${encodeURIComponent(query)}${fiscalYear ? `&year=${fiscalYear}` : ""}`);
+    router.push(href);
+    setTimeout(() => {
+      setQuery("");
+      setIsNavigating(false);
+      setIsMobileOpen(false);
+    }, 150);
   };
 
   // Result item component
@@ -445,7 +471,7 @@ export default function GlobalSearch({ fiscalYear, className = "" }: Props) {
                     onClick={viewAllTransactions}
                     className="w-full px-3 py-2 text-left text-sm text-blue-600 hover:bg-slate-50 focus:bg-slate-100 focus:outline-none"
                   >
-                    View all {results.totalTransactions.toLocaleString()} transactions →
+                    View all transactions →
                   </button>
                 </li>
               )}
@@ -626,7 +652,7 @@ export default function GlobalSearch({ fiscalYear, className = "" }: Props) {
                       onClick={viewAllTransactions}
                       className="w-full px-4 py-3 text-left text-sm font-medium text-blue-600 active:bg-slate-100"
                     >
-                      View all {results.totalTransactions.toLocaleString()} transactions →
+                      View all transactions →
                     </button>
                   </li>
                 )}
