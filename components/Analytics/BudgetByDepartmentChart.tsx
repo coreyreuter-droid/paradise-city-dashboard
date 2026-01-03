@@ -14,6 +14,16 @@ import {
 import { formatCurrency, formatPercent } from "@/lib/format";
 import type { DepartmentSummary } from "@/components/Budget/BudgetClient";
 
+// Decode common HTML entities
+const decodeHtmlEntities = (text: string): string => {
+  return text
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'");
+};
+
 type Props = {
   year: number;
   departments: DepartmentSummary[];
@@ -41,7 +51,12 @@ export default function BudgetByDepartmentChart({
   showTable = true,
 }: Props) {
   const data = useMemo(
-    () => [...departments].sort((a, b) => b.budget - a.budget),
+    () => [...departments]
+      .map(d => ({
+        ...d,
+        department_name: decodeHtmlEntities(d.department_name || "Unspecified"),
+      }))
+      .sort((a, b) => b.budget - a.budget),
     [departments]
   );
 
@@ -69,7 +84,10 @@ export default function BudgetByDepartmentChart({
       </p>
 
       {/* Chart */}
-      <div className="w-full min-w-0 h-[320px] sm:h-[380px] md:h-[420px] lg:h-[460px] overflow-hidden">
+      <div
+        className="w-full min-w-0 overflow-hidden"
+        style={{ height: Math.max(300, data.length * 36) }}
+      >
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
             data={data}

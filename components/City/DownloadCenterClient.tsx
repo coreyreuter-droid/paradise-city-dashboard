@@ -429,6 +429,7 @@ function DownloadCard({
                   id="tx-start"
                   type="date"
                   value={filters.startDate}
+                  max={filters.endDate || undefined}
                   onChange={(e) => setFilters((f) => ({ ...f, startDate: e.target.value }))}
                   className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm transition focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
                 />
@@ -441,6 +442,7 @@ function DownloadCard({
                   id="tx-end"
                   type="date"
                   value={filters.endDate}
+                  min={filters.startDate || undefined}
                   onChange={(e) => setFilters((f) => ({ ...f, endDate: e.target.value }))}
                   className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm transition focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
                 />

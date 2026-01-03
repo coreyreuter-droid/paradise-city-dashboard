@@ -14,6 +14,16 @@ import {
 } from "recharts";
 import { formatCurrency, formatPercent } from "@/lib/format";
 
+// Decode common HTML entities in text
+const decodeHtmlEntities = (text: string): string => {
+  return text
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'");
+};
+
 export type DepartmentSummary = {
   department_name: string;
   budget: number;
@@ -64,7 +74,7 @@ export default function BudgetCharts({
   const chartData = useMemo(
     () =>
       departments.map((d) => ({
-        name: d.department_name || "Unspecified",
+        name: decodeHtmlEntities(d.department_name || "Unspecified"),
         Budget: d.budget,
         Actual: d.actuals,
         PercentSpent: d.percentSpent,
@@ -88,12 +98,8 @@ export default function BudgetCharts({
 
   const avgMonthlySpend = totalActuals / 12;
 
-  // Height scales with number of departments, but leaves margin so
-  // categories never visually touch each other.
-  const chartHeight = Math.max(
-    260,
-    Math.min(640, departments.length * 40)
-  );
+  // Dynamic height: 40px per department, minimum 260px
+  const chartHeight = Math.max(260, departments.length * 40);
 
   const summaryBlocks = (
     <>
