@@ -26,6 +26,7 @@ const SKIP_PATTERNS = [
   /^\/login/,           // Login page
   /\/auth\/callback/,   // Auth callback (magic link redirect)
   /\.(ico|png|jpg|jpeg|svg|css|js|woff|woff2)$/, // Static files
+  /^\/monitoring/,      // Sentry tunnel route
 ];
 
 export function middleware(request: NextRequest) {
@@ -91,7 +92,7 @@ export function middleware(request: NextRequest) {
 // Configure which routes the middleware runs on
 export const config = {
   matcher: [
-    // Match all routes except static files and api
-    "/((?!_next/static|_next/image|favicon.ico).*)",
+    // Match all routes except static files, api routes, and monitoring
+    "/((?!_next/static|_next/image|favicon.ico|api/|monitoring).*)",
   ],
 };

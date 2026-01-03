@@ -45,6 +45,12 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // Support large file uploads (up to 100MB)
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "100mb",
+    },
+  },
   async headers() {
     return [
       {

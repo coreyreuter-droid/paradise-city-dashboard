@@ -467,9 +467,11 @@ export default function UploadClient() {
   const [replaceYearConfirm, setReplaceYearConfirm] = useState<string>("");
   const [replaceTableConfirmed, setReplaceTableConfirmed] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [messageIsError, setMessageIsError] = useState(false);
   const [coverageWarnings, setCoverageWarnings] = useState<string[]>([]);
+  const [fileSizeWarning, setFileSizeWarning] = useState<string | null>(null);
 
   const [preflight, setPreflight] = useState<PreflightSummary | null>(null);
   const [pendingRecords, setPendingRecords] = useState<
@@ -514,6 +516,8 @@ export default function UploadClient() {
 
     setMessage(null);
     setMessageIsError(false);
+    setUploadProgress(null);
+    setFileSizeWarning(null);
 
     setReplaceTableConfirmed(false);
     setReplaceYear("");
@@ -764,6 +768,7 @@ export default function UploadClient() {
 
     setLoading(true);
     setMessage(null);
+    setUploadProgress(`Uploading ${pendingRecords.length.toLocaleString()} rows...`);
 
     try {
       // Use Supabase session token + server API (service role)
@@ -778,7 +783,15 @@ export default function UploadClient() {
           "You must be signed in as an admin to upload data. Please log in again."
         );
         setLoading(false);
+        setUploadProgress(null);
         return;
+      }
+
+      // Update progress for large uploads
+      if (pendingRecords.length > 10000) {
+        setUploadProgress(
+          `Processing ${pendingRecords.length.toLocaleString()} rows... This may take a few minutes for large files.`
+        );
       }
 
       const resp = await csrfFetch("/api/admin/upload", {
@@ -802,15 +815,16 @@ export default function UploadClient() {
       if (!resp.ok) {
         console.error("Upload API error:", resp.status, result);
 
-
         setError(
           result?.error ||
             "Upload failed on the server. Please try again or contact support."
         );
         setLoading(false);
+        setUploadProgress(null);
         return;
       }
 
+      setUploadProgress(null);
       setInfo(result?.message || "Upload completed successfully.");
       // Reset confirmation-related state
       setPreflight(null);
@@ -823,6 +837,7 @@ export default function UploadClient() {
       setPreviewHeaders(null);
       setPreviewRows(null);
       setPreviewMessage(null);
+      setFileSizeWarning(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
 
       await refreshCoverageWarnings();
@@ -830,6 +845,7 @@ export default function UploadClient() {
     } catch (err: any) {
       console.error(err);
       setError("Upload failed: " + (err?.message || "Unknown error"));
+      setUploadProgress(null);
     }
 
     setLoading(false);
@@ -1146,8 +1162,26 @@ export default function UploadClient() {
             setPreflight(null);
             setPendingRecords(null);
             setPendingYearsInData([]);
+            setFileSizeWarning(null);
 
             if (!f) return;
+
+            // Check file size and warn for large files
+            const fileSizeMB = f.size / (1024 * 1024);
+            if (fileSizeMB > 100) {
+              setFileSizeWarning(
+                `File is ${fileSizeMB.toFixed(1)}MB which exceeds the 100MB limit. Please split the file into smaller chunks.`
+              );
+              return;
+            } else if (fileSizeMB > 50) {
+              setFileSizeWarning(
+                `Large file detected (${fileSizeMB.toFixed(1)}MB). Upload may take several minutes. Please be patient and don't close this page.`
+              );
+            } else if (fileSizeMB > 10) {
+              setFileSizeWarning(
+                `File size: ${fileSizeMB.toFixed(1)}MB. Upload may take a minute or two.`
+              );
+            }
 
             try {
               const text = await f.text();
@@ -1189,8 +1223,22 @@ export default function UploadClient() {
           className="mt-1 text-xs text-slate-500"
         >
           The uploader will validate column names, years, and formats
-          before sending any data to the server.
+          before sending any data to the server. Large files (up to 100MB / 500K rows) are supported.
         </p>
+
+        {/* File size warning */}
+        {fileSizeWarning && (
+          <div
+            className={`mt-2 rounded-md border p-2 text-xs ${
+              fileSizeWarning.includes("exceeds")
+                ? "border-red-300 bg-red-50 text-red-800"
+                : "border-amber-300 bg-amber-50 text-amber-800"
+            }`}
+            role="alert"
+          >
+            {fileSizeWarning}
+          </div>
+        )}
       </div>
 
       {/* Preview warnings */}
@@ -1319,7 +1367,7 @@ export default function UploadClient() {
               deleted before inserting the new data.
             </p>
           )}
-          <div className="mt-3 flex flex-wrap gap-2">
+          <div className="mt-3 flex flex-wrap items-center gap-2">
             <button
               type="button"
               onClick={handleConfirmUpload}
@@ -1328,6 +1376,32 @@ export default function UploadClient() {
             >
               {loading ? "Uploading..." : "Confirm upload"}
             </button>
+
+            {/* Upload progress indicator */}
+            {loading && uploadProgress && (
+              <div className="flex items-center gap-2 text-sm text-slate-600">
+                <svg
+                  className="h-4 w-4 animate-spin text-slate-500"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  />
+                </svg>
+                <span>{uploadProgress}</span>
+              </div>
+            )}
             <button
               type="button"
               onClick={() => {

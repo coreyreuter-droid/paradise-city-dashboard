@@ -4,6 +4,12 @@ import { supabaseAdmin } from "@/lib/supabaseService";
 import { requireAdmin } from "@/lib/auth";
 import { requireCsrf } from "@/lib/csrf";
 
+// Configure for large file uploads
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const maxDuration = 300; // 5 minutes for large uploads
+export const fetchCache = "force-no-store";
+
 type Mode = "append" | "replace_year" | "replace_table";
 
 type UploadTable = "budgets" | "actuals" | "transactions" | "revenues";
