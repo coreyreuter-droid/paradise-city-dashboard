@@ -29,6 +29,7 @@ type Props = {
   years?: number[];
   enableTransactions: boolean;
   fiscalYearNote?: string;
+  searchQuery?: string | null;
 };
 
 export default function DepartmentsDashboardClient({
@@ -37,8 +38,12 @@ export default function DepartmentsDashboardClient({
   years: yearsProp,
   enableTransactions,
   fiscalYearNote,
+  searchQuery: initialSearchQuery,
 }: Props) {
   const searchParams = useSearchParams();
+
+  // Get search query from URL or prop
+  const searchQuery = searchParams.get("q") || initialSearchQuery || "";
 
   const years = yearsProp ?? [];
 
@@ -107,6 +112,15 @@ export default function DepartmentsDashboardClient({
     result.sort((a, b) => b.budget - a.budget);
     return result;
   }, [deptBudgetActuals, txCountByDept, enableTransactions]);
+
+  // Filter summaries by search query if present
+  const filteredSummaries = useMemo(() => {
+    if (!searchQuery.trim()) return summaries;
+    const lowerQuery = searchQuery.toLowerCase();
+    return summaries.filter((d) =>
+      d.department_name.toLowerCase().includes(lowerQuery)
+    );
+  }, [summaries, searchQuery]);
 
   const deptCount = summaries.length;
   const totalBudget = summaries.reduce((sum, d) => sum + d.budget, 0);
@@ -339,11 +353,24 @@ export default function DepartmentsDashboardClient({
               <div className="space-y-3">
                 <h2 className="text-sm font-semibold text-slate-900">Department Detail</h2>
                 <p className="text-sm text-slate-600">
-                  This table shows each department’s budget, actual spending, variance, percentage of budget spent
+                  This table shows each department's budget, actual spending, variance, percentage of budget spent
                   {enableTransactions ? ", and the number of transactions recorded for the selected year." : "."}
                 </p>
+                {searchQuery && (
+                  <div className="flex items-center gap-2 rounded-lg bg-blue-50 px-3 py-2 text-sm text-blue-800">
+                    <span>
+                      Showing {filteredSummaries.length} of {summaries.length} departments matching &quot;{searchQuery}&quot;
+                    </span>
+                    <a
+                      href={`?${selectedYear ? `year=${selectedYear}` : ""}`}
+                      className="ml-auto text-blue-600 hover:underline"
+                    >
+                      Clear filter
+                    </a>
+                  </div>
+                )}
                 <DataTable<DepartmentSummary>
-                  data={summaries}
+                  data={filteredSummaries}
                   columns={columns}
                   initialSortKey="budget"
                   initialSortDirection="desc"

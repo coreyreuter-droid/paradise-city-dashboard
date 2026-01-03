@@ -285,7 +285,7 @@ export default function DataTable<T>({
                 setPage((p) => Math.max(1, p - 1))
               }
               disabled={currentPage <= 1}
-              className="rounded-md border border-slate-300 px-2 py-1 text-xs disabled:opacity-40"
+              className="rounded-md border border-slate-300 px-3 py-2 text-sm min-h-[44px] disabled:opacity-40"
               aria-label="Previous page"
             >
               Previous
@@ -298,7 +298,7 @@ export default function DataTable<T>({
                 )
               }
               disabled={currentPage >= totalPages}
-              className="rounded-md border border-slate-300 px-2 py-1 text-xs disabled:opacity-40"
+              className="rounded-md border border-slate-300 px-3 py-2 text-sm min-h-[44px] disabled:opacity-40"
               aria-label="Next page"
             >
               Next

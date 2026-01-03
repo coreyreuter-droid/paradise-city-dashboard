@@ -1,6 +1,7 @@
 // components/City/HomeTopVendorsCard.tsx
 "use client";
 
+import { useMemo } from "react";
 import type { TransactionRow } from "@/lib/types";
 import { formatCurrency } from "@/lib/format";
 
@@ -18,36 +19,40 @@ type VendorAgg = {
 };
 
 export default function TopVendorsCard({ year, transactions }: Props) {
-  const map = new Map<string, { total: number; count: number }>();
+  const { vendors, grandTotal } = useMemo(() => {
+    const map = new Map<string, { total: number; count: number }>();
 
-  for (const tx of transactions) {
-    const name =
-      tx.vendor && tx.vendor.trim().length > 0
-        ? tx.vendor.trim()
-        : "Unspecified";
-    const amt = Number(tx.amount || 0);
-    const entry = map.get(name) ?? { total: 0, count: 0 };
-    entry.total += amt;
-    entry.count += 1;
-    map.set(name, entry);
-  }
+    for (const tx of transactions) {
+      const name =
+        tx.vendor && tx.vendor.trim().length > 0
+          ? tx.vendor.trim()
+          : "Unspecified";
+      const amt = Number(tx.amount || 0);
+      const entry = map.get(name) ?? { total: 0, count: 0 };
+      entry.total += amt;
+      entry.count += 1;
+      map.set(name, entry);
+    }
 
-  const allVendors = Array.from(map.entries()).map(([name, v]) => ({
-    name,
-    total: v.total,
-    count: v.count,
-    avg: v.count > 0 ? v.total / v.count : 0,
-  }));
+    const allVendors = Array.from(map.entries()).map(([name, v]) => ({
+      name,
+      total: v.total,
+      count: v.count,
+      avg: v.count > 0 ? v.total / v.count : 0,
+    }));
 
-  const grandTotal = allVendors.reduce((sum, v) => sum + v.total, 0);
+    const grandTotal = allVendors.reduce((sum, v) => sum + v.total, 0);
 
-  const vendors: VendorAgg[] = allVendors
-    .map((v) => ({
-      ...v,
-      share: grandTotal > 0 ? v.total / grandTotal : 0,
-    }))
-    .sort((a, b) => b.total - a.total)
-    .slice(0, 5);
+    const vendors: VendorAgg[] = allVendors
+      .map((v) => ({
+        ...v,
+        share: grandTotal > 0 ? v.total / grandTotal : 0,
+      }))
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 5);
+
+    return { vendors, grandTotal };
+  }, [transactions]);
 
   return (
     <section aria-label="Top vendors by spending" className="space-y-3">

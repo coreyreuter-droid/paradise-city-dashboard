@@ -30,6 +30,9 @@ type SearchResults = {
   departments: DepartmentResult[];
   vendors: VendorResult[];
   transactions: TransactionResult[];
+  totalDepartments: number;
+  totalVendors: number;
+  totalTransactions: number;
 };
 
 type Props = {
@@ -89,7 +92,7 @@ export default function GlobalSearch({ fiscalYear, className = "" }: Props) {
         setActiveIndex(-1);
       } catch (err) {
         console.error("Search error:", err);
-        setResults({ departments: [], vendors: [], transactions: [] });
+        setResults({ departments: [], vendors: [], transactions: [], totalDepartments: 0, totalVendors: 0, totalTransactions: 0 });
       } finally {
         setIsLoading(false);
       }
@@ -163,9 +166,9 @@ export default function GlobalSearch({ fiscalYear, className = "" }: Props) {
       const name = encodeURIComponent(item.data.department_name);
       router.push(cityHref(`/departments/${name}${fiscalYear ? `?year=${fiscalYear}` : ""}`));
     } else if (item.type === "vendor") {
-      // Link to transactions filtered by vendor
+      // Link to vendors page filtered to this vendor
       const name = encodeURIComponent(item.data.vendor);
-      router.push(cityHref(`/transactions?q=${name}${fiscalYear ? `&year=${fiscalYear}` : ""}`));
+      router.push(cityHref(`/vendors?q=${name}${fiscalYear ? `&year=${fiscalYear}` : ""}`));
     } else if (item.type === "transaction") {
       // Link to transactions filtered by vendor
       const vendorName = item.data.vendor || "";
@@ -223,6 +226,28 @@ export default function GlobalSearch({ fiscalYear, className = "" }: Props) {
     setQuery("");
     setResults(null);
     inputRef.current?.focus();
+  };
+
+  // Navigate to "view all" pages
+  const viewAllDepartments = () => {
+    setIsOpen(false);
+    setIsMobileOpen(false);
+    setQuery("");
+    router.push(cityHref(`/departments?q=${encodeURIComponent(query)}${fiscalYear ? `&year=${fiscalYear}` : ""}`));
+  };
+
+  const viewAllVendors = () => {
+    setIsOpen(false);
+    setIsMobileOpen(false);
+    setQuery("");
+    router.push(cityHref(`/vendors?q=${encodeURIComponent(query)}${fiscalYear ? `&year=${fiscalYear}` : ""}`));
+  };
+
+  const viewAllTransactions = () => {
+    setIsOpen(false);
+    setIsMobileOpen(false);
+    setQuery("");
+    router.push(cityHref(`/transactions?q=${encodeURIComponent(query)}${fiscalYear ? `&year=${fiscalYear}` : ""}`));
   };
 
   // Result item component
@@ -357,6 +382,17 @@ export default function GlobalSearch({ fiscalYear, className = "" }: Props) {
                   index={i}
                 />
               ))}
+              {results.totalDepartments > 3 && (
+                <li>
+                  <button
+                    type="button"
+                    onClick={viewAllDepartments}
+                    className="w-full px-3 py-2 text-left text-sm text-blue-600 hover:bg-slate-50 focus:bg-slate-100 focus:outline-none"
+                  >
+                    View all {results.totalDepartments} departments →
+                  </button>
+                </li>
+              )}
             </>
           ) : null}
 
@@ -372,6 +408,17 @@ export default function GlobalSearch({ fiscalYear, className = "" }: Props) {
                   index={(results.departments?.length || 0) + i}
                 />
               ))}
+              {results.totalVendors > 3 && (
+                <li>
+                  <button
+                    type="button"
+                    onClick={viewAllVendors}
+                    className="w-full px-3 py-2 text-left text-sm text-blue-600 hover:bg-slate-50 focus:bg-slate-100 focus:outline-none"
+                  >
+                    View all {results.totalVendors} vendors →
+                  </button>
+                </li>
+              )}
             </>
           ) : null}
 
@@ -391,6 +438,17 @@ export default function GlobalSearch({ fiscalYear, className = "" }: Props) {
                   }
                 />
               ))}
+              {results.totalTransactions > 3 && (
+                <li>
+                  <button
+                    type="button"
+                    onClick={viewAllTransactions}
+                    className="w-full px-3 py-2 text-left text-sm text-blue-600 hover:bg-slate-50 focus:bg-slate-100 focus:outline-none"
+                  >
+                    View all {results.totalTransactions.toLocaleString()} transactions →
+                  </button>
+                </li>
+              )}
             </>
           ) : null}
         </ul>
@@ -452,7 +510,7 @@ export default function GlobalSearch({ fiscalYear, className = "" }: Props) {
                 <button
                   type="button"
                   onClick={clearQuery}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 rounded p-1 text-slate-400 hover:text-slate-600 focus:outline-none focus:ring-2 focus:ring-slate-500"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center justify-center rounded p-2 min-h-[44px] min-w-[44px] text-slate-400 hover:text-slate-600 focus:outline-none focus:ring-2 focus:ring-slate-500"
                   aria-label="Clear search"
                 >
                   <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
@@ -508,6 +566,17 @@ export default function GlobalSearch({ fiscalYear, className = "" }: Props) {
                     </div>
                   </li>
                 ))}
+                {results && results.totalDepartments > 3 && (
+                  <li>
+                    <button
+                      type="button"
+                      onClick={viewAllDepartments}
+                      className="w-full px-4 py-3 text-left text-sm font-medium text-blue-600 active:bg-slate-100"
+                    >
+                      View all {results.totalDepartments} departments →
+                    </button>
+                  </li>
+                )}
                 {results?.vendors.map((vendor, i) => (
                   <li
                     key={vendor.vendor}
@@ -522,6 +591,17 @@ export default function GlobalSearch({ fiscalYear, className = "" }: Props) {
                     </div>
                   </li>
                 ))}
+                {results && results.totalVendors > 3 && (
+                  <li>
+                    <button
+                      type="button"
+                      onClick={viewAllVendors}
+                      className="w-full px-4 py-3 text-left text-sm font-medium text-blue-600 active:bg-slate-100"
+                    >
+                      View all {results.totalVendors} vendors →
+                    </button>
+                  </li>
+                )}
                 {results?.transactions.map((txn, i) => (
                   <li
                     key={txn.id}
@@ -539,6 +619,17 @@ export default function GlobalSearch({ fiscalYear, className = "" }: Props) {
                     </div>
                   </li>
                 ))}
+                {results && results.totalTransactions > 3 && (
+                  <li>
+                    <button
+                      type="button"
+                      onClick={viewAllTransactions}
+                      className="w-full px-4 py-3 text-left text-sm font-medium text-blue-600 active:bg-slate-100"
+                    >
+                      View all {results.totalTransactions.toLocaleString()} transactions →
+                    </button>
+                  </li>
+                )}
               </ul>
             )}
           </div>

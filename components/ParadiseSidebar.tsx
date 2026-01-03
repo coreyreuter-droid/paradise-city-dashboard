@@ -465,7 +465,7 @@ export default function ParadiseSidebar({
           ref={mobileToggleRef}
           type="button"
           onClick={() => setMobileOpen((v) => !v)}
-          className="inline-flex items-center justify-center rounded-md border border-slate-200 bg-white px-2 py-1 text-slate-700 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+          className="inline-flex items-center justify-center rounded-md border border-slate-200 bg-white px-3 py-2 min-h-[44px] min-w-[44px] text-slate-700 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
           aria-label="Toggle navigation"
           aria-expanded={mobileOpen}
           aria-controls="city-nav-panel"
@@ -525,7 +525,7 @@ export default function ParadiseSidebar({
               <button
                 type="button"
                 onClick={closeMobile}
-                className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+                className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
                 aria-label="Close navigation"
               >
                 <span className="sr-only">Close</span>

@@ -16,6 +16,7 @@ export const revalidate = 60;
 
 type SearchParamsShape = {
   year?: string | string[];
+  q?: string | string[];
 };
 
 type PageProps = {
@@ -68,6 +69,7 @@ export default async function DepartmentsPage({ searchParams }: PageProps) {
 
   const yearParam = pickFirst(sp?.year);
   const parsedYear = yearParam ? Number(yearParam) : NaN;
+  const searchQuery = pickFirst(sp?.q) ?? null;
 
   const selectedYear =
     Number.isFinite(parsedYear) && years.includes(parsedYear)
@@ -101,6 +103,7 @@ export default async function DepartmentsPage({ searchParams }: PageProps) {
         txSummaries={txSummaries}
         years={years}
         enableTransactions={enableTransactions}
+        searchQuery={searchQuery}
       />
     </>
   );

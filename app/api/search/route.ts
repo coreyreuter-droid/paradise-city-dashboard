@@ -34,6 +34,9 @@ type SearchResponse = {
   departments: DepartmentResult[];
   vendors: VendorResult[];
   transactions: TransactionResult[];
+  totalDepartments: number;
+  totalVendors: number;
+  totalTransactions: number;
 };
 
 const LIMIT_PER_CATEGORY = 3;
@@ -55,6 +58,9 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
         departments: [],
         vendors: [],
         transactions: [],
+        totalDepartments: 0,
+        totalVendors: 0,
+        totalTransactions: 0,
       });
     }
 
@@ -62,7 +68,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     const fiscalYear = year ? Number(year) : null;
 
     // Run queries in parallel for performance
-    const [deptResult, vendorResult, txnResult] = await Promise.all([
+    const [deptResult, vendorResult, txnResult, deptCount, vendorCount, txnCount] = await Promise.all([
       // 1. Search departments from summary table
       (async () => {
         let q = supabase
@@ -134,12 +140,14 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
         return unique.slice(0, LIMIT_PER_CATEGORY);
       })(),
 
-      // 3. Search transactions (vendor OR description)
+      // 3. Search transactions using full-text search (faster than ILIKE)
       (async () => {
+        const tsQuery = sanitized.split(/\s+/).join(' & ');
+
         let q = supabase
           .from("transactions")
           .select("id, date, vendor, description, amount")
-          .or(`vendor.ilike.${searchPattern},description.ilike.${searchPattern}`)
+          .textSearch("search_fts", tsQuery, { type: "websearch" })
           .order("date", { ascending: false })
           .limit(LIMIT_PER_CATEGORY);
 
@@ -161,12 +169,83 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
           amount: Number(row.amount || 0),
         }));
       })(),
+
+      // 4. Count total UNIQUE departments matching query
+      (async () => {
+        let q = supabase
+          .from("budget_actuals_year_department")
+          .select("department_name")
+          .ilike("department_name", searchPattern);
+
+        if (fiscalYear && Number.isFinite(fiscalYear)) {
+          q = q.eq("fiscal_year", fiscalYear);
+        }
+
+        const { data, error } = await q;
+        if (error) {
+          console.error("Department count error:", error);
+          return 0;
+        }
+        // Count unique department names
+        const uniqueNames = new Set((data || []).map(r => r.department_name?.toLowerCase()));
+        return uniqueNames.size;
+      })(),
+
+      // 5. Count total UNIQUE vendors matching query
+      (async () => {
+        let q = supabase
+          .from("transaction_year_vendor")
+          .select("vendor")
+          .ilike("vendor", searchPattern);
+
+        if (fiscalYear && Number.isFinite(fiscalYear)) {
+          q = q.eq("fiscal_year", fiscalYear);
+        }
+
+        const { data, error } = await q;
+        if (error) {
+          console.error("Vendor count error:", error);
+          return 0;
+        }
+        // Count unique vendor names
+        const uniqueNames = new Set((data || []).map(r => r.vendor?.toLowerCase()));
+        return uniqueNames.size;
+      })(),
+
+      // 6. Count total transactions using full-text search
+      (async () => {
+        try {
+          const tsQuery = sanitized.split(/\s+/).join(' & ');
+
+          let q = supabase
+            .from("transactions")
+            .select("id", { count: "exact", head: true })
+            .textSearch("search_fts", tsQuery, { type: "websearch" });
+
+          if (fiscalYear && Number.isFinite(fiscalYear)) {
+            q = q.eq("fiscal_year", fiscalYear);
+          }
+
+          const { count, error } = await q;
+          if (error) {
+            console.error("Transaction count error:", error);
+            return 0;
+          }
+          return count || 0;
+        } catch (err) {
+          console.error("Transaction count exception:", err);
+          return 0;
+        }
+      })(),
     ]);
 
     return NextResponse.json<SearchResponse>({
       departments: deptResult,
       vendors: vendorResult,
       transactions: txnResult,
+      totalDepartments: deptCount,
+      totalVendors: vendorCount,
+      totalTransactions: txnCount,
     });
   } catch (err) {
     console.error("Search route error:", err);
