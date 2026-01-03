@@ -374,13 +374,13 @@ export async function GET(req: NextRequest, context: Context) {
     }
 
     // Fetch data sequentially for reliability (parallel was causing timeouts)
-    let allRows: any[] = [];
+    let allRows: Record<string, unknown>[] = [];
     let from = 0;
     let batchCount = 0;
-    
+
     while (allRows.length < recordCount) {
       batchCount++;
-      let batchData: any[] | null = null;
+      let batchData: Record<string, unknown>[] | null = null;
       
       // Try to fetch this batch
       const { data, error } = await buildQuery(from, from + PAGE_SIZE - 1);
@@ -392,7 +392,7 @@ export async function GET(req: NextRequest, context: Context) {
           await new Promise(resolve => setTimeout(resolve, 1000));
           const retry = await buildQuery(from, from + PAGE_SIZE - 1);
           if (!retry.error && retry.data) {
-            batchData = retry.data;
+            batchData = retry.data as unknown as Record<string, unknown>[];
           } else {
             console.error(`Export ${dataType}: retry also failed at batch ${batchCount}`);
           }
@@ -400,7 +400,7 @@ export async function GET(req: NextRequest, context: Context) {
           console.error(`Export ${dataType} error at batch ${batchCount}:`, error);
         }
       } else {
-        batchData = data;
+        batchData = data as unknown as Record<string, unknown>[];
       }
       
       // Add successful batch data
@@ -447,7 +447,7 @@ export async function GET(req: NextRequest, context: Context) {
         "X-RateLimit-Remaining": String(remaining),
       },
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error(`Export ${dataType} route error:`, err);
     return NextResponse.json(
       { error: "Unexpected server error during export" },

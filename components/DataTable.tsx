@@ -66,9 +66,9 @@ export default function DataTable<T>({
 
     return [...data].sort((a, b) => {
       const avRaw =
-        col.sortAccessor?.(a) ?? (a as any)[sortKey as keyof T];
+        col.sortAccessor?.(a) ?? (a as Record<string, unknown>)[sortKey as string];
       const bvRaw =
-        col.sortAccessor?.(b) ?? (b as any)[sortKey as keyof T];
+        col.sortAccessor?.(b) ?? (b as Record<string, unknown>)[sortKey as string];
 
       // Handle null/undefined
       if (avRaw == null && bvRaw == null) return 0;
@@ -204,6 +204,7 @@ export default function DataTable<T>({
                           onClick={() =>
                             handleHeaderClick(col.key, col)
                           }
+                          aria-label={`Sort by ${col.header} ${sortKey === col.key && sortDirection === "asc" ? "descending" : "ascending"}`}
                           className={`inline-flex items-center gap-1 ${isRightAligned ? "ml-auto" : ""}`}
                         >
                           <span>{col.header}</span>

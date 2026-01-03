@@ -48,7 +48,7 @@ export default function PublishPage() {
         setState(data.is_published ? "published" : "unpublished");
         setIsError(false);
         setMessage(null);
-      } catch (err: any) {
+      } catch (err: unknown) {
         if (!cancelled) {
           console.error("PublishPage: unexpected load error", err);
           setState("error");
@@ -122,7 +122,7 @@ export default function PublishPage() {
           ? "Portal is now marked as published. Residents can see the public site without logging in."
           : "Portal is now marked as unpublished. Only authenticated admins can view the portal."
       );
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("PublishPage: unexpected error", err);
       setIsError(true);
       setMessage("Unexpected error updating publish status.");

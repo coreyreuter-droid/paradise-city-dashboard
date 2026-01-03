@@ -159,7 +159,8 @@ type CellPosition = {
 };
 
 // Global store for cell positions (updated during render)
-let cellCollector: CellPosition[] = [];
+// Using a module-level mutable array that is cleared each render
+const cellCollector: CellPosition[] = [];
 
 // Custom treemap content - rectangles only, captures positions for HTML labels
 interface TreemapContentProps {
@@ -406,7 +407,8 @@ export default function RevenuesDashboardClient({
   }, [treemapData]);
 
   // Clear collector before each render
-  cellCollector = [];
+   
+  while (cellCollector.length > 0) cellCollector.pop();
 
   const columns: DataTableColumn<RevenueSourceRow>[] = [
     {
@@ -789,10 +791,10 @@ export default function RevenuesDashboardClient({
                           labelFormatter={(label) =>
                             `Fiscal year ${label}`
                           }
-                          formatter={(value: any, name) =>
+                          formatter={(value, name) =>
                             typeof value === "number"
                               ? [formatCurrencyCompactTick(value), name]
-                              : [value, name]
+                              : [String(value ?? ""), name]
                           }
                         />
                         <Legend
@@ -901,7 +903,7 @@ export default function RevenuesDashboardClient({
             <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
               <span className="font-semibold">Active filters:</span>{" "}
               <span className="ml-1 inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-xs">
-                <span>Source contains "{sourceQuery.trim()}"</span>
+                <span>{`Source contains "${sourceQuery.trim()}"`}</span>
               </span>
             </div>
           )}

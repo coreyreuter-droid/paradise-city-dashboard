@@ -21,7 +21,7 @@ async function getDepartments(): Promise<string[]> {
   }
 
   const unique = new Set<string>();
-  (data ?? []).forEach((row: any) => {
+  (data ?? []).forEach((row: { department_name: string | null }) => {
     if (row.department_name?.trim()) {
       unique.add(row.department_name.trim());
     }
@@ -43,7 +43,7 @@ async function getVendors(): Promise<string[]> {
   }
 
   const unique = new Set<string>();
-  (data ?? []).forEach((row: any) => {
+  (data ?? []).forEach((row: { vendor: string | null }) => {
     if (row.vendor?.trim()) {
       unique.add(row.vendor.trim());
     }
@@ -64,7 +64,7 @@ async function getRevenueSources(): Promise<string[]> {
   }
 
   const unique = new Set<string>();
-  (data ?? []).forEach((row: any) => {
+  (data ?? []).forEach((row: { category: string | null }) => {
     if (row.category?.trim()) {
       unique.add(row.category.trim());
     }

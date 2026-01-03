@@ -70,7 +70,6 @@ describe("DataTable accessibility (ADA fixes)", () => {
   });
 
   it("has screen reader text for ascending sort", async () => {
-    const user = userEvent.setup();
     render(
       <DataTable
         data={testData}

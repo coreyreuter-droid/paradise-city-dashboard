@@ -122,10 +122,10 @@ export async function POST(req: NextRequest) {
       message: `Deleted FY${fiscalYear} from ${table}. Rows deleted: ${count ?? 0}.`,
       deleted: count ?? 0,
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("delete-fiscal-year route error:", err);
     return NextResponse.json(
-      { error: err?.message ?? "Unexpected error." },
+      { error: err instanceof Error ? err.message : "Unexpected error." },
       { status: 500 }
     );
   }

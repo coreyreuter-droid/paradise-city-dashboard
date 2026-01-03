@@ -60,10 +60,10 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ success: true });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("delete user: unexpected error", err);
     return NextResponse.json(
-      { error: err?.message ?? "Unexpected server error" },
+      { error: err instanceof Error ? err.message : "Unexpected server error" },
       { status: 500 }
     );
   }

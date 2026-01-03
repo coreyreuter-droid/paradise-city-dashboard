@@ -335,7 +335,7 @@ export default function LandingClient({ portalSettings, totalBudget }: Props) {
   const accent =
     portalSettings?.accent_color ||
     portalSettings?.primary_color ||
-    (CITY_CONFIG as any)?.primaryColor ||
+    (CITY_CONFIG as { primaryColor?: string })?.primaryColor ||
     "#0f172a";
 
   const [shareStatus, setShareStatus] = useState<"idle" | "copied" | "failed">("idle");

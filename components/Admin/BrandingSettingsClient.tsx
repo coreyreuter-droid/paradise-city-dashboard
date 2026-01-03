@@ -8,7 +8,7 @@ import {
   ChangeEvent,
 } from "react";
 import { supabase } from "@/lib/supabase";
-import { validateBrandColors, type ColorValidationResult } from "@/lib/theme";
+import { validateBrandColors } from "@/lib/theme";
 
 type PortalSettings = {
   id: number;
@@ -330,7 +330,7 @@ export default function BrandingSettingsClient() {
           setLoadState("ready");
           setDirty(false);
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error("BrandingSettings: unexpected load error", err);
         if (!cancelled) {
           setLoadState("error");
@@ -360,13 +360,15 @@ export default function BrandingSettingsClient() {
   // Validate colors when they change
   useEffect(() => {
     if (!settings) return;
-    
+
     const result = validateBrandColors(
       settings.primary_color,
       settings.accent_color,
       settings.background_color
     );
-    
+
+    // This setState is intentional for color validation updates
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setColorWarnings(result.warnings);
   }, [
     settings?.primary_color,
@@ -467,7 +469,7 @@ export default function BrandingSettingsClient() {
       let logoUrl = settings.logo_url ?? null;
       let heroUrl = settings.hero_image_url ?? null;
       let sealUrl = settings.seal_url ?? null;
-      let projectImageUrls: (string | null)[] = [
+      const projectImageUrls: (string | null)[] = [
         settings.project1_image_url ?? null,
         settings.project2_image_url ?? null,
         settings.project3_image_url ?? null,
@@ -581,11 +583,11 @@ export default function BrandingSettingsClient() {
       setSealFile(null);
       setProjectFiles([null, null, null]);
       setDirty(false);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("BrandingSettings: unexpected save error", err);
       setSaveState("error");
       setMessage("Unexpected error saving branding settings.");
-      if (err?.message) {
+      if (err instanceof Error) {
         setImageError(err.message);
       }
     }

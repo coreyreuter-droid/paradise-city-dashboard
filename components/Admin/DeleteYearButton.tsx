@@ -39,6 +39,7 @@ export default function DeleteYearButton({
       <input type="hidden" name="fiscalYear" value={fiscalYear} />
       <button
         type="submit"
+        aria-label={`Delete fiscal year ${fiscalYear} data from ${table} table`}
         className="rounded-md border border-red-300 bg-red-50 px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
       >
         Delete FY {fiscalYear}

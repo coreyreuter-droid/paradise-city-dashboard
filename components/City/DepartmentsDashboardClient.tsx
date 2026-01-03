@@ -353,7 +353,7 @@ export default function DepartmentsDashboardClient({
               <div className="space-y-3">
                 <h2 className="text-sm font-semibold text-slate-900">Department Detail</h2>
                 <p className="text-sm text-slate-600">
-                  This table shows each department's budget, actual spending, variance, percentage of budget spent
+                  {`This table shows each department's budget, actual spending, variance, percentage of budget spent`}
                   {enableTransactions ? ", and the number of transactions recorded for the selected year." : "."}
                 </p>
                 {searchQuery && (

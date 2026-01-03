@@ -4,7 +4,7 @@
 // 0.1 million around the given data keys. Used by line charts that display
 // large dollar values in $XM format.
 
-export function getMillionDomain<T extends Record<string, any>>(
+export function getMillionDomain<T extends Record<string, unknown>>(
   data: T[] | null | undefined,
   keys: string[],
   minBandM = 0.2 // minimum band size in millions (0.2M = 200k)
@@ -30,8 +30,8 @@ export function getMillionDomain<T extends Record<string, any>>(
   }
 
   // Convert to millions
-  let minM = min / 1_000_000;
-  let maxM = max / 1_000_000;
+  const minM = min / 1_000_000;
+  const maxM = max / 1_000_000;
 
   // If everything is the same, force a small band around it
   if (minM === maxM) {

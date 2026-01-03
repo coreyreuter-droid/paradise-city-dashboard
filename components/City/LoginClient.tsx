@@ -12,7 +12,7 @@ type Props = {
   cityName?: string | null;
 };
 
-export default function LoginClient({ redirect, cityName }: Props) {
+export default function LoginClient({ redirect: _redirect, cityName }: Props) {
   const [email, setEmail] = useState("");
   const [sending, setSending] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(
@@ -73,11 +73,12 @@ export default function LoginClient({ redirect, cityName }: Props) {
         );
         setErrorMessage(null);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("LoginClient: unexpected error", err);
       setErrorMessage(
-        err?.message ||
-          "Unexpected error sending sign-in link. Please try again."
+        err instanceof Error
+          ? err.message
+          : "Unexpected error sending sign-in link. Please try again."
       );
       setSuccessMessage(null);
     } finally {

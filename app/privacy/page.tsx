@@ -1,5 +1,6 @@
 // app/privacy/page.tsx
 import { Metadata } from "next";
+import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Privacy Policy | CiviPortal",
@@ -17,9 +18,7 @@ export default function PrivacyPolicy() {
           <section className="mb-8">
             <h2 className="text-xl font-semibold text-slate-900">1. Introduction</h2>
             <p className="mt-3 text-slate-700">
-              CiviPortal LLC ("CiviPortal," "we," "us," or "our") is committed to protecting your 
-              privacy. This Privacy Policy explains how we collect, use, and protect information 
-              when you visit public transparency portals operated on the CiviPortal platform.
+              {`CiviPortal LLC ("CiviPortal," "we," "us," or "our") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, and protect information when you visit public transparency portals operated on the CiviPortal platform.`}
             </p>
           </section>
 
@@ -113,17 +112,14 @@ export default function PrivacyPolicy() {
           <section className="mb-8">
             <h2 className="text-xl font-semibold text-slate-900">7. Data Retention</h2>
             <p className="mt-3 text-slate-700">
-              Server logs are retained for a limited period as determined by our hosting provider's 
-              standard practices. Administrator account information is retained while the account 
-              is active and for a reasonable period thereafter.
+              {`Server logs are retained for a limited period as determined by our hosting provider's standard practices. Administrator account information is retained while the account is active and for a reasonable period thereafter.`}
             </p>
           </section>
 
           <section className="mb-8">
-            <h2 className="text-xl font-semibold text-slate-900">8. Children's Privacy</h2>
+            <h2 className="text-xl font-semibold text-slate-900">{`8. Children's Privacy`}</h2>
             <p className="mt-3 text-slate-700">
-              The Service is not directed to children under 13 years of age. We do not knowingly 
-              collect personal information from children under 13.
+              {`The Service is not directed to children under 13 years of age. We do not knowingly collect personal information from children under 13.`}
             </p>
           </section>
 
@@ -139,8 +135,7 @@ export default function PrivacyPolicy() {
           <section className="mb-8">
             <h2 className="text-xl font-semibold text-slate-900">10. Changes to This Policy</h2>
             <p className="mt-3 text-slate-700">
-              We may update this Privacy Policy from time to time. If we make material changes, 
-              we will update the "Last updated" date at the top of this page.
+              {`We may update this Privacy Policy from time to time. If we make material changes, we will update the "Last updated" date at the top of this page.`}
             </p>
           </section>
 
@@ -159,9 +154,9 @@ export default function PrivacyPolicy() {
         </div>
 
         <div className="mt-12 border-t border-slate-200 pt-8">
-          <a href="/" className="text-sm font-medium text-slate-600 hover:text-slate-900">
+          <Link href="/" className="text-sm font-medium text-slate-600 hover:text-slate-900">
             ← Back to portal
-          </a>
+          </Link>
         </div>
       </div>
     </div>

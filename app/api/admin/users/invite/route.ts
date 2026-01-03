@@ -69,10 +69,10 @@ export async function POST(req: NextRequest) {
         lastSignInAt: newUser.last_sign_in_at ?? null,
       },
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("Invite user error:", err);
     return NextResponse.json(
-      { error: err?.message ?? "Unexpected server error" },
+      { error: err instanceof Error ? err.message : "Unexpected server error" },
       { status: 500 }
     );
   }

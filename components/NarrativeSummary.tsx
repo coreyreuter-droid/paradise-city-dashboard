@@ -1,8 +1,6 @@
 // components/NarrativeSummary.tsx
 "use client";
 
-import { useMemo } from "react";
-
 type Props = {
   narrative: string;
   className?: string;
@@ -28,7 +26,7 @@ export default function NarrativeSummary({ narrative, className = "" }: Props) {
         {/* Icon */}
         <div className="flex-shrink-0 mt-0.5">
           <svg
-            className="h-5 w-5 text-slate-400"
+            className="h-5 w-5 text-slate-500"
             fill="none"
             viewBox="0 0 24 24"
             strokeWidth={1.5}

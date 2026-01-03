@@ -137,13 +137,13 @@ export default function AdminOverviewPage() {
             (log) => log?.table_name === tableName
           );
           if (!tableLogs.length) {
-            (next as any)[tableName] = null;
+            next[tableName] = null;
             return;
           }
 
           const latest = tableLogs[0];
 
-          (next as any)[tableName] = {
+          next[tableName] = {
             table: tableName,
             fiscalYear:
               typeof latest?.fiscal_year === "number"
@@ -158,7 +158,7 @@ export default function AdminOverviewPage() {
                 ? Number(latest.row_count)
                 : null,
             lastUploadAt: latest?.created_at ?? null,
-          } as UploadFreshness;
+          };
         });
 
         setUploadSummary(next);

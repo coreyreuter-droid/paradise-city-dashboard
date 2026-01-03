@@ -327,12 +327,14 @@ export async function getRevenuesForYear(fiscalYear: number): Promise<RevenueRow
    Raw data helpers
 ========================= */
 
-async function fetchAllRows<T>(table: string, buildQuery?: (q: any) => any): Promise<T[]> {
+type SupabaseQuery = ReturnType<ReturnType<typeof supabase.from>["select"]>;
+
+async function fetchAllRows<T>(table: string, buildQuery?: (q: SupabaseQuery) => SupabaseQuery): Promise<T[]> {
   const all: T[] = [];
   let page = 0;
 
   while (true) {
-    let query: any = supabase.from(table).select("*");
+    let query: SupabaseQuery = supabase.from(table).select("*");
     if (buildQuery) query = buildQuery(query);
 
     const from = page * PAGE_SIZE;

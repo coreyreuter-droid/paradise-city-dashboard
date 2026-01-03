@@ -4,6 +4,7 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import SectionHeader from "../SectionHeader";
 import { CITY_CONFIG } from "@/lib/cityConfig";
+import { downloadFile } from "@/lib/downloadFile";
 
 const MAX_EXPORT_ROWS = 50_000;
 
@@ -168,9 +169,10 @@ function MultiSelect({
               </svg>
             </span>
           )}
-          <svg 
-            className={`h-4 w-4 text-slate-400 transition-transform ${isOpen ? "rotate-180" : ""}`} 
+          <svg
+            className={`h-4 w-4 text-slate-400 transition-transform ${isOpen ? "rotate-180" : ""}`}
             fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"
+            aria-hidden="true"
           >
             <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
           </svg>
@@ -537,6 +539,7 @@ function DownloadCard({
         onClick={() => setIsExpanded(!isExpanded)}
         className="flex w-full items-center justify-between px-5 py-4 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-slate-500"
         aria-expanded={isExpanded}
+        aria-label={isExpanded ? "Collapse section" : "Expand section"}
       >
         <div className="flex items-center gap-4">
           <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-100 text-slate-600 transition group-hover:bg-slate-900 group-hover:text-white">
@@ -592,6 +595,7 @@ function DownloadCard({
                   <button
                     type="button"
                     onClick={chip.onRemove}
+                    aria-label={`Remove filter: ${chip.label}`}
                     className="flex h-4 w-4 items-center justify-center rounded-full text-slate-400 hover:bg-slate-200 hover:text-slate-600"
                   >
                     <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
@@ -748,18 +752,12 @@ export default function DownloadCenterClient({
       }
 
       const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      
+
       const contentDisposition = response.headers.get("Content-Disposition");
       const filenameMatch = contentDisposition?.match(/filename="(.+)"/);
-      a.download = filenameMatch?.[1] || `${dataType}_export.csv`;
-      
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
+      const filename = filenameMatch?.[1] || `${dataType}_export.csv`;
+
+      downloadFile(blob, filename);
 
       setDownloadSuccess(dataType);
       setTimeout(() => setDownloadSuccess(null), 3000);

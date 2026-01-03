@@ -25,6 +25,8 @@ type UsersResponse = {
   currentRole: CurrentRole;
 };
 
+type ErrorResponse = { error?: string };
+
 export default function AdminUsersPage() {
   const [state, setState] = useState<LoadState>("idle");
   const [users, setUsers] = useState<AdminUser[]>([]);
@@ -77,7 +79,7 @@ export default function AdminUsersPage() {
 
       if (!res.ok) {
         const msg =
-          (body && "error" in (body as any) && (body as any).error) ||
+          (body as ErrorResponse)?.error ||
           `Failed to load users (HTTP ${res.status.toString()})`;
         setError(msg);
         setState("error");
@@ -88,9 +90,9 @@ export default function AdminUsersPage() {
       setUsers(data.users ?? []);
       setCurrentRole(data.currentRole ?? null);
       setState("loaded");
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("AdminUsersPage: reloadUsers error", err);
-      setError(err?.message ?? "Unexpected error loading users.");
+      setError(err instanceof Error ? err.message : "Unexpected error loading users.");
       setState("error");
     }
   }
@@ -145,10 +147,10 @@ export default function AdminUsersPage() {
         setCurrentUserId(userId);
 
         await reloadUsers(accessToken);
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error("AdminUsersPage: initial load error", err);
         if (!cancelled) {
-          setError(err?.message ?? "Unexpected error loading users.");
+          setError(err instanceof Error ? err.message : "Unexpected error loading users.");
           setState("error");
         }
       }
@@ -250,7 +252,7 @@ export default function AdminUsersPage() {
 
       if (!res.ok) {
         setInviteError(
-          (body as any)?.error ||
+          (body as ErrorResponse)?.error ||
             "Failed to send invite. Check email and try again."
         );
         return;
@@ -260,9 +262,9 @@ export default function AdminUsersPage() {
       setInviteRole("admin");
       setActionMessage("Invite sent and role assigned.");
       await reloadUsers();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("AdminUsersPage: invite error", err);
-      setInviteError(err?.message ?? "Unexpected error while sending invite.");
+      setInviteError(err instanceof Error ? err.message : "Unexpected error while sending invite.");
     } finally {
       setInviteLoading(false);
     }
@@ -291,16 +293,16 @@ export default function AdminUsersPage() {
       const body = await res.json().catch(() => null);
 
       if (!res.ok) {
-        setActionError((body as any)?.error || "Failed to update role.");
+        setActionError((body as ErrorResponse)?.error || "Failed to update role.");
         return;
       }
 
       setActionMessage("Role updated.");
       await reloadUsers();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("AdminUsersPage: set-role error", err);
       setActionError(
-        err?.message ?? "Unexpected error while updating role."
+        err instanceof Error ? err.message : "Unexpected error while updating role."
       );
     } finally {
       setUpdatingUserId(null);
@@ -331,17 +333,17 @@ export default function AdminUsersPage() {
 
       if (!res.ok) {
         setActionError(
-          (body as any)?.error || "Failed to remove admin access."
+          (body as ErrorResponse)?.error || "Failed to remove admin access."
         );
         return;
       }
 
       setActionMessage("Admin access removed.");
       await reloadUsers();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("AdminUsersPage: remove-admin error", err);
       setActionError(
-        err?.message ?? "Unexpected error while removing admin."
+        err instanceof Error ? err.message : "Unexpected error while removing admin."
       );
     } finally {
       setRemovingUserId(null);
@@ -377,17 +379,17 @@ export default function AdminUsersPage() {
 
       if (!res.ok) {
         setActionError(
-          (body as any)?.error || "Failed to delete user account."
+          (body as ErrorResponse)?.error || "Failed to delete user account."
         );
         return;
       }
 
       setActionMessage("User deleted.");
       await reloadUsers();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("AdminUsersPage: delete error", err);
       setActionError(
-        err?.message ?? "Unexpected error while deleting user."
+        err instanceof Error ? err.message : "Unexpected error while deleting user."
       );
     } finally {
       setDeletingUserId(null);

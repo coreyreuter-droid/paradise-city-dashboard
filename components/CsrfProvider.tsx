@@ -61,13 +61,15 @@ export function CsrfProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // Try to get existing token from cookie
     let existingToken = getTokenFromCookie();
-    
+
     // If no token exists, generate one and set cookie
     if (!existingToken) {
       existingToken = generateToken();
       setTokenCookie(existingToken);
     }
-    
+
+    // Initial state sync from browser cookie (external system)
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setToken(existingToken);
     setIsReady(true);
   }, []);

@@ -53,6 +53,8 @@ export default function BudgetCharts({
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    // Initial state sync from browser media query
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPrefersReducedMotion(mq.matches);
     const handler = (e: MediaQueryListEvent) => setPrefersReducedMotion(e.matches);
     mq.addEventListener("change", handler);
@@ -207,14 +209,11 @@ export default function BudgetCharts({
               }
             />
             <Tooltip
-formatter={(value?: number, name?: any) => [
-  formatCurrency(Number(value ?? 0)),
-  name,
-]}
-
-              labelFormatter={(label: any) =>
-                `Department: ${String(label)}`
-              }
+              formatter={(value, name) => [
+                formatCurrency(Number(value ?? 0)),
+                String(name ?? ""),
+              ]}
+              labelFormatter={(label) => `Department: ${String(label)}`}
             />
 
             {/* Background budget bar */}

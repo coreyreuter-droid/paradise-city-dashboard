@@ -18,7 +18,7 @@ type UploadPayload = {
   table: UploadTable;
   mode: Mode;
   replaceYear?: number | null;
-  records: Record<string, any>[];
+  records: Record<string, unknown>[];
   filename?: string;
   yearsInData?: number[]; // from client — we'll recompute on server after FY normalization
 };
@@ -35,8 +35,8 @@ type FiscalConfig = {
  * Sanitize a record to prevent XSS attacks.
  * Strips script tags and escapes dangerous HTML characters from string values.
  */
-function sanitizeRecord(record: Record<string, any>): Record<string, any> {
-  const sanitized: Record<string, any> = {};
+function sanitizeRecord(record: Record<string, unknown>): Record<string, unknown> {
+  const sanitized: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(record)) {
     if (typeof value === 'string') {
       // Remove script tags and event handlers
@@ -186,10 +186,10 @@ function deriveDateFromPeriod(period: unknown, startDay: number): string | null 
  *    - else, if "period" exists, derive from period string
  */
 function normalizeFiscalYearForRecord(
-  record: Record<string, any>,
+  record: Record<string, unknown>,
   table: UploadTable,
   config: FiscalConfig
-): Record<string, any> {
+): Record<string, unknown> {
   const cloned = { ...record };
 
   // Force numeric fiscal_year if present and numeric
@@ -207,8 +207,9 @@ function normalizeFiscalYearForRecord(
   }
 
   if (table === "transactions") {
-    const fyFromDate = computeFiscalYearFromDate(cloned.date, config);
-    const fpFromDate = computeFiscalPeriodFromDate(cloned.date, config);
+    const dateValue = typeof cloned.date === "string" ? cloned.date : null;
+    const fyFromDate = computeFiscalYearFromDate(dateValue, config);
+    const fpFromDate = computeFiscalPeriodFromDate(dateValue, config);
 
     if (fyFromDate != null) cloned.fiscal_year = fyFromDate;
     if (fpFromDate != null) cloned.fiscal_period = fpFromDate;
@@ -474,7 +475,7 @@ export async function POST(req: NextRequest) {
 // We treat summary deletes as non-fatal if the target is a VIEW, since views update automatically.
 const safeDeleteSummary = async (
   summaryTable: string,
-  applyFilter: (q: any) => any
+  applyFilter: (q: ReturnType<ReturnType<typeof supabaseAdmin.from>["delete"]>) => ReturnType<ReturnType<typeof supabaseAdmin.from>["delete"]>
 ) => {
   const { error } = await applyFilter(
     supabaseAdmin.from(summaryTable).delete()
@@ -631,8 +632,8 @@ if (table === "revenues") {
           );
         } else {
           const otherYears = (otherData ?? [])
-            .map((r: any) => Number(r?.fiscal_year))
-            .filter((y: any) => Number.isFinite(y));
+            .map((r: { fiscal_year?: unknown }) => Number(r?.fiscal_year))
+            .filter((y: number) => Number.isFinite(y));
           yearsToRecompute = Array.from(
             new Set([...(yearsInData ?? []), ...otherYears])
           );
@@ -697,10 +698,10 @@ if (table === "revenues") {
       ok: true,
       message: `Successfully ${action} "${table}" with ${insertedCount} record(s).${summaryMsg}`,
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("Admin upload route error:", err);
     return NextResponse.json(
-      { error: err?.message ?? "Unexpected server error" },
+      { error: err instanceof Error ? err.message : "Unexpected server error" },
       { status: 500 }
     );
   }

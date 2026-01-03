@@ -22,7 +22,6 @@ import BudgetByDepartmentChart from "../Analytics/BudgetByDepartmentChart";
 import { formatCurrency, formatPercent } from "@/lib/format";
 import { cityHref } from "@/lib/cityRouting";
 import type { BudgetActualsYearDeptRow, VendorYearSummary } from "@/lib/queries";
-import { getMillionDomain } from "@/lib/chartDomain";
 
 
 const BUDGET_COLOR = "#334155";
@@ -138,6 +137,8 @@ export default function CitywideDashboardClient({
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    // Initial state sync from browser media query
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPrefersReducedMotion(mq.matches);
     const handler = (e: MediaQueryListEvent) => setPrefersReducedMotion(e.matches);
     mq.addEventListener("change", handler);
@@ -509,11 +510,10 @@ const { yoyDomain, yoyTicks } = useMemo(() => {
                                 })}
                               </Pie>
                               <Tooltip
-formatter={(value: any, name?: string) => {
-  const key = name ?? "";
-  return [formatCurrency(Number(value ?? 0)), key];
-}}
-
+                                formatter={(value, name) => [
+                                  formatCurrency(Number(value ?? 0)),
+                                  String(name ?? ""),
+                                ]}
                               />
                             </PieChart>
                           </ResponsiveContainer>
@@ -590,10 +590,10 @@ formatter={(value: any, name?: string) => {
                                 })}
                               </Pie>
                             <Tooltip
-                              formatter={(value: any, name?: string) => {
-                                const key = name ?? "";
-                                return [formatCurrency(Number(value ?? 0)), key];
-                              }}
+                              formatter={(value, name) => [
+                                formatCurrency(Number(value ?? 0)),
+                                String(name ?? ""),
+                              ]}
                             />
    
                             </PieChart>
@@ -741,8 +741,10 @@ formatter={(value: any, name?: string) => {
 
                             <Tooltip
                               labelFormatter={(label) => `Fiscal year ${label}`}
-                              formatter={(value: any, name) =>
-                                typeof value === "number" ? [formatCurrency(value), name] : [value, name]
+                              formatter={(value, name) =>
+                                typeof value === "number"
+                                  ? [formatCurrency(value), String(name ?? "")]
+                                  : [String(value ?? ""), String(name ?? "")]
                               }
                             />
                             <Legend verticalAlign="top" align="right" wrapperStyle={{ fontSize: 11 }} />

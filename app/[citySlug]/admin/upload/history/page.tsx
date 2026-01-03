@@ -73,11 +73,11 @@ export default function UploadHistoryPage() {
         if (!cancelled) {
           setLogs(data);
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error("Error loading upload logs", err);
         if (!cancelled) {
           setError(
-            err?.message ?? "Failed to load upload history. Please try again."
+            err instanceof Error ? err.message : "Failed to load upload history. Please try again."
           );
         }
       } finally {

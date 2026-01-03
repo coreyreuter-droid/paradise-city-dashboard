@@ -37,7 +37,7 @@ const shortenLabel = (name: string) => {
 export default function BudgetByDepartmentChart({
   year,
   departments,
-  accentColor,
+  accentColor: _accentColor,
   showTable = true,
 }: Props) {
   const data = useMemo(
@@ -93,8 +93,8 @@ export default function BudgetByDepartmentChart({
               tick={{ fontSize: 10, fill: "#475569" }}
             />
           <Tooltip
-            formatter={(value: any, name?: string) => {
-              const key = name ?? "";
+            formatter={(value, name) => {
+              const key = String(name ?? "");
 
               if (key === "Budget") {
                 return [formatCurrency(Number(value)), "Budget"];
@@ -105,12 +105,10 @@ export default function BudgetByDepartmentChart({
               if (key === "% spent") {
                 return [formatPercent(Number(value)), "% of budget spent"];
               }
-              return value;
+              return String(value);
             }}
-              labelFormatter={(label: any) =>
-                `Department: ${String(label)}`
-              }
-            />
+            labelFormatter={(label) => `Department: ${String(label)}`}
+          />
             {/* Background budget bar */}
             <Bar
               dataKey="budget"

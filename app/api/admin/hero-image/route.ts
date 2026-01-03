@@ -91,10 +91,10 @@ export async function POST(req: NextRequest) {
     } = supabaseAdmin.storage.from(bucket).getPublicUrl(uploadData.path);
 
     return NextResponse.json({ url: publicUrl });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("Branding upload route error", err);
     return NextResponse.json(
-      { error: err?.message ?? "Unexpected server error" },
+      { error: err instanceof Error ? err.message : "Unexpected server error" },
       { status: 500 }
     );
   }

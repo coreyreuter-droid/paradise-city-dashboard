@@ -19,7 +19,7 @@ type Props = {
 export default function ParadiseHomeKpiStrip({
   totalBudget,
   totalActuals,
-  variance,
+  variance: _variance,
   execPct,
   deptCount,
   txCount,
@@ -33,8 +33,6 @@ export default function ParadiseHomeKpiStrip({
   const execPctClamped = Number.isFinite(execPct)
     ? Math.max(0, Math.min(execPct, 5))
     : 0;
-
-  const execPctDisplay = `${(execPctClamped * 100).toFixed(1)}%`;
 
   const remaining = totalBudget - totalActuals;
   const isUnderBudget = remaining >= 0;

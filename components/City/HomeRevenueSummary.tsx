@@ -15,7 +15,7 @@ type Props = {
 export default function HomeRevenueSummary({
   revenues,
   years,
-  accentColor,
+  accentColor: _accentColor,
 }: Props) {
   const searchParams = useSearchParams();
 
@@ -50,11 +50,6 @@ export default function HomeRevenueSummary({
   const hasRevenueData = hasRows; // if there are rows, show the cards even if total is 0
   const yearLabel =
     selectedYear != null ? String(selectedYear) : "the selected year";
-
-  // Only use accent color for the small "Revenues" pill, not the card headers
-  const accentBadgeStyle = accentColor
-    ? { backgroundColor: accentColor }
-    : undefined;
 
   return (
     <section

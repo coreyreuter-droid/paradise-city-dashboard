@@ -238,7 +238,7 @@ export default function DepartmentBudgetClient(props: Props) {
       .sort((a, b) => b.totalAmount - a.totalAmount);
   }, [yearTransactions]);
 
-  const categorySummaries: CategorySummary[] = useMemo(() => {
+  const _categorySummaries: CategorySummary[] = useMemo(() => {
     if (filteredBudgets.length === 0 && filteredActuals.length === 0) {
       return [];
     }
@@ -429,12 +429,11 @@ export default function DepartmentBudgetClient(props: Props) {
                         tick={{ fontSize: 11, fill: "#64748b" }}
                       />
                       <Tooltip
-formatter={(value: any, name?: string) => {
-  const key = name ?? "";
-  return [formatCurrency(Number(value ?? 0)), key];
-}}
-
-                        labelFormatter={(label: any) => `Fiscal year ${label}`}
+                        formatter={(value, name) => [
+                          formatCurrency(Number(value ?? 0)),
+                          String(name ?? ""),
+                        ]}
+                        labelFormatter={(label) => `Fiscal year ${label}`}
                       />
                       <Bar
                         dataKey="Budget"

@@ -13,7 +13,6 @@ import {
 import { calculateInsights } from "@/lib/insights";
 import type { TransactionRow, RevenueRow } from "@/lib/types";
 import type {
-  PortalSettings,
   VendorYearSummary,
   BudgetActualsYearDeptRow,
   DataUploadLogRow,

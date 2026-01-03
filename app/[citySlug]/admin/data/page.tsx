@@ -49,7 +49,7 @@ async function fetchDistinctFiscalYears(table: TableKey): Promise<number[]> {
   }
 
   const years: number[] = (data ?? [])
-    .map((r: any) => Number(r.fiscal_year))
+    .map((r: { fiscal_year: number }) => Number(r.fiscal_year))
     .filter((n: number) => Number.isFinite(n));
 
   years.sort((a: number, b: number) => b - a);
@@ -149,8 +149,8 @@ function DeleteFYButton({
       setOpen(false);
       setConfirmText("");
       onDeleted();
-    } catch (e: any) {
-      setErr(e?.message || "Delete failed.");
+    } catch (e: unknown) {
+      setErr(e instanceof Error ? e.message : "Delete failed.");
     } finally {
       setLoading(false);
     }
@@ -256,10 +256,10 @@ export default function AdminDataManagementPage() {
         ...prev,
         [table]: { loading: false, years, error: null },
       }));
-    } catch (e: any) {
+    } catch (e: unknown) {
       setStates((prev) => ({
         ...prev,
-        [table]: { loading: false, years: [], error: e?.message || "Failed to load years." },
+        [table]: { loading: false, years: [], error: e instanceof Error ? e.message : "Failed to load years." },
       }));
     }
   }
@@ -268,7 +268,6 @@ export default function AdminDataManagementPage() {
     (async () => {
       await Promise.all(TABLES.map((t) => refreshOne(t.key)));
     })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const allYears = useMemo(() => {

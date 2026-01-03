@@ -74,10 +74,10 @@ export async function GET(req: NextRequest) {
 
     // Include the caller's role so the UI can know if they're super_admin
     return NextResponse.json({ users, currentRole: role });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("Admin users route error:", err);
     return NextResponse.json(
-      { error: err?.message ?? "Unexpected server error" },
+      { error: err instanceof Error ? err.message : "Unexpected server error" },
       { status: 500 }
     );
   }

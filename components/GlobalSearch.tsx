@@ -51,7 +51,6 @@ export default function GlobalSearch({ fiscalYear, className = "" }: Props) {
   const [isLoading, setIsLoading] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
-  const [isNavigating, setIsNavigating] = useState(false);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -158,7 +157,6 @@ export default function GlobalSearch({ fiscalYear, className = "" }: Props) {
 
   // Navigate to result
   const navigateTo = (item: typeof flatResults[number]) => {
-    setIsNavigating(true);
     setIsOpen(false);
     // DON'T clear query yet - keep the expanded width
 
@@ -182,7 +180,6 @@ export default function GlobalSearch({ fiscalYear, className = "" }: Props) {
     // Clear query after a short delay (lets navigation start)
     setTimeout(() => {
       setQuery("");
-      setIsNavigating(false);
       setIsMobileOpen(false);
     }, 150);
   };
@@ -241,37 +238,31 @@ export default function GlobalSearch({ fiscalYear, className = "" }: Props) {
 
   // Navigate to "view all" pages
   const viewAllDepartments = () => {
-    setIsNavigating(true);
     setIsOpen(false);
     const href = cityHref(`/departments?q=${encodeURIComponent(query)}${fiscalYear ? `&year=${fiscalYear}` : ""}`);
     router.push(href);
     setTimeout(() => {
       setQuery("");
-      setIsNavigating(false);
       setIsMobileOpen(false);
     }, 150);
   };
 
   const viewAllVendors = () => {
-    setIsNavigating(true);
     setIsOpen(false);
     const href = cityHref(`/vendors?q=${encodeURIComponent(query)}${fiscalYear ? `&year=${fiscalYear}` : ""}`);
     router.push(href);
     setTimeout(() => {
       setQuery("");
-      setIsNavigating(false);
       setIsMobileOpen(false);
     }, 150);
   };
 
   const viewAllTransactions = () => {
-    setIsNavigating(true);
     setIsOpen(false);
     const href = cityHref(`/transactions?q=${encodeURIComponent(query)}${fiscalYear ? `&year=${fiscalYear}` : ""}`);
     router.push(href);
     setTimeout(() => {
       setQuery("");
-      setIsNavigating(false);
       setIsMobileOpen(false);
     }, 150);
   };

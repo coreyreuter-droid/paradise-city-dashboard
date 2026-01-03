@@ -29,6 +29,8 @@ export default function ParadiseHomeMultiYearChart({ yearTotals }: Props) {
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    // Initial state sync from browser media query
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPrefersReducedMotion(mq.matches);
     const handler = (e: MediaQueryListEvent) => setPrefersReducedMotion(e.matches);
     mq.addEventListener("change", handler);
@@ -75,11 +77,11 @@ export default function ParadiseHomeMultiYearChart({ yearTotals }: Props) {
             <XAxis dataKey="year" tickLine={false} axisLine={{ stroke: "#e2e8f0" }} tick={{ fontSize: 11, fill: "#475569" }} />
             <YAxis tickFormatter={yTickFormatter} tickLine={false} axisLine={{ stroke: "#e2e8f0" }} tick={{ fontSize: 11, fill: "#475569" }} />
             <Tooltip
-              formatter={(value: any, name: any) => [
-                formatCurrency(Number(value)),
+              formatter={(value, name) => [
+                formatCurrency(Number(value ?? 0)),
                 name === "budget" ? "Budget" : "Actuals",
               ]}
-              labelFormatter={(label: any) => `Fiscal year ${label}`}
+              labelFormatter={(label) => `Fiscal year ${label}`}
               wrapperClassName="text-xs"
               contentStyle={{
                 borderRadius: 8,

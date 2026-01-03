@@ -1,5 +1,6 @@
 // app/terms/page.tsx
 import { Metadata } from "next";
+import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Terms of Service | CiviPortal",
@@ -17,23 +18,17 @@ export default function TermsOfService() {
           <section className="mb-8">
             <h2 className="text-xl font-semibold text-slate-900">1. Introduction</h2>
             <p className="mt-3 text-slate-700">
-              Welcome to CiviPortal. These Terms of Service ("Terms") govern your access to and use 
-              of public transparency portals operated on the CiviPortal platform ("Service"), 
-              provided by CiviPortal LLC ("CiviPortal," "we," "us," or "our").
+              {`Welcome to CiviPortal. These Terms of Service ("Terms") govern your access to and use of public transparency portals operated on the CiviPortal platform ("Service"), provided by CiviPortal LLC ("CiviPortal," "we," "us," or "our").`}
             </p>
             <p className="mt-3 text-slate-700">
-              By accessing or using any CiviPortal transparency portal, you agree to be bound by 
-              these Terms. If you do not agree to these Terms, please do not use the Service.
+              {`By accessing or using any CiviPortal transparency portal, you agree to be bound by these Terms. If you do not agree to these Terms, please do not use the Service.`}
             </p>
           </section>
 
           <section className="mb-8">
             <h2 className="text-xl font-semibold text-slate-900">2. Description of Service</h2>
             <p className="mt-3 text-slate-700">
-              CiviPortal provides a platform that enables government entities ("Government Partners") 
-              to publish financial data, including budgets, expenditures, revenues, and related 
-              information, for public viewing. Each portal is operated on behalf of a specific 
-              Government Partner.
+              {`CiviPortal provides a platform that enables government entities ("Government Partners") to publish financial data, including budgets, expenditures, revenues, and related information, for public viewing. Each portal is operated on behalf of a specific Government Partner.`}
             </p>
           </section>
 
@@ -46,9 +41,7 @@ export default function TermsOfService() {
               timeliness of the data.
             </p>
             <p className="mt-3 text-slate-700">
-              <strong>The Government Partner is solely responsible for the accuracy and completeness 
-              of all data published on their portal.</strong> Questions about specific data should be 
-              directed to the Government Partner's finance or administrative office.
+              <strong>{`The Government Partner is solely responsible for the accuracy and completeness of all data published on their portal.`}</strong>{` Questions about specific data should be directed to the Government Partner's finance or administrative office.`}
             </p>
           </section>
 
@@ -85,9 +78,7 @@ export default function TermsOfService() {
           <section className="mb-8">
             <h2 className="text-xl font-semibold text-slate-900">6. Disclaimer of Warranties</h2>
             <p className="mt-3 text-slate-700">
-              THE SERVICE IS PROVIDED "AS IS" AND "AS AVAILABLE" WITHOUT WARRANTIES OF ANY KIND, 
-              EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO IMPLIED WARRANTIES OF 
-              MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT.
+              {`THE SERVICE IS PROVIDED "AS IS" AND "AS AVAILABLE" WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT.`}
             </p>
             <p className="mt-3 text-slate-700">
               CiviPortal does not warrant that the Service will be uninterrupted, error-free, or 
@@ -110,9 +101,7 @@ export default function TermsOfService() {
           <section className="mb-8">
             <h2 className="text-xl font-semibold text-slate-900">8. Changes to Terms</h2>
             <p className="mt-3 text-slate-700">
-              We may modify these Terms at any time. If we make material changes, we will update 
-              the "Last updated" date at the top of this page. Your continued use of the Service 
-              after any changes constitutes your acceptance of the new Terms.
+              {`We may modify these Terms at any time. If we make material changes, we will update the "Last updated" date at the top of this page. Your continued use of the Service after any changes constitutes your acceptance of the new Terms.`}
             </p>
           </section>
 
@@ -139,9 +128,9 @@ export default function TermsOfService() {
         </div>
 
         <div className="mt-12 border-t border-slate-200 pt-8">
-          <a href="/" className="text-sm font-medium text-slate-600 hover:text-slate-900">
+          <Link href="/" className="text-sm font-medium text-slate-600 hover:text-slate-900">
             ← Back to portal
-          </a>
+          </Link>
         </div>
       </div>
     </div>

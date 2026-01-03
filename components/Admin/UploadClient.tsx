@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase";
 import { cityHref } from "@/lib/cityRouting";
 import { parseCsv } from "@/lib/csvParser";
 import { csrfFetch } from "@/components/CsrfProvider";
+import { downloadCsv } from "@/lib/downloadFile";
 
 const TABLE_SCHEMAS: Record<
   string,
@@ -162,22 +163,6 @@ function parseAndNormalizeTransactionDate(value: unknown): string | null {
   return null;
 }
 
-function getUniqueFiscalYearsFromRows(rows: any[]): number[] {
-  const years = new Set<number>();
-
-  for (const row of rows) {
-    const raw = row?.fiscal_year;
-    if (raw === undefined || raw === null) continue;
-
-    const n = Number(raw);
-    if (Number.isFinite(n)) {
-      years.add(n);
-    }
-  }
-
-  return Array.from(years).sort((a, b) => a - b);
-}
-
 // period: accept YYYY-M or YYYY-MM (we normalize to YYYY-MM before upload)
 function isValidPeriod(value: unknown): boolean {
   if (typeof value !== "string") return false;
@@ -221,7 +206,7 @@ function validateAndBuildRecords(
   headers: string[],
   dataRows: string[][]
 ): {
-  records: Record<string, any>[];
+  records: Record<string, unknown>[];
   yearsInData: number[];
   issues: ValidationIssue[];
 } {
@@ -276,12 +261,12 @@ function validateAndBuildRecords(
     }
   });
 
-  const records: Record<string, any>[] = [];
+  const records: Record<string, unknown>[] = [];
   const yearSet = new Set<number>();
 
   dataRows.forEach((row, idx) => {
     const rowNum = idx + 2; // account for header row
-    const rec: Record<string, any> = {};
+    const rec: Record<string, unknown> = {};
 
     // Only copy columns that map to known fields; extras are ignored.
     headers.forEach((rawHeader, colIndex) => {
@@ -475,7 +460,7 @@ export default function UploadClient() {
 
   const [preflight, setPreflight] = useState<PreflightSummary | null>(null);
   const [pendingRecords, setPendingRecords] = useState<
-    Record<string, any>[] | null
+    Record<string, unknown>[] | null
   >(null);
   const [pendingYearsInData, setPendingYearsInData] = useState<number[]>([]);
 
@@ -615,9 +600,10 @@ export default function UploadClient() {
     }
   }
 
-    useEffect(() => {
+  useEffect(() => {
+    // Initial coverage check on mount
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     refreshCoverageWarnings();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function handlePrepareUpload() {
@@ -743,9 +729,9 @@ export default function UploadClient() {
       setInfo(
         "Review the upload summary below, then confirm to start the upload."
       );
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      setError("Failed to process CSV: " + (err?.message || "Unknown error"));
+      setError("Failed to process CSV: " + (err instanceof Error ? err.message : "Unknown error"));
     }
 
     setLoading(false);
@@ -842,9 +828,9 @@ export default function UploadClient() {
 
       await refreshCoverageWarnings();
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      setError("Upload failed: " + (err?.message || "Unknown error"));
+      setError("Upload failed: " + (err instanceof Error ? err.message : "Unknown error"));
       setUploadProgress(null);
     }
 
@@ -858,20 +844,8 @@ export default function UploadClient() {
       return;
     }
 
-    const blob = new Blob([csv], {
-      type: "text/csv;charset=utf-8;",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${table}_template.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    downloadCsv(csv, `${table}_template.csv`);
   }
-
-  const requiredCols = TABLE_SCHEMAS[table]?.required ?? [];
 
   // Compute preview-time missing required columns (based on selected table)
   const previewMissingRequired =

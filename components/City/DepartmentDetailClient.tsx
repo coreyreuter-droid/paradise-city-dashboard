@@ -644,13 +644,11 @@ export default function DepartmentDetailClient({
 />
 
                     <Tooltip
-                      labelFormatter={(label) =>
-                        `Fiscal year ${label}`
-                      }
-                      formatter={(value: any, name) =>
+                      labelFormatter={(label) => `Fiscal year ${label}`}
+                      formatter={(value, name) =>
                         typeof value === "number"
-                          ? [formatCurrency(value), name]
-                          : [value, name]
+                          ? [formatCurrency(value), String(name ?? "")]
+                          : [String(value ?? ""), String(name ?? "")]
                       }
                     />
                     <Legend
