@@ -110,32 +110,32 @@ type ThemePreset = {
 
 const THEME_PRESETS: ThemePreset[] = [
   {
-    id: "civic-classic",
-    name: "Civic Classic",
-    primary: "#0F172A", // dark slate header
-    accent: "#0f766e", // teal accent
-    background: "#020617", // very dark background
+    id: "slate-authority",
+    name: "Slate Authority",
+    primary: "#1e293b",
+    accent: "#0891b2",
+    background: "#0f172a",
   },
   {
-    id: "evergreen",
-    name: "Evergreen",
-    primary: "#064E3B", // deep green header
-    accent: "#047857", // emerald accent
-    background: "#022C22", // very dark green background
+    id: "forest-trust",
+    name: "Forest Trust",
+    primary: "#14532d",
+    accent: "#0d9488",
+    background: "#052e16",
   },
   {
-    id: "sunrise",
-    name: "Sunrise",
-    primary: "#7C2D12", // warm brown header
-    accent: "#EA580C", // orange accent
-    background: "#451A03", // dark warm background
+    id: "civic-warmth",
+    name: "Civic Warmth",
+    primary: "#78350f",
+    accent: "#ca8a04",
+    background: "#292524",
   },
   {
-    id: "lakefront",
-    name: "Lakefront",
-    primary: "#0C4A6E", // deep blue header
-    accent: "#15803d", // fresh green accent
-    background: "#020617", // dark neutral background
+    id: "ocean-depth",
+    name: "Ocean Depth",
+    primary: "#0c4a6e",
+    accent: "#0ea5e9",
+    background: "#082f49",
   },
 ];
 
@@ -1482,7 +1482,7 @@ export default function BrandingSettingsClient() {
             {/* Primary color */}
             <div>
               <label className="mb-1 block text-sm font-medium text-slate-700">
-                Primary color (hex)
+                Headline color (hex)
               </label>
               <div className="flex items-center gap-2">
                 <input
@@ -1514,7 +1514,7 @@ export default function BrandingSettingsClient() {
             {/* Accent color */}
             <div>
               <label className="mb-1 block text-sm font-medium text-slate-700">
-                Accent color (hex)
+                Button & highlight color (hex)
               </label>
               <div className="flex items-center gap-2">
                 <input
@@ -1545,7 +1545,7 @@ export default function BrandingSettingsClient() {
             {/* Background color */}
             <div>
               <label className="mb-1 block text-sm font-medium text-slate-700">
-                Background color (hex)
+                Sidebar color (hex)
               </label>
               <div className="flex items-center gap-2">
                 <input
