@@ -73,6 +73,7 @@ function formatFreshnessDate(iso: string | null): string | null {
     month: "short",
     day: "numeric",
     year: "numeric",
+    timeZone: "UTC", // Prevent hydration mismatch between server/client timezones
   });
 }
 

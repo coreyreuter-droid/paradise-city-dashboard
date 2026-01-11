@@ -31,7 +31,7 @@ export default function LegalFooter({ className = "" }: LegalFooterProps) {
           
           {/* Legal links */}
           <div className="flex items-center gap-3 text-sm text-slate-500">
-            <span>© {currentYear} CiviPortal LLC</span>
+            <span suppressHydrationWarning>© {currentYear} CiviPortal LLC</span>
             <span className="text-slate-300">•</span>
             <Link href="/terms" className="hover:text-slate-700 transition-colors">
               Terms

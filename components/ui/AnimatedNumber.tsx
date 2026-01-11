@@ -16,6 +16,7 @@ type Props = {
  * - Uses requestAnimationFrame for smooth 60fps animation
  * - Respects prefers-reduced-motion for users with vestibular disorders
  * - Only animates on initial mount, not on re-renders
+ * - Initializes with actual value to prevent hydration mismatch
  */
 export function AnimatedNumber({
   value,
@@ -23,12 +24,23 @@ export function AnimatedNumber({
   formatFn = (v) => v.toLocaleString("en-US"),
   className,
 }: Props) {
-  const [displayValue, setDisplayValue] = useState(0);
+  // Initialize with actual value to prevent hydration mismatch
+  // Server and client both render the same initial value
+  const [displayValue, setDisplayValue] = useState(value);
+  const [hasHydrated, setHasHydrated] = useState(false);
   const hasAnimated = useRef(false);
   const rafRef = useRef<number | null>(null);
 
+  // Mark as hydrated after first client render
   useEffect(() => {
-    // Only animate once on mount
+    setHasHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    // Don't animate until hydrated (prevents flash)
+    if (!hasHydrated) return;
+
+    // Only animate once after hydration
     if (hasAnimated.current) {
       setDisplayValue(value);
       return;
@@ -74,7 +86,7 @@ export function AnimatedNumber({
         cancelAnimationFrame(rafRef.current);
       }
     };
-  }, [value, duration]);
+  }, [value, duration, hasHydrated]);
 
   return <span className={className}>{formatFn(displayValue)}</span>;
 }
