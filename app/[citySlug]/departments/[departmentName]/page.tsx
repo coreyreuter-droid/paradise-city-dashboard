@@ -106,6 +106,7 @@ export default async function DepartmentDetailPage({ params, searchParams }: Pag
       transactions={transactions}
       enableVendors={enableVendors}
       availableYears={availableYears}
+      deptSummaryAllYears={deptSummaryAllYears}
     />
   );
 }

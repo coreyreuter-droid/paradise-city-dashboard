@@ -37,6 +37,11 @@ type Props = {
   transactions: TransactionRow[];
   enableVendors: boolean;
   availableYears?: number[];
+  deptSummaryAllYears?: Array<{
+    fiscal_year: number;
+    budget_amount: number | string | null;
+    actual_amount: number | string | null;
+  }>;
 };
 
 const formatCurrency = (value: number) =>
@@ -109,6 +114,7 @@ export default function DepartmentDetailClient({
   actuals,
   transactions,
   enableVendors,
+  deptSummaryAllYears,
 }: Props) {
   const searchParams = useSearchParams();
   const [activeVendor, setActiveVendor] = useState<string | null>(null);
@@ -197,7 +203,20 @@ export default function DepartmentDetailClient({
   }, [searchParams, deptYears]);
 
   const multiYearSeries = useMemo(() => {
-    const byYear = new Map<
+    // Use pre-aggregated multi-year data if available
+    if (deptSummaryAllYears && deptSummaryAllYears.length > 0) {
+      return deptSummaryAllYears
+        .map((row) => ({
+          year: Number(row.fiscal_year),
+          budget: Number(row.budget_amount || 0),
+          actuals: Number(row.actual_amount || 0),
+        }))
+        .filter((row) => Number.isFinite(row.year))
+        .sort((a, b) => a.year - b.year);
+    }
+
+    // Fallback: derive from single-year data
+const byYear = new Map<
       number,
       { year: number; budget: number; actuals: number }
     >();
@@ -219,7 +238,7 @@ export default function DepartmentDetailClient({
     });
 
     return Array.from(byYear.values()).sort((a, b) => a.year - b.year);
-  }, [deptBudgets, deptActuals]);
+  }, [deptSummaryAllYears, deptBudgets, deptActuals]);
 
     const multiYearDomain = useMemo((): [number, number] => {
     const values: number[] = [];
