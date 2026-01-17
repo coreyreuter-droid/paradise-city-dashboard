@@ -40,8 +40,8 @@ const formatAxisCurrencyShort = (v: number) => {
 };
 
 const shortenLabel = (name: string) => {
-  if (name.length <= 18) return name;
-  return name.slice(0, 15) + "…";
+  if (name.length <= 24) return name;
+  return name.slice(0, 22) + "…";
 };
 
 export default function BudgetByDepartmentChart({
@@ -101,14 +101,14 @@ export default function BudgetByDepartmentChart({
             <XAxis
               type="number"
               tickFormatter={(v) => formatAxisCurrencyShort(Number(v))}
-              tick={{ fontSize: 11, fill: "#64748b" }}
+              tick={{ fontSize: 12, fill: "#334155" }}
             />
             <YAxis
               type="category"
               dataKey="department_name"
               tickFormatter={shortenLabel}
-              width={140}
-              tick={{ fontSize: 10, fill: "#475569" }}
+              width={180}
+              tick={{ fontSize: 11, fill: "#334155" }}
             />
           <Tooltip
             formatter={(value, name) => {
@@ -158,11 +158,11 @@ export default function BudgetByDepartmentChart({
         </div>
         <div className="flex items-center gap-1">
           <span className="inline-block h-2 w-3 rounded" style={{ backgroundColor: "#16a34a" }} />
-          <span>Actuals (at or under budget)</span>
+          <span>Actuals (at or below plan)</span>
         </div>
         <div className="flex items-center gap-1">
           <span className="inline-block h-2 w-3 rounded" style={{ backgroundColor: "#dc2626" }} />
-          <span>Actuals (over budget)</span>
+          <span>Actuals (above plan)</span>
         </div>
       </div>
 

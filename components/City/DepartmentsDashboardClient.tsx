@@ -325,7 +325,7 @@ export default function DepartmentsDashboardClient({
                     {formatCurrency(variance)}
                   </div>
                   <div className="mt-1 text-sm text-slate-600">
-                    Negative means departments are under budget overall.
+                    Negative means departments are below the adopted plan overall.
                   </div>
                 </div>
 

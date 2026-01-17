@@ -8,6 +8,13 @@ import { downloadFile } from "@/lib/downloadFile";
 
 const MAX_EXPORT_ROWS = 50_000;
 
+type RecordCounts = {
+  budgets: number;
+  actuals: number;
+  transactions: number;
+  revenues: number;
+};
+
 type Props = {
   years: number[];
   departments: string[];
@@ -17,12 +24,6 @@ type Props = {
   enableTransactions: boolean;
   enableVendors: boolean;
   enableRevenues: boolean;
-  recordCounts: {
-    budgets: number;
-    actuals: number;
-    transactions: number;
-    revenues: number;
-  };
 };
 
 // Icons
@@ -277,7 +278,7 @@ type DownloadCardProps = {
   enableVendors: boolean;
   isLoading: boolean;
   onDownload: () => void;
-  baseRecordCount: number;
+  baseRecordCount: number | null;
 };
 
 function DownloadCard({
@@ -558,11 +559,15 @@ function DownloadCard({
               {activeFilterCount} filter{activeFilterCount !== 1 ? "s" : ""}
             </span>
           )}
-          {displayCount !== null && (
+          {displayCount !== null ? (
             <span className={`hidden sm:inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${
               isOverLimit ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-700"
             }`}>
               {displayCount.toLocaleString()} records
+            </span>
+          ) : (
+            <span className="hidden sm:inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-500">
+              {isCountLoading ? "Counting..." : "Loading..."}
             </span>
           )}
           <svg
@@ -695,6 +700,13 @@ function DownloadCard({
               )}
             </button>
           </div>
+          
+          {/* Progress message */}
+          {isLoading && (
+            <p className="mt-3 text-center text-sm text-slate-500">
+              Preparing your export... this may take up to 30 seconds for large datasets.
+            </p>
+          )}
         </div>
       )}
     </div>
@@ -710,7 +722,6 @@ export default function DownloadCenterClient({
   enableTransactions,
   enableVendors,
   enableRevenues,
-  recordCounts,
 }: Props) {
   const emptyFilters: FilterState = {
     years: [],
@@ -728,6 +739,27 @@ export default function DownloadCenterClient({
 
   const [loadingType, setLoadingType] = useState<string | null>(null);
   const [downloadSuccess, setDownloadSuccess] = useState<string | null>(null);
+
+  // Async loading of record counts
+  const [recordCounts, setRecordCounts] = useState<RecordCounts | null>(null);
+  const [countsLoading, setCountsLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchCounts() {
+      try {
+        const response = await fetch("/api/export/totals");
+        if (response.ok) {
+          const data = await response.json();
+          setRecordCounts(data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch record counts:", err);
+      } finally {
+        setCountsLoading(false);
+      }
+    }
+    fetchCounts();
+  }, []);
 
   const handleDownload = useCallback(async (
     dataType: string,
@@ -749,8 +781,17 @@ export default function DownloadCenterClient({
       const response = await fetch(`/api/export/${dataType}?${params.toString()}`);
       
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Download failed");
+        // Handle both JSON and plain text error responses
+        const text = await response.text();
+        let errorMessage = "Download failed";
+        try {
+          const json = JSON.parse(text);
+          errorMessage = json.error || errorMessage;
+        } catch {
+          // Response was plain text, not JSON
+          errorMessage = text || errorMessage;
+        }
+        throw new Error(errorMessage);
       }
 
       const blob = await response.blob();
@@ -783,7 +824,7 @@ export default function DownloadCenterClient({
       enabled: boolean;
       filters: FilterState;
       setFilters: React.Dispatch<React.SetStateAction<FilterState>>;
-      baseRecordCount: number;
+      baseRecordCount: number | null;
     }> = [
       {
         id: "budgets",
@@ -793,7 +834,7 @@ export default function DownloadCenterClient({
         enabled: true,
         filters: budgetFilters,
         setFilters: setBudgetFilters,
-        baseRecordCount: recordCounts.budgets,
+        baseRecordCount: recordCounts?.budgets ?? null,
       },
       {
         id: "actuals",
@@ -803,7 +844,7 @@ export default function DownloadCenterClient({
         enabled: enableActuals,
         filters: actualsFilters,
         setFilters: setActualsFilters,
-        baseRecordCount: recordCounts.actuals,
+        baseRecordCount: recordCounts?.actuals ?? null,
       },
       {
         id: "transactions",
@@ -815,7 +856,7 @@ export default function DownloadCenterClient({
         enabled: enableTransactions,
         filters: transactionFilters,
         setFilters: setTransactionFilters,
-        baseRecordCount: recordCounts.transactions,
+        baseRecordCount: recordCounts?.transactions ?? null,
       },
       {
         id: "revenues",
@@ -825,7 +866,7 @@ export default function DownloadCenterClient({
         enabled: enableRevenues,
         filters: revenueFilters,
         setFilters: setRevenueFilters,
-        baseRecordCount: recordCounts.revenues,
+        baseRecordCount: recordCounts?.revenues ?? null,
       },
     ];
 
@@ -876,10 +917,16 @@ export default function DownloadCenterClient({
                   className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm ring-1 ring-slate-200"
                 >
                   <span className={`h-1.5 w-1.5 rounded-full ${
-                    dt.baseRecordCount > MAX_EXPORT_ROWS ? "bg-amber-500" : "bg-emerald-500"
+                    dt.baseRecordCount === null 
+                      ? "bg-slate-300" 
+                      : dt.baseRecordCount > MAX_EXPORT_ROWS 
+                        ? "bg-amber-500" 
+                        : "bg-emerald-500"
                   }`} />
                   {dt.title}
-                  <span className="text-slate-400">({dt.baseRecordCount.toLocaleString()})</span>
+                  <span className="text-slate-400">
+                    ({dt.baseRecordCount !== null ? dt.baseRecordCount.toLocaleString() : "Loading..."})
+                  </span>
                 </span>
               ))}
             </div>

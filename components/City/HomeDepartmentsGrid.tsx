@@ -47,10 +47,10 @@ export default function DepartmentsGrid({ year, departments }: Props) {
             const variance = d.actuals - d.budget;
             const varianceLabel =
               variance === 0
-                ? "On budget"
+                ? "On plan"
                 : variance > 0
-                ? "Over budget"
-                : "Under budget";
+                ? "Above plan"
+                : "Below plan";
 
             const varianceTone =
               variance < 0
@@ -81,7 +81,7 @@ export default function DepartmentsGrid({ year, departments }: Props) {
                     </div>
                   </div>
                   <span
-                    className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold ${varianceTone}`}
+                    className={`inline-flex shrink-0 items-center whitespace-nowrap rounded-full border px-2 py-0.5 text-xs font-semibold ${varianceTone}`}
                   >
                     {varianceLabel}
                   </span>

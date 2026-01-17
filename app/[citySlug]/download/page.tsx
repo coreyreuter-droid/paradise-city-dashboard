@@ -32,10 +32,10 @@ async function getDepartments(): Promise<string[]> {
 
 async function getVendors(): Promise<string[]> {
   const { data, error } = await supabase
-    .from("transaction_year_vendor")
+    .from("transactions")
     .select("vendor")
-    .order("total_amount", { ascending: false })
-    .limit(500);
+    .not("vendor", "is", null)
+    .limit(2000);
 
   if (error) {
     console.error("Error fetching vendors:", error);
@@ -49,7 +49,7 @@ async function getVendors(): Promise<string[]> {
     }
   });
 
-  return Array.from(unique);
+  return Array.from(unique).sort();
 }
 
 async function getRevenueSources(): Promise<string[]> {
@@ -73,36 +73,16 @@ async function getRevenueSources(): Promise<string[]> {
   return Array.from(unique).sort();
 }
 
-async function getRecordCounts(): Promise<{
-  budgets: number;
-  actuals: number;
-  transactions: number;
-  revenues: number;
-}> {
-  const [budgets, actuals, transactions, revenues] = await Promise.all([
-    supabase.from("budgets").select("*", { count: "exact", head: true }),
-    supabase.from("actuals").select("*", { count: "exact", head: true }),
-    supabase.from("transactions").select("*", { count: "exact", head: true }),
-    supabase.from("revenues").select("*", { count: "exact", head: true }),
-  ]);
-
-  return {
-    budgets: budgets.count ?? 0,
-    actuals: actuals.count ?? 0,
-    transactions: transactions.count ?? 0,
-    revenues: revenues.count ?? 0,
-  };
-}
+// Record counts are now loaded client-side for faster page load
 
 export default async function DownloadPage() {
-  const [settings, years, departments, vendors, revenueSources, recordCounts] =
+  const [settings, years, departments, vendors, revenueSources] =
     await Promise.all([
       getPortalSettings(),
       getPortalFiscalYears(),
       getDepartments(),
       getVendors(),
       getRevenueSources(),
-      getRecordCounts(),
     ]);
 
   const enableActuals = settings?.enable_actuals !== false;
@@ -127,7 +107,6 @@ export default async function DownloadPage() {
         enableTransactions={enableTransactions}
         enableVendors={enableVendors}
         enableRevenues={enableRevenues}
-        recordCounts={recordCounts}
       />
     </Suspense>
   );

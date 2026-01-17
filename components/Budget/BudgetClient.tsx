@@ -275,7 +275,7 @@ export default function BudgetClient({ years, deptBudgetActuals }: Props) {
                   {formatCurrency(totals.variance)}
                 </div>
                 <div className="mt-1 text-xs text-slate-500">
-                  Positive means the spend is currently under budget.
+                  Positive means spending is currently below the adopted plan.
                 </div>
               </div>
 
@@ -339,7 +339,7 @@ export default function BudgetClient({ years, deptBudgetActuals }: Props) {
                   <p className="mt-1 text-xs text-slate-600">
                     Departments are sorted by size of adopted budget.
                     Large green bars show major services that are currently
-                    under budget; red bars flag areas where spending is
+                    below the adopted plan; red bars flag areas where spending is
                     running ahead of plan.
                   </p>
                 </div>

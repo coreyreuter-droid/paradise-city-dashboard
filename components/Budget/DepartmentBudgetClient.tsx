@@ -419,14 +419,14 @@ export default function DepartmentBudgetClient(props: Props) {
                         dataKey="year"
                         tickLine={false}
                         axisLine={false}
-                        tick={{ fontSize: 11, fill: "#64748b" }}
+                        tick={{ fontSize: 12, fill: "#334155" }}
                       />
                       <YAxis
                         tickFormatter={formatAxisCurrency}
                         tickLine={false}
                         axisLine={false}
                         width={70}
-                        tick={{ fontSize: 11, fill: "#64748b" }}
+                        tick={{ fontSize: 12, fill: "#334155" }}
                       />
                       <Tooltip
                         formatter={(value, name) => [
@@ -557,10 +557,10 @@ export default function DepartmentBudgetClient(props: Props) {
                 >
                   <span className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-current" />
                   {variance > 0
-                    ? "Over budget"
+                    ? "Above plan"
                     : variance < 0
-                    ? "Under budget"
-                    : "On budget"}
+                    ? "Below plan"
+                    : "On plan"}
                 </div>
                 <div
                   className={`mt-1 text-2xl font-bold ${

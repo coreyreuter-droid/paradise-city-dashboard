@@ -50,8 +50,8 @@ const formatAxisCurrency = (v: number) => {
 };
 
 const shortenLabel = (name: string) => {
-  if (name.length <= 14) return name;
-  return name.slice(0, 11) + "…";
+  if (name.length <= 24) return name;
+  return name.slice(0, 22) + "…";
 };
 
 export default function BudgetCharts({
@@ -204,12 +204,13 @@ export default function BudgetCharts({
             <XAxis
               type="number"
               tickFormatter={formatAxisCurrency}
+              tick={{ fontSize: 12, fill: "#334155" }}
             />
             <YAxis
               type="category"
               dataKey="name"
-              width={100}
-              tick={{ fontSize: 10 }}
+              width={180}
+              tick={{ fontSize: 11, fill: "#334155" }}
               tickFormatter={(name: string) =>
                 shortenLabel(name)
               }

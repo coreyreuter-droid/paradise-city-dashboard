@@ -167,13 +167,13 @@ export async function GET(req: NextRequest, context: Context) {
 
     // Check if data type is enabled
     if (dataType === "actuals" && !enableActuals) {
-      return new NextResponse("Not found", { status: 404 });
+      return NextResponse.json({ error: "Data type not available" }, { status: 404 });
     }
     if (dataType === "transactions" && !enableTransactions) {
-      return new NextResponse("Not found", { status: 404 });
+      return NextResponse.json({ error: "Data type not available" }, { status: 404 });
     }
     if (dataType === "revenues" && !enableRevenues) {
-      return new NextResponse("Not found", { status: 404 });
+      return NextResponse.json({ error: "Data type not available" }, { status: 404 });
     }
 
     // Parse query parameters (now as arrays)

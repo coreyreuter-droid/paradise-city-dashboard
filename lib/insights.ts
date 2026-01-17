@@ -38,25 +38,25 @@ export function calculateInsights(data: InsightInputData): Insight[] {
   for (const dept of validDepts) {
     const pct = dept.budget > 0 ? (dept.actuals / dept.budget) * 100 : 0;
 
-    // CRITICAL (priority 1): Significantly over budget (>150%)
+    // CRITICAL (priority 1): Significantly above plan (>150%)
     if (pct > 150) {
       const overAmount = dept.actuals - dept.budget;
       insights.push({
         id: `dept-critical-${dept.department_name}`,
         type: "warning",
-        title: `${dept.department_name} is significantly over budget`,
+        title: `${dept.department_name} is significantly above plan`,
         description: `Spent ${formatCurrency(overAmount)} more than budgeted (${formatPercent(pct, 0)} of budget used)`,
         departmentName: dept.department_name,
         priority: 1,
       });
     }
-    // WARNING (priority 2): Over budget (>105% but <=150%)
+    // WARNING (priority 2): Above plan (>105% but <=150%)
     else if (pct > 105) {
       const overAmount = dept.actuals - dept.budget;
       insights.push({
         id: `dept-over-${dept.department_name}`,
         type: "warning",
-        title: `${dept.department_name} is over budget`,
+        title: `${dept.department_name} is above plan`,
         description: `Spent ${formatCurrency(overAmount)} more than budgeted (${formatPercent(pct, 0)} of budget used)`,
         departmentName: dept.department_name,
         priority: 2,

@@ -821,23 +821,23 @@ const { yoyDomain, yoyTicks } = useMemo(() => {
                     <div className="mt-3 flex flex-wrap gap-3 text-xs text-slate-600">
                       <div className="inline-flex items-center gap-1">
                         <span className="inline-block h-2 w-3 rounded bg-emerald-100" />
-                        <span>Under budget</span>
+                        <span>Below plan</span>
                         <span className="font-semibold text-emerald-700">{deptAdditionalStats.underBudgetCount}</span>
                       </div>
                       <div className="inline-flex items-center gap-1">
                         <span className="inline-block h-2 w-3 rounded bg-slate-200" />
-                        <span>Near budget</span>
+                        <span>Near plan</span>
                         <span className="font-semibold text-slate-700">{deptAdditionalStats.onTargetCount}</span>
                       </div>
                       <div className="inline-flex items-center gap-1">
                         <span className="inline-block h-2 w-3 rounded bg-red-100" />
-                        <span>Over budget</span>
+                        <span>Above plan</span>
                         <span className="font-semibold text-red-700">{deptAdditionalStats.overBudgetCount}</span>
                       </div>
                     </div>
 <p className="mt-1 text-[11px] text-slate-500">
   Counts reflect fiscal year{" "}
-  <span className="font-semibold text-slate-700">{yearLabel}</span>. Near budget means spending within ±5% of the adopted budget.
+  <span className="font-semibold text-slate-700">{yearLabel}</span>. Near plan means spending within ±5% of the adopted budget.
 </p>
 
 
@@ -875,9 +875,9 @@ const { yoyDomain, yoyTicks } = useMemo(() => {
 
                   <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
                     <div className="space-y-2">
-                      <div className="text-xs font-semibold uppercase tracking-wide text-red-700">Most over budget</div>
+                      <div className="text-xs font-semibold uppercase tracking-wide text-red-700">Most above plan</div>
                       {topMovers.over.length === 0 ? (
-                        <p className="text-sm text-slate-600">No over-budget departments found.</p>
+                        <p className="text-sm text-slate-600">No above-plan departments found.</p>
                       ) : (
                         <ul className="space-y-2">
                           {topMovers.over.map((r) => (
@@ -899,9 +899,9 @@ const { yoyDomain, yoyTicks } = useMemo(() => {
                     </div>
 
                     <div className="space-y-2">
-                      <div className="text-xs font-semibold uppercase tracking-wide text-emerald-700">Most under budget</div>
+                      <div className="text-xs font-semibold uppercase tracking-wide text-emerald-700">Most below plan</div>
                       {topMovers.under.length === 0 ? (
-                        <p className="text-sm text-slate-600">No under-budget departments found.</p>
+                        <p className="text-sm text-slate-600">No below-plan departments found.</p>
                       ) : (
                         <ul className="space-y-2">
                           {topMovers.under.map((r) => (
