@@ -114,8 +114,8 @@ export default function BudgetByDepartmentChart({
             formatter={(value, name) => {
               const key = String(name ?? "");
 
-              if (key === "Budget") {
-                return [formatCurrency(Number(value)), "Budget"];
+              if (key === "Adopted Budget") {
+                return [formatCurrency(Number(value)), "Adopted Budget"];
               }
               if (key === "Actuals") {
                 return [formatCurrency(Number(value)), "Actuals"];
@@ -130,7 +130,7 @@ export default function BudgetByDepartmentChart({
             {/* Background budget bar */}
             <Bar
               dataKey="budget"
-              name="Budget"
+              name="Adopted Budget"
               fill="#757b84ff"
               radius={[4, 4, 4, 4]}
             />

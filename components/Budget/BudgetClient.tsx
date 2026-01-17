@@ -96,7 +96,7 @@ export default function BudgetClient({ years, deptBudgetActuals }: Props) {
       },
       {
         key: "budget",
-        header: "Budget",
+        header: "Adopted Budget",
         headerClassName: "text-right",
         cellClassName: "text-right font-mono",
         cell: (row: DepartmentSummary) => (

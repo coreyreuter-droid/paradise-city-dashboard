@@ -148,7 +148,7 @@ export default function DepartmentsDashboardClient({
       },
       {
         key: "budget",
-        header: "Budget",
+        header: "Adopted Budget",
         sortable: true,
         sortAccessor: (row) => row.budget,
         headerClassName: "text-right",

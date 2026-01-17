@@ -79,7 +79,7 @@ export default function ParadiseHomeMultiYearChart({ yearTotals }: Props) {
             <Tooltip
               formatter={(value, name) => [
                 formatCurrency(Number(value ?? 0)),
-                name === "budget" ? "Budget" : "Actuals",
+                name === "budget" ? "Adopted Budget" : "Actuals",
               ]}
               labelFormatter={(label) => `Fiscal year ${label}`}
               wrapperClassName="text-xs"
@@ -101,7 +101,7 @@ export default function ParadiseHomeMultiYearChart({ yearTotals }: Props) {
             />
             <Bar
               dataKey="budget"
-              name="Budget"
+              name="Adopted Budget"
               fill="#4b5563"
               radius={[4, 4, 0, 0]}
               isAnimationActive={!prefersReducedMotion}

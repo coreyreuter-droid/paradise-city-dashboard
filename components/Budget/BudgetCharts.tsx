@@ -236,7 +236,7 @@ export default function BudgetCharts({
               {chartData.map((entry, index) => (
                 <Cell
                   key={`budget-${index}`}
-                  fill="#676f7b66"
+                  fill="#757b84ff"
                 />
               ))}
             </Bar>
@@ -255,7 +255,7 @@ export default function BudgetCharts({
                 const pct = entry.PercentSpent;
                 const under =
                   typeof pct === "number" && pct <= 100;
-                const fill = under ? "#15803d" : "#b91c1c";
+                const fill = under ? "#16a34a" : "#dc2626";
                 return (
                   <Cell
                     key={`actual-${index}`}

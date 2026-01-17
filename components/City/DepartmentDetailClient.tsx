@@ -114,6 +114,7 @@ export default function DepartmentDetailClient({
   actuals,
   transactions,
   enableVendors,
+  availableYears,
   deptSummaryAllYears,
 }: Props) {
   const searchParams = useSearchParams();
@@ -181,12 +182,17 @@ export default function DepartmentDetailClient({
   );
 
   const deptYears = useMemo(() => {
+    // Use availableYears from server if provided (includes all years for this department)
+    if (availableYears && availableYears.length > 0) {
+      return [...availableYears].sort((a, b) => b - a);
+    }
+    // Fallback: compute from current data (may only have selected year)
     const set = new Set<number>();
     deptBudgets.forEach((b) => set.add(b.fiscal_year));
     deptActuals.forEach((a) => set.add(a.fiscal_year));
     deptTx.forEach((t) => set.add(t.fiscal_year));
     return Array.from(set).sort((a, b) => b - a);
-  }, [deptBudgets, deptActuals, deptTx]);
+  }, [availableYears, deptBudgets, deptActuals, deptTx]);
 
   const selectedYear = useMemo(() => {
     if (deptYears.length === 0) return undefined;
@@ -549,7 +555,7 @@ const byYear = new Map<
         <div className="mb-6 grid gap-4 md:grid-cols-4">
           <CardContainer>
             <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-600">
-              Total Budget ({selectedYear ?? "–"})
+              Adopted Budget ({selectedYear ?? "–"})
             </div>
             <div className="mt-1 text-2xl font-bold text-slate-900">
               {formatCurrency(selectedYearTotals.budget)}
@@ -576,9 +582,9 @@ const byYear = new Map<
             <div
               className={`mt-1 text-2xl font-bold ${
                 selectedYearTotals.variance > 0
-                  ? "text-emerald-700"
-                  : selectedYearTotals.variance < 0
                   ? "text-red-700"
+                  : selectedYearTotals.variance < 0
+                  ? "text-emerald-700"
                   : "text-slate-900"
               }`}
             >
@@ -678,7 +684,7 @@ const byYear = new Map<
                     <Line
                       type="monotone"
                       dataKey="budget"
-                      name="Budget"
+                      name="Adopted Budget"
                       dot={false}
                       strokeWidth={2}
                       stroke="#0f172a"
@@ -748,9 +754,110 @@ const byYear = new Map<
           </CardContainer>
         </div>
 
-        {/* Vendors + categories + transactions */}
-        <div className="grid gap-6 lg:grid-cols-[2fr,1.2fr]">
-          {/* Left: transactions table */}
+        {/* Vendors + categories */}
+        <div className="grid gap-6 lg:grid-cols-2">
+          {/* Vendors – only when vendor module is enabled */}
+          {enableVendors && (
+            <CardContainer>
+              <div className="p-4">
+                <h2 className="mb-2 text-sm font-semibold text-slate-900">
+                  Top Vendors ({selectedYear ?? "–"})
+                </h2>
+
+                {deptVendorSummaries.length === 0 ? (
+                  <p className="text-sm text-slate-600">
+                    No vendor spending found for the selected year.
+                  </p>
+                ) : (
+                  <div className="space-y-1.5 text-sm">
+                    {deptVendorSummaries.map((v) => (
+                      <div key={v.name}>
+                        <div className="flex items-center justify-between gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setActiveVendor(v.name)}
+                            className="truncate pr-2 text-left text-slate-800 hover:underline"
+                          >
+                            {v.name}
+                          </button>
+                          <span className="whitespace-nowrap font-mono">
+                            {formatCurrency(v.total)}
+                          </span>
+                        </div>
+                        <div className="mt-1 flex items-center gap-2">
+                          <div className="h-1.5 flex-1 rounded-full bg-slate-100">
+                            <div
+                              className="h-1.5 rounded-full bg-slate-900"
+                              style={{
+                                width: `${Math.max(
+                                  2,
+                                  Math.min(v.percent, 100)
+                                )}%`,
+                              }}
+                            />
+                          </div>
+                          <span className="w-12 text-right text-xs text-slate-600">
+                            {formatPercent(v.percent)}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </CardContainer>
+          )}
+
+          {/* Categories */}
+          <CardContainer>
+            <div className="p-4">
+              <h2 className="mb-2 text-sm font-semibold text-slate-900">
+                Spending by category ({selectedYear ?? "–"})
+              </h2>
+
+              {deptCategorySummaries.length === 0 ? (
+                <p className="text-sm text-slate-600">
+                  No categorized spending found for the selected
+                  year.
+                </p>
+              ) : (
+                <div className="space-y-1.5 text-sm">
+                  {deptCategorySummaries.map((c) => (
+                    <div key={c.category}>
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="truncate pr-2">
+                          {c.category}
+                        </span>
+                        <span className="whitespace-nowrap font-mono">
+                          {formatCurrency(c.total)}
+                        </span>
+                      </div>
+                      <div className="mt-1 flex items-center gap-2">
+                        <div className="h-1.5 flex-1 rounded-full bg-slate-100">
+                          <div
+                            className="h-1.5 rounded-full bg-emerald-500"
+                            style={{
+                              width: `${Math.max(
+                                2,
+                                Math.min(c.percent, 100)
+                              )}%`,
+                            }}
+                          />
+                        </div>
+                        <span className="w-12 text-right text-xs text-slate-600">
+                          {formatPercent(c.percent)}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </CardContainer>
+        </div>
+
+        {/* Transactions - full width at bottom */}
+        <div className="mt-6">
           <CardContainer>
             <div className="p-4">
               <h2 className="mb-2 text-sm font-semibold text-slate-900">
@@ -772,108 +879,6 @@ const byYear = new Map<
               )}
             </div>
           </CardContainer>
-
-          {/* Right: vendors + categories */}
-          <div className="space-y-6">
-            {/* Vendors – only when vendor module is enabled */}
-            {enableVendors && (
-              <CardContainer>
-                <div className="p-4">
-                  <h2 className="mb-2 text-sm font-semibold text-slate-900">
-                    Top Vendors ({selectedYear ?? "–"})
-                  </h2>
-
-                  {deptVendorSummaries.length === 0 ? (
-                    <p className="text-sm text-slate-600">
-                      No vendor spending found for the selected year.
-                    </p>
-                  ) : (
-                    <div className="space-y-1.5 text-sm">
-                      {deptVendorSummaries.map((v) => (
-                        <div key={v.name}>
-                          <div className="flex items-center justify-between gap-2">
-                            <button
-                              type="button"
-                              onClick={() => setActiveVendor(v.name)}
-                              className="truncate pr-2 text-left text-slate-800 hover:underline"
-                            >
-                              {v.name}
-                            </button>
-                            <span className="whitespace-nowrap font-mono">
-                              {formatCurrency(v.total)}
-                            </span>
-                          </div>
-                          <div className="mt-1 flex items-center gap-2">
-                            <div className="h-1.5 flex-1 rounded-full bg-slate-100">
-                              <div
-                                className="h-1.5 rounded-full bg-slate-900"
-                                style={{
-                                  width: `${Math.max(
-                                    2,
-                                    Math.min(v.percent, 100)
-                                  )}%`,
-                                }}
-                              />
-                            </div>
-                            <span className="w-12 text-right text-xs text-slate-600">
-                              {formatPercent(v.percent)}
-                            </span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </CardContainer>
-            )}
-
-            {/* Categories */}
-            <CardContainer>
-              <div className="p-4">
-                <h2 className="mb-2 text-sm font-semibold text-slate-900">
-                  Spending by category ({selectedYear ?? "–"})
-                </h2>
-
-                {deptCategorySummaries.length === 0 ? (
-                  <p className="text-sm text-slate-600">
-                    No categorized spending found for the selected
-                    year.
-                  </p>
-                ) : (
-                  <div className="space-y-1.5 text-sm">
-                    {deptCategorySummaries.map((c) => (
-                      <div key={c.category}>
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="truncate pr-2">
-                            {c.category}
-                          </span>
-                          <span className="whitespace-nowrap font-mono">
-                            {formatCurrency(c.total)}
-                          </span>
-                        </div>
-                        <div className="mt-1 flex items-center gap-2">
-                          <div className="h-1.5 flex-1 rounded-full bg-slate-100">
-                            <div
-                              className="h-1.5 rounded-full bg-emerald-500"
-                              style={{
-                                width: `${Math.max(
-                                  2,
-                                  Math.min(c.percent, 100)
-                                )}%`,
-                              }}
-                            />
-                          </div>
-                          <span className="w-12 text-right text-xs text-slate-600">
-                            {formatPercent(c.percent)}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </CardContainer>
-          </div>
         </div>
       </div>
 

@@ -436,7 +436,7 @@ export default function DepartmentBudgetClient(props: Props) {
                         labelFormatter={(label) => `Fiscal year ${label}`}
                       />
                       <Bar
-                        dataKey="Budget"
+                        dataKey="Adopted Budget"
                         radius={[4, 4, 0, 0]}
                         barSize={18}
                       >

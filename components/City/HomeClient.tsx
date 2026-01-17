@@ -10,7 +10,6 @@ import SectionHeader from "@/components/SectionHeader";
 import ParadiseHomeKpiStrip from "@/components/City/HomeKpiStrip";
 import ParadiseHomeMultiYearChart from "@/components/City/HomeMultiYearChart";
 import DepartmentsGrid from "@/components/City/HomeDepartmentsGrid";
-import RecentTransactionsCard from "@/components/City/HomeRecentTransactionsCard";
 import HomeRevenueSummary from "@/components/City/HomeRevenueSummary";
 import SankeyChart from "@/components/City/SankeyChart";
 import NarrativeSummary from "@/components/NarrativeSummary";
@@ -714,14 +713,6 @@ className="inline-flex items-center justify-center rounded-full px-3 py-1.5 text
                     </section>
                   </CardContainer>
                 )}
-
-                <CardContainer>
-                  <RecentTransactionsCard
-                    year={selectedYear ?? undefined}
-                    transactions={recentTransactions}
-                    enableVendors={enableVendors}
-                  />
-                </CardContainer>
               </div>
             )}
           </div>
