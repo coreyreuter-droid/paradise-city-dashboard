@@ -748,7 +748,7 @@ const { yoyDomain, yoyTicks } = useMemo(() => {
                               }
                             />
                             <Legend verticalAlign="top" align="right" wrapperStyle={{ fontSize: 11 }} />
-                            <Line type="monotone" dataKey="Adopted Budget" dot={false} strokeWidth={2} stroke={BUDGET_COLOR} isAnimationActive={!prefersReducedMotion} animationDuration={800} animationEasing="ease-out" />
+                            <Line type="monotone" dataKey="Budget" dot={false} strokeWidth={2} stroke={BUDGET_COLOR} isAnimationActive={!prefersReducedMotion} animationDuration={800} animationEasing="ease-out" />
                             <Line type="monotone" dataKey="Actuals" dot={false} strokeWidth={2} stroke={ACTUAL_COLOR} isAnimationActive={!prefersReducedMotion} animationDuration={800} animationEasing="ease-out" />
                           </LineChart>
                         </ResponsiveContainer>

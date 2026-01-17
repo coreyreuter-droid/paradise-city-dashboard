@@ -249,7 +249,7 @@ export default function AdminProjectsPage() {
                             {project.images[0] ? (
                               <img
                                 src={project.images[0].image_url}
-                                alt=""
+                                alt={`${project.title} thumbnail`}
                                 className="h-10 w-14 rounded object-cover"
                               />
                             ) : (
