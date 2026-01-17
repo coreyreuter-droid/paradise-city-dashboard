@@ -85,19 +85,19 @@ export default function Error({
           </h2>
           <ul className="space-y-1 text-sm text-slate-600">
             <li className="flex items-start gap-2">
-              <span className="text-slate-400">•</span>
+              <span className="text-slate-400" aria-hidden="true">•</span>
               Check your internet connection
             </li>
             <li className="flex items-start gap-2">
-              <span className="text-slate-400">•</span>
+              <span className="text-slate-400" aria-hidden="true">•</span>
               Wait a moment and try again
             </li>
             <li className="flex items-start gap-2">
-              <span className="text-slate-400">•</span>
+              <span className="text-slate-400" aria-hidden="true">•</span>
               Clear your browser cache
             </li>
             <li className="flex items-start gap-2">
-              <span className="text-slate-400">•</span>
+              <span className="text-slate-400" aria-hidden="true">•</span>
               Contact support if the problem continues
             </li>
           </ul>

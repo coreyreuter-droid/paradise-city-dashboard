@@ -4,15 +4,16 @@ import { cityHref } from "@/lib/cityRouting";
 import { supabaseAdmin } from "@/lib/supabaseService";
 
 type PageProps = {
-  searchParams?: {
+  searchParams?: Promise<{
     [key: string]: string | string[] | undefined;
-  };
+  }>;
 };
 
 export const revalidate = 0;
 
 export default async function LoginPage({ searchParams }: PageProps) {
-  const raw = searchParams?.redirect;
+  const sp = await searchParams;
+  const raw = sp?.redirect;
   const redirectParam =
     typeof raw === "string" && raw.length > 0 ? raw : cityHref("/admin");
 

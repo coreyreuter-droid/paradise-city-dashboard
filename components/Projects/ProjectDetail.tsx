@@ -103,23 +103,33 @@ export default function ProjectDetail({ project }: Props) {
 
           {/* Thumbnail navigation */}
           {project.images.length > 1 && (
-            <div className="flex gap-2">
+            <div className="flex gap-3" role="group" aria-label="Image gallery navigation">
               {project.images.map((image, index) => (
                 <button
                   key={image.id}
                   type="button"
                   onClick={() => setSelectedImageIndex(index)}
+                  onKeyDown={(e) => {
+                    if (e.key === "ArrowRight") {
+                      e.preventDefault();
+                      setSelectedImageIndex((i) => Math.min(i + 1, project.images.length - 1));
+                    }
+                    if (e.key === "ArrowLeft") {
+                      e.preventDefault();
+                      setSelectedImageIndex((i) => Math.max(i - 1, 0));
+                    }
+                  }}
                   className={`relative h-16 w-24 overflow-hidden rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 ${
                     index === selectedImageIndex
                       ? "ring-2 ring-slate-900"
                       : "opacity-70 hover:opacity-100"
                   }`}
-                  aria-label={`View image ${index + 1}: ${image.alt_text}`}
+                  aria-label={`View image ${index + 1} of ${project.images.length}: ${image.alt_text}`}
                   aria-pressed={index === selectedImageIndex}
                 >
                   <Image
                     src={image.image_url}
-                    alt={image.alt_text}
+                    alt=""
                     fill
                     className="object-cover"
                     sizes="96px"

@@ -27,6 +27,7 @@ export default function LegalFooter({ className = "" }: LegalFooterProps) {
               className="h-7 w-7 object-contain"
             />
             <span className="font-semibold text-slate-700">CiviPortal</span>
+            <span className="sr-only">(opens in new tab)</span>
           </a>
           
           {/* Legal links */}

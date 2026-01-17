@@ -381,7 +381,7 @@ export default function AdminProjectEditorPage() {
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="sm:col-span-2">
                   <label htmlFor="title" className="block text-sm font-medium text-slate-700">
-                    Title <span className="text-red-500">*</span>
+                    Title <span className="text-red-500" aria-hidden="true">*</span>
                   </label>
                   <input
                     id="title"
@@ -389,13 +389,14 @@ export default function AdminProjectEditorPage() {
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     required
+                    aria-required="true"
                     className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
                   />
                 </div>
 
                 <div className="sm:col-span-2">
                   <label htmlFor="slug" className="block text-sm font-medium text-slate-700">
-                    URL Slug <span className="text-red-500">*</span>
+                    URL Slug <span className="text-red-500" aria-hidden="true">*</span>
                   </label>
                   <div className="mt-1 flex rounded-md shadow-sm">
                     <span className="inline-flex items-center rounded-l-md border border-r-0 border-slate-300 bg-slate-50 px-3 text-sm text-slate-500">
@@ -407,6 +408,7 @@ export default function AdminProjectEditorPage() {
                       value={slug}
                       onChange={(e) => setSlug(e.target.value)}
                       required
+                      aria-required="true"
                       className="block w-full rounded-none rounded-r-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
                     />
                   </div>
@@ -414,7 +416,7 @@ export default function AdminProjectEditorPage() {
 
                 <div className="sm:col-span-2">
                   <label htmlFor="shortDescription" className="block text-sm font-medium text-slate-700">
-                    Short Description <span className="text-red-500">*</span>
+                    Short Description <span className="text-red-500" aria-hidden="true">*</span>
                   </label>
                   <input
                     id="shortDescription"
@@ -422,27 +424,31 @@ export default function AdminProjectEditorPage() {
                     value={shortDescription}
                     onChange={(e) => setShortDescription(e.target.value)}
                     required
+                    aria-required="true"
+                    aria-describedby="shortDescription-hint"
                     maxLength={200}
                     className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
                   />
-                  <p className="mt-1 text-xs text-slate-500">
+                  <p id="shortDescription-hint" className="mt-1 text-xs text-slate-500">
                     {shortDescription.length}/200 characters. Shown on project cards.
                   </p>
                 </div>
 
                 <div className="sm:col-span-2">
                   <label htmlFor="description" className="block text-sm font-medium text-slate-700">
-                    Full Description <span className="text-red-500">*</span>
+                    Full Description <span className="text-red-500" aria-hidden="true">*</span>
                   </label>
                   <textarea
                     id="description"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     required
+                    aria-required="true"
+                    aria-describedby="description-hint"
                     rows={6}
                     className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
                   />
-                  <p className="mt-1 text-xs text-slate-500">
+                  <p id="description-hint" className="mt-1 text-xs text-slate-500">
                     Use blank lines to separate paragraphs.
                   </p>
                 </div>
@@ -674,10 +680,10 @@ export default function AdminProjectEditorPage() {
             <div className="space-y-3 border-t border-slate-200 pt-6">
               {/* Inline messages near save button */}
               {error && (
-                <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">{error}</div>
+                <div className="rounded-md bg-red-50 p-3 text-sm text-red-700" role="alert" aria-live="assertive">{error}</div>
               )}
               {successMessage && (
-                <div className="rounded-md bg-emerald-50 p-3 text-sm text-emerald-700">{successMessage}</div>
+                <div className="rounded-md bg-emerald-50 p-3 text-sm text-emerald-700" role="status" aria-live="polite">{successMessage}</div>
               )}
               
               <div className="flex items-center justify-between">

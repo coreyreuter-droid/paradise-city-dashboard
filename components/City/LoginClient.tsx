@@ -133,9 +133,10 @@ const displayCityName = cityName || CITY_CONFIG.displayName || "Your City";
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="name@city.gov"
+              aria-describedby="login-email-hint"
               className="h-9 w-full rounded-md border border-slate-300 bg-white px-2 text-sm text-slate-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
             />
-            <p className="mt-1 text-xs text-slate-500">
+            <p id="login-email-hint" className="mt-1 text-xs text-slate-500">
               Use the email address your administrator added to this
               portal.
             </p>
