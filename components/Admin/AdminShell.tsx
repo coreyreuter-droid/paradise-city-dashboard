@@ -22,13 +22,14 @@ const NAV_ROW_1: { href: string; label: string }[] = [
   { href: "upload", label: "Data upload" },
   { href: "upload/history", label: "Upload history" },
   { href: "data", label: "Data management" },
+  { href: "projects", label: "Projects" },
   { href: "settings", label: "Branding & settings" },
-  { href: "users", label: "Users & roles" },
 ];
 
 const NAV_ROW_2: { href: string; label: string }[] = [
-  { href: "onboarding", label: "Onboarding checklist" },
+  { href: "users", label: "Users & roles" },
   { href: "publish", label: "Publish status" },
+  { href: "onboarding", label: "Onboarding checklist" },
   { href: "help", label: "Help & FAQs" },
 ];
 

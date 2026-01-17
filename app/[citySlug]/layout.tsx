@@ -21,6 +21,7 @@ type PortalSettingsRow = {
   enable_transactions: boolean;
   enable_vendors: boolean;
   enable_revenues: boolean;
+  enable_projects: boolean;
 };
 
 async function getPortalSettings(): Promise<PortalSettingsRow | null> {
@@ -28,7 +29,7 @@ async function getPortalSettings(): Promise<PortalSettingsRow | null> {
     const { data, error } = await supabaseAdmin
       .from("portal_settings")
       .select(
-        "city_name, tagline, primary_color, accent_color, background_color, logo_url, is_published, enable_actuals, enable_transactions, enable_vendors, enable_revenues"
+        "city_name, tagline, primary_color, accent_color, background_color, logo_url, is_published, enable_actuals, enable_transactions, enable_vendors, enable_revenues, enable_projects"
       )
       .eq("id", 1)
       .maybeSingle();
@@ -107,6 +108,7 @@ export default async function CityLayout({
         enable_transactions: settings.enable_transactions,
         enable_revenues: settings.enable_revenues,
         enable_vendors: settings.enable_vendors,
+        enable_projects: settings.enable_projects,
       }
     : null;
 

@@ -310,7 +310,7 @@ export default function BudgetCharts({
               aria-controls="dept-table-region"
               className="text-xs font-semibold text-slate-800 underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 rounded"
             >
-              {showAllTable ? `Show top ${TABLE_TOP_N}` : "Show all"}
+              {showAllTable ? `Show top ${TABLE_TOP_N}` : "Show all rows"}
             </button>
           )}
           {viewAllHref && (
@@ -318,7 +318,7 @@ export default function BudgetCharts({
               href={viewAllHref}
               className="text-xs font-semibold text-slate-800 underline-offset-2 hover:underline"
             >
-              View all departments
+              View departments page
             </Link>
           )}
         </div>

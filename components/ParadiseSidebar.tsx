@@ -15,6 +15,7 @@ const navItems = [
   { path: "/budget", label: "Budget" },
   { path: "/departments", label: "Departments" },
   { path: "/revenues", label: "Revenues" },
+  { path: "/projects", label: "Projects" },
   { path: "/transactions", label: "Transactions" },
   { path: "/vendors", label: "Vendors" },
   { path: "/download", label: "Download" },
@@ -32,6 +33,7 @@ type PortalBranding = {
   enable_transactions: boolean;
   enable_revenues: boolean;
   enable_vendors: boolean;
+  enable_projects: boolean;
 };
 
 type Props = {
@@ -193,6 +195,7 @@ export default function ParadiseSidebar({
     const enableTransactions = branding?.enable_transactions === true;
     const enableRevenues = branding?.enable_revenues === true;
     const enableVendors = enableTransactions && branding?.enable_vendors === true;
+    const enableProjects = branding?.enable_projects === true;
 
     return (
       <>
@@ -222,6 +225,10 @@ export default function ParadiseSidebar({
                 }
 
                 if (item.path === "/revenues" && !enableRevenues) {
+                  return null;
+                }
+
+                if (item.path === "/projects" && !enableProjects) {
                   return null;
                 }
 
@@ -314,6 +321,7 @@ export default function ParadiseSidebar({
     const enableTransactions = branding?.enable_transactions === true;
     const enableRevenues = branding?.enable_revenues === true;
     const enableVendors = enableTransactions && branding?.enable_vendors === true;
+    const enableProjects = branding?.enable_projects === true;
 
     return (
       <>
@@ -343,6 +351,10 @@ export default function ParadiseSidebar({
                 }
 
                 if (item.path === "/revenues" && !enableRevenues) {
+                  return null;
+                }
+
+                if (item.path === "/projects" && !enableProjects) {
                   return null;
                 }
 

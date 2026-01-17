@@ -68,6 +68,7 @@ export type PortalSettings = {
   enable_transactions: boolean | null;
   enable_vendors: boolean | null;
   enable_revenues: boolean | null;
+  enable_projects: boolean | null;
 
   is_published: boolean | null;
 
@@ -786,4 +787,124 @@ export async function getRevenueYearTotals(): Promise<
       total: Number(r.total_revenue ?? 0),
     }))
     .filter((r) => Number.isFinite(r.year));
+}
+
+
+/* =========================
+   Capital Projects
+========================= */
+
+export type CapitalProject = {
+  id: string;
+  city_slug: string;
+  title: string;
+  slug: string;
+  short_description: string;
+  description: string;
+  status: "planned" | "in_progress" | "completed";
+  published: boolean;
+  location_text: string | null;
+  map_url: string | null;
+  start_date: string | null;
+  estimated_completion_date: string | null;
+  actual_completion_date: string | null;
+  estimated_cost: number | null;
+  funding_source: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type CapitalProjectImage = {
+  id: string;
+  project_id: string;
+  city_slug: string;
+  image_url: string;
+  alt_text: string;
+  caption: string | null;
+  sort_order: number;
+  created_at: string;
+};
+
+export type CapitalProjectWithImages = CapitalProject & {
+  images: CapitalProjectImage[];
+};
+
+/**
+ * Get all published projects for public display
+ */
+export async function getPublishedProjects(
+  citySlug: string
+): Promise<CapitalProjectWithImages[]> {
+  const { data, error } = await supabase
+    .from("capital_projects")
+    .select(`
+      *,
+      images:capital_project_images(*)
+    `)
+    .eq("city_slug", citySlug)
+    .eq("published", true)
+    .order("updated_at", { ascending: false });
+
+  if (error) {
+    console.error("getPublishedProjects error:", error);
+    throw error;
+  }
+
+  return (data ?? []).map((p) => ({
+    ...p,
+    images: (p.images ?? []).sort(
+      (a: CapitalProjectImage, b: CapitalProjectImage) => a.sort_order - b.sort_order
+    ),
+  })) as CapitalProjectWithImages[];
+}
+
+/**
+ * Get a single published project by slug for public detail page
+ */
+export async function getPublishedProjectBySlug(
+  citySlug: string,
+  slug: string
+): Promise<CapitalProjectWithImages | null> {
+  const { data, error } = await supabase
+    .from("capital_projects")
+    .select(`
+      *,
+      images:capital_project_images(*)
+    `)
+    .eq("city_slug", citySlug)
+    .eq("slug", slug)
+    .eq("published", true)
+    .maybeSingle();
+
+  if (error) {
+    console.error("getPublishedProjectBySlug error:", error);
+    throw error;
+  }
+
+  if (!data) return null;
+
+  return {
+    ...data,
+    images: (data.images ?? []).sort(
+      (a: CapitalProjectImage, b: CapitalProjectImage) => a.sort_order - b.sort_order
+    ),
+  } as CapitalProjectWithImages;
+}
+
+/**
+ * Check if a city has any published projects (for nav visibility)
+ */
+export async function hasPublishedProjects(citySlug: string): Promise<boolean> {
+  const { count, error } = await supabase
+    .from("capital_projects")
+    .select("id", { count: "exact", head: true })
+    .eq("city_slug", citySlug)
+    .eq("published", true);
+
+  if (error) {
+    console.error("hasPublishedProjects error:", error);
+    return false;
+  }
+
+  return (count ?? 0) > 0;
 }
