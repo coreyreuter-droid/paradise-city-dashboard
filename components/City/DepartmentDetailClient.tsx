@@ -1,7 +1,7 @@
 // components/City/DepartmentDetailClient.tsx
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
@@ -119,6 +119,56 @@ export default function DepartmentDetailClient({
 }: Props) {
   const searchParams = useSearchParams();
   const [activeVendor, setActiveVendor] = useState<string | null>(null);
+  
+  // Refs for vendor modal focus management
+  const vendorModalRef = useRef<HTMLDivElement>(null);
+  const vendorCloseButtonRef = useRef<HTMLButtonElement>(null);
+  const vendorTriggerRef = useRef<HTMLButtonElement | null>(null);
+
+  // Focus management for vendor modal
+  useEffect(() => {
+    if (activeVendor) {
+      // Focus the close button when modal opens
+      vendorCloseButtonRef.current?.focus();
+      
+      // Trap focus within modal
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === "Escape") {
+          setActiveVendor(null);
+          return;
+        }
+        
+        if (e.key === "Tab" && vendorModalRef.current) {
+          const focusable = vendorModalRef.current.querySelectorAll<HTMLElement>(
+            'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+          );
+          const first = focusable[0];
+          const last = focusable[focusable.length - 1];
+          
+          if (e.shiftKey && document.activeElement === first) {
+            e.preventDefault();
+            last?.focus();
+          } else if (!e.shiftKey && document.activeElement === last) {
+            e.preventDefault();
+            first?.focus();
+          }
+        }
+      };
+      
+      document.addEventListener("keydown", handleKeyDown);
+      return () => document.removeEventListener("keydown", handleKeyDown);
+    } else {
+      // Return focus to trigger button when modal closes
+      vendorTriggerRef.current?.focus();
+      vendorTriggerRef.current = null;
+    }
+  }, [activeVendor]);
+
+  // Handler to open vendor modal and store trigger ref
+  const openVendorModal = useCallback((vendorName: string, triggerElement: HTMLButtonElement) => {
+    vendorTriggerRef.current = triggerElement;
+    setActiveVendor(vendorName);
+  }, []);
 
   const displayName = useMemo(() => {
     if (departmentName && departmentName.trim().length > 0) {
@@ -504,7 +554,7 @@ const byYear = new Map<
   ]);
 
   return (
-    <div id="main-content" className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-50">
       <div className="mx-auto max-w-6xl px-4 py-8">
         <SectionHeader
           eyebrow="Department Overview"
@@ -775,8 +825,8 @@ const byYear = new Map<
                         <div className="flex items-center justify-between gap-2">
                           <button
                             type="button"
-                            onClick={() => setActiveVendor(v.name)}
-                            className="truncate pr-2 text-left text-slate-800 hover:underline"
+                            onClick={(e) => openVendorModal(v.name, e.currentTarget)}
+                            className="truncate pr-2 text-left text-slate-800 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 rounded"
                           >
                             {v.name}
                           </button>
@@ -885,8 +935,17 @@ const byYear = new Map<
       {/* Vendor detail slideout – only when vendor module is enabled */}
       {enableVendors && activeVendor && (
         <div className="fixed inset-0 z-[9999] flex justify-end bg-black/40 backdrop-blur-sm">
+          {/* Backdrop button for click-to-close */}
+          <button
+            type="button"
+            className="absolute inset-0 h-full w-full cursor-default"
+            onClick={() => setActiveVendor(null)}
+            aria-label="Close vendor detail"
+            tabIndex={-1}
+          />
           <div
-            className="flex h-full w-full max-w-md flex-col bg-white shadow-2xl"
+            ref={vendorModalRef}
+            className="relative flex h-full w-full max-w-md flex-col bg-white shadow-2xl"
             role="dialog"
             aria-modal="true"
             aria-labelledby="vendor-detail-heading"
@@ -913,9 +972,10 @@ const byYear = new Map<
               </div>
 
               <button
+                ref={vendorCloseButtonRef}
                 type="button"
                 onClick={() => setActiveVendor(null)}
-                className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-800"
+                className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
               >
                 Close
               </button>

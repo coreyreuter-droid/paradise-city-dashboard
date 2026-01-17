@@ -205,7 +205,7 @@ export default function DataTable<T>({
                             handleHeaderClick(col.key, col)
                           }
                           aria-label={`Sort by ${col.header} ${sortKey === col.key && sortDirection === "asc" ? "descending" : "ascending"}`}
-                          className={`inline-flex items-center gap-1 ${isRightAligned ? "ml-auto" : ""}`}
+                          className={`inline-flex items-center gap-1 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 ${isRightAligned ? "ml-auto" : ""}`}
                         >
                           <span>{col.header}</span>
                           {renderSortIcon(col.key)}

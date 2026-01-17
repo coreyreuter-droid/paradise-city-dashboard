@@ -373,7 +373,7 @@ const { yoyDomain, yoyTicks } = useMemo(() => {
   const distributionTotalActuals = actualsDistribution.reduce((s, x) => s + x.value, 0);
 
   return (
-    <div id="main-content" className="min-h-screen bg-slate-50 overflow-x-hidden">
+    <div className="min-h-screen bg-slate-50 overflow-x-hidden">
       <div className="mx-auto max-w-6xl px-3 py-4 sm:px-4 sm:py-6 lg:px-6 lg:py-8">
         <SectionHeader
           eyebrow="Govwide analytics"

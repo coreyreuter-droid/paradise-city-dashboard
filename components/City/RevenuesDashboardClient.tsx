@@ -511,7 +511,6 @@ export default function RevenuesDashboardClient({
 
   return (
     <div
-      id="main-content"
       className="mx-auto max-w-6xl space-y-6 px-3 py-6 sm:px-4 sm:py-8"
     >
 <SectionHeader

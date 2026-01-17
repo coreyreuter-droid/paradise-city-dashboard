@@ -240,7 +240,7 @@ export default function DepartmentsDashboardClient({
   }, [summaries, selectedYear, deptCount, totalBudget, totalActuals, totalTx, hasActuals, enableTransactions]);
 
   return (
-    <div id="main-content" className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-50">
       <div className="mx-auto max-w-6xl px-4 py-8">
 <SectionHeader
   eyebrow="Departments"

@@ -45,7 +45,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
   }
 
   return (
-    <div id="main-content" className="min-h-screen">
+    <div className="min-h-screen">
       <div className="mx-auto max-w-6xl px-4 py-8">
         <ProjectDetail project={project} />
       </div>

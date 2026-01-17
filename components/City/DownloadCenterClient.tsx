@@ -149,26 +149,19 @@ function MultiSelect({
         </span>
         <div className="flex items-center gap-1.5">
           {selected.length > 0 && (
-            <span
-              role="button"
-              tabIndex={0}
+            <button
+              type="button"
               onClick={(e) => {
                 e.stopPropagation();
                 clearAll();
               }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  clearAll();
-                }
-              }}
-              className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-200 text-slate-600 hover:bg-slate-300"
+              className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-200 text-slate-600 hover:bg-slate-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
+              aria-label="Clear selection"
             >
-              <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+              <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
-            </span>
+            </button>
           )}
           <svg
             className={`h-4 w-4 text-slate-400 transition-transform ${isOpen ? "rotate-180" : ""}`}
@@ -190,6 +183,7 @@ function MultiSelect({
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Type to search..."
+                aria-label="Search options"
                 className="w-full rounded-md border border-slate-200 px-3 py-1.5 text-sm focus:border-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400"
               />
             </div>
@@ -242,7 +236,7 @@ function MultiSelect({
               })
             )}
             {options.length > maxDisplay && !search && (
-              <div className="px-3 py-2 text-xs text-slate-400 text-center border-t border-slate-100 mt-1">
+              <div className="px-3 py-2 text-xs text-slate-600 text-center border-t border-slate-100 mt-1">
                 Showing first {maxDisplay} of {options.length}. Search to find more.
               </div>
             )}
@@ -885,7 +879,6 @@ export default function DownloadCenterClient({
 
   return (
     <div
-      id="main-content"
       className="mx-auto max-w-5xl space-y-8 px-4 py-8 sm:px-6 lg:px-8"
     >
       {/* Header */}

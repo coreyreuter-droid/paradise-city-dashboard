@@ -13,7 +13,7 @@ export default function UnpublishedMessage({ settings }: Props) {
   const sealUrl = settings?.seal_url || null;
 
   return (
-    <main
+    <div
       className="mx-auto flex max-w-3xl flex-col items-center px-4 py-16 text-center sm:py-24"
       aria-labelledby="unpublished-title"
     >
@@ -43,6 +43,6 @@ export default function UnpublishedMessage({ settings }: Props) {
         Please check back soon for access to budgets, spending, and
         revenue information.
       </p>
-    </main>
+    </div>
   );
 }

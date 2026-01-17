@@ -1103,61 +1103,45 @@ export default function UploadClient() {
           CSV file
         </label>
 
-        <label
-          htmlFor="upload-file-input"
-          className="flex cursor-pointer items-center justify-between gap-3 rounded-md border border-dashed border-slate-300 bg-slate-50 px-3 py-3 text-sm hover:border-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
-          aria-describedby="upload-file-help"
-        >
-          <div className="flex flex-col">
-            <span className="font-medium text-slate-800">
-              {file ? file.name : "Click to choose a CSV file"}
-            </span>
-            <span className="text-xs text-slate-500">
-              Accepted format: .csv
-            </span>
-          </div>
-          <span className="rounded-md border border-slate-300 bg-white px-3 py-1 text-xs font-medium text-slate-700">
-            Browse
-          </span>
-        </label>
-        <input
-          id="upload-file-input"
-          type="file"
-          accept=".csv"
-          className="sr-only"
-          ref={fileInputRef}
+        <div className="relative">
+          <input
+            id="upload-file-input"
+            type="file"
+            accept=".csv"
+            className="peer absolute inset-0 h-full w-full cursor-pointer opacity-0"
+            ref={fileInputRef}
+            aria-describedby="upload-file-help"
+            onChange={async (e) => {
+              const f = e.target.files?.[0] ?? null;
+              setFile(f);
+              setPreviewHeaders(null);
+              setPreviewRows(null);
+              setPreviewMessage(null);
+              setPreflight(null);
+              setPendingRecords(null);
+              setPendingYearsInData([]);
+              setFileSizeWarning(null);
 
-          onChange={async (e) => {
-            const f = e.target.files?.[0] ?? null;
-            setFile(f);
-            setPreviewHeaders(null);
-            setPreviewRows(null);
-            setPreviewMessage(null);
-            setPreflight(null);
-            setPendingRecords(null);
-            setPendingYearsInData([]);
-            setFileSizeWarning(null);
+              if (!f) return;
 
-            if (!f) return;
+              // Check file size and warn for large files
+              const fileSizeMB = f.size / (1024 * 1024);
+              if (fileSizeMB > 100) {
+                setFileSizeWarning(
+                  `File is ${fileSizeMB.toFixed(1)}MB which exceeds the 100MB limit. Please split the file into smaller chunks.`
+                );
+                return;
+              } else if (fileSizeMB > 50) {
+                setFileSizeWarning(
+                  `Large file detected (${fileSizeMB.toFixed(1)}MB). Upload may take several minutes. Please be patient and don't close this page.`
+                );
+              } else if (fileSizeMB > 10) {
+                setFileSizeWarning(
+                  `File size: ${fileSizeMB.toFixed(1)}MB. Upload may take a minute or two.`
+                );
+              }
 
-            // Check file size and warn for large files
-            const fileSizeMB = f.size / (1024 * 1024);
-            if (fileSizeMB > 100) {
-              setFileSizeWarning(
-                `File is ${fileSizeMB.toFixed(1)}MB which exceeds the 100MB limit. Please split the file into smaller chunks.`
-              );
-              return;
-            } else if (fileSizeMB > 50) {
-              setFileSizeWarning(
-                `Large file detected (${fileSizeMB.toFixed(1)}MB). Upload may take several minutes. Please be patient and don't close this page.`
-              );
-            } else if (fileSizeMB > 10) {
-              setFileSizeWarning(
-                `File size: ${fileSizeMB.toFixed(1)}MB. Upload may take a minute or two.`
-              );
-            }
-
-            try {
+              try {
               const text = await f.text();
               
               // Parse CSV properly (handles quoted fields with commas)
@@ -1192,6 +1176,22 @@ export default function UploadClient() {
             }
           }}
         />
+          <div
+            className="pointer-events-none flex items-center justify-between gap-3 rounded-md border border-dashed border-slate-300 bg-slate-50 px-3 py-3 text-sm peer-hover:border-slate-400 peer-focus:border-slate-500 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-slate-900 peer-focus:ring-offset-2"
+          >
+            <div className="flex flex-col">
+              <span className="font-medium text-slate-800">
+                {file ? file.name : "Click to choose a CSV file"}
+              </span>
+              <span className="text-xs text-slate-500">
+                Accepted format: .csv
+              </span>
+            </div>
+            <span className="rounded-md border border-slate-300 bg-white px-3 py-1 text-xs font-medium text-slate-700">
+              Browse
+            </span>
+          </div>
+        </div>
         <p
           id="upload-file-help"
           className="mt-1 text-xs text-slate-500"

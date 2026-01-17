@@ -150,9 +150,7 @@ export default function AdminShell({
       </header>
 
       {/* Main admin content */}
-      <main
-        id="main-content"
-        role="main"
+      <div
         aria-labelledby="admin-page-title"
       >
         <div className="mx-auto max-w-6xl px-4 py-6">
@@ -228,7 +226,7 @@ export default function AdminShell({
             </section>
           </section>
         </div>
-      </main>
+      </div>
     </div>
   );
 }

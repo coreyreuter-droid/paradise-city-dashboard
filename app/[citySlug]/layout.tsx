@@ -122,7 +122,7 @@ export default async function CityLayout({
       {/* Accessible skip link – first focusable element */}
       <a
         href="#main-content"
-        className="sr-only focus:not-sr-only focus:fixed focus:z-50 focus:top-4 focus:left-4 focus:rounded-md focus:bg-white focus:px-4 focus:py-2 focus:text-slate-900 focus:shadow-lg"
+        className="sr-only focus:not-sr-only focus:fixed focus:z-[100] focus:top-4 focus:left-4 focus:rounded-md focus:bg-slate-900 focus:px-4 focus:py-2 focus:text-white focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-slate-500"
       >
         Skip to main content
       </a>
@@ -135,22 +135,19 @@ export default async function CityLayout({
 
       {/* Single <main> landmark for all city pages */}
       <main
-  id="main-content"
-  role="main"
-  aria-label={`${displayName} financial transparency content`}
-  className="flex-1 pt-12 sm:pt-0"
->
-          <CityShell
+        id="main-content"
+        aria-label={`${displayName} financial transparency content`}
+        className="flex-1 pt-12 sm:pt-0"
+      >
+        <CityShell
           accent={accent}
           displayName={displayName}
           tagline={tagline}
         >
           {children}
         </CityShell>
-              <LegalFooter />
+        <LegalFooter />
       </main>
-
-
     </div>
   );
 }

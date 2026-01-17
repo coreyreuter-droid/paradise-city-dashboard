@@ -665,7 +665,7 @@ export default function LandingClient({ portalSettings, totalBudget }: Props) {
                   {leaderPhotoUrl && (
                     <img
                       src={leaderPhotoUrl}
-                      alt=""
+                      alt={leaderName ? `Photo of ${leaderName}` : "Leadership photo"}
                       className="h-16 w-16 rounded-xl border border-slate-200 object-cover"
                       loading="lazy"
                     />
@@ -752,7 +752,7 @@ export default function LandingClient({ portalSettings, totalBudget }: Props) {
                           {imageUrl ? (
                             <img
                               src={imageUrl}
-                              alt=""
+                              alt={`${title} project image`}
                               className="h-40 w-full object-cover"
                               loading="lazy"
                             />

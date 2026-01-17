@@ -90,9 +90,7 @@ const displayCityName = cityName || CITY_CONFIG.displayName || "Your City";
 
 
   return (
-    <main
-      id="main-content"
-      role="main"
+    <div
       aria-labelledby="login-title"
       className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-8"
     >
@@ -180,6 +178,6 @@ const displayCityName = cityName || CITY_CONFIG.displayName || "Your City";
           </span>
         </div>
       </div>
-    </main>
+    </div>
   );
 }
