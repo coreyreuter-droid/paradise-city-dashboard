@@ -31,11 +31,12 @@ async function getDepartments(): Promise<string[]> {
 }
 
 async function getVendors(): Promise<string[]> {
+  // Use pre-aggregated view instead of raw transactions table
+  // This has one row per vendor per year, much smaller than raw transactions
   const { data, error } = await supabase
-    .from("transactions")
+    .from("transaction_year_vendor")
     .select("vendor")
-    .not("vendor", "is", null)
-    .limit(2000);
+    .not("vendor", "is", null);
 
   if (error) {
     console.error("Error fetching vendors:", error);
@@ -56,7 +57,7 @@ async function getRevenueSources(): Promise<string[]> {
   const { data, error } = await supabase
     .from("revenues")
     .select("category")
-    .limit(1000);
+    .not("category", "is", null);
 
   if (error) {
     console.error("Error fetching revenue sources:", error);

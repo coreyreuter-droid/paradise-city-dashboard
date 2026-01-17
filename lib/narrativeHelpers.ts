@@ -288,7 +288,7 @@ export function buildDepartmentsNarrative(data: DepartmentsNarrativeData): strin
   // Over-budget count
   if (data.enableActuals && data.overBudgetCount > 0) {
     sentences.push(
-      `${data.overBudgetCount} ${data.overBudgetCount === 1 ? "department is" : "departments are"} currently over budget.`
+      `${data.overBudgetCount} ${data.overBudgetCount === 1 ? "department is" : "departments are"} currently above plan.`
     );
   }
 
@@ -316,7 +316,7 @@ export function buildDepartmentDetailNarrative(data: DepartmentDetailNarrativeDa
 
   // Spending (if actuals enabled)
   if (data.enableActuals && data.actuals > 0) {
-    const status = data.execPct > 1 ? "exceeding its budget" : "within budget";
+    const status = data.execPct > 1 ? "above the adopted plan" : "within plan";
     sentences.push(
       `Spending to date is ${formatCompact(data.actuals)} (${formatPct(data.execPct)} execution), ${status}.`
     );
