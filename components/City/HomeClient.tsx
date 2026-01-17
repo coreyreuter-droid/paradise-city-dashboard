@@ -578,32 +578,23 @@ className="inline-flex items-center justify-center rounded-full px-3 py-1.5 text
                   aria-label="Budget vs Actuals by Department"
                   className="space-y-3"
                 >
-                  <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-                    <div>
-                      <h2 className="text-sm font-semibold tracking-tight text-slate-900 sm:text-base">
-                        Budget vs Actuals by Department
-                      </h2>
-                      <p className="text-sm text-slate-600">
-                        Top departments by budget and their corresponding
-                        spending for{" "}
-                        {yearLabel ?? "the selected year"}
-                        .
-                      </p>
-                    </div>
-                      <Link
-                        href={cityHref("/departments")}
-                        className="mt-1 text-xs font-semibold text-slate-800 underline-offset-2 hover:underline"
-                      >
-                        View all departments
-                      </Link>
-
-
+                  <div>
+                    <h2 className="text-sm font-semibold tracking-tight text-slate-900 sm:text-base">
+                      Budget vs Actuals by Department
+                    </h2>
+                    <p className="text-sm text-slate-600">
+                      Showing {departmentsForYear.length} departments by budget and their corresponding
+                      spending for{" "}
+                      {yearLabel ?? "the selected year"}
+                      .
+                    </p>
                   </div>
 
                   <BudgetCharts
                     year={selectedYear ?? new Date().getFullYear()}
                     departments={departmentsForYear}
                     layout="stacked"
+                    viewAllHref={cityHref("/departments")}
                   />
                 </section>
               </CardContainer>

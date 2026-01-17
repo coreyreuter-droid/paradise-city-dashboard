@@ -642,20 +642,20 @@ const { yoyDomain, yoyTicks } = useMemo(() => {
                   <div className="min-w-0">
                     <h2 className="text-sm font-semibold text-slate-800">Budget vs Actuals by Department</h2>
                     <p className="text-sm text-slate-600">
-                      Fiscal year {yearLabel}. Departments sorted by largest adopted budget.
+                      Showing {deptSummaries.length} departments for fiscal year {yearLabel}, sorted by largest adopted budget.
                     </p>
                   </div>
-                  {deptSummaries.length > 0 && (
-                    <div className="text-sm text-slate-600">
-                      Showing <span className="font-semibold">{deptSummaries.length}</span> departments.
-                    </div>
-                  )}
                 </div>
 
                 {deptSummaries.length === 0 ? (
                   <p className="text-sm text-slate-600">No budget/actuals data available for this year.</p>
                 ) : (
-                  <BudgetByDepartmentChart year={yearValue} departments={deptSummaries} showTable={true} />
+                  <BudgetByDepartmentChart 
+                    year={yearValue} 
+                    departments={deptSummaries} 
+                    showTable={true} 
+                    viewAllHref={cityHref("/budget")}
+                  />
                 )}
               </CardContainer>
 

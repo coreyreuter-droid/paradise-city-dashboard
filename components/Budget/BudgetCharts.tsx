@@ -2,6 +2,7 @@
 "use client";
 
 import React, { useMemo, useState, useEffect } from "react";
+import Link from "next/link";
 import {
   BarChart,
   Bar,
@@ -35,6 +36,7 @@ type Props = {
   year: number;
   departments: DepartmentSummary[];
   layout?: "two-column" | "stacked";
+  viewAllHref?: string;
 };
 
 const formatAxisCurrency = (v: number) => {
@@ -58,6 +60,7 @@ export default function BudgetCharts({
   year,
   departments,
   layout = "two-column",
+  viewAllHref,
 }: Props) {
   // WCAG 2.1 AA: Respect reduced motion preference
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
@@ -71,6 +74,15 @@ export default function BudgetCharts({
     return () => mq.removeEventListener("change", handler);
   }, []);
 
+  // Table shows top 8 by default, expandable to all
+  const TABLE_TOP_N = 8;
+  const [showAllTable, setShowAllTable] = useState(false);
+
+  // Reset table to collapsed when departments change (e.g., year change)
+  useEffect(() => {
+    setShowAllTable(false);
+  }, [departments]);
+
   const chartData = useMemo(
     () =>
       departments.map((d) => ({
@@ -81,6 +93,14 @@ export default function BudgetCharts({
       })),
     [departments]
   );
+
+  // Table data - shows top 8 or all based on toggle
+  const tableData = useMemo(() => {
+    if (showAllTable || chartData.length <= TABLE_TOP_N) {
+      return chartData;
+    }
+    return chartData.slice(0, TABLE_TOP_N);
+  }, [chartData, showAllTable]);
 
   const totalBudget = useMemo(
     () => departments.reduce((sum, d) => sum + d.budget, 0),
@@ -98,8 +118,8 @@ export default function BudgetCharts({
 
   const avgMonthlySpend = totalActuals / 12;
 
-  // Dynamic height: 40px per department, minimum 260px
-  const chartHeight = Math.max(260, departments.length * 40);
+  // Dynamic height: 36px per department, minimum 300px (matches Analytics)
+  const chartHeight = Math.max(300, departments.length * 36);
 
   const summaryBlocks = (
     <>
@@ -191,16 +211,13 @@ export default function BudgetCharts({
           <BarChart
             data={chartData}
             layout="vertical"
-            margin={{
-              top: 10,
-              right: 24,
-              left: 8,
-              bottom: 10,
-            }}
-            barCategoryGap="100%"
+            margin={{ top: 8, right: 24, bottom: 8, left: 16 }}
+            barCategoryGap={16}
+            barGap={2}
+            barSize={10}
           >
             
-            <CartesianGrid strokeDasharray="3 3" />
+            <CartesianGrid strokeDasharray="3 3" horizontal={false} />
             <XAxis
               type="number"
               tickFormatter={formatAxisCurrency}
@@ -228,7 +245,6 @@ export default function BudgetCharts({
               dataKey="Budget"
               stackId="budget"
               radius={[4, 4, 4, 4]}
-              barSize={8}
               isAnimationActive={!prefersReducedMotion}
               animationDuration={800}
               animationEasing="ease-out"
@@ -246,7 +262,6 @@ export default function BudgetCharts({
               dataKey="Actual"
               stackId="actual"
               radius={[4, 4, 4, 4]}
-              barSize={8}
               isAnimationActive={!prefersReducedMotion}
               animationDuration={800}
               animationEasing="ease-out"
@@ -268,32 +283,49 @@ export default function BudgetCharts({
         </ResponsiveContainer>
       </div>
 
-      {/* Simple color legend */}
-      <div className="flex items-center gap-3 text-xs text-slate-600">
-        <span className="inline-flex items-center gap-1">
-          <span className="inline-block h-2 w-4 rounded-sm bg-slate-300" />
+      {/* Legend */}
+      <div className="flex flex-wrap items-center gap-4 text-xs text-slate-600">
+        <div className="flex items-center gap-1">
+          <span className="inline-block h-2 w-3 rounded" style={{ backgroundColor: "#757b84ff" }} />
           <span>Budget</span>
-        </span>
-        <span className="inline-flex items-center gap-1">
-          <span className="inline-block h-2 w-4 rounded-sm overflow-hidden">
-            <span
-              className="inline-block h-full w-1/2 float-left"
-              style={{
-                background:
-                  "linear-gradient(to right, #15803d, #16a34a)",
-              }}
-            />
-            <span
-              className="inline-block h-full w-1/2 float-left"
-              style={{ backgroundColor: "#FF746C" }}
-            />
-          </span>
-          <span>Actual (green = under, red = over)</span>
-        </span>
+        </div>
+        <div className="flex items-center gap-1">
+          <span className="inline-block h-2 w-3 rounded" style={{ backgroundColor: "#16a34a" }} />
+          <span>Actuals (at or below plan)</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <span className="inline-block h-2 w-3 rounded" style={{ backgroundColor: "#dc2626" }} />
+          <span>Actuals (above plan)</span>
+        </div>
       </div>
 
+      {/* Toggle buttons between chart and table */}
+      {(chartData.length > TABLE_TOP_N || viewAllHref) && (
+        <div className="flex items-center justify-end gap-3 border-t border-slate-200 pt-3">
+          {chartData.length > TABLE_TOP_N && (
+            <button
+              type="button"
+              onClick={() => setShowAllTable(!showAllTable)}
+              aria-expanded={showAllTable}
+              aria-controls="dept-table-region"
+              className="text-xs font-semibold text-slate-800 underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 rounded"
+            >
+              {showAllTable ? `Show top ${TABLE_TOP_N}` : "Show all"}
+            </button>
+          )}
+          {viewAllHref && (
+            <Link
+              href={viewAllHref}
+              className="text-xs font-semibold text-slate-800 underline-offset-2 hover:underline"
+            >
+              View all departments
+            </Link>
+          )}
+        </div>
+      )}
+
       {/* Accessible tabular representation */}
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto" id="dept-table-region">
         <table className="mt-2 min-w-full border border-slate-200 text-xs">
           <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-600">
             <tr>
@@ -324,7 +356,7 @@ export default function BudgetCharts({
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-200">
-            {chartData.map((row) => (
+            {tableData.map((row) => (
               <tr key={row.name}>
                 <th
                   scope="row"

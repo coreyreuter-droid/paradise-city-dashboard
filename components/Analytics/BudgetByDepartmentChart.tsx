@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useMemo, useState, useEffect } from "react";
+import Link from "next/link";
 import {
   BarChart,
   Bar,
@@ -29,6 +30,7 @@ type Props = {
   departments: DepartmentSummary[];
   accentColor?: string; // kept for API compatibility, not strictly needed
   showTable?: boolean; // Controls rendering of the inner table
+  viewAllHref?: string; // Link to view all departments
 };
 
 const formatAxisCurrencyShort = (v: number) => {
@@ -49,7 +51,17 @@ export default function BudgetByDepartmentChart({
   departments,
   accentColor: _accentColor,
   showTable = true,
+  viewAllHref,
 }: Props) {
+  // Table shows top 8 by default, expandable to all
+  const TABLE_TOP_N = 8;
+  const [showAllTable, setShowAllTable] = useState(false);
+
+  // Reset table to collapsed when departments change (e.g., year change)
+  useEffect(() => {
+    setShowAllTable(false);
+  }, [departments]);
+
   const data = useMemo(
     () => [...departments]
       .map(d => ({
@@ -59,6 +71,14 @@ export default function BudgetByDepartmentChart({
       .sort((a, b) => b.budget - a.budget),
     [departments]
   );
+
+  // Table data - shows top 8 or all based on toggle
+  const tableData = useMemo(() => {
+    if (showAllTable || data.length <= TABLE_TOP_N) {
+      return data;
+    }
+    return data.slice(0, TABLE_TOP_N);
+  }, [data, showAllTable]);
 
   if (data.length === 0) {
     return (
@@ -79,8 +99,8 @@ export default function BudgetByDepartmentChart({
         Horizontal bar chart and data table showing adopted budget and
         actual spending for each department in fiscal year {year},
         sorted from largest to smallest budget. Gray bars represent
-        budget; green bars show actual spending when at or below budget
-        and red bars show actual spending when above budget.
+        budget; green bars show actual spending when at or below plan
+        and red bars show actual spending when above plan.
       </p>
 
       {/* Chart */}
@@ -166,9 +186,34 @@ export default function BudgetByDepartmentChart({
         </div>
       </div>
 
+      {/* Toggle buttons between chart and table */}
+      {showTable && (data.length > TABLE_TOP_N || viewAllHref) && (
+        <div className="flex items-center justify-end gap-3 border-t border-slate-200 pt-3">
+          {data.length > TABLE_TOP_N && (
+            <button
+              type="button"
+              onClick={() => setShowAllTable(!showAllTable)}
+              aria-expanded={showAllTable}
+              aria-controls="dept-table-region-analytics"
+              className="text-xs font-semibold text-slate-800 underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 rounded"
+            >
+              {showAllTable ? `Show top ${TABLE_TOP_N}` : "Show all"}
+            </button>
+          )}
+          {viewAllHref && (
+            <Link
+              href={viewAllHref}
+              className="text-xs font-semibold text-slate-800 underline-offset-2 hover:underline"
+            >
+              View all departments
+            </Link>
+          )}
+        </div>
+      )}
+
       {/* Accessible tabular representation of the same data */}
       {showTable && (
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto" id="dept-table-region-analytics">
           <table className="min-w-full border border-slate-200 text-sm">
             <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-600">
               <tr>
@@ -187,7 +232,7 @@ export default function BudgetByDepartmentChart({
               </tr>
             </thead>
             <tbody>
-              {data.map((row) => (
+              {tableData.map((row) => (
                 <tr
                   key={row.department_name}
                   className="border-t border-slate-200"
