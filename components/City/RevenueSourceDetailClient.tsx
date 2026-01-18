@@ -3,7 +3,6 @@
 
 import { useMemo, useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   LineChart,
   Line,
@@ -14,7 +13,6 @@ import {
   CartesianGrid,
   BarChart,
   Bar,
-  Cell,
 } from "recharts";
 import type { RevenueRow } from "@/lib/types";
 import CardContainer from "../CardContainer";
@@ -104,10 +102,6 @@ export default function RevenueSourceDetailClient({
   selectedYear,
   fiscalYearStartMonth,
 }: Props) {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-
   // Reduced motion preference
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   useEffect(() => {
@@ -117,18 +111,6 @@ export default function RevenueSourceDetailClient({
     mq.addEventListener("change", handler);
     return () => mq.removeEventListener("change", handler);
   }, []);
-
-  // Year change handler
-  const handleYearChange = (year: number | null) => {
-    const params = new URLSearchParams(searchParams.toString());
-    if (year && year !== availableYears[0]) {
-      params.set("year", String(year));
-    } else {
-      params.delete("year");
-    }
-    const qs = params.toString();
-    router.push(qs ? `${pathname}?${qs}` : pathname);
-  };
 
   // Summary stats for selected year
   const currentYearSummary = summaryByYear.find((s) => s.fiscal_year === selectedYear);
@@ -291,8 +273,6 @@ export default function RevenueSourceDetailClient({
         </div>
         <FiscalYearSelect
           options={availableYears}
-          selectedYear={selectedYear}
-          onChange={handleYearChange}
         />
       </div>
 
