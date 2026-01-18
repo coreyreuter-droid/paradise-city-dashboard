@@ -281,10 +281,14 @@ export default function RevenueSourceDetailClient({
 
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <SectionHeader
-          title={sourceName}
-          subtitle={`Revenue source details for fiscal year ${selectedYear}`}
-        />
+        <div>
+          <SectionHeader
+            title={sourceName}
+          />
+          <p className="mt-1 text-sm text-slate-600">
+            Revenue source details for fiscal year {selectedYear}
+          </p>
+        </div>
         <FiscalYearSelect
           options={availableYears}
           selectedYear={selectedYear}
