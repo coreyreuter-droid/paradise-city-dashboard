@@ -148,11 +148,11 @@ export default function ProjectDetail({ project }: Props) {
           <h2 className="text-lg font-semibold text-slate-900">
             About This Project
           </h2>
-          <div className="mt-3 prose prose-slate prose-sm max-w-none prose-p:text-slate-700">
-            {project.description.split("\n\n").map((paragraph, idx) => (
-              <p key={idx}>{paragraph}</p>
-            ))}
-          </div>
+        <div className="mt-3 space-y-4">
+          {project.description.split("\n\n").map((paragraph, idx) => (
+            <p key={idx} className="text-base text-slate-700 leading-relaxed">{paragraph}</p>
+          ))}
+        </div>
         </div>
 
         {/* Key facts panel */}
