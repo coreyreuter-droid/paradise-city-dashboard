@@ -73,7 +73,7 @@ export default async function ProjectsPage({ params, searchParams }: PageProps) 
         {/* Last updated indicator */}
         {lastUpdatedAt && (
           <div className="mb-3 flex items-center justify-end">
-            <div className="flex items-center gap-1.5 text-xs text-slate-600">
+            <div className="flex items-center gap-1.5 text-xs text-slate-700">
               <svg
                 className="h-3.5 w-3.5"
                 fill="none"
@@ -100,7 +100,7 @@ export default async function ProjectsPage({ params, searchParams }: PageProps) 
         />
 
         {/* Breadcrumb */}
-        <nav aria-label="Breadcrumb" className="mb-4 px-1 text-sm text-slate-600">
+        <nav aria-label="Breadcrumb" className="mb-4 px-1 text-sm text-slate-700">
           <ol className="flex items-center gap-1">
             <li>
               <Link href={cityHref("/")} className="hover:text-slate-800">
