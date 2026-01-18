@@ -82,7 +82,7 @@ export default function BudgetByDepartmentChart({
 
   if (data.length === 0) {
     return (
-      <p className="text-sm text-slate-600">
+      <p className="text-sm text-slate-700">
         No department budget data available for {year}.
       </p>
     );
@@ -171,7 +171,7 @@ export default function BudgetByDepartmentChart({
       </div>
 
       {/* Legend */}
-      <div className="flex flex-wrap items-center gap-4 text-xs text-slate-600">
+      <div className="flex flex-wrap items-center gap-4 text-xs text-slate-700">
         <div className="flex items-center gap-1">
           <span className="inline-block h-2 w-3 rounded" style={{ backgroundColor: "#757b84ff" }} />
           <span>Budget</span>

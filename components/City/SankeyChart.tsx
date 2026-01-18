@@ -298,7 +298,7 @@ export default function SankeyChart({ revenues, departments, height = 400 }: Pro
 
   if (nodes.length === 0 || links.length === 0) {
     return (
-      <div className="flex h-64 items-center justify-center text-sm text-slate-500">
+      <div className="flex h-64 items-center justify-center text-sm text-slate-600">
         Not enough data to display money flow visualization.
       </div>
     );
@@ -433,10 +433,10 @@ export default function SankeyChart({ revenues, departments, height = 400 }: Pro
 
       {/* Summary footer */}
       <div className="mt-4 flex justify-between border-t border-slate-100 pt-3 text-sm">
-        <div className="text-slate-600">
+        <div className="text-slate-700">
           <span className="font-semibold text-slate-900">{formatCompact(totalRevenue)}</span> total revenue
         </div>
-        <div className="text-slate-600">
+        <div className="text-slate-700">
           <span className="font-semibold text-slate-900">{formatCompact(totalSpending)}</span> total spending
         </div>
       </div>

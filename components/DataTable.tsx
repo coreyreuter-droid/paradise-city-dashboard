@@ -223,7 +223,7 @@ export default function DataTable<T>({
                 <tr>
                   <td
                     colSpan={columns.length}
-                    className="px-3 py-8 text-center text-sm text-slate-500"
+                    className="px-3 py-8 text-center text-sm text-slate-600"
                   >
                     No records to display.
                   </td>
@@ -268,7 +268,7 @@ export default function DataTable<T>({
     </div>
 
       {showPagination && total > 0 && (
-        <div className="mt-3 flex items-center justify-between text-xs text-slate-600">
+        <div className="mt-3 flex items-center justify-between text-xs text-slate-700">
           <div>
             Page{" "}
             <span className="font-semibold">{currentPage}</span>{" "}

@@ -61,14 +61,14 @@ export default function TopVendorsCard({ year, transactions }: Props) {
           Top vendors{year ? ` – ${year}` : ""}
         </h3>
         {grandTotal > 0 && (
-          <p className="text-xs text-slate-600">
+          <p className="text-xs text-slate-700">
             Showing top {vendors.length} by total spending.
           </p>
         )}
       </div>
 
       {vendors.length === 0 ? (
-        <p className="text-sm text-slate-600">
+        <p className="text-sm text-slate-700">
           No vendor spending available for this year.
         </p>
       ) : (
@@ -92,7 +92,7 @@ export default function TopVendorsCard({ year, transactions }: Props) {
                       <p className="truncate text-xs font-semibold text-slate-900 sm:text-sm">
                         {v.name}
                       </p>
-                      <p className="text-xs text-slate-600">
+                      <p className="text-xs text-slate-700">
                         {v.count.toLocaleString("en-US")} transaction
                         {v.count === 1 ? "" : "s"} · Avg{" "}
                         {formatCurrency(v.avg)}
@@ -103,7 +103,7 @@ export default function TopVendorsCard({ year, transactions }: Props) {
                     <div className="font-mono text-slate-900">
                       {formatCurrency(v.total)}
                     </div>
-                    <div className="text-xs text-slate-600">
+                    <div className="text-xs text-slate-700">
                       {pctLabel} of total
                     </div>
                   </div>

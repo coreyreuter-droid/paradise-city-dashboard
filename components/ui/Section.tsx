@@ -47,7 +47,7 @@ export function SectionHeader({
           {title}
         </h2>
         {description && (
-          <p className="mt-1 text-sm text-slate-600">{description}</p>
+          <p className="mt-1 text-sm text-slate-700">{description}</p>
         )}
       </div>
       {actions && (

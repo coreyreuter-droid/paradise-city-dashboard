@@ -277,7 +277,7 @@ export default function DepartmentsDashboardClient({
           <CardContainer>
             <section aria-label="Department summary statistics" className="space-y-4">
               <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
-                <div className="text-sm text-slate-600">
+                <div className="text-sm text-slate-700">
                   {yearLabel ? (
                     <>
                       Showing <span className="font-semibold">{deptCount}</span> departments for fiscal year{" "}
@@ -295,7 +295,7 @@ export default function DepartmentsDashboardClient({
                   <div className="mt-1 text-2xl font-bold text-slate-900">
                     {deptCount.toLocaleString("en-US")}
                   </div>
-                  <div className="mt-1 text-sm text-slate-600">
+                  <div className="mt-1 text-sm text-slate-700">
                     With budget, spending{enableTransactions ? ", or transactions" : ""} in {yearLabel ?? "–"}.
                   </div>
                 </div>
@@ -303,13 +303,13 @@ export default function DepartmentsDashboardClient({
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3">
                   <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-600">Total budget</div>
                   <div className="mt-1 text-2xl font-bold text-slate-900">{formatCurrency(totalBudget)}</div>
-                  <div className="mt-1 text-sm text-slate-600">Sum of department-level adopted budgets.</div>
+                  <div className="mt-1 text-sm text-slate-700">Sum of department-level adopted budgets.</div>
                 </div>
 
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3">
                   <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-600">Total actuals</div>
                   <div className="mt-1 text-2xl font-bold text-slate-900">{formatCurrency(totalActuals)}</div>
-                  <div className="mt-1 text-sm text-slate-600">All recorded spending for these departments.</div>
+                  <div className="mt-1 text-sm text-slate-700">All recorded spending for these departments.</div>
                 </div>
 
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3">
@@ -324,7 +324,7 @@ export default function DepartmentsDashboardClient({
                   >
                     {formatCurrency(variance)}
                   </div>
-                  <div className="mt-1 text-sm text-slate-600">
+                  <div className="mt-1 text-sm text-slate-700">
                     Negative means departments are below the adopted plan overall.
                   </div>
                 </div>
@@ -332,14 +332,14 @@ export default function DepartmentsDashboardClient({
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3">
                   <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-600">% of budget spent</div>
                   <div className="mt-1 text-2xl font-bold text-slate-900">{formatPercent(execPct, 1)}</div>
-                  <div className="mt-1 text-sm text-slate-600">Based on total actuals versus total budget.</div>
+                  <div className="mt-1 text-sm text-slate-700">Based on total actuals versus total budget.</div>
                 </div>
 
                 {enableTransactions && (
                   <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3">
                     <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-600">Transactions</div>
                     <div className="mt-1 text-2xl font-bold text-slate-900">{totalTx.toLocaleString("en-US")}</div>
-                    <div className="mt-1 text-sm text-slate-600">Posted for {yearLabel ?? "–"}.</div>
+                    <div className="mt-1 text-sm text-slate-700">Posted for {yearLabel ?? "–"}.</div>
                   </div>
                 )}
               </section>
@@ -348,11 +348,11 @@ export default function DepartmentsDashboardClient({
 
           <CardContainer>
             {summaries.length === 0 ? (
-              <p className="text-sm text-slate-600">No department data available for the selected year.</p>
+              <p className="text-sm text-slate-700">No department data available for the selected year.</p>
             ) : (
               <div className="space-y-3">
                 <h2 className="text-sm font-semibold text-slate-900">Department Detail</h2>
-                <p className="text-sm text-slate-600">
+                <p className="text-sm text-slate-700">
                   {`This table shows each department's budget, actual spending, variance, percentage of budget spent`}
                   {enableTransactions ? ", and the number of transactions recorded for the selected year." : "."}
                 </p>

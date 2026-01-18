@@ -35,11 +35,11 @@ export default function UnpublishedMessage({ settings }: Props) {
         Transparency portal not yet publicly released
       </h1>
 
-      <p className="mt-3 text-sm text-slate-600">
+      <p className="mt-3 text-sm text-slate-700">
         {entityName} is currently reviewing and validating its financial
         data before publishing this transparency portal.
       </p>
-      <p className="mt-2 text-sm text-slate-600">
+      <p className="mt-2 text-sm text-slate-700">
         Please check back soon for access to budgets, spending, and
         revenue information.
       </p>

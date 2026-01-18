@@ -128,7 +128,7 @@ export default function InsightsSection({ insights, fiscalYear, className = "" }
                       {insight.title}
                     </h3>
                     {insight.description && (
-                      <p className="mt-1 text-xs text-slate-600">
+                      <p className="mt-1 text-xs text-slate-700">
                         {insight.description}
                       </p>
                     )}

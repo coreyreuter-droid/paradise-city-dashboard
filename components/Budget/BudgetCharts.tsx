@@ -130,7 +130,7 @@ export default function BudgetCharts({
         <div className="mt-1 text-2xl font-semibold text-slate-900">
           {formatPercent(execPct, 1)}
         </div>
-        <div className="mt-1 text-xs text-slate-500">
+        <div className="mt-1 text-xs text-slate-600">
           {formatCurrency(totalActuals)} of{" "}
           {formatCurrency(totalBudget)} spent across all departments.
         </div>
@@ -156,7 +156,7 @@ export default function BudgetCharts({
               aria-hidden="true"
             />
           </div>
-          <div className="mt-1 flex justify-between text-xs text-slate-500" aria-hidden="true">
+          <div className="mt-1 flex justify-between text-xs text-slate-600" aria-hidden="true">
             <span>0%</span>
             <span>100%</span>
           </div>
@@ -173,7 +173,7 @@ export default function BudgetCharts({
             per month
           </span>
         </div>
-        <p className="mt-1 text-xs text-slate-600">
+        <p className="mt-1 text-xs text-slate-700">
           Estimated by dividing total actual spending in fiscal year{" "}
           {year} by 12 months.
         </p>
@@ -198,7 +198,7 @@ export default function BudgetCharts({
 
         <p
           id="dept-spend-chart-desc"
-          className="text-xs text-slate-500"
+          className="text-xs text-slate-600"
         >
         </p>
       </header>
@@ -284,7 +284,7 @@ export default function BudgetCharts({
       </div>
 
       {/* Legend */}
-      <div className="flex flex-wrap items-center gap-4 text-xs text-slate-600">
+      <div className="flex flex-wrap items-center gap-4 text-xs text-slate-700">
         <div className="flex items-center gap-1">
           <span className="inline-block h-2 w-3 rounded" style={{ backgroundColor: "#757b84ff" }} />
           <span>Budget</span>
@@ -389,7 +389,7 @@ export default function BudgetCharts({
 
 
       {departments.length === 0 ? (
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-slate-600">
           No budget or actuals data available for this year.
         </p>
       ) : layout === "two-column" ? (

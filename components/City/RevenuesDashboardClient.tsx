@@ -232,7 +232,7 @@ function TreemapTooltip({ active, payload }: TreemapTooltipProps) {
   return (
     <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-lg">
       <p className="text-sm font-semibold text-slate-900">{data.name}</p>
-      <p className="text-sm text-slate-600">{formatCurrency(data.value)}</p>
+      <p className="text-sm text-slate-700">{formatCurrency(data.value)}</p>
     </div>
   );
 }
@@ -539,7 +539,7 @@ export default function RevenuesDashboardClient({
               <p className="mt-1 text-base font-semibold text-slate-900">
                 {yearLabel ?? "Latest"}
               </p>
-              <p className="mt-1 text-sm text-slate-600">
+              <p className="mt-1 text-sm text-slate-700">
                 Revenue records grouped by source.
               </p>
             </div>
@@ -550,7 +550,7 @@ export default function RevenuesDashboardClient({
               <p className="mt-1 text-base font-semibold text-slate-900">
                 {totalSources.toLocaleString("en-US")}
               </p>
-              <p className="mt-1 text-sm text-slate-600">
+              <p className="mt-1 text-sm text-slate-700">
                 Sources with at least one record this year.
               </p>
             </div>
@@ -562,7 +562,7 @@ export default function RevenuesDashboardClient({
               <p className="mt-1 text-base font-semibold text-slate-900">
                 {formatCurrency(totalRevenue)}
               </p>
-              <p className="mt-1 text-sm text-slate-600">
+              <p className="mt-1 text-sm text-slate-700">
                 Sum of all sources in the current view.
               </p>
               {showingFiltered && totalUnfilteredRevenue != null && (
@@ -582,14 +582,14 @@ export default function RevenuesDashboardClient({
               <p className="mt-1 text-base font-semibold text-slate-900">
                 {formatCurrency(avgPerSource)}
               </p>
-              <p className="mt-1 text-sm text-slate-600">
+              <p className="mt-1 text-sm text-slate-700">
                 Simple average of total revenues across all visible sources.
               </p>
             </div>
           </div>
 
           {topSource && (
-            <p className="text-sm text-slate-600">
+            <p className="text-sm text-slate-700">
               Top revenue source in this view:{" "}
               <span className="font-semibold text-slate-900">
                 {topSource}
@@ -620,7 +620,7 @@ export default function RevenuesDashboardClient({
                 </h2>
                 <p
                   id="revenue-distribution-desc"
-                  className="text-sm text-slate-600"
+                  className="text-sm text-slate-700"
                 >
                   How total recorded revenues are distributed across
                   sources for {yearLabel ?? "this year"}. Larger areas represent higher revenue.
@@ -628,7 +628,7 @@ export default function RevenuesDashboardClient({
               </div>
 
               {distributionSlices.length === 0 ? (
-                <p className="text-sm text-slate-600">
+                <p className="text-sm text-slate-700">
                   No revenue data available for this fiscal year.
                 </p>
               ) : (
@@ -745,14 +745,14 @@ export default function RevenuesDashboardClient({
                 </h2>
                 <p
                   id="revenue-yoy-desc"
-                  className="text-sm text-slate-600"
+                  className="text-sm text-slate-700"
                 >
                   Year-over-year view of total recorded revenues.
                 </p>
               </div>
 
               {yoyTrendData.length <= 1 ? (
-                <p className="text-sm text-slate-600">
+                <p className="text-sm text-slate-700">
                   Not enough years of revenue data to show a trend.
                   Load multiple fiscal years to see year-over-year
                   changes.

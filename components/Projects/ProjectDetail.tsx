@@ -72,7 +72,7 @@ export default function ProjectDetail({ project }: Props) {
           </span>
         </div>
 
-        <p className="text-base text-slate-600 sm:text-lg">
+        <p className="text-base text-slate-700 sm:text-lg">
           {project.short_description}
         </p>
       </div>
@@ -165,7 +165,7 @@ export default function ProjectDetail({ project }: Props) {
             <dl className="mt-4 space-y-4">
               {/* Status */}
               <div>
-                <dt className="text-xs font-medium text-slate-500">Status</dt>
+                <dt className="text-xs font-medium text-slate-600">Status</dt>
                 <dd className="mt-1">
                   <span
                     className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${status.bg} ${status.text}`}
@@ -178,7 +178,7 @@ export default function ProjectDetail({ project }: Props) {
               {/* Start date */}
               {project.start_date && (
                 <div>
-                  <dt className="text-xs font-medium text-slate-500">Start Date</dt>
+                  <dt className="text-xs font-medium text-slate-600">Start Date</dt>
                   <dd className="mt-1 text-sm text-slate-900">
                     {formatDate(project.start_date)}
                   </dd>
@@ -188,7 +188,7 @@ export default function ProjectDetail({ project }: Props) {
               {/* Estimated completion */}
               {project.estimated_completion_date && project.status !== "completed" && (
                 <div>
-                  <dt className="text-xs font-medium text-slate-500">
+                  <dt className="text-xs font-medium text-slate-600">
                     Estimated Completion
                   </dt>
                   <dd className="mt-1 text-sm text-slate-900">
@@ -200,7 +200,7 @@ export default function ProjectDetail({ project }: Props) {
               {/* Actual completion */}
               {project.actual_completion_date && project.status === "completed" && (
                 <div>
-                  <dt className="text-xs font-medium text-slate-500">
+                  <dt className="text-xs font-medium text-slate-600">
                     Completed
                   </dt>
                   <dd className="mt-1 text-sm text-slate-900">
@@ -212,7 +212,7 @@ export default function ProjectDetail({ project }: Props) {
               {/* Estimated cost */}
               {project.estimated_cost && (
                 <div>
-                  <dt className="text-xs font-medium text-slate-500">
+                  <dt className="text-xs font-medium text-slate-600">
                     Estimated Cost
                   </dt>
                   <dd className="mt-1 text-sm text-slate-900">
@@ -224,7 +224,7 @@ export default function ProjectDetail({ project }: Props) {
               {/* Funding source */}
               {project.funding_source && (
                 <div>
-                  <dt className="text-xs font-medium text-slate-500">
+                  <dt className="text-xs font-medium text-slate-600">
                     Funding Source
                   </dt>
                   <dd className="mt-1 text-sm text-slate-900">
@@ -236,7 +236,7 @@ export default function ProjectDetail({ project }: Props) {
               {/* Location */}
               {project.location_text && (
                 <div>
-                  <dt className="text-xs font-medium text-slate-500">Location</dt>
+                  <dt className="text-xs font-medium text-slate-600">Location</dt>
                   <dd className="mt-1 text-sm text-slate-900">
                     {project.location_text}
                   </dd>
@@ -280,7 +280,7 @@ export default function ProjectDetail({ project }: Props) {
             </dl>
 
             {/* Disclaimer */}
-            <p className="mt-6 text-xs text-slate-500">
+            <p className="mt-6 text-xs text-slate-600">
               Dates and costs are estimates and may change as the project progresses.
             </p>
           </div>

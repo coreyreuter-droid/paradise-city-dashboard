@@ -22,7 +22,7 @@ export default function DepartmentsGrid({ year, departments }: Props) {
           <h3 className="text-sm font-semibold text-slate-900">
             Departments overview{year ? ` – ${year}` : ""}
           </h3>
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-slate-700">
             Top {top.length} of {totalCount || 0} departments by adopted
             budget.
           </p>
@@ -38,7 +38,7 @@ export default function DepartmentsGrid({ year, departments }: Props) {
       </div>
 
       {top.length === 0 ? (
-        <p className="text-sm text-slate-600">
+        <p className="text-sm text-slate-700">
           No department budget or actuals data available for this year.
         </p>
       ) : (
@@ -89,19 +89,19 @@ export default function DepartmentsGrid({ year, departments }: Props) {
 
                 <div className="mt-1 space-y-0.5">
                   <div className="flex items-center justify-between text-xs">
-                    <span className="text-slate-600">Budget</span>
+                    <span className="text-slate-700">Budget</span>
                     <span className="font-mono">
                       {formatCurrency(d.budget)}
                     </span>
                   </div>
                   <div className="flex items-center justify-between text-xs">
-                    <span className="text-slate-600">Actuals</span>
+                    <span className="text-slate-700">Actuals</span>
                     <span className="font-mono">
                       {formatCurrency(d.actuals)}
                     </span>
                   </div>
                   <div className="flex items-center justify-between text-xs">
-                    <span className="text-slate-600">% spent</span>
+                    <span className="text-slate-700">% spent</span>
                     <span className="font-mono">
                       {formatPercent(d.percentSpent, 1)}
                     </span>

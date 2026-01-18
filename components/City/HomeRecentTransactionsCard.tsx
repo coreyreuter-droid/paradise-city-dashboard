@@ -31,7 +31,7 @@ export default function RecentTransactionsCard({
         </h3>
       </div>
       {rows.length === 0 ? (
-        <p className="text-sm text-slate-600">
+        <p className="text-sm text-slate-700">
           No transactions available for this year.
         </p>
       ) : (
@@ -54,7 +54,7 @@ export default function RecentTransactionsCard({
                 className="flex items-start justify-between gap-2 border-b border-slate-100 pb-1.5 last:border-b-0"
               >
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2 text-xs text-slate-600">
+                  <div className="flex items-center gap-2 text-xs text-slate-700">
                     <span className="font-mono">
                       {formatDate(tx.date)}
                     </span>
@@ -68,7 +68,7 @@ export default function RecentTransactionsCard({
                     {vendorLabel}
                   </div>
                   {tx.description && (
-                    <div className="line-clamp-2 text-xs text-slate-600">
+                    <div className="line-clamp-2 text-xs text-slate-700">
                       {tx.description}
                     </div>
                   )}

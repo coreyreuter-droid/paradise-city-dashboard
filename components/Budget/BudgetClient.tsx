@@ -187,7 +187,7 @@ export default function BudgetClient({ years, deptBudgetActuals }: Props) {
 
       <nav
         aria-label="Breadcrumb"
-        className="px-1 text-xs text-slate-500"
+        className="px-1 text-xs text-slate-600"
       >
         <ol className="flex items-center gap-1">
           <li>
@@ -214,7 +214,7 @@ export default function BudgetClient({ years, deptBudgetActuals }: Props) {
         <CardContainer>
           <div className="space-y-6">
             <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
-              <div className="text-xs text-slate-500">
+              <div className="text-xs text-slate-600">
                 {yearLabel ? (
                   <>
                     Showing{" "}
@@ -241,7 +241,7 @@ export default function BudgetClient({ years, deptBudgetActuals }: Props) {
                 <div className="mt-1 text-lg font-semibold text-slate-900">
                   {formatCurrency(totals.budget)}
                 </div>
-                <div className="mt-1 text-xs text-slate-500">
+                <div className="mt-1 text-xs text-slate-600">
                   Sum of department-level adopted budgets.
                 </div>
               </div>
@@ -253,7 +253,7 @@ export default function BudgetClient({ years, deptBudgetActuals }: Props) {
                 <div className="mt-1 text-lg font-semibold text-slate-900">
                   {formatCurrency(totals.actuals)}
                 </div>
-                <div className="mt-1 text-xs text-slate-500">
+                <div className="mt-1 text-xs text-slate-600">
                   All spending recorded against these departments.
                 </div>
               </div>
@@ -274,7 +274,7 @@ export default function BudgetClient({ years, deptBudgetActuals }: Props) {
                 >
                   {formatCurrency(totals.variance)}
                 </div>
-                <div className="mt-1 text-xs text-slate-500">
+                <div className="mt-1 text-xs text-slate-600">
                   Positive means spending is currently below the adopted plan.
                 </div>
               </div>
@@ -286,7 +286,7 @@ export default function BudgetClient({ years, deptBudgetActuals }: Props) {
                 <div className="mt-1 text-lg font-semibold text-slate-900">
                   {formatPercent(totals.execPct, 1)}
                 </div>
-                <div className="mt-1 text-xs text-slate-500">
+                <div className="mt-1 text-xs text-slate-600">
                   Share of adopted budget that has been spent this year.
                 </div>
               </div>
@@ -296,7 +296,7 @@ export default function BudgetClient({ years, deptBudgetActuals }: Props) {
 
         <CardContainer>
           {departments.length === 0 ? (
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-slate-600">
               No budget or actuals data available for this year.
             </p>
           ) : (
@@ -313,7 +313,7 @@ export default function BudgetClient({ years, deptBudgetActuals }: Props) {
                     <p className="mt-1 text-2xl font-semibold text-slate-900">
                       {formatPercent(totals.execPct)}
                     </p>
-                    <p className="mt-1 text-xs text-slate-600">
+                    <p className="mt-1 text-xs text-slate-700">
                       {formatCurrency(totals.actuals)} of{" "}
                       {formatCurrency(totals.budget)} spent across all
                       departments.
@@ -336,7 +336,7 @@ export default function BudgetClient({ years, deptBudgetActuals }: Props) {
                   <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                     Department spending highlights
                   </p>
-                  <p className="mt-1 text-xs text-slate-600">
+                  <p className="mt-1 text-xs text-slate-700">
                     Departments are sorted by size of adopted budget.
                     Large green bars show major services that are currently
                     below the adopted plan; red bars flag areas where spending is

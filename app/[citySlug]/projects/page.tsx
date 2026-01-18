@@ -73,7 +73,7 @@ export default async function ProjectsPage({ params, searchParams }: PageProps) 
         {/* Last updated indicator */}
         {lastUpdatedAt && (
           <div className="mb-3 flex items-center justify-end">
-            <div className="flex items-center gap-1.5 text-xs text-slate-500">
+            <div className="flex items-center gap-1.5 text-xs text-slate-600">
               <svg
                 className="h-3.5 w-3.5"
                 fill="none"
@@ -157,7 +157,7 @@ export default async function ProjectsPage({ params, searchParams }: PageProps) 
             {filteredProjects.length === 0 ? (
               <div className="px-6 py-12 text-center" role="status">
                 <h3 className="sr-only">No projects found</h3>
-                <p className="text-sm text-slate-600">
+                <p className="text-sm text-slate-700">
                   {statusFilter
                     ? `No ${statusFilter.replace("_", " ")} projects found.`
                     : "No projects available yet."}

@@ -307,7 +307,7 @@ export default function AdminDataManagementPage() {
           </div>
 
           {allYears.length === 0 ? (
-            <div className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-600">
+            <div className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-700">
               No fiscal years detected yet. Upload data first.
             </div>
           ) : null}
@@ -321,7 +321,7 @@ export default function AdminDataManagementPage() {
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="text-sm font-semibold text-slate-900">{t.label}</p>
-                      <p className="mt-1 text-xs text-slate-600">{t.description}</p>
+                      <p className="mt-1 text-xs text-slate-700">{t.description}</p>
                     </div>
                     <button
                       type="button"
@@ -333,11 +333,11 @@ export default function AdminDataManagementPage() {
                   </div>
 
                   {st.loading ? (
-                    <p className="mt-3 text-xs text-slate-500">Loading fiscal years…</p>
+                    <p className="mt-3 text-xs text-slate-600">Loading fiscal years…</p>
                   ) : st.error ? (
                     <p className="mt-3 text-xs text-red-700">{st.error}</p>
                   ) : st.years.length === 0 ? (
-                    <p className="mt-3 text-xs text-slate-500">No years found.</p>
+                    <p className="mt-3 text-xs text-slate-600">No years found.</p>
                   ) : (
                     <div className="mt-4 space-y-2">
                       {st.years.map((y) => (
@@ -347,7 +347,7 @@ export default function AdminDataManagementPage() {
                         >
                           <div className="min-w-0">
                             <p className="text-sm font-semibold text-slate-900">FY{y}</p>
-                            <p className="text-[11px] text-slate-500">
+                            <p className="text-[11px] text-slate-600">
                               Deletes rows where fiscal_year = {y}
                             </p>
                           </div>

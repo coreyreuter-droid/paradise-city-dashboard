@@ -43,7 +43,7 @@ export default function Error({
             Unable to load dashboard
           </h1>
 
-          <p className="mb-6 text-sm text-slate-600">
+          <p className="mb-6 text-sm text-slate-700">
             We couldn&apos;t load the dashboard data. This might be a temporary
             issue with our servers or your network connection.
           </p>
@@ -83,7 +83,7 @@ export default function Error({
           <h2 className="mb-2 text-sm font-medium text-slate-900">
             Things to try:
           </h2>
-          <ul className="space-y-1 text-sm text-slate-600">
+          <ul className="space-y-1 text-sm text-slate-700">
             <li className="flex items-start gap-2">
               <span className="text-slate-400" aria-hidden="true">•</span>
               Check your internet connection

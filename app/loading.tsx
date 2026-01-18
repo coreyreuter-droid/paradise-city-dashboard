@@ -13,7 +13,7 @@ export default function Loading() {
     >
       <div className="text-center">
         <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-slate-900" />
-        <p className="text-sm text-slate-600">Loading...</p>
+        <p className="text-sm text-slate-700">Loading...</p>
       </div>
 
       <style>{`

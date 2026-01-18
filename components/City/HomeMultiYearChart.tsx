@@ -44,7 +44,7 @@ export default function ParadiseHomeMultiYearChart({ yearTotals }: Props) {
   }));
 
   if (data.length === 0) {
-    return <p className="text-sm text-slate-600">No multi-year data available yet.</p>;
+    return <p className="text-sm text-slate-700">No multi-year data available yet.</p>;
   }
 
   const yTickFormatter = (value: number) => {

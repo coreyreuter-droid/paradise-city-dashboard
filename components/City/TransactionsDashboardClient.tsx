@@ -322,7 +322,7 @@ export default function TransactionsDashboardClient({
                   <h2 className="text-sm font-semibold text-slate-900">
                     Filters
                   </h2>
-                  <p className="text-sm text-slate-600">
+                  <p className="text-sm text-slate-700">
                     Narrow the list of transactions by department
                     {enableVendors
                       ? " and vendor. Fiscal year is controlled in the header."
@@ -437,14 +437,14 @@ export default function TransactionsDashboardClient({
                 <h2 className="text-sm font-semibold text-slate-900">
                   Transactions
                 </h2>
-                <p className="text-sm text-slate-600">
+                <p className="text-sm text-slate-700">
                   {totalCount.toLocaleString("en-US")} transaction{totalCount === 1 ? "" : "s"} found. Page {page} of{" "}
                   {totalPages}.
                 </p>
               </div>
 
               {transactions.length === 0 ? (
-                <p className="text-sm text-slate-600">
+                <p className="text-sm text-slate-700">
                   No transactions available for the selected filters.
                 </p>
               ) : (

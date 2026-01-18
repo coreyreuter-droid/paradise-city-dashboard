@@ -299,7 +299,7 @@ export default function DepartmentBudgetClient(props: Props) {
     >
       <div className="mx-auto max-w-5xl px-4 py-10">
         {/* Breadcrumb */}
-        <div className="mb-3 text-xs text-slate-500">
+        <div className="mb-3 text-xs text-slate-600">
           <Link
             href={cityHref("/budget")}
             className="hover:underline hover:text-slate-700"
@@ -404,7 +404,7 @@ export default function DepartmentBudgetClient(props: Props) {
                   </h2>
                   <p
                     id="dept-budget-multi-year-desc"
-                    className="mt-1 text-xs text-slate-500"
+                    className="mt-1 text-xs text-slate-600"
                   >
                     Each bar shows the department&apos;s adopted budget and
                     actual spending by fiscal year.
@@ -519,19 +519,19 @@ export default function DepartmentBudgetClient(props: Props) {
                 </div>
                 <dl className="mt-3 space-y-3 text-xs">
                   <div className="flex items-baseline justify-between gap-3">
-                    <dt className="text-slate-500">Adopted budget</dt>
+                    <dt className="text-slate-600">Adopted budget</dt>
                     <dd className="font-semibold text-slate-900">
                       {formatCurrency(totalBudget)}
                     </dd>
                   </div>
                   <div className="flex items-baseline justify-between gap-3">
-                    <dt className="text-slate-500">Actual spending</dt>
+                    <dt className="text-slate-600">Actual spending</dt>
                     <dd className="font-semibold text-slate-900">
                       {formatCurrency(totalActuals)}
                     </dd>
                   </div>
                   <div className="flex items-baseline justify-between gap-3">
-                    <dt className="text-slate-500">Execution to-date</dt>
+                    <dt className="text-slate-600">Execution to-date</dt>
                     <dd className="font-semibold text-slate-900">
                       {formatPercent(execPct)}
                     </dd>
@@ -543,7 +543,7 @@ export default function DepartmentBudgetClient(props: Props) {
                 <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
                   Variance ({year})
                 </div>
-                <div className="mt-1 text-xs text-slate-500">
+                <div className="mt-1 text-xs text-slate-600">
                   Positive variance indicates spending over the adopted budget.
                 </div>
                 <div
@@ -573,7 +573,7 @@ export default function DepartmentBudgetClient(props: Props) {
                 >
                   {formatCurrency(Math.abs(variance))}
                 </div>
-                <div className="mt-1 text-xs text-slate-500">
+                <div className="mt-1 text-xs text-slate-600">
                   {variance >= 0 ? "Over" : "Under"} budget by{" "}
                   {variancePct.toFixed(1)}%.
                 </div>
@@ -596,7 +596,7 @@ export default function DepartmentBudgetClient(props: Props) {
                     }}
                   />
                 </div>
-                <div className="mt-2 text-xs text-slate-500">
+                <div className="mt-2 text-xs text-slate-600">
                   {execPctRaw <= 100
                     ? "Within the adopted budget."
                     : "Spending has exceeded the adopted budget."}
@@ -613,7 +613,7 @@ export default function DepartmentBudgetClient(props: Props) {
                 <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
                   Top Vendors ({year})
                 </div>
-                <p className="mt-1 text-xs text-slate-500">
+                <p className="mt-1 text-xs text-slate-600">
                   Summarized by total actual spending for this department in the
                   selected fiscal year.
                 </p>
@@ -621,7 +621,7 @@ export default function DepartmentBudgetClient(props: Props) {
             </div>
 
             {vendorSummaries.length === 0 ? (
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-slate-600">
                 No vendor-level transactions found for this department in{" "}
                 {year}.
               </p>
@@ -692,14 +692,14 @@ export default function DepartmentBudgetClient(props: Props) {
               <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
                 Transactions ({year})
               </div>
-              <p className="mt-1 text-xs text-slate-500">
+              <p className="mt-1 text-xs text-slate-600">
                 Line-item transactions recorded for this department in the
                 selected fiscal year.
               </p>
             </div>
 
             {yearTransactions.length === 0 ? (
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-slate-600">
                 No transactions found for this department in {year}.
               </p>
             ) : (

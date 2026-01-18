@@ -106,8 +106,8 @@ export default function AdminProjectsPage() {
               <h2 className="mt-4 text-lg font-semibold text-slate-900">
                 Capital Projects Add-On
               </h2>
-              <p className="mt-2 text-sm text-slate-600">
-                Highlight capital improvement projects with photos, timelines, costs, and map links. 
+              <p className="mt-2 text-sm text-slate-700">
+                Highlight capital improvement projects with photos, timelines, costs, and map links.
                 Give residents a visual way to track community investments.
               </p>
               <div className="mt-6 rounded-md bg-slate-50 p-4">
@@ -115,7 +115,7 @@ export default function AdminProjectsPage() {
                   To enable this feature for your portal, please contact us:
                 </p>
                 <a
-                  href="mailto:support@civiportal.io?subject=Enable%20Capital%20Projects"
+                  href="mailto:hello@civiportal.io?subject=Enable%20Capital%20Projects"
                   className="mt-3 inline-flex items-center gap-2 rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
                 >
                   <svg
@@ -170,7 +170,7 @@ export default function AdminProjectsPage() {
           {/* Loading state */}
           {isLoading && (
             <div className="flex items-center justify-center py-12" role="status" aria-live="polite">
-              <div className="text-sm text-slate-500">Loading projects...</div>
+              <div className="text-sm text-slate-600">Loading projects...</div>
             </div>
           )}
 
@@ -193,7 +193,7 @@ export default function AdminProjectsPage() {
                 />
               </svg>
               <p className="mt-3 text-sm font-semibold text-slate-900">No projects yet</p>
-              <p className="mt-1 text-sm text-slate-500">
+              <p className="mt-1 text-sm text-slate-600">
                 Get started by creating your first capital project.
               </p>
               <div className="mt-4">
@@ -263,7 +263,7 @@ export default function AdminProjectsPage() {
                               <div className="truncate text-sm font-medium text-slate-900">
                                 {project.title}
                               </div>
-                              <div className="truncate text-xs text-slate-500">
+                              <div className="truncate text-xs text-slate-600">
                                 /{project.slug}
                               </div>
                             </div>
@@ -274,12 +274,12 @@ export default function AdminProjectsPage() {
                             {status.label}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-sm text-slate-600">
+                        <td className="px-4 py-3 text-sm text-slate-700">
                           {project.estimated_completion_date
                             ? formatDate(project.estimated_completion_date)
                             : "—"}
                         </td>
-                        <td className="px-4 py-3 text-sm text-slate-600">
+                        <td className="px-4 py-3 text-sm text-slate-700">
                           {project.estimated_cost
                             ? formatCurrencyCompact(project.estimated_cost)
                             : "—"}
@@ -293,10 +293,10 @@ export default function AdminProjectsPage() {
                               Yes
                             </span>
                           ) : (
-                            <span className="text-xs text-slate-500">Draft</span>
+                            <span className="text-xs text-slate-600">Draft</span>
                           )}
                         </td>
-                        <td className="px-4 py-3 text-sm text-slate-600">
+                        <td className="px-4 py-3 text-sm text-slate-700">
                           {formatDate(project.updated_at)}
                         </td>
                         <td className="px-4 py-3 text-right">

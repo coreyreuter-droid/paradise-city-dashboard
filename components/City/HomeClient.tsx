@@ -480,7 +480,7 @@ className="inline-flex items-center justify-center rounded-full px-3 py-1.5 text
             <h2 className="text-sm font-semibold text-slate-900">
               Data not yet available for this fiscal year
             </h2>
-            <p className="text-sm leading-relaxed text-slate-700">
+            <p className="text-sm leading-relaxed text-slate-800">
               There are no budgets or published spending data loaded for{" "}
               {yearLabel ? `fiscal year ${yearLabel}` : "the selected year"}.
               Try choosing a different fiscal year from the menu above, or check
@@ -545,7 +545,7 @@ className="inline-flex items-center justify-center rounded-full px-3 py-1.5 text
                   <h2 className="text-sm font-semibold tracking-tight text-slate-900 sm:text-base">
                     Follow the Money
                   </h2>
-                  <p className="text-sm text-slate-600">
+                  <p className="text-sm text-slate-700">
                     See how revenue flows through our government to departments for{" "}
                     {yearLabel ?? "the selected year"}.
                   </p>
@@ -581,7 +581,7 @@ className="inline-flex items-center justify-center rounded-full px-3 py-1.5 text
                     <h2 className="text-sm font-semibold tracking-tight text-slate-900 sm:text-base">
                       Budget vs Actuals by Department
                     </h2>
-                    <p className="text-sm text-slate-600">
+                    <p className="text-sm text-slate-700">
                       Showing {departmentsForYear.length} departments by budget and their corresponding
                       spending for{" "}
                       {yearLabel ?? "the selected year"}
@@ -611,12 +611,12 @@ className="inline-flex items-center justify-center rounded-full px-3 py-1.5 text
                       >
                         Budget &amp; Spending Over Time
                       </h2>
-                      <p className="text-sm text-slate-600">
+                      <p className="text-sm text-slate-700">
                         Compare adopted budgets and actual spending across
                         multiple fiscal years.
                       </p>
                     </div>
-                    <div className="text-xs text-slate-600">
+                    <div className="text-xs text-slate-700">
                       Showing{" "}
                       <span className="font-semibold">
                         {yearTotals.length}{" "}
@@ -665,7 +665,7 @@ className="inline-flex items-center justify-center rounded-full px-3 py-1.5 text
                           <h2 className="text-sm font-semibold tracking-tight text-slate-900 sm:text-base">
                             Top Vendors
                           </h2>
-                          <p className="text-sm text-slate-600">
+                          <p className="text-sm text-slate-700">
                             Vendors ranked by total spending for{" "}
                             {yearLabel ?? "the selected year"}.
                           </p>
@@ -680,7 +680,7 @@ className="inline-flex items-center justify-center rounded-full px-3 py-1.5 text
                       </div>
 
                       {topVendors.length === 0 ? (
-                        <p className="text-sm text-slate-600">
+                        <p className="text-sm text-slate-700">
                           No vendor summary data available for this year.
                         </p>
                       ) : (

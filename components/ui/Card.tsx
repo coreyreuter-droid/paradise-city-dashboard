@@ -88,7 +88,7 @@ export function CardTitle({
 
 export function CardDescription({ children, className = "" }: CardDescriptionProps) {
   return (
-    <p className={`text-sm text-slate-600 ${className}`}>
+    <p className={`text-sm text-slate-700 ${className}`}>
       {children}
     </p>
   );

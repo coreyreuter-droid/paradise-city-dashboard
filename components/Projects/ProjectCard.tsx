@@ -87,12 +87,12 @@ export default function ProjectCard({ project }: Props) {
           {project.title}
         </h3>
         
-        <p className="mt-1 line-clamp-2 flex-1 text-sm text-slate-600">
+        <p className="mt-1 line-clamp-2 flex-1 text-sm text-slate-700">
           {project.short_description}
         </p>
 
         {/* Meta info */}
-        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500">
+        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-600">
           {completionDate && (
             <span>
               {project.status === "completed" ? "Completed" : "Est. completion"}:{" "}
@@ -117,7 +117,7 @@ export default function ProjectCard({ project }: Props) {
         </div>
 
         {/* Updated date */}
-        <div className="mt-2 text-xs text-slate-500">
+        <div className="mt-2 text-xs text-slate-600">
           Updated {formatDate(project.updated_at)}
         </div>
       </div>

@@ -286,7 +286,7 @@ export default function GlobalSearch({ fiscalYear, className = "" }: Props) {
             <div className="truncate font-medium text-slate-900">
               {item.data.department_name}
             </div>
-            <div className="text-xs text-slate-500">
+            <div className="text-xs text-slate-600">
               Budget: {formatCurrency(item.data.budget_amount)}
             </div>
           </div>
@@ -302,7 +302,7 @@ export default function GlobalSearch({ fiscalYear, className = "" }: Props) {
             <div className="truncate font-medium text-slate-900">
               {item.data.vendor}
             </div>
-            <div className="text-xs text-slate-500">
+            <div className="text-xs text-slate-600">
               {formatCurrency(item.data.total_amount)} · {item.data.txn_count} transactions
             </div>
           </div>
@@ -318,7 +318,7 @@ export default function GlobalSearch({ fiscalYear, className = "" }: Props) {
             <div className="truncate font-medium text-slate-900">
               {item.data.vendor || "Unknown vendor"}
             </div>
-            <div className="truncate text-xs text-slate-500">
+            <div className="truncate text-xs text-slate-600">
               {item.data.description?.slice(0, 60) || "No description"}
             </div>
           </div>
@@ -326,7 +326,7 @@ export default function GlobalSearch({ fiscalYear, className = "" }: Props) {
             <div className="font-mono text-sm text-slate-900">
               {formatCurrency(item.data.amount)}
             </div>
-            <div className="text-xs text-slate-500">{item.data.date}</div>
+            <div className="text-xs text-slate-600">{item.data.date}</div>
           </div>
         </div>
       );
@@ -358,7 +358,7 @@ export default function GlobalSearch({ fiscalYear, className = "" }: Props) {
       className="absolute left-0 right-0 top-full z-50 mt-1 max-h-[400px] overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-lg"
     >
       {isLoading ? (
-        <div className="flex items-center justify-center px-4 py-6 text-sm text-slate-500">
+        <div className="flex items-center justify-center px-4 py-6 text-sm text-slate-600">
           <svg
             className="mr-2 h-4 w-4 animate-spin"
             viewBox="0 0 24 24"
@@ -382,7 +382,7 @@ export default function GlobalSearch({ fiscalYear, className = "" }: Props) {
           Searching...
         </div>
       ) : totalResults === 0 && query.length >= MIN_QUERY_LENGTH ? (
-        <div className="px-4 py-6 text-center text-sm text-slate-500">
+        <div className="px-4 py-6 text-center text-sm text-slate-600">
           No results for &quot;{query}&quot;
         </div>
       ) : (
@@ -552,7 +552,7 @@ export default function GlobalSearch({ fiscalYear, className = "" }: Props) {
           {/* Mobile results */}
           <div className="flex-1 overflow-y-auto">
             {isLoading ? (
-              <div className="flex items-center justify-center py-12 text-slate-500">
+              <div className="flex items-center justify-center py-12 text-slate-600">
                 <svg className="mr-2 h-5 w-5 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
@@ -560,11 +560,11 @@ export default function GlobalSearch({ fiscalYear, className = "" }: Props) {
                 Searching...
               </div>
             ) : totalResults === 0 && query.length >= MIN_QUERY_LENGTH ? (
-              <div className="px-4 py-12 text-center text-slate-500">
+              <div className="px-4 py-12 text-center text-slate-600">
                 No results for &quot;{query}&quot;
               </div>
             ) : query.length < MIN_QUERY_LENGTH ? (
-              <div className="px-4 py-12 text-center text-slate-500">
+              <div className="px-4 py-12 text-center text-slate-600">
                 Type at least 2 characters to search
               </div>
             ) : (
@@ -578,7 +578,7 @@ export default function GlobalSearch({ fiscalYear, className = "" }: Props) {
                     onClick={() => navigateTo({ type: "department", data: dept })}
                   >
                     <div className="font-medium text-slate-900">{dept.department_name}</div>
-                    <div className="text-sm text-slate-500">
+                    <div className="text-sm text-slate-600">
                       Budget: {formatCurrency(dept.budget_amount)} · Department
                     </div>
                   </li>
@@ -603,7 +603,7 @@ export default function GlobalSearch({ fiscalYear, className = "" }: Props) {
                     onClick={() => navigateTo({ type: "vendor", data: vendor })}
                   >
                     <div className="font-medium text-slate-900">{vendor.vendor}</div>
-                    <div className="text-sm text-slate-500">
+                    <div className="text-sm text-slate-600">
                       {formatCurrency(vendor.total_amount)} · {vendor.txn_count} transactions · Vendor
                     </div>
                   </li>
@@ -631,7 +631,7 @@ export default function GlobalSearch({ fiscalYear, className = "" }: Props) {
                       <div className="font-medium text-slate-900">{txn.vendor || "Unknown"}</div>
                       <div className="font-mono text-slate-900">{formatCurrency(txn.amount)}</div>
                     </div>
-                    <div className="text-sm text-slate-500">
+                    <div className="text-sm text-slate-600">
                       {txn.description?.slice(0, 50) || "No description"} · {txn.date}
                     </div>
                   </li>

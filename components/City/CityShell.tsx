@@ -74,7 +74,7 @@ export default function CityShell({
                 {displayName} Financial Transparency
               </h1>
               {tagline && (
-                <p className="mt-2 max-w-2xl text-sm text-slate-600">
+                <p className="mt-2 max-w-2xl text-sm text-slate-700">
                   {tagline}
                 </p>
               )}

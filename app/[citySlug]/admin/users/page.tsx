@@ -492,7 +492,7 @@ export default function AdminUsersPage() {
                 <p className="text-sm font-semibold text-slate-900">
                   Invite a new user
                 </p>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-slate-600">
                   They&apos;ll receive an email with a link to sign in. You can
                   change their role later.
                 </p>
@@ -549,7 +549,7 @@ export default function AdminUsersPage() {
                 </div>
               </form>
             ) : (
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-slate-600">
                 Only super admins can invite new users. Contact a super admin if
                 you need someone added.
               </p>
@@ -588,7 +588,7 @@ export default function AdminUsersPage() {
             className="rounded-xl border border-slate-200 bg-white text-xs shadow-sm"
           >
             {isLoading && (
-              <div className="px-4 py-6 text-sm text-slate-600">
+              <div className="px-4 py-6 text-sm text-slate-700">
                 Loading users…
               </div>
             )}
@@ -603,7 +603,7 @@ export default function AdminUsersPage() {
             )}
 
             {!isLoading && !error && filteredUsers.length === 0 && (
-              <div className="px-4 py-6 text-sm text-slate-500">
+              <div className="px-4 py-6 text-sm text-slate-600">
                 No users match the current filters.
               </div>
             )}

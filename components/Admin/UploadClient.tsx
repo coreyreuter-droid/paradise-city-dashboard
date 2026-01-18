@@ -865,7 +865,7 @@ export default function UploadClient() {
           <h1 className="text-lg font-semibold text-slate-900">
             Upload data
           </h1>
-          <p className="mt-1 text-sm text-slate-600">
+          <p className="mt-1 text-sm text-slate-700">
             Upload CSV files for budgets, actuals, transactions, or
             revenues. Use the template to ensure columns match exactly.
           </p>
@@ -942,7 +942,7 @@ export default function UploadClient() {
           <option value="revenues">revenues</option>
         </select>
         <div className="mt-1 flex items-center justify-between gap-2">
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-slate-600">
             Make sure your CSV columns match the template for this table.
           </p>
           <button
@@ -972,7 +972,7 @@ export default function UploadClient() {
               />
               <span>
                 <span className="font-medium">Append</span>{" "}
-                <span className="text-slate-600">
+                <span className="text-slate-700">
                   – Add new rows. Existing data is not changed.
                 </span>
               </span>
@@ -990,7 +990,7 @@ export default function UploadClient() {
                 <span className="font-medium">
                   Replace this fiscal year only
                 </span>{" "}
-                <span className="text-slate-600">
+                <span className="text-slate-700">
                   – Delete existing rows for a single fiscal year, then
                   insert rows from this file.
                 </span>
@@ -1007,7 +1007,7 @@ export default function UploadClient() {
               />
               <span>
                 <span className="font-medium">Replace entire table</span>{" "}
-                <span className="text-slate-600">
+                <span className="text-slate-700">
                   – Delete ALL existing rows in this table, then insert
                   rows from this file.
                 </span>
@@ -1183,7 +1183,7 @@ export default function UploadClient() {
               <span className="font-medium text-slate-800">
                 {file ? file.name : "Click to choose a CSV file"}
               </span>
-              <span className="text-xs text-slate-500">
+              <span className="text-xs text-slate-600">
                 Accepted format: .csv
               </span>
             </div>
@@ -1194,7 +1194,7 @@ export default function UploadClient() {
         </div>
         <p
           id="upload-file-help"
-          className="mt-1 text-xs text-slate-500"
+          className="mt-1 text-xs text-slate-600"
         >
           The uploader will validate column names, years, and formats
           before sending any data to the server. Large files (up to 100MB / 500K rows) are supported.
@@ -1274,7 +1274,7 @@ export default function UploadClient() {
       )}
 
       {previewMessage && (
-        <p className="mb-4 text-xs text-slate-500">
+        <p className="mb-4 text-xs text-slate-600">
           {previewMessage}
         </p>
       )}
@@ -1289,13 +1289,13 @@ export default function UploadClient() {
           </h2>
           <dl className="grid gap-2 sm:grid-cols-2">
             <div>
-              <dt className="text-xs font-medium text-slate-500">
+              <dt className="text-xs font-medium text-slate-600">
                 Target table
               </dt>
               <dd className="text-sm">{preflight.table}</dd>
             </div>
             <div>
-              <dt className="text-xs font-medium text-slate-500">
+              <dt className="text-xs font-medium text-slate-600">
                 Rows to upload
               </dt>
               <dd className="text-sm">
@@ -1303,7 +1303,7 @@ export default function UploadClient() {
               </dd>
             </div>
             <div>
-              <dt className="text-xs font-medium text-slate-500">
+              <dt className="text-xs font-medium text-slate-600">
                 Fiscal years detected
               </dt>
               <dd className="text-sm">
@@ -1316,7 +1316,7 @@ export default function UploadClient() {
               </dd>
             </div>
             <div>
-              <dt className="text-xs font-medium text-slate-500">
+              <dt className="text-xs font-medium text-slate-600">
                 Upload mode
               </dt>
               <dd className="text-sm">
@@ -1353,7 +1353,7 @@ export default function UploadClient() {
 
             {/* Upload progress indicator */}
             {loading && uploadProgress && (
-              <div className="flex items-center gap-2 text-sm text-slate-600">
+              <div className="flex items-center gap-2 text-sm text-slate-700">
                 <svg
                   className="h-4 w-4 animate-spin text-slate-500"
                   fill="none"

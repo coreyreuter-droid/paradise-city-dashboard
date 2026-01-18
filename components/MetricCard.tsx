@@ -38,7 +38,7 @@ export default function MetricCard({
               : value}
           </p>
           {sublabel && (
-            <p className="max-w-xs text-xs leading-snug text-slate-500 sm:text-xs">
+            <p className="max-w-xs text-xs leading-snug text-slate-600 sm:text-xs">
               {sublabel}
             </p>
           )}

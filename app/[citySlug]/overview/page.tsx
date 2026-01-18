@@ -47,7 +47,7 @@ export default async function CityOverviewPage({ searchParams }: PageProps) {
         <h1 className="text-xl font-semibold text-slate-900 sm:text-2xl">
           {cityName} overview is not yet published
         </h1>
-        <p className="mt-3 text-sm text-slate-600">
+        <p className="mt-3 text-sm text-slate-700">
           Staff are preparing financial data for this portal. Once it&apos;s ready,
           the budget and spending overview will be available here.
         </p>

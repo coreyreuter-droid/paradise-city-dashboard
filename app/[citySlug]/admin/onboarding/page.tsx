@@ -390,11 +390,11 @@ export default function AdminOnboardingPage() {
                             {index + 1}. {step.title}
                           </span>
                         </div>
-                        <span className="text-xs text-slate-600">
+                        <span className="text-xs text-slate-700">
                           {statusLabel(stepStatus)}
                         </span>
                       </div>
-                      <p className="mt-1 text-xs text-slate-600">
+                      <p className="mt-1 text-xs text-slate-700">
                         {step.description}
                       </p>
                     </button>
@@ -415,7 +415,7 @@ export default function AdminOnboardingPage() {
                 <h2 className="text-base font-semibold text-slate-900">
                   Step 1 – Basic setup
                 </h2>
-                <p className="text-sm text-slate-600">
+                <p className="text-sm text-slate-700">
                   Confirm the org name, fiscal year configuration, and which
                   modules you plan to use. These settings control routing and
                   which pages are visible to residents.
@@ -429,11 +429,11 @@ export default function AdminOnboardingPage() {
                         <p className="font-medium text-slate-900">
                           Gov details & modules
                         </p>
-                        <p className="mt-1 text-sm text-slate-600">
+                        <p className="mt-1 text-sm text-slate-700">
                           City name, fiscal year label, and which modules are
                           enabled.
                         </p>
-                        <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-slate-600">
+                        <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-slate-700">
                           <li>City name and tagline</li>
                           <li>
                             Fiscal year start or label (for example,{" "}
@@ -446,7 +446,7 @@ export default function AdminOnboardingPage() {
                       </div>
                     </div>
                     <div className="flex flex-col items-end gap-2">
-                      <p className="text-xs text-slate-500">
+                      <p className="text-xs text-slate-600">
                         Status: {statusLabel(status.basic)}
                       </p>
                       <Link
@@ -466,7 +466,7 @@ export default function AdminOnboardingPage() {
                 <h2 className="text-base font-semibold text-slate-900">
                   Step 2 – Branding
                 </h2>
-                <p className="text-sm text-slate-600">
+                <p className="text-sm text-slate-700">
                   Make the portal feel like an official gov property with your
                   logo, seal, colors, and homepage messaging.
                 </p>
@@ -479,11 +479,11 @@ export default function AdminOnboardingPage() {
                         <p className="font-medium text-slate-900">
                           Logo, colors & messaging
                         </p>
-                        <p className="mt-1 text-sm text-slate-600">
+                        <p className="mt-1 text-sm text-slate-700">
                           Configure the hero message, tagline, and imagery that
                           residents will see first.
                         </p>
-                        <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-slate-600">
+                        <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-slate-700">
                           <li>City logo and optional seal</li>
                           <li>Primary and accent colors</li>
                           <li>Hero headline and supporting text</li>
@@ -492,7 +492,7 @@ export default function AdminOnboardingPage() {
                       </div>
                     </div>
                     <div className="flex flex-col items-end gap-2">
-                      <p className="text-xs text-slate-500">
+                      <p className="text-xs text-slate-600">
                         Status: {statusLabel(status.branding)}
                       </p>
                       <Link
@@ -512,7 +512,7 @@ export default function AdminOnboardingPage() {
     <h2 className="text-base font-semibold text-slate-900">
       Step 3 – Data upload
     </h2>
-    <p className="text-sm text-slate-600">
+    <p className="text-sm text-slate-700">
       Load at least one full fiscal year of data for each module you
       plan to show. You can always add more years later. On the
       upload page, you can download a CSV template for each table.
@@ -539,13 +539,13 @@ export default function AdminOnboardingPage() {
           {statusCircle(status.datasets.budgets)}
           <div>
             <p className="font-medium text-slate-900">Budgets</p>
-            <p className="mt-1 text-xs text-slate-600">
+            <p className="mt-1 text-xs text-slate-700">
               At least one year of adopted budget detail is required.
             </p>
           </div>
         </div>
         <div className="mt-3 flex items-center justify-between">
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-slate-600">
             Status: {statusLabel(status.datasets.budgets)}
           </p>
           <Link
@@ -563,14 +563,14 @@ export default function AdminOnboardingPage() {
           {statusCircle(status.datasets.actuals)}
           <div>
             <p className="font-medium text-slate-900">Actuals</p>
-            <p className="mt-1 text-xs text-slate-600">
+            <p className="mt-1 text-xs text-slate-700">
               Year-to-date or full fiscal year actuals to compare
               against the budget.
             </p>
           </div>
         </div>
         <div className="mt-3 flex items-center justify-between">
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-slate-600">
             Status: {statusLabel(status.datasets.actuals)}
           </p>
           <Link
@@ -588,14 +588,14 @@ export default function AdminOnboardingPage() {
           {statusCircle(status.datasets.transactions)}
           <div>
             <p className="font-medium text-slate-900">Transactions</p>
-            <p className="mt-1 text-xs text-slate-600">
+            <p className="mt-1 text-xs text-slate-700">
               Line-item spending detail used by the Transactions
               Explorer.
             </p>
           </div>
         </div>
         <div className="mt-3 flex items-center justify-between">
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-slate-600">
             Status: {statusLabel(status.datasets.transactions)}
           </p>
           <Link
@@ -613,14 +613,14 @@ export default function AdminOnboardingPage() {
           {statusCircle(status.datasets.revenues)}
           <div>
             <p className="font-medium text-slate-900">Revenues</p>
-            <p className="mt-1 text-xs text-slate-600">
+            <p className="mt-1 text-xs text-slate-700">
               Revenue detail powering the Revenues Explorer and
               summaries.
             </p>
           </div>
         </div>
         <div className="mt-3 flex items-center justify-between">
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-slate-600">
             Status: {statusLabel(status.datasets.revenues)}
           </p>
           <Link
@@ -641,7 +641,7 @@ export default function AdminOnboardingPage() {
                 <h2 className="text-base font-semibold text-slate-900">
                   Step 4 – Public preview
                 </h2>
-                <p className="text-sm text-slate-600">
+                <p className="text-sm text-slate-700">
                   Review the public-facing site in draft mode. Confirm that the
                   homepage, overview, analytics, and explorers look correct on
                   both desktop and mobile.
@@ -655,12 +655,12 @@ export default function AdminOnboardingPage() {
                         <p className="font-medium text-slate-900">
                           Preview your portal
                         </p>
-                        <p className="mt-1 text-sm text-slate-600">
+                        <p className="mt-1 text-sm text-slate-700">
                           Your portal will show a draft banner until it is
                           published. Use this time to confirm content,
                           accessibility, and mobile layouts.
                         </p>
-                        <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-slate-600">
+                        <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-slate-700">
                           <li>Check hero text and branding</li>
                           <li>Verify key KPIs on the Overview page</li>
                           <li>Spot-check Analytics, Revenues, and Transactions</li>
@@ -669,7 +669,7 @@ export default function AdminOnboardingPage() {
                       </div>
                     </div>
                     <div className="flex flex-col items-end gap-2">
-                      <p className="text-xs text-slate-500">
+                      <p className="text-xs text-slate-600">
                         Status: {statusLabel(status.preview)}
                       </p>
                       <Link
@@ -689,7 +689,7 @@ export default function AdminOnboardingPage() {
                 <h2 className="text-base font-semibold text-slate-900">
                   Step 5 – Publish
                 </h2>
-                <p className="text-sm text-slate-600">
+                <p className="text-sm text-slate-700">
                   When you&apos;re comfortable with the data, branding, and
                   accessibility, publish the site to make it visible to
                   residents.
@@ -703,11 +703,11 @@ export default function AdminOnboardingPage() {
                         <p className="font-medium text-slate-900">
                           Final launch checklist
                         </p>
-                        <p className="mt-1 text-sm text-slate-600">
+                        <p className="mt-1 text-sm text-slate-700">
                           Make sure the core steps above are in good shape
                           before publishing.
                         </p>
-                        <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-slate-600">
+                        <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-slate-700">
                           <li>
                             Budgets and actuals loaded for at least one year
                           </li>
@@ -720,7 +720,7 @@ export default function AdminOnboardingPage() {
                       </div>
                     </div>
                     <div className="flex items-center justify-between gap-4">
-                      <p className="text-xs text-slate-500">
+                      <p className="text-xs text-slate-600">
                         Current status: {statusLabel(status.publish)}
                       </p>
                       <Link

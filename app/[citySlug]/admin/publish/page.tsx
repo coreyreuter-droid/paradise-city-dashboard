@@ -181,7 +181,7 @@ export default function PublishPage() {
               <p className="text-sm font-semibold text-slate-900">
                 Current status
               </p>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-slate-600">
                 When the portal is{" "}
                 <span className="font-semibold">unpublished</span>, only
                 authenticated admins can view the site. When it&apos;s{" "}

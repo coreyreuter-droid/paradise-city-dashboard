@@ -134,7 +134,7 @@ export default function UploadHistoryPage() {
             <h2 className="text-sm font-semibold text-slate-900">
               Current dataset
             </h2>
-            <p className="text-xs text-slate-600">
+            <p className="text-xs text-slate-700">
               For each table, the most recent upload is shown below with
               fiscal year, row count, when it was imported, and who
               performed the upload.
@@ -164,21 +164,21 @@ export default function UploadHistoryPage() {
                             ? `FY ${latest.fiscal_year}`
                             : "Fiscal year not specified"}
                         </div>
-                        <p className="mt-1 text-xs text-slate-600">
+                        <p className="mt-1 text-xs text-slate-700">
                           Rows:{" "}
                           <span className="font-semibold">
                             {latest.row_count.toLocaleString("en-US")}
                           </span>
                         </p>
                         {lastUpload && (
-                          <p className="mt-1 text-xs text-slate-600">
+                          <p className="mt-1 text-xs text-slate-700">
                             Last upload:{" "}
                             <span className="font-semibold">
                               {lastUpload}
                             </span>
                           </p>
                         )}
-                        <p className="mt-1 text-xs text-slate-600">
+                        <p className="mt-1 text-xs text-slate-700">
                           Uploaded by:{" "}
                           <span className="font-semibold">
                             {uploader}
@@ -186,7 +186,7 @@ export default function UploadHistoryPage() {
                         </p>
                       </>
                     ) : (
-                      <p className="mt-1 text-xs text-slate-600">
+                      <p className="mt-1 text-xs text-slate-700">
                         No uploads recorded yet for this table.
                       </p>
                     )}
@@ -203,7 +203,7 @@ export default function UploadHistoryPage() {
             </h2>
 
             {loading && (
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
                 Loading upload history…
               </div>
             )}
@@ -215,7 +215,7 @@ export default function UploadHistoryPage() {
             )}
 
             {!loading && !error && logs && logs.length === 0 && (
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-600">
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-700">
                 No uploads have been recorded yet. Once data is imported
                 through the Upload tool, a history of imports will appear
                 here.

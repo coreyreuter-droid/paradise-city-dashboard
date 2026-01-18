@@ -42,7 +42,7 @@ export default function Error({
           Something went wrong
         </h1>
         
-        <p className="mb-6 text-sm text-slate-600">
+        <p className="mb-6 text-sm text-slate-700">
           We encountered an unexpected error. Please try again, or contact
           support if the problem persists.
         </p>

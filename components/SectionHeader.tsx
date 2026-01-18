@@ -199,7 +199,7 @@ export default function SectionHeader({
         {description && (
           <p
             id={descriptionId}
-            className="mt-2 max-w-2xl text-xs text-slate-500 sm:text-sm"
+            className="mt-2 max-w-2xl text-xs text-slate-600 sm:text-sm"
           >
             {description}
           </p>
@@ -208,7 +208,7 @@ export default function SectionHeader({
         {fiscalNote && (
           <p
             id={fiscalId}
-            className="mt-1 max-w-2xl text-xs text-slate-500 sm:text-sm italic"
+            className="mt-1 max-w-2xl text-xs text-slate-600 sm:text-sm italic"
           >
             {fiscalNote}
           </p>

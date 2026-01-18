@@ -619,7 +619,7 @@ const byYear = new Map<
             <div className="mt-1 text-2xl font-bold text-slate-900">
               {formatCurrency(selectedYearTotals.actuals)}
             </div>
-            <div className="mt-1 text-sm text-slate-600">
+            <div className="mt-1 text-sm text-slate-700">
               {formatPercent(selectedYearTotals.percentSpent)} of
               budget spent
             </div>
@@ -642,7 +642,7 @@ const byYear = new Map<
                 Math.abs(selectedYearTotals.variance)
               )}
             </div>
-            <div className="mt-1 text-sm text-slate-600">
+            <div className="mt-1 text-sm text-slate-700">
               {selectedYearTotals.variance >= 0
                 ? "Over"
                 : "Under"}{" "}
@@ -683,7 +683,7 @@ const byYear = new Map<
                   </h2>
                   <p
                     id="dept-multiyear-desc"
-                    className="text-sm text-slate-600"
+                    className="text-sm text-slate-700"
                   >
                     Trend of adopted budget and actual spending for{" "}
                     {displayName} across fiscal years.
@@ -815,7 +815,7 @@ const byYear = new Map<
                 </h2>
 
                 {deptVendorSummaries.length === 0 ? (
-                  <p className="text-sm text-slate-600">
+                  <p className="text-sm text-slate-700">
                     No vendor spending found for the selected year.
                   </p>
                 ) : (
@@ -866,7 +866,7 @@ const byYear = new Map<
               </h2>
 
               {deptCategorySummaries.length === 0 ? (
-                <p className="text-sm text-slate-600">
+                <p className="text-sm text-slate-700">
                   No categorized spending found for the selected
                   year.
                 </p>
@@ -914,7 +914,7 @@ const byYear = new Map<
                 Transactions ({selectedYear ?? "–"})
               </h2>
               {deptTxForYear.length === 0 ? (
-                <p className="text-sm text-slate-600">
+                <p className="text-sm text-slate-700">
                   No transactions found for this department in the
                   selected year.
                 </p>
@@ -965,7 +965,7 @@ const byYear = new Map<
                 </h2>
                 <p
                   id="vendor-detail-subtitle"
-                  className="mt-0.5 text-sm text-slate-600"
+                  className="mt-0.5 text-sm text-slate-700"
                 >
                   {displayName} • Fiscal year {selectedYear ?? "–"}
                 </p>
@@ -990,7 +990,7 @@ const byYear = new Map<
                 <div className="mt-1 text-lg font-semibold text-slate-900">
                   {formatCurrency(vendorTotal)}
                 </div>
-                <div className="mt-1 text-sm text-slate-600">
+                <div className="mt-1 text-sm text-slate-700">
                   {activeVendorTx.length.toLocaleString("en-US")}{" "}
                   transaction{activeVendorTx.length === 1 ? "" : "s"}{" "}
                   for this department in {selectedYear ?? "–"}.
@@ -998,7 +998,7 @@ const byYear = new Map<
               </div>
 
               {activeVendorTx.length === 0 ? (
-                <p className="text-sm text-slate-600">
+                <p className="text-sm text-slate-700">
                   No transactions found for this vendor in the
                   selected year.
                 </p>

@@ -16,7 +16,7 @@ export default function AdminHelpPage() {
         <div className="space-y-6 text-sm text-slate-700">
           {/* Intro */}
           <section aria-label="Help overview" className="space-y-2">
-            <p className="text-xs text-slate-600">
+            <p className="text-xs text-slate-700">
               This page is designed to help our staff manage CiviPortal on their own—especially during annual
               budget cycles—without needing to contact the vendor for every question.
             </p>
@@ -24,7 +24,7 @@ export default function AdminHelpPage() {
             <div className="grid gap-3 text-xs sm:grid-cols-4">
               <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
                 <p className="font-semibold text-slate-900">Getting ready for a new fiscal year</p>
-                <p className="mt-1 text-slate-600">Recommended upload order and “what to check” after imports.</p>
+                <p className="mt-1 text-slate-700">Recommended upload order and "what to check" after imports.</p>
                 <Link
                   href="#getting-ready"
                   className="mt-1 inline-flex text-[11px] font-semibold text-slate-800 underline-offset-2 hover:underline"
@@ -35,8 +35,8 @@ export default function AdminHelpPage() {
 
               <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
                 <p className="font-semibold text-slate-900">Fiscal year basics (read this first)</p>
-                <p className="mt-1 text-slate-600">
-                  How fiscal years are labeled, how “period” works, and why some months show under next FY.
+                <p className="mt-1 text-slate-700">
+                  How fiscal years are labeled, how "period" works, and why some months show under next FY.
                 </p>
                 <Link
                   href="#fiscal-year-basics"
@@ -48,7 +48,7 @@ export default function AdminHelpPage() {
 
               <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
                 <p className="font-semibold text-slate-900">Upload formats & errors</p>
-                <p className="mt-1 text-slate-600">Templates, validation rules, and common fixes.</p>
+                <p className="mt-1 text-slate-700">Templates, validation rules, and common fixes.</p>
                 <Link
                   href="#uploads"
                   className="mt-1 inline-flex text-[11px] font-semibold text-slate-800 underline-offset-2 hover:underline"
@@ -59,7 +59,7 @@ export default function AdminHelpPage() {
 
               <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
                 <p className="font-semibold text-slate-900">Modules, publish, & access</p>
-                <p className="mt-1 text-slate-600">What residents see depends on modules, publish status, and roles.</p>
+                <p className="mt-1 text-slate-700">What residents see depends on modules, publish status, and roles.</p>
                 <Link
                   href="#modules"
                   className="mt-1 inline-flex text-[11px] font-semibold text-slate-800 underline-offset-2 hover:underline"
@@ -77,7 +77,7 @@ export default function AdminHelpPage() {
             className="space-y-3 rounded-xl border border-slate-200 bg-white p-4"
           >
             <h2 className="text-sm font-semibold text-slate-900">1. Getting ready for a new fiscal year</h2>
-            <p className="text-xs text-slate-600">
+            <p className="text-xs text-slate-700">
               Each fiscal year, you&apos;ll typically upload a new set of budgets, actuals, and (optionally)
               transaction / revenue files. Recommended order:
             </p>
@@ -239,7 +239,7 @@ export default function AdminHelpPage() {
             className="space-y-3 rounded-xl border border-slate-200 bg-white p-4"
           >
             <h2 className="text-sm font-semibold text-slate-900">2. Uploads & CSV formats</h2>
-            <p className="text-xs text-slate-600">
+            <p className="text-xs text-slate-700">
               CiviPortal uses CSV files with strict column names for each table. Use the built-in templates to avoid
               format errors.
             </p>
@@ -247,14 +247,14 @@ export default function AdminHelpPage() {
             <div className="grid gap-3 text-xs sm:grid-cols-2">
               <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
                 <p className="font-semibold text-slate-900">Where to get templates</p>
-                <p className="mt-1 text-slate-600">
+                <p className="mt-1 text-slate-700">
                   Go to{" "}
                   <Link href={cityHref("/admin/upload")} className="font-semibold underline-offset-2 hover:underline">
                     Admin → Data upload
                   </Link>{" "}
                   and use the <span className="font-semibold">Download template</span> button after selecting a table.
                 </p>
-                <p className="mt-1 text-slate-600">The template includes the required column headers and example values.</p>
+                <p className="mt-1 text-slate-700">The template includes the required column headers and example values.</p>
               </div>
 
               <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
@@ -360,7 +360,7 @@ export default function AdminHelpPage() {
             className="space-y-3 rounded-xl border border-slate-200 bg-white p-4"
           >
             <h2 className="text-sm font-semibold text-slate-900">3. Modules & feature flags</h2>
-            <p className="text-xs text-slate-600">
+            <p className="text-xs text-slate-700">
               CiviPortal supports multiple modules. You can choose which modules are visible on the public site.
             </p>
 
@@ -410,7 +410,7 @@ export default function AdminHelpPage() {
             className="space-y-3 rounded-xl border border-slate-200 bg-white p-4"
           >
             <h2 className="text-sm font-semibold text-slate-900">4. Publish vs draft</h2>
-            <p className="text-xs text-slate-600">Publish status controls whether residents can see the public portal.</p>
+            <p className="text-xs text-slate-700">Publish status controls whether residents can see the public portal.</p>
 
             <div className="grid gap-3 text-xs sm:grid-cols-2">
               <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
@@ -457,7 +457,7 @@ export default function AdminHelpPage() {
             className="space-y-3 rounded-xl border border-slate-200 bg-white p-4"
           >
             <h2 className="text-sm font-semibold text-slate-900">5. Users & roles</h2>
-            <p className="text-xs text-slate-600">Use roles to control who can manage data and who has read-only access.</p>
+            <p className="text-xs text-slate-700">Use roles to control who can manage data and who has read-only access.</p>
 
             <div className="grid gap-3 text-xs sm:grid-cols-2">
               <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">

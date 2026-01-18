@@ -197,7 +197,7 @@ export default function VendorsDashboardClient({
               <h2 className="text-sm font-semibold text-slate-900">
                 Filters
               </h2>
-              <p className="text-sm text-slate-600">
+              <p className="text-sm text-slate-700">
                 Search vendors by name. Fiscal year is controlled in the
                 header above.
               </p>
@@ -250,7 +250,7 @@ export default function VendorsDashboardClient({
               <p className="mt-1 text-base font-semibold text-slate-900">
                 {totalVendors.toLocaleString("en-US")}
               </p>
-              <p className="mt-1 text-xs text-slate-600">
+              <p className="mt-1 text-xs text-slate-700">
                 Vendors with at least one transaction in{" "}
                 {yearLabel ?? "the selected year"}.
               </p>
@@ -263,7 +263,7 @@ export default function VendorsDashboardClient({
               <p className="mt-1 text-base font-semibold text-slate-900">
                 {formatCurrency(totalSpend)}
               </p>
-              <p className="mt-1 text-xs text-slate-600">
+              <p className="mt-1 text-xs text-slate-700">
                 Sum of all vendor payments for{" "}
                 {yearLabel ?? "the selected year"}.
               </p>
@@ -276,7 +276,7 @@ export default function VendorsDashboardClient({
               <p className="mt-1 text-base font-semibold text-slate-900">
                 {topVendor ?? "—"}
               </p>
-              <p className="mt-1 text-xs text-slate-600">
+              <p className="mt-1 text-xs text-slate-700">
                 Ranked by total spend for{" "}
                 {yearLabel ?? "the selected year"}.
               </p>
@@ -292,7 +292,7 @@ export default function VendorsDashboardClient({
               <h2 className="text-sm font-semibold text-slate-900">
                 Vendors
               </h2>
-              <p className="text-sm text-slate-600">
+              <p className="text-sm text-slate-700">
                 Click a vendor name to jump to their transactions in the
                 Transactions explorer.
               </p>
@@ -300,7 +300,7 @@ export default function VendorsDashboardClient({
           </div>
 
           {rows.length === 0 ? (
-            <p className="text-sm text-slate-600">
+            <p className="text-sm text-slate-700">
               No vendor summary data available for{" "}
               {yearLabel ?? "the selected year"}. Try a different
               fiscal year or adjust your search.

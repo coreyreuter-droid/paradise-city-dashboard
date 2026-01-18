@@ -51,7 +51,7 @@ export default function DataFreshness({ lastUploadAt, className = "" }: Props) {
   });
 
   return (
-    <div className={`flex items-center gap-1.5 text-xs text-slate-600 ${className}`}>
+    <div className={`flex items-center gap-1.5 text-xs text-slate-700 ${className}`}>
       {/* Clock icon */}
       <svg
         className="h-3.5 w-3.5 text-slate-500"

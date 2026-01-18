@@ -133,7 +133,7 @@ export default function AdminShell({
             <h1 className="truncate text-base font-semibold text-[rgb(var(--primary-rgb))]">
               Admin portal
             </h1>
-            <p className="mt-0.5 line-clamp-1 text-xs text-slate-500">
+            <p className="mt-0.5 line-clamp-1 text-xs text-slate-600">
               Manage data, branding, and access for your CiviPortal site.
             </p>
           </div>
@@ -188,7 +188,7 @@ export default function AdminShell({
                   {title}
                 </h2>
                 {description && (
-                  <p className="mt-1 text-xs text-slate-500">
+                  <p className="mt-1 text-xs text-slate-600">
                     {description}
                   </p>
                 )}

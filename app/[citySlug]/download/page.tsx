@@ -95,7 +95,7 @@ export default async function DownloadPage() {
     <Suspense
       fallback={
         <div className="flex min-h-[50vh] items-center justify-center">
-          <div className="text-sm text-slate-500">Loading download options...</div>
+          <div className="text-sm text-slate-600">Loading download options...</div>
         </div>
       }
     >

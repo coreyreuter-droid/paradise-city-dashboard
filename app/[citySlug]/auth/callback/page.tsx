@@ -98,7 +98,7 @@ export default function AuthCallbackPage() {
     <div className="flex min-h-screen items-center justify-center bg-slate-50">
       <div className="rounded-lg border border-slate-200 bg-white px-5 py-4 text-center shadow-sm">
         <div className="mx-auto mb-3 h-5 w-5 animate-spin rounded-full border-2 border-slate-300 border-t-slate-900" />
-        <p className="text-sm text-slate-600">Completing sign-in...</p>
+        <p className="text-sm text-slate-700">Completing sign-in...</p>
       </div>
     </div>
   );

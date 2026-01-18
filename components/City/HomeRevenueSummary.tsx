@@ -61,7 +61,7 @@ export default function HomeRevenueSummary({
           <h2 className="text-sm font-semibold text-slate-800">
             Revenue snapshot
           </h2>
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-slate-700">
             High-level view of total recorded revenues for{" "}
             {yearLabel}.
           </p>
@@ -80,7 +80,7 @@ export default function HomeRevenueSummary({
               <div className="mt-1 text-lg font-semibold text-slate-900">
                 {formatCurrency(totalRevenue)}
               </div>
-              <p className="mt-1 text-sm text-slate-600">
+              <p className="mt-1 text-sm text-slate-700">
                 Sum of all revenue records loaded for{" "}
                 {yearLabel}.
               </p>
@@ -94,14 +94,14 @@ export default function HomeRevenueSummary({
               <div className="mt-1 text-lg font-semibold text-slate-900">
                 {formatCurrency(totalRevenue / 12)}
               </div>
-              <p className="mt-1 text-sm text-slate-600">
+              <p className="mt-1 text-sm text-slate-700">
                 Simple total divided by 12 months to give a
                 ballpark monthly figure.
               </p>
             </div>
           </div>
         ) : (
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-slate-700">
             Revenue data for {yearLabel} has not been loaded into the
             portal yet. Once revenue files are uploaded through the
             admin area, this section will summarize total revenues for

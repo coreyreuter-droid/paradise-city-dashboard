@@ -206,7 +206,7 @@ function MultiSelect({
 
           <div className="max-h-60 overflow-y-auto p-1">
             {filteredOptions.length === 0 ? (
-              <div className="px-3 py-3 text-sm text-slate-500 text-center">No matches found</div>
+              <div className="px-3 py-3 text-sm text-slate-600 text-center">No matches found</div>
             ) : (
               filteredOptions.map((option) => {
                 const isSelected = selected.includes(option);
@@ -899,8 +899,8 @@ export default function DownloadCenterClient({
             <h2 className="text-lg font-semibold text-slate-900">
               Export Data Your Way
             </h2>
-            <p className="mt-1 text-sm leading-relaxed text-slate-600">
-              Choose from the available data types below. Use multi-select filters to combine 
+            <p className="mt-1 text-sm leading-relaxed text-slate-700">
+              Choose from the available data types below. Use multi-select filters to combine
               multiple fiscal years, departments, vendors, or date ranges. Downloads are limited to {MAX_EXPORT_ROWS.toLocaleString()} records per export — use filters to narrow large datasets.
             </p>
             <div className="mt-4 flex flex-wrap gap-3">
@@ -970,8 +970,8 @@ export default function DownloadCenterClient({
           <svg className="h-5 w-5 flex-shrink-0 text-slate-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
           </svg>
-          <p className="text-sm text-slate-600">
-            Downloads are limited to {MAX_EXPORT_ROWS.toLocaleString()} records per export. 
+          <p className="text-sm text-slate-700">
+            Downloads are limited to {MAX_EXPORT_ROWS.toLocaleString()} records per export.
             For larger datasets, use the filters above to narrow by fiscal year, department, or date range.
           </p>
         </div>

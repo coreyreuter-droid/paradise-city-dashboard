@@ -311,7 +311,7 @@ export default function AdminProjectEditorPage() {
       <AdminGuard>
         <AdminShell title="Loading...">
           <div className="flex items-center justify-center py-12">
-            <div className="text-sm text-slate-500">Loading project...</div>
+            <div className="text-sm text-slate-600">Loading project...</div>
           </div>
         </AdminShell>
       </AdminGuard>
@@ -323,7 +323,7 @@ export default function AdminProjectEditorPage() {
       <AdminGuard>
         <AdminShell title="Project not found">
           <div className="rounded-lg border border-slate-200 bg-slate-50 px-6 py-12 text-center">
-            <p className="text-sm text-slate-600">This project could not be found.</p>
+            <p className="text-sm text-slate-700">This project could not be found.</p>
             <Link
               href={cityHref("/admin/projects")}
               className="mt-4 inline-block text-sm font-medium text-slate-900 hover:underline"
@@ -429,7 +429,7 @@ export default function AdminProjectEditorPage() {
                     maxLength={200}
                     className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
                   />
-                  <p id="shortDescription-hint" className="mt-1 text-xs text-slate-500">
+                  <p id="shortDescription-hint" className="mt-1 text-xs text-slate-600">
                     {shortDescription.length}/200 characters. Shown on project cards.
                   </p>
                 </div>
@@ -448,7 +448,7 @@ export default function AdminProjectEditorPage() {
                     rows={6}
                     className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
                   />
-                  <p id="description-hint" className="mt-1 text-xs text-slate-500">
+                  <p id="description-hint" className="mt-1 text-xs text-slate-600">
                     Use blank lines to separate paragraphs.
                   </p>
                 </div>
@@ -607,7 +607,7 @@ export default function AdminProjectEditorPage() {
                 <h2 className="text-lg font-semibold text-slate-900">
                   Images ({images.length}/{MAX_IMAGES})
                 </h2>
-                <p className="text-sm text-slate-500">
+                <p className="text-sm text-slate-600">
                   The first image will be used as the featured image on project cards.
                   Use a project photo, rendering, or site image (not a chart or screenshot).
                 </p>
@@ -655,13 +655,13 @@ export default function AdminProjectEditorPage() {
                         className="sr-only"
                       />
                       {uploadingImage ? (
-                        <span className="text-sm text-slate-500">Uploading...</span>
+                        <span className="text-sm text-slate-600">Uploading...</span>
                       ) : (
                         <>
                           <svg className="h-8 w-8 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
                           </svg>
-                          <span className="mt-1 text-sm text-slate-500">Add image</span>
+                          <span className="mt-1 text-sm text-slate-600">Add image</span>
                         </>
                       )}
                     </label>

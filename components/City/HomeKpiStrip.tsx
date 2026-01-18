@@ -55,7 +55,7 @@ export default function ParadiseHomeKpiStrip({
         <h2 className="text-sm font-semibold text-slate-900">
           Key indicators
         </h2>
-        <p className="text-sm text-slate-600">
+        <p className="text-sm text-slate-700">
           A quick view of budget, posted spending, and activity for the selected
           fiscal year.
         </p>
@@ -74,7 +74,7 @@ export default function ParadiseHomeKpiStrip({
               "—"
             )}
           </p>
-          <p className="mt-1 text-xs text-slate-600">
+          <p className="mt-1 text-xs text-slate-700">
             Sum of adopted budgets across all departments for this fiscal year.
           </p>
         </div>
@@ -91,7 +91,7 @@ export default function ParadiseHomeKpiStrip({
               "—"
             )}
           </p>
-          <p className="mt-1 text-xs text-slate-600">
+          <p className="mt-1 text-xs text-slate-700">
             Expenses recorded against this year to date.
           </p>
         </div>
@@ -116,7 +116,7 @@ export default function ParadiseHomeKpiStrip({
               "—"
             )}
           </p>
-          <p className="mt-1 text-xs text-slate-600">
+          <p className="mt-1 text-xs text-slate-700">
             {isUnderBudget
               ? "Estimated capacity remaining this year."
               : "Spending is currently ahead of the adopted budget."}
@@ -134,7 +134,7 @@ export default function ParadiseHomeKpiStrip({
               formatFn={(v) => `${v.toFixed(1)}%`}
             />
           </p>
-          <p className="mt-1 text-xs text-slate-600">
+          <p className="mt-1 text-xs text-slate-700">
             Departments:{" "}
             <span className="font-semibold">
               {deptCount > 0 ? deptCount : "—"}
@@ -149,7 +149,7 @@ export default function ParadiseHomeKpiStrip({
               </>
             )}
           </p>
-          <p className="mt-1 text-[11px] text-slate-500">
+          <p className="mt-1 text-[11px] text-slate-600">
             {topDepartment ? (
               <>
                 Highest spending department:{" "}

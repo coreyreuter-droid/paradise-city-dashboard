@@ -225,7 +225,7 @@ export default function AdminOverviewPage() {
             {label}
           </span>
           {entry ? (
-            <span className="text-slate-500">
+            <span className="text-slate-600">
               {fy
                 ? `FY ${fy}`
                 : "Fiscal year not recorded"}
@@ -233,12 +233,12 @@ export default function AdminOverviewPage() {
               {count != null ? `${count} rows` : "Row count N/A"}
             </span>
           ) : (
-            <span className="text-slate-500">
+            <span className="text-slate-600">
               No uploads recorded yet.
             </span>
           )}
         </div>
-        <div className="text-[11px] text-slate-500">
+        <div className="text-[11px] text-slate-600">
           {date ? `Last upload ${date}` : "—"}
         </div>
       </div>
@@ -274,7 +274,7 @@ export default function AdminOverviewPage() {
                   {publishLabel}
                 </span>
               </div>
-              <p className="mt-2 text-xs text-slate-600">
+              <p className="mt-2 text-xs text-slate-700">
                 {publishSummary.state === "published"
                   ? "Residents and stakeholders can access the public portal."
                   : publishSummary.state === "draft"
@@ -304,7 +304,7 @@ export default function AdminOverviewPage() {
               </div>
 
               {loadingUploads ? (
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-slate-600">
                   Checking recent uploads…
                 </p>
               ) : (
@@ -409,7 +409,7 @@ function AdminTile({ title, description, links }: TileProps) {
       <div className="mt-1 text-sm font-semibold text-slate-900">
         {title}
       </div>
-      <p className="mt-1 flex-1 text-xs text-slate-600">
+      <p className="mt-1 flex-1 text-xs text-slate-700">
         {description}
       </p>
       <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-xs">

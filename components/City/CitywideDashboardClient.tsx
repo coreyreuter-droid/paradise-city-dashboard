@@ -382,7 +382,7 @@ const { yoyDomain, yoyTicks } = useMemo(() => {
           rightSlot={years.length > 0 ? <FiscalYearSelect options={years} label="Fiscal year" /> : null}
         />
 
-        {fiscalYearNote && <p className="mb-3 px-1 text-xs text-slate-500">{fiscalYearNote}</p>}
+        {fiscalYearNote && <p className="mb-3 px-1 text-xs text-slate-600">{fiscalYearNote}</p>}
 
         <nav aria-label="Breadcrumb" className="mb-4 flex items-center gap-1 px-1 text-sm text-slate-600">
           <Link href={cityHref("/overview")} className="hover:text-slate-800">Home</Link>
@@ -398,10 +398,10 @@ const { yoyDomain, yoyTicks } = useMemo(() => {
             >
               <div className="min-w-0">
                 <h2 className="text-sm font-semibold text-slate-900">Revenue summary</h2>
-                <p className="mt-1 text-sm text-slate-600">
+                <p className="mt-1 text-sm text-slate-700">
                   Total recorded revenues for fiscal year <span className="font-semibold">{revenueSummary!.year}</span>.
                 </p>
-                <p className="mt-1 text-xs text-slate-500">Use the Revenues page for a full breakdown by source.</p>
+                <p className="mt-1 text-xs text-slate-600">Use the Revenues page for a full breakdown by source.</p>
               </div>
               <div className="flex flex-col items-end gap-2 text-right">
                 <div>
@@ -429,7 +429,7 @@ const { yoyDomain, yoyTicks } = useMemo(() => {
                   Total budget ({yearLabel})
                 </div>
                 <div className="mt-1 text-2xl font-bold text-slate-900">{formatCurrency(totalBudget)}</div>
-                <div className="mt-1 text-sm text-slate-600">Sum of all adopted budgets across departments.</div>
+                <div className="mt-1 text-sm text-slate-700">Sum of all adopted budgets across departments.</div>
               </div>
 
               <div className="min-w-0">
@@ -437,7 +437,7 @@ const { yoyDomain, yoyTicks } = useMemo(() => {
                   Total actuals ({yearLabel})
                 </div>
                 <div className="mt-1 text-2xl font-bold text-slate-900">{formatCurrency(totalActuals)}</div>
-                <div className="mt-1 text-sm text-slate-600">All recorded spending for this fiscal year.</div>
+                <div className="mt-1 text-sm text-slate-700">All recorded spending for this fiscal year.</div>
               </div>
 
               <div className="min-w-0">
@@ -451,7 +451,7 @@ const { yoyDomain, yoyTicks } = useMemo(() => {
                 >
                   {formatCurrency(variance)}
                 </div>
-                <div className="mt-1 text-sm text-slate-600">
+                <div className="mt-1 text-sm text-slate-700">
                   Negative indicates govwide under-spend versus adopted budget.
                 </div>
               </div>
@@ -459,7 +459,7 @@ const { yoyDomain, yoyTicks } = useMemo(() => {
               <div className="min-w-0">
                 <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-600">% of budget spent</div>
                 <div className="mt-1 text-2xl font-bold text-slate-900">{formatPercent(execPct)}</div>
-                <div className="mt-1 text-sm text-slate-600">Overall execution across all departments.</div>
+                <div className="mt-1 text-sm text-slate-700">Overall execution across all departments.</div>
                 <div className="mt-3 h-2 w-full rounded-full bg-slate-100">
                   <div
                     className={`h-2 rounded-full ${execPct <= 100 ? "bg-slate-900" : "bg-red-500"}`}
@@ -481,13 +481,13 @@ const { yoyDomain, yoyTicks } = useMemo(() => {
                       <h2 className="mb-1 text-sm font-semibold text-slate-800">
                         Budget distribution by department
                       </h2>
-                      <p className="mb-2 text-sm text-slate-600">
+                      <p className="mb-2 text-sm text-slate-700">
                         Top 7 departments + Other for {yearLabel}.
                       </p>
                     </div>
 
                     {budgetDistribution.length === 0 ? (
-                      <p className="text-sm text-slate-600">No budget data available for this year.</p>
+                      <p className="text-sm text-slate-700">No budget data available for this year.</p>
                     ) : (
                       <>
                         <div className="h-72 w-full min-w-0 overflow-hidden sm:h-80">
@@ -539,7 +539,7 @@ const { yoyDomain, yoyTicks } = useMemo(() => {
                                     />
                                     <div className="min-w-0">
                                       <div className="truncate font-medium text-slate-900">{slice.name}</div>
-                                      <div className="text-xs text-slate-500">{formatCurrency(slice.value)}</div>
+                                      <div className="text-xs text-slate-600">{formatCurrency(slice.value)}</div>
                                     </div>
                                   </div>
                                   <div className="text-right font-mono text-sm text-slate-900">
@@ -561,13 +561,13 @@ const { yoyDomain, yoyTicks } = useMemo(() => {
                       <h2 className="mb-1 text-sm font-semibold text-slate-800">
                         Spending distribution by department
                       </h2>
-                      <p className="mb-2 text-sm text-slate-600">
+                      <p className="mb-2 text-sm text-slate-700">
                         Top 7 departments + Other for {yearLabel}.
                       </p>
                     </div>
 
                     {actualsDistribution.length === 0 ? (
-                      <p className="text-sm text-slate-600">No spending data available for this year.</p>
+                      <p className="text-sm text-slate-700">No spending data available for this year.</p>
                     ) : (
                       <>
                         <div className="h-72 w-full min-w-0 overflow-hidden sm:h-80">
@@ -620,7 +620,7 @@ const { yoyDomain, yoyTicks } = useMemo(() => {
                                     />
                                     <div className="min-w-0">
                                       <div className="truncate font-medium text-slate-900">{slice.name}</div>
-                                      <div className="text-xs text-slate-500">{formatCurrency(slice.value)}</div>
+                                      <div className="text-xs text-slate-600">{formatCurrency(slice.value)}</div>
                                     </div>
                                   </div>
                                   <div className="text-right font-mono text-sm text-slate-900">
@@ -641,14 +641,14 @@ const { yoyDomain, yoyTicks } = useMemo(() => {
                 <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
                   <div className="min-w-0">
                     <h2 className="text-sm font-semibold text-slate-800">Budget vs Actuals by Department</h2>
-                    <p className="text-sm text-slate-600">
+                    <p className="text-sm text-slate-700">
                       Showing {deptSummaries.length} departments for fiscal year {yearLabel}, sorted by largest adopted budget.
                     </p>
                   </div>
                 </div>
 
                 {deptSummaries.length === 0 ? (
-                  <p className="text-sm text-slate-600">No budget/actuals data available for this year.</p>
+                  <p className="text-sm text-slate-700">No budget/actuals data available for this year.</p>
                 ) : (
                   <BudgetByDepartmentChart 
                     year={yearValue} 
@@ -665,27 +665,27 @@ const { yoyDomain, yoyTicks } = useMemo(() => {
                     <h2 className="text-sm font-semibold text-slate-800">
                       Govwide Budget vs Actuals
                     </h2>
-                    <p className="text-sm text-slate-600">
+                    <p className="text-sm text-slate-700">
                       Govwide view of budget and actuals for {yearLabel}.
                     </p>
 
                   </div>
-                  <div className="text-sm text-slate-600">{yearLabel} • Govwide totals</div>
+                  <div className="text-sm text-slate-700">{yearLabel} • Govwide totals</div>
                 </div>
 
 <div className="grid gap-4">
   <div className="space-y-2 text-sm min-w-0">
     {/* Budget / Actuals / Variance / % spent – leave this block exactly as-is */}
     <div className="flex items-center justify-between">
-      <span className="text-slate-600">Budget</span>
+      <span className="text-slate-700">Budget</span>
       <span className="font-mono text-slate-900">{formatCurrency(totalBudget)}</span>
     </div>
     <div className="flex items-center justify-between">
-      <span className="text-slate-600">Actuals</span>
+      <span className="text-slate-700">Actuals</span>
       <span className="font-mono text-slate-900">{formatCurrency(totalActuals)}</span>
     </div>
     <div className="flex items-center justify-between">
-      <span className="text-slate-600">Variance</span>
+      <span className="text-slate-700">Variance</span>
       <span
         className={`font-mono ${
           variance < 0 ? "text-emerald-700" : variance > 0 ? "text-red-700" : "text-slate-900"
@@ -695,11 +695,11 @@ const { yoyDomain, yoyTicks } = useMemo(() => {
       </span>
     </div>
     <div className="flex items-center justify-between">
-      <span className="text-slate-600">% of budget spent</span>
+      <span className="text-slate-700">% of budget spent</span>
       <span className="font-mono text-slate-900">{formatPercent(execPct)}</span>
     </div>
 
-    <div className="mt-2 text-sm text-slate-600">
+    <div className="mt-2 text-sm text-slate-700">
       Budget execution above 100% indicates total actual spending higher than the adopted budget.
     </div>
   </div>
@@ -718,14 +718,14 @@ const { yoyDomain, yoyTicks } = useMemo(() => {
                   <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
                     <div className="min-w-0">
                       <h2 className="text-sm font-semibold text-slate-800">Govwide Budget vs Actuals Over Time</h2>
-                      <p className="text-sm text-slate-600">
+                      <p className="text-sm text-slate-700">
                         Multi-year govwide view of total budget, actuals, and variance.
                       </p>
                     </div>
                   </div>
 
                   {yoyTrendData.length === 0 ? (
-                    <p className="text-sm text-slate-600">No multi-year data available.</p>
+                    <p className="text-sm text-slate-700">No multi-year data available.</p>
                   ) : (
                     <>
                       <div className="h-80 w-full min-w-0 overflow-hidden">
@@ -762,14 +762,14 @@ const { yoyDomain, yoyTicks } = useMemo(() => {
                 <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
                   <div className="min-w-0">
                     <h2 className="text-sm font-semibold text-slate-800">Department Variance by Year</h2>
-                    <p className="text-sm text-slate-600">
+                    <p className="text-sm text-slate-700">
                       For each department and fiscal year, shows whether spending was above or below budget.
                     </p>
                   </div>
                 </div>
 
                 {deptYearVarianceRows.length === 0 ? (
-                  <p className="text-sm text-slate-600">No department/year variance data available.</p>
+                  <p className="text-sm text-slate-700">No department/year variance data available.</p>
                 ) : (
                   <div className="overflow-x-auto">
                     <div className="max-h-[420px] overflow-y-auto">
@@ -818,7 +818,7 @@ const { yoyDomain, yoyTicks } = useMemo(() => {
                       </table>
                     </div>
 
-                    <div className="mt-3 flex flex-wrap gap-3 text-xs text-slate-600">
+                    <div className="mt-3 flex flex-wrap gap-3 text-xs text-slate-700">
                       <div className="inline-flex items-center gap-1">
                         <span className="inline-block h-2 w-3 rounded bg-emerald-100" />
                         <span>Below plan</span>
@@ -835,7 +835,7 @@ const { yoyDomain, yoyTicks } = useMemo(() => {
                         <span className="font-semibold text-red-700">{deptAdditionalStats.overBudgetCount}</span>
                       </div>
                     </div>
-<p className="mt-1 text-[11px] text-slate-500">
+<p className="mt-1 text-[11px] text-slate-600">
   Counts reflect fiscal year{" "}
   <span className="font-semibold text-slate-700">{yearLabel}</span>. Near plan means spending within ±5% of the adopted budget.
 </p>
@@ -848,7 +848,7 @@ const { yoyDomain, yoyTicks } = useMemo(() => {
 
             <div className="space-y-6 min-w-0">
                             <CardContainer>
-                <div className="space-y-2 text-sm text-slate-600">
+                <div className="space-y-2 text-sm text-slate-700">
                   <h2 className="text-sm font-semibold text-slate-800">How to use this page</h2>
                   <p>
                     Use this govwide view to quickly answer high-level questions about budget execution, spending trends,
@@ -868,7 +868,7 @@ const { yoyDomain, yoyTicks } = useMemo(() => {
                 <section aria-label="Top movers" className="space-y-3">
                   <div>
                     <h2 className="text-sm font-semibold text-slate-800">Top movers ({yearLabel})</h2>
-                    <p className="text-sm text-slate-600">
+                    <p className="text-sm text-slate-700">
                       Biggest departments running above or below adopted budget.
                     </p>
                   </div>
@@ -877,7 +877,7 @@ const { yoyDomain, yoyTicks } = useMemo(() => {
                     <div className="space-y-2">
                       <div className="text-xs font-semibold uppercase tracking-wide text-red-700">Most above plan</div>
                       {topMovers.over.length === 0 ? (
-                        <p className="text-sm text-slate-600">No above-plan departments found.</p>
+                        <p className="text-sm text-slate-700">No above-plan departments found.</p>
                       ) : (
                         <ul className="space-y-2">
                           {topMovers.over.map((r) => (
@@ -890,7 +890,7 @@ const { yoyDomain, yoyTicks } = useMemo(() => {
                               </Link>
                               <div className="text-right">
                                 <div className="font-mono text-sm text-red-700">{formatCurrency(r.variance)}</div>
-                                <div className="text-xs text-slate-500">{formatPercent(r.variancePct, 1)}</div>
+                                <div className="text-xs text-slate-600">{formatPercent(r.variancePct, 1)}</div>
                               </div>
                             </li>
                           ))}
@@ -901,7 +901,7 @@ const { yoyDomain, yoyTicks } = useMemo(() => {
                     <div className="space-y-2">
                       <div className="text-xs font-semibold uppercase tracking-wide text-emerald-700">Most below plan</div>
                       {topMovers.under.length === 0 ? (
-                        <p className="text-sm text-slate-600">No below-plan departments found.</p>
+                        <p className="text-sm text-slate-700">No below-plan departments found.</p>
                       ) : (
                         <ul className="space-y-2">
                           {topMovers.under.map((r) => (
@@ -914,7 +914,7 @@ const { yoyDomain, yoyTicks } = useMemo(() => {
                               </Link>
                               <div className="text-right">
                                 <div className="font-mono text-sm text-emerald-700">{formatCurrency(r.variance)}</div>
-                                <div className="text-xs text-slate-500">{formatPercent(r.variancePct, 1)}</div>
+                                <div className="text-xs text-slate-600">{formatPercent(r.variancePct, 1)}</div>
                               </div>
                             </li>
                           ))}
@@ -938,11 +938,11 @@ const { yoyDomain, yoyTicks } = useMemo(() => {
                     <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
                       <div className="min-w-0">
                         <h2 className="text-sm font-semibold text-slate-800">Top Vendors ({yearLabel})</h2>
-                        <p className="text-sm text-slate-600">
+                        <p className="text-sm text-slate-700">
                           Vendors ranked by total spending in the selected fiscal year.
                         </p>
                       </div>
-                      <div className="text-sm text-slate-600">
+                      <div className="text-sm text-slate-700">
                         {totalVendorSpend > 0 && (
                           <span>
                             Total vendor spend:{" "}
@@ -953,7 +953,7 @@ const { yoyDomain, yoyTicks } = useMemo(() => {
                     </div>
 
                     {topVendors.length === 0 ? (
-                      <p className="text-sm text-slate-600">No vendor-level spending available for this year.</p>
+                      <p className="text-sm text-slate-700">No vendor-level spending available for this year.</p>
                     ) : (
                       <div className="space-y-1.5 text-sm text-slate-700">
                         {topVendors.map((vendor) => (
@@ -966,7 +966,7 @@ const { yoyDomain, yoyTicks } = useMemo(() => {
                             </div>
                             <div className="flex flex-col items-end text-right">
                               <span className="font-mono">{formatCurrency(vendor.total)}</span>
-                              <span className="text-xs text-slate-600">
+                              <span className="text-xs text-slate-700">
                                 {formatPercent(vendor.percent, 1)} • {vendor.txnCount.toLocaleString("en-US")} tx
                               </span>
                             </div>
@@ -986,7 +986,7 @@ const { yoyDomain, yoyTicks } = useMemo(() => {
 
               {enableTransactions && (
                 <CardContainer>
-                  <section aria-label="Transactions summary" className="space-y-2 text-sm text-slate-600">
+                  <section aria-label="Transactions summary" className="space-y-2 text-sm text-slate-700">
                     <div className="flex items-baseline justify-between gap-3">
                       <div className="min-w-0">
                         <h2 className="text-sm font-semibold text-slate-800">Transactions Overview</h2>

@@ -596,7 +596,7 @@ export default function BrandingSettingsClient() {
   // Inline admin-shell friendly states
   if (loadState === "loading") {
     return (
-      <p className="text-sm text-slate-600">
+      <p className="text-sm text-slate-700">
         Loading branding settings…
       </p>
     );
@@ -628,7 +628,7 @@ export default function BrandingSettingsClient() {
         <h1 className="mb-2 text-lg font-semibold text-slate-900">
           Branding &amp; Portal Settings
         </h1>
-        <p className="mb-4 text-sm text-slate-600">
+        <p className="mb-4 text-sm text-slate-700">
           Configure how this CiviPortal deployment appears to residents.
         </p>
 
@@ -639,7 +639,7 @@ export default function BrandingSettingsClient() {
               <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
                 Publish status
               </p>
-              <p className="mt-1 text-xs text-slate-600">
+              <p className="mt-1 text-xs text-slate-700">
                 When published, your landing page and overview are visible to
                 the public. When in draft, only admins can access the portal.
               </p>
@@ -675,11 +675,11 @@ export default function BrandingSettingsClient() {
           <h2 className="text-sm font-semibold text-slate-900">
             Modules &amp; visibility
           </h2>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-slate-600">
             Choose which parts of the portal are published. You can start
             with budget &amp; actuals and turn on additional modules when
-            you’re ready. When a module is turned off, its navigation and
-            public pages are hidden so residents don’t hit dead ends.
+            you're ready. When a module is turned off, its navigation and
+            public pages are hidden so residents don't hit dead ends.
           </p>
 
           <div className="grid gap-3 sm:grid-cols-2">
@@ -698,7 +698,7 @@ export default function BrandingSettingsClient() {
               />
               <span className="text-xs">
                 <span className="font-medium">Budget &amp; actuals</span>
-                <span className="block text-[11px] text-slate-500">
+                <span className="block text-[11px] text-slate-600">
                   Show adopted budgets and spending by department/fund.
                 </span>
               </span>
@@ -719,7 +719,7 @@ export default function BrandingSettingsClient() {
               />
               <span className="text-xs">
                 <span className="font-medium">Transactions</span>
-                <span className="block text-[11px] text-slate-500">
+                <span className="block text-[11px] text-slate-600">
                   Show line-item spending (date, amount, department).
                 </span>
               </span>
@@ -744,7 +744,7 @@ export default function BrandingSettingsClient() {
               />
               <span className="text-xs">
                 <span className="font-medium">Vendor names</span>
-                <span className="block text-[11px] text-slate-500">
+                <span className="block text-[11px] text-slate-600">
                   When on, show vendor names and vendor-level summaries.
                   Requires transactions to be enabled.
                 </span>
@@ -766,7 +766,7 @@ export default function BrandingSettingsClient() {
               />
               <span className="text-xs">
                 <span className="font-medium">Revenues</span>
-                <span className="block text-[11px] text-slate-500">
+                <span className="block text-[11px] text-slate-600">
                   Show revenue dashboards by source (taxes, grants, fees,
                   etc.).
                 </span>
@@ -780,7 +780,7 @@ export default function BrandingSettingsClient() {
           <h2 className="text-sm font-semibold text-slate-900">
             Fiscal year configuration
           </h2>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-slate-600">
             This controls how the portal describes your fiscal year to
             residents. It does not change your uploaded data, but it helps
             explain what &quot;FY 2024&quot; means.
@@ -816,7 +816,7 @@ export default function BrandingSettingsClient() {
                 <option value={11}>November</option>
                 <option value={12}>December</option>
               </select>
-              <p className="mt-1 text-xs text-slate-500">
+              <p className="mt-1 text-xs text-slate-600">
                 For example, many cities use July 1 – June 30.
               </p>
             </div>
@@ -840,7 +840,7 @@ export default function BrandingSettingsClient() {
                 }
                 className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
               />
-              <p className="mt-1 text-xs text-slate-500">
+              <p className="mt-1 text-xs text-slate-600">
                 Most cities use the 1st of the month.
               </p>
             </div>
@@ -861,7 +861,7 @@ export default function BrandingSettingsClient() {
                 className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
                 placeholder='e.g. "Fiscal year runs July 1 – June 30."'
               />
-              <p className="mt-1 text-xs text-slate-500">
+              <p className="mt-1 text-xs text-slate-600">
                 If set, this text will be shown directly to residents. If
                 left blank, the portal will generate a label based on the
                 start month and day.
@@ -912,7 +912,7 @@ export default function BrandingSettingsClient() {
                 </button>
               ))}
             </div>
-            <p className="mt-1 text-[11px] text-slate-500">
+            <p className="mt-1 text-[11px] text-slate-600">
               Presets are designed for light text on a darker shell. For
               accessibility, keep hero and header text light against these
               backgrounds.
@@ -933,7 +933,7 @@ export default function BrandingSettingsClient() {
               className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
               placeholder="e.g. City of Example"
             />
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="mt-1 text-xs text-slate-600">
               Displayed prominently in the hero and header.
             </p>
           </div>
@@ -952,7 +952,7 @@ export default function BrandingSettingsClient() {
               className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
               placeholder="e.g. Transparent Budget. Empowered Citizens."
             />
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="mt-1 text-xs text-slate-600">
               Short message shown under the gov name.
             </p>
           </div>
@@ -970,7 +970,7 @@ export default function BrandingSettingsClient() {
               className="min-h-[80px] w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
               placeholder="Welcome residents. Explore your city’s budget, spending, and financial health — all in one place."
             />
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="mt-1 text-xs text-slate-600">
               This text appears in the public hero section on the overview
               page.
             </p>
@@ -981,7 +981,7 @@ export default function BrandingSettingsClient() {
             <h2 className="text-sm font-semibold text-slate-900">
               Landing content visibility
             </h2>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-slate-600">
               Turn sections on or off for your public landing page. All
               sections are enabled by default.
             </p>
@@ -1004,7 +1004,7 @@ export default function BrandingSettingsClient() {
                   <span className="font-medium">
                     Leadership message
                   </span>
-                  <span className="block text-[11px] text-slate-500">
+                  <span className="block text-[11px] text-slate-600">
                     Welcome note from mayor / city manager.
                   </span>
                 </span>
@@ -1027,7 +1027,7 @@ export default function BrandingSettingsClient() {
                   <span className="font-medium">
                     About our community
                   </span>
-                  <span className="block text-[11px] text-slate-500">
+                  <span className="block text-[11px] text-slate-600">
                     Narrative description of your city or county.
                   </span>
                 </span>
@@ -1048,7 +1048,7 @@ export default function BrandingSettingsClient() {
                 />
                 <span className="text-xs">
                   <span className="font-medium">Year in review</span>
-                  <span className="block text-[11px] text-slate-500">
+                  <span className="block text-[11px] text-slate-600">
                     Highlights from the current fiscal year.
                   </span>
                 </span>
@@ -1071,7 +1071,7 @@ export default function BrandingSettingsClient() {
                   <span className="font-medium">
                     Capital projects
                   </span>
-                  <span className="block text-[11px] text-slate-500">
+                  <span className="block text-[11px] text-slate-600">
                     Summary of major infrastructure investments.
                   </span>
                 </span>
@@ -1092,7 +1092,7 @@ export default function BrandingSettingsClient() {
                 />
                 <span className="text-xs">
                   <span className="font-medium">Gov stats</span>
-                  <span className="block text-[11px] text-slate-500">
+                  <span className="block text-[11px] text-slate-600">
                     Population, employees, area, and annual budget.
                   </span>
                 </span>
@@ -1115,7 +1115,7 @@ export default function BrandingSettingsClient() {
                   <span className="font-medium">
                     Featured projects
                   </span>
-                  <span className="block text-[11px] text-slate-500">
+                  <span className="block text-[11px] text-slate-600">
                     Grid of 1–3 highlighted projects with images.
                   </span>
                 </span>
@@ -1140,8 +1140,8 @@ export default function BrandingSettingsClient() {
               className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
               placeholder="Describe your community: population, location, and what makes it unique."
             />
-            <p className="mt-1 text-xs text-slate-500">
-              Shown in the “About our community” card on the public landing
+            <p className="mt-1 text-xs text-slate-600">
+              Shown in the "About our community" card on the public landing
               page.
             </p>
           </div>
@@ -1163,8 +1163,8 @@ export default function BrandingSettingsClient() {
               className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
               placeholder="Summarize key accomplishments, new services, and improvements delivered this fiscal year."
             />
-            <p className="mt-1 text-xs text-slate-500">
-              Shown in the “Year in review” card on the public landing page.
+            <p className="mt-1 text-xs text-slate-600">
+              Shown in the "Year in review" card on the public landing page.
             </p>
           </div>
 
@@ -1185,8 +1185,8 @@ export default function BrandingSettingsClient() {
               className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
               placeholder="Call out major capital projects completed or underway (streets, facilities, parks, utilities)."
             />
-            <p className="mt-1 text-xs text-slate-500">
-              Shown in the “Capital projects” card on the public landing
+            <p className="mt-1 text-xs text-slate-600">
+              Shown in the "Capital projects" card on the public landing
               page.
             </p>
           </div>
@@ -1196,8 +1196,8 @@ export default function BrandingSettingsClient() {
             <h2 className="text-sm font-semibold text-slate-900">
               Leadership welcome (optional)
             </h2>
-            <p className="text-xs text-slate-500">
-              Share a short message from the mayor or city manager about 
+            <p className="text-xs text-slate-600">
+              Share a short message from the mayor or city manager about
               our commitment to transparency.
             </p>
 
@@ -1260,7 +1260,7 @@ export default function BrandingSettingsClient() {
                 className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
                 placeholder="https://example.com/leader.jpg"
               />
-              <p className="mt-1 text-xs text-slate-500">
+              <p className="mt-1 text-xs text-slate-600">
                 Optional photo shown next to the welcome message on the
                 landing page.
               </p>
@@ -1272,7 +1272,7 @@ export default function BrandingSettingsClient() {
             <h2 className="text-sm font-semibold text-slate-900">
               Gov stats (optional)
             </h2>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-slate-600">
               Key figures that help residents understand the size and scale of
               your community.
             </p>
@@ -1336,7 +1336,7 @@ export default function BrandingSettingsClient() {
                   className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
                   placeholder="e.g. 98300000"
                 />
-                <p className="mt-1 text-xs text-slate-500">
+                <p className="mt-1 text-xs text-slate-600">
                   Enter as a whole number (e.g. 98300000). It will be
                   formatted as currency on the public site.
                 </p>
@@ -1349,7 +1349,7 @@ export default function BrandingSettingsClient() {
             <h2 className="text-sm font-semibold text-slate-900">
               Featured projects (optional)
             </h2>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-slate-600">
               Highlight 1–3 major capital or community projects. These appear
               in a projects section on the landing page.
             </p>
@@ -1417,14 +1417,14 @@ export default function BrandingSettingsClient() {
                       className="w-full rounded-md border border-slate-300 px-3 py-2 text-xs text-slate-900 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
                       placeholder="https://example.com/project.jpg"
                     />
-                    <p className="mt-1 text-[11px] text-slate-500">
+                    <p className="mt-1 text-[11px] text-slate-600">
                       Optional image shown at the top of this project card on
                       the landing page.
                     </p>
                   </div>
 
                   {/* Project image upload */}
-                  <div className="space-y-1 rounded-md bg-slate-50 p-2 text-[11px] text-slate-600">
+                  <div className="space-y-1 rounded-md bg-slate-50 p-2 text-[11px] text-slate-700">
                     <p className="font-semibold">
                       Upload project image (PNG/JPG/WEBP)
                     </p>
@@ -1435,7 +1435,7 @@ export default function BrandingSettingsClient() {
                       className="mt-1 text-[11px]"
                     />
                     {projectFiles[idx] && (
-                      <p className="mt-1 text-[11px] text-slate-500">
+                      <p className="mt-1 text-[11px] text-slate-600">
                         Selected: {projectFiles[idx]?.name} (will be uploaded
                         when you click{" "}
                         <span className="font-semibold">
@@ -1466,7 +1466,7 @@ export default function BrandingSettingsClient() {
                             )
                           )}
                         </div>
-                        <span className="text-[11px] text-slate-500">
+                        <span className="text-[11px] text-slate-600">
                           Preview. New uploads appear after you save.
                         </span>
                       </div>
@@ -1504,7 +1504,7 @@ export default function BrandingSettingsClient() {
                   className="h-9 w-10 cursor-pointer rounded border border-slate-300 bg-white"
                 />
               </div>
-              <p className="mt-1 text-xs text-slate-500">
+              <p className="mt-1 text-xs text-slate-600">
                 Used for headers and key text. For best readability, keep this
                 darker when your text is light, or very light if you move to a
                 dark text style.
@@ -1536,7 +1536,7 @@ export default function BrandingSettingsClient() {
                   className="h-9 w-10 cursor-pointer rounded border border-slate-300 bg-white"
                 />
               </div>
-              <p className="mt-1 text-xs text-slate-500">
+              <p className="mt-1 text-xs text-slate-600">
                 Used for highlights, buttons, and charts. Avoid very pale
                 accents for small text so labels stay readable.
               </p>
@@ -1567,7 +1567,7 @@ export default function BrandingSettingsClient() {
                   className="h-9 w-10 cursor-pointer rounded border border-slate-300 bg-white"
                 />
               </div>
-              <p className="mt-1 text-xs text-slate-500">
+              <p className="mt-1 text-xs text-slate-600">
                 Used behind the hero area and dashboard shell. If you choose a
                 very light background, be sure your text colors are dark
                 enough to keep contrast comfortable.
@@ -1608,13 +1608,13 @@ export default function BrandingSettingsClient() {
                 className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
                 placeholder="https://example.com/logo.png"
               />
-              <p className="mt-1 text-xs text-slate-500">
+              <p className="mt-1 text-xs text-slate-600">
                 Main logo shown in the hero and sidebar. Uploading a file
                 below will overwrite this URL when you save.
               </p>
             </div>
 
-            <div className="space-y-1 rounded-md bg-slate-50 p-3 text-xs text-slate-600">
+            <div className="space-y-1 rounded-md bg-slate-50 p-3 text-xs text-slate-700">
               <p className="font-semibold">
                 Upload logo image (PNG/JPG/WEBP)
               </p>
@@ -1625,7 +1625,7 @@ export default function BrandingSettingsClient() {
                 className="mt-1 text-xs"
               />
               {logoFile && (
-                <p className="mt-1 text-xs text-slate-500">
+                <p className="mt-1 text-xs text-slate-600">
                   Selected: {logoFile.name} (will be uploaded when you
                   click{" "}
                   <span className="font-semibold">Save settings</span>).
@@ -1651,7 +1651,7 @@ export default function BrandingSettingsClient() {
                       )
                     )}
                   </div>
-                  <span className="text-[11px] text-slate-500">
+                  <span className="text-[11px] text-slate-600">
                     Preview. New uploads appear after you save.
                   </span>
                 </div>
@@ -1675,14 +1675,14 @@ export default function BrandingSettingsClient() {
                   className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
                   placeholder="https://example.com/hero.jpg"
                 />
-                <p className="mt-1 text-xs text-slate-500">
+                <p className="mt-1 text-xs text-slate-600">
                   Large hero background on the landing and overview pages.
                   Uploading a file below will overwrite this URL when you
                   save.
                 </p>
               </div>
 
-              <div className="space-y-1 rounded-md bg-slate-50 p-3 text-xs text-slate-600">
+              <div className="space-y-1 rounded-md bg-slate-50 p-3 text-xs text-slate-700">
                 <p className="font-semibold">
                   Upload hero image (PNG/JPG/WEBP)
                 </p>
@@ -1693,7 +1693,7 @@ export default function BrandingSettingsClient() {
                   className="mt-1 text-xs"
                 />
                 {heroFile && (
-                  <p className="mt-1 text-xs text-slate-500">
+                  <p className="mt-1 text-xs text-slate-600">
                     Selected: {heroFile.name} (will be uploaded when you
                     click{" "}
                     <span className="font-semibold">Save settings</span>).
@@ -1719,7 +1719,7 @@ export default function BrandingSettingsClient() {
                         )
                       )}
                     </div>
-                    <span className="text-[11px] text-slate-500">
+                    <span className="text-[11px] text-slate-600">
                       Preview. New uploads appear after you save.
                     </span>
                   </div>
@@ -1743,12 +1743,12 @@ export default function BrandingSettingsClient() {
                 className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
                 placeholder="https://example.com/seal.png"
               />
-              <p className="mt-1 text-xs text-slate-500">
+              <p className="mt-1 text-xs text-slate-600">
                 Optional gov seal displayed alongside your branding.
               </p>
             </div>
 
-            <div className="space-y-1 rounded-md bg-slate-50 p-3 text-xs text-slate-600">
+            <div className="space-y-1 rounded-md bg-slate-50 p-3 text-xs text-slate-700">
               <p className="font-semibold">
                 Upload gov seal (PNG/JPG/WEBP)
               </p>
@@ -1759,7 +1759,7 @@ export default function BrandingSettingsClient() {
                 className="mt-1 text-xs"
               />
               {sealFile && (
-                <p className="mt-1 text-xs text-slate-500">
+                <p className="mt-1 text-xs text-slate-600">
                   Selected: {sealFile.name} (will be uploaded when you
                   click{" "}
                   <span className="font-semibold">Save settings</span>).
@@ -1785,7 +1785,7 @@ export default function BrandingSettingsClient() {
                       )
                     )}
                   </div>
-                  <span className="text-[11px] text-slate-500">
+                  <span className="text-[11px] text-slate-600">
                     Preview. New uploads appear after you save.
                   </span>
                 </div>
@@ -1823,7 +1823,7 @@ export default function BrandingSettingsClient() {
                     "Could not save branding settings. Please try again."}
                 </p>
               ) : saveState === "saving" ? (
-                <p className="truncate text-xs text-slate-600">
+                <p className="truncate text-xs text-slate-700">
                   Saving…
                 </p>
               ) : saveState === "saved" ? (
@@ -1831,7 +1831,7 @@ export default function BrandingSettingsClient() {
                   Branding settings saved.
                 </p>
               ) : dirty ? (
-                <p className="truncate text-xs text-slate-600">
+                <p className="truncate text-xs text-slate-700">
                   You have unsaved changes.
                 </p>
               ) : null}

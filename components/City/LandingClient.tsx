@@ -231,7 +231,7 @@ function Tile({
             {eyebrow}
           </p>
           <h3 className="mt-1 truncate text-sm font-semibold text-slate-900">{title}</h3>
-          <p className="mt-1 text-sm text-slate-600">{description}</p>
+          <p className="mt-1 text-sm text-slate-700">{description}</p>
         </div>
 
         <span
@@ -546,7 +546,7 @@ export default function LandingClient({ portalSettings, totalBudget }: Props) {
                 <div className="space-y-3">
                   <div>
                     <p className="text-sm font-semibold text-slate-900">Top questions</p>
-                    <p className="mt-1 text-xs text-slate-600">
+                    <p className="mt-1 text-xs text-slate-700">
                       Start with the most common resident questions.
                     </p>
                   </div>
@@ -561,7 +561,7 @@ export default function LandingClient({ portalSettings, totalBudget }: Props) {
                         <span className="block text-sm font-semibold text-slate-900">
                           {q.label}
                         </span>
-                        <span className="mt-0.5 block text-xs text-slate-600">
+                        <span className="mt-0.5 block text-xs text-slate-700">
                           {q.sublabel}
                         </span>
                       </Link>
@@ -581,7 +581,7 @@ export default function LandingClient({ portalSettings, totalBudget }: Props) {
           <div className="mb-3 flex items-end justify-between gap-4">
             <div>
               <h2 className="text-sm font-semibold text-slate-900">Start here</h2>
-              <p className="mt-1 text-xs text-slate-600">
+              <p className="mt-1 text-xs text-slate-700">
                 Most common questions—answered in one click.
               </p>
             </div>
@@ -681,7 +681,7 @@ export default function LandingClient({ portalSettings, totalBudget }: Props) {
                       </p>
                     )}
 
-                    {leaderMessage && <p className="mt-2 text-sm text-slate-700">{leaderMessage}</p>}
+                    {leaderMessage && <p className="mt-2 text-sm text-slate-800">{leaderMessage}</p>}
                   </div>
                 </div>
               </SectionCard>
@@ -696,7 +696,7 @@ export default function LandingClient({ portalSettings, totalBudget }: Props) {
                   title="About our community"
                   icon={<IconMap />}
                 >
-                  <p className="text-sm text-slate-700">{storyCityDescription}</p>
+                  <p className="text-sm text-slate-800">{storyCityDescription}</p>
                 </SectionCard>
               )}
 
@@ -707,7 +707,7 @@ export default function LandingClient({ portalSettings, totalBudget }: Props) {
                   title="Year in review"
                   icon={<IconCalendar />}
                 >
-                  <p className="text-sm text-slate-700">{storyYearAchievements}</p>
+                  <p className="text-sm text-slate-800">{storyYearAchievements}</p>
                 </SectionCard>
               )}
 
@@ -718,7 +718,7 @@ export default function LandingClient({ portalSettings, totalBudget }: Props) {
                   title="Capital projects"
                   icon={<IconConstruction />}
                 >
-                  <p className="text-sm text-slate-700">{storyCapitalProjects}</p>
+                  <p className="text-sm text-slate-800">{storyCapitalProjects}</p>
                 </SectionCard>
               )}
             </div>
@@ -729,7 +729,7 @@ export default function LandingClient({ portalSettings, totalBudget }: Props) {
                 <section aria-label="Featured projects" className="space-y-4">
                   <div>
                     <h2 className="text-sm font-semibold text-slate-900">Featured projects</h2>
-                    <p className="mt-1 text-xs text-slate-600">
+                    <p className="mt-1 text-xs text-slate-700">
                       Major capital and community projects—delivered or underway.
                     </p>
                   </div>
@@ -765,7 +765,7 @@ export default function LandingClient({ portalSettings, totalBudget }: Props) {
 
   <p
     id={`project-summary-${i}`}
-    className={`mt-2 text-sm text-slate-700 ${isExpanded ? "" : "line-clamp-3"}`}
+    className={`mt-2 text-sm text-slate-800 ${isExpanded ? "" : "line-clamp-3"}`}
   >
     {summary}
   </p>
@@ -800,7 +800,7 @@ export default function LandingClient({ portalSettings, totalBudget }: Props) {
                   <section aria-label="At a glance" className="space-y-3">
                     <div>
                       <h2 className="text-sm font-semibold text-slate-900">At a glance</h2>
-                      <p className="mt-1 text-xs text-slate-600">
+                      <p className="mt-1 text-xs text-slate-700">
                         Key figures to put budgets and services in context.
                       </p>
                     </div>
@@ -864,7 +864,7 @@ export default function LandingClient({ portalSettings, totalBudget }: Props) {
                 <div className="-mx-4 -mt-4 mb-2 rounded-t-xl border-b border-slate-200 bg-slate-50/70 px-4 py-3">
                   <div className="mb-2 h-0.5 w-10 rounded-full" style={{ backgroundColor: accent, opacity: 0.55 }} />
                   <h2 className="text-sm font-semibold text-slate-900">Download &amp; share</h2>
-                  <p className="mt-1 text-xs text-slate-600">
+                  <p className="mt-1 text-xs text-slate-700">
                     Use public pages to filter results and export where available.
                   </p>
                 </div>
@@ -877,7 +877,7 @@ export default function LandingClient({ portalSettings, totalBudget }: Props) {
                       className="block rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
                     >
                       <span className="block text-sm font-semibold text-slate-900">{d.label}</span>
-                      <span className="mt-0.5 block text-xs text-slate-600">{d.sublabel}</span>
+                      <span className="mt-0.5 block text-xs text-slate-700">{d.sublabel}</span>
                     </Link>
                   ))}
                 </div>
@@ -906,7 +906,7 @@ export default function LandingClient({ portalSettings, totalBudget }: Props) {
             <CardContainer>
               <section aria-label="How to use this portal" className="space-y-2">
                 <h2 className="text-sm font-semibold text-slate-900">How to use this portal</h2>
-                <ul className="list-disc space-y-1 pl-5 text-sm text-slate-700">
+                <ul className="list-disc space-y-1 pl-5 text-sm text-slate-800">
                   <li>Start with Overview to understand the year at a glance.</li>
                   <li>Use Departments to compare service areas over time.</li>
                   {enableTransactions ? (
@@ -926,10 +926,10 @@ export default function LandingClient({ portalSettings, totalBudget }: Props) {
                   <h2 className="text-sm font-semibold text-slate-900">Official portal</h2>
                 </div>
 
-                <p className="text-sm text-slate-700">
+                <p className="text-sm text-slate-800">
                   This transparency portal is maintained by {cityName}. Data is published by our staff and may be updated as new files are posted.
                 </p>
-                <p className="text-sm text-slate-700">
+                <p className="text-sm text-slate-800">
                   Questions or feedback should be directed to our finance or administrative office.
                 </p>
               </section>
