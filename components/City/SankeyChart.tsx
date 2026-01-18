@@ -421,7 +421,7 @@ export default function SankeyChart({ revenues, departments, height = 400 }: Pro
       {/* Tooltip */}
       {tooltip && (
         <div
-          className="pointer-events-none fixed z-50 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium shadow-lg"
+          className="pointer-events-none fixed z-50 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-900 shadow-lg"
           style={{
             left: tooltip.x + 12,
             top: tooltip.y - 10,
