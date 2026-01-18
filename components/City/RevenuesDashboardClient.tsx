@@ -2,6 +2,7 @@
 "use client";
 
 import { useMemo, useState, useEffect, useRef } from "react";
+import Link from "next/link";
 import {
   usePathname,
   useRouter,
@@ -27,6 +28,7 @@ import NarrativeSummary from "../NarrativeSummary";
 import FiscalYearSelect from "../FiscalYearSelect";
 import DataTable, { DataTableColumn } from "../DataTable";
 import { CITY_CONFIG } from "@/lib/cityConfig";
+import { cityHref } from "@/lib/cityRouting";
 
 type Props = {
   years: number[];
@@ -416,9 +418,17 @@ export default function RevenuesDashboardClient({
       header: "Revenue source",
       sortable: true,
       sortAccessor: (row) => row.source.toLowerCase(),
-      cell: (row) => (
-        <span className="text-sm text-slate-900">{row.source}</span>
-      ),
+      cell: (row) => {
+        const sourceSlug = row.source.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/-+$/, "");
+        return (
+          <Link
+            href={cityHref(`/revenues/${encodeURIComponent(sourceSlug)}`)}
+            className="text-sm font-medium text-slate-900 hover:text-slate-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 rounded"
+          >
+            {row.source}
+          </Link>
+        );
+      },
     },
     {
       key: "total",

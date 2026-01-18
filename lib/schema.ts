@@ -28,6 +28,7 @@ export type BudgetRow = {
 export type RevenueRow = {
   fiscal_year: number;              // e.g. 2024
   period: string;                   // e.g. "2024-01" or "2024-1"
+  fiscal_period: number | null;     // 1-12 period number within fiscal year
   fund_code: string | null;
   fund_name: string | null;
   department_code: string | null;

@@ -844,7 +844,7 @@ const byYear = new Map<
                           >
                             {v.name}
                           </button>
-                          <span className="whitespace-nowrap font-mono">
+                          <span className="whitespace-nowrap font-mono text-slate-900">
                             {formatCurrency(v.total)}
                           </span>
                         </div>
@@ -860,7 +860,7 @@ const byYear = new Map<
                               }}
                             />
                           </div>
-                          <span className="w-12 text-right text-xs text-slate-600">
+                          <span className="w-12 text-right text-xs text-slate-700">
                             {formatPercent(v.percent)}
                           </span>
                         </div>
@@ -889,10 +889,10 @@ const byYear = new Map<
                   {deptCategorySummaries.map((c) => (
                     <div key={c.category}>
                       <div className="flex items-center justify-between gap-2">
-                        <span className="truncate pr-2">
+                        <span className="truncate pr-2 text-slate-800">
                           {c.category}
                         </span>
-                        <span className="whitespace-nowrap font-mono">
+                        <span className="whitespace-nowrap font-mono text-slate-900">
                           {formatCurrency(c.total)}
                         </span>
                       </div>
@@ -908,7 +908,7 @@ const byYear = new Map<
                             }}
                           />
                         </div>
-                        <span className="w-12 text-right text-xs text-slate-600">
+                        <span className="w-12 text-right text-xs text-slate-700">
                           {formatPercent(c.percent)}
                         </span>
                       </div>

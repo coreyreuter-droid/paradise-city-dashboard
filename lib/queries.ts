@@ -324,6 +324,71 @@ export async function getRevenuesForYear(fiscalYear: number): Promise<RevenueRow
   return fetchAllRows<RevenueRow>("revenues", (q) => q.eq("fiscal_year", fiscalYear));
 }
 
+/**
+ * Get all revenues for a specific source/category.
+ */
+export async function getRevenuesForSource(category: string): Promise<RevenueRow[]> {
+  return fetchAllRows<RevenueRow>("revenues", (q) => q.ilike("category", category));
+}
+
+/**
+ * Get revenues for a specific source and year.
+ */
+export async function getRevenuesForSourceYear(category: string, fiscalYear: number): Promise<RevenueRow[]> {
+  return fetchAllRows<RevenueRow>("revenues", (q) => 
+    q.ilike("category", category).eq("fiscal_year", fiscalYear)
+  );
+}
+
+/**
+ * Get summary totals by year for a specific revenue source.
+ */
+export async function getRevenueSourceSummaryByYear(category: string): Promise<Array<{
+  fiscal_year: number;
+  total: number;
+  count: number;
+}>> {
+  const rows = await getRevenuesForSource(category);
+  
+  const byYear = new Map<number, { total: number; count: number }>();
+  for (const row of rows) {
+    const year = row.fiscal_year;
+    const existing = byYear.get(year) ?? { total: 0, count: 0 };
+    existing.total += Number(row.amount ?? 0);
+    existing.count += 1;
+    byYear.set(year, existing);
+  }
+  
+  return Array.from(byYear.entries())
+    .map(([fiscal_year, data]) => ({ fiscal_year, ...data }))
+    .sort((a, b) => b.fiscal_year - a.fiscal_year);
+}
+
+/**
+ * Get all distinct revenue categories.
+ */
+export async function getRevenueCategories(): Promise<string[]> {
+  const { data, error } = await supabase
+    .from("revenues")
+    .select("category")
+    .not("category", "is", null);
+  
+  if (error) {
+    console.error("getRevenueCategories error:", error);
+    return [];
+  }
+  
+  const categories = new Set<string>();
+  for (const row of (data ?? [])) {
+    const cat = (row as { category: string | null }).category;
+    if (cat && cat.trim()) {
+      categories.add(cat.trim());
+    }
+  }
+  
+  return Array.from(categories).sort();
+}
+
 /* =========================
    Raw data helpers
 ========================= */

@@ -2,11 +2,14 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { formatCurrency } from "@/lib/format";
+import { cityHref } from "@/lib/cityRouting";
 
 type SankeyNode = {
   id: string;
   label: string;
+  fullLabel: string;
   value: number;
   color: string;
   column: number;
@@ -62,7 +65,9 @@ function formatCompact(value: number): string {
 }
 
 export default function SankeyChart({ revenues, departments, height = 400 }: Props) {
+  const router = useRouter();
   const [hoveredLink, setHoveredLink] = useState<string | null>(null);
+  const [hoveredNode, setHoveredNode] = useState<string | null>(null);
   const [tooltip, setTooltip] = useState<{ x: number; y: number; content: string } | null>(null);
 
   // Process data into Sankey format
@@ -103,16 +108,18 @@ export default function SankeyChart({ revenues, departments, height = 400 }: Pro
       nodes.push({
         id: `rev-${i}`,
         label: name.length > 18 ? name.slice(0, 16) + "…" : name,
+        fullLabel: name,
         value,
         color: COLORS.revenue[i % COLORS.revenue.length],
         column: 0,
       });
     });
 
-    // Center node(Government Fund)
+    // Center node (Government Fund)
     nodes.push({
       id: "center",
       label: "Government Fund",
+      fullLabel: "Government Fund",
       value: Math.max(totalRevenue, totalSpending),
       color: COLORS.center,
       column: 1,
@@ -125,6 +132,7 @@ export default function SankeyChart({ revenues, departments, height = 400 }: Pro
         label: dept.department_name.length > 18 
           ? dept.department_name.slice(0, 16) + "…" 
           : dept.department_name,
+        fullLabel: dept.department_name,
         value: dept.actuals,
         color: COLORS.departments[i % COLORS.departments.length],
         column: 2,
@@ -135,6 +143,7 @@ export default function SankeyChart({ revenues, departments, height = 400 }: Pro
       nodes.push({
         id: "dept-other",
         label: "Other Depts",
+        fullLabel: "Other Depts",
         value: otherDeptTotal,
         color: "#64748b",
         column: 2,
@@ -278,6 +287,16 @@ export default function SankeyChart({ revenues, departments, height = 400 }: Pro
     return { nodePositions, linkPaths, width };
   }, [nodes, links, height]);
 
+  // Check if a link should be highlighted (hovered directly or connected to hovered node)
+  const isLinkHighlighted = (linkId: string, source: string, target: string) => {
+    if (hoveredLink === linkId) return true;
+    if (hoveredNode && (source === hoveredNode || target === hoveredNode)) return true;
+    return false;
+  };
+
+  // Check if anything is being hovered
+  const hasHover = hoveredLink !== null || hoveredNode !== null;
+
   const handleLinkHover = (linkId: string | null, event?: React.MouseEvent) => {
     setHoveredLink(linkId);
     if (linkId && event) {
@@ -288,12 +307,76 @@ export default function SankeyChart({ revenues, departments, height = 400 }: Pro
         setTooltip({
           x: event.clientX,
           y: event.clientY,
-          content: `${sourceNode?.label} → ${targetNode?.label}: ${formatCurrency(link.value)}`,
+          content: `${sourceNode?.fullLabel} → ${targetNode?.fullLabel}: ${formatCurrency(link.value)}`,
         });
       }
     } else {
       setTooltip(null);
     }
+  };
+
+  const handleNodeHover = (nodeId: string | null, event?: React.MouseEvent) => {
+    setHoveredNode(nodeId);
+    if (nodeId && event) {
+      const node = nodes.find(n => n.id === nodeId);
+      if (node) {
+        setTooltip({
+          x: event.clientX,
+          y: event.clientY,
+          content: `${node.fullLabel}: ${formatCurrency(node.value)}`,
+        });
+      }
+    } else {
+      setTooltip(null);
+    }
+  };
+
+  const handleNodeClick = (node: SankeyNode) => {
+    if (node.column === 0 && node.fullLabel !== "Other Sources") {
+      // Revenue source - go to revenue source detail page
+      const sourceSlug = node.fullLabel.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/-+$/, "");
+      router.push(cityHref(`/revenues/${encodeURIComponent(sourceSlug)}`));
+    } else if (node.column === 2 && node.id !== "dept-other") {
+      // Department - go to department detail
+      const slug = node.fullLabel.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/-+$/, "");
+      router.push(cityHref(`/budget/department/${slug}`));
+    }
+  };
+
+  const handleLinkClick = (source: string, target: string) => {
+    // Left ribbons (revenue → center): navigate to revenue source detail
+    if (source.startsWith("rev-")) {
+      const node = nodes.find(n => n.id === source);
+      if (node && node.fullLabel !== "Other Sources") {
+        const sourceSlug = node.fullLabel.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/-+$/, "");
+        router.push(cityHref(`/revenues/${encodeURIComponent(sourceSlug)}`));
+      }
+    }
+    // Right ribbons (center → department): navigate to department
+    else if (target.startsWith("dept-") && target !== "dept-other") {
+      const node = nodes.find(n => n.id === target);
+      if (node) {
+        const slug = node.fullLabel.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/-+$/, "");
+        router.push(cityHref(`/budget/department/${slug}`));
+      }
+    }
+  };
+
+  const isClickable = (node: SankeyNode) => {
+    if (node.column === 0 && node.fullLabel !== "Other Sources") return true;
+    if (node.column === 2 && node.id !== "dept-other") return true;
+    return false;
+  };
+
+  const isLinkClickable = (source: string, target: string) => {
+    if (source.startsWith("rev-")) {
+      const node = nodes.find(n => n.id === source);
+      return node && node.fullLabel !== "Other Sources";
+    }
+    if (target.startsWith("dept-") && target !== "dept-other") {
+      return true;
+    }
+    return false;
   };
 
   if (nodes.length === 0 || links.length === 0) {
@@ -343,23 +426,35 @@ export default function SankeyChart({ revenues, departments, height = 400 }: Pro
           </defs>
 
           {/* Links (flows) */}
-          {layout.linkPaths.map(link => (
-            <path
-              key={link.id}
-              d={link.path}
-              fill={`url(#grad-${link.id})`}
-              opacity={hoveredLink === null || hoveredLink === link.id ? 0.6 : 0.15}
-              className="transition-opacity duration-200"
-              onMouseEnter={(e) => handleLinkHover(link.id, e)}
-              onMouseLeave={() => handleLinkHover(null)}
-              style={{ cursor: "pointer" }}
-            />
-          ))}
+          {layout.linkPaths.map(link => {
+            const highlighted = isLinkHighlighted(link.id, link.source, link.target);
+            const clickable = isLinkClickable(link.source, link.target);
+            
+            return (
+              <path
+                key={link.id}
+                d={link.path}
+                fill={`url(#grad-${link.id})`}
+                opacity={!hasHover || highlighted ? 0.6 : 0.15}
+                className="transition-opacity duration-200"
+                onMouseEnter={(e) => handleLinkHover(link.id, e)}
+                onMouseMove={(e) => {
+                  if (hoveredLink === link.id) {
+                    setTooltip(prev => prev ? { ...prev, x: e.clientX, y: e.clientY } : null);
+                  }
+                }}
+                onMouseLeave={() => handleLinkHover(null)}
+                onClick={clickable ? () => handleLinkClick(link.source, link.target) : undefined}
+                style={{ cursor: clickable ? "pointer" : "default" }}
+              />
+            );
+          })}
 
           {/* Nodes */}
           {nodes.map(node => {
             const pos = layout.nodePositions.get(node.id);
             if (!pos) return null;
+            const clickable = isClickable(node);
 
             return (
               <rect
@@ -370,6 +465,10 @@ export default function SankeyChart({ revenues, departments, height = 400 }: Pro
                 height={pos.height}
                 fill={node.color}
                 rx={4}
+                onClick={clickable ? () => handleNodeClick(node) : undefined}
+                onMouseEnter={(e) => handleNodeHover(node.id, e)}
+                onMouseLeave={() => handleNodeHover(null)}
+                className={clickable ? "cursor-pointer transition-opacity hover:opacity-80" : ""}
               />
             );
           })}
@@ -384,6 +483,7 @@ export default function SankeyChart({ revenues, departments, height = 400 }: Pro
             const isLeft = node.column === 0;
             const isRight = node.column === 2;
             const isCenter = node.column === 1;
+            const clickable = isClickable(node);
 
             // Convert coordinates to percentages for positioning
             const leftPercent = (pos.x / layout.width) * 100;
@@ -402,16 +502,26 @@ export default function SankeyChart({ revenues, departments, height = 400 }: Pro
                   transform: isCenter ? 'translateX(-50%)' : undefined,
                 }}
               >
-<div className={`flex flex-col rounded bg-white border border-slate-200 shadow-sm px-1.5 py-0.5 max-w-[120px] sm:max-w-none ${isRight ? 'items-end text-right' : isCenter ? 'items-center text-center' : 'items-start'}`}>
-  <span className="text-[11px] sm:text-xs font-semibold text-slate-900 leading-tight whitespace-nowrap truncate max-w-full">
-    {node.label}
-  </span>
-  {pos.height > 28 && (
-    <span className="text-[10px] font-medium text-slate-700 leading-tight">
-      {formatCompact(node.value)}
-    </span>
-  )}
-</div>
+                <div 
+                  className={`flex flex-col rounded bg-white border border-slate-200 shadow-sm px-1.5 py-0.5 max-w-[120px] sm:max-w-none ${isRight ? 'items-end text-right' : isCenter ? 'items-center text-center' : 'items-start'} ${clickable ? 'pointer-events-auto cursor-pointer hover:bg-slate-50 hover:border-slate-300 transition-colors' : 'pointer-events-auto'}`}
+                  onClick={clickable ? () => handleNodeClick(node) : undefined}
+                  onMouseEnter={(e) => handleNodeHover(node.id, e)}
+                  onMouseMove={(e) => {
+                    if (hoveredNode === node.id) {
+                      setTooltip(prev => prev ? { ...prev, x: e.clientX, y: e.clientY } : null);
+                    }
+                  }}
+                  onMouseLeave={() => handleNodeHover(null)}
+                >
+                  <span className="text-[11px] sm:text-xs font-semibold text-slate-900 leading-tight whitespace-nowrap truncate max-w-full">
+                    {node.label}
+                  </span>
+                  {pos.height > 28 && (
+                    <span className="text-[10px] font-medium text-slate-700 leading-tight">
+                      {formatCompact(node.value)}
+                    </span>
+                  )}
+                </div>
               </div>
             );
           })}
