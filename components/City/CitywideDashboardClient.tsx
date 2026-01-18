@@ -514,6 +514,19 @@ const { yoyDomain, yoyTicks } = useMemo(() => {
                                   formatCurrency(Number(value ?? 0)),
                                   String(name ?? ""),
                                 ]}
+                                contentStyle={{
+                                  backgroundColor: "#ffffff",
+                                  border: "1px solid #e2e8f0",
+                                  borderRadius: "8px",
+                                  boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                                }}
+                                labelStyle={{
+                                  color: "#0f172a",
+                                  fontWeight: 600,
+                                }}
+                                itemStyle={{
+                                  color: "#334155",
+                                }}
                               />
                             </PieChart>
                           </ResponsiveContainer>
@@ -594,6 +607,19 @@ const { yoyDomain, yoyTicks } = useMemo(() => {
                                 formatCurrency(Number(value ?? 0)),
                                 String(name ?? ""),
                               ]}
+                              contentStyle={{
+                                backgroundColor: "#ffffff",
+                                border: "1px solid #e2e8f0",
+                                borderRadius: "8px",
+                                boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                              }}
+                              labelStyle={{
+                                color: "#0f172a",
+                                fontWeight: 600,
+                              }}
+                              itemStyle={{
+                                color: "#334155",
+                              }}
                             />
    
                             </PieChart>
@@ -746,6 +772,20 @@ const { yoyDomain, yoyTicks } = useMemo(() => {
                                   ? [formatCurrency(value), String(name ?? "")]
                                   : [String(value ?? ""), String(name ?? "")]
                               }
+                              contentStyle={{
+                                backgroundColor: "#ffffff",
+                                border: "1px solid #e2e8f0",
+                                borderRadius: "8px",
+                                boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                              }}
+                              labelStyle={{
+                                color: "#0f172a",
+                                fontWeight: 600,
+                                marginBottom: "4px",
+                              }}
+                              itemStyle={{
+                                color: "#334155",
+                              }}
                             />
                             <Legend verticalAlign="top" align="right" wrapperStyle={{ fontSize: 11 }} />
                             <Line type="monotone" dataKey="Budget" dot={false} strokeWidth={2} stroke={BUDGET_COLOR} isAnimationActive={!prefersReducedMotion} animationDuration={800} animationEasing="ease-out" />

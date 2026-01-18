@@ -434,6 +434,20 @@ export default function DepartmentBudgetClient(props: Props) {
                           String(name ?? ""),
                         ]}
                         labelFormatter={(label) => `Fiscal year ${label}`}
+                        contentStyle={{
+                          backgroundColor: "#ffffff",
+                          border: "1px solid #e2e8f0",
+                          borderRadius: "8px",
+                          boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                        }}
+                        labelStyle={{
+                          color: "#0f172a",
+                          fontWeight: 600,
+                          marginBottom: "4px",
+                        }}
+                        itemStyle={{
+                          color: "#334155",
+                        }}
                       />
                       <Bar
                         dataKey="Adopted Budget"

@@ -84,9 +84,18 @@ export default function ParadiseHomeMultiYearChart({ yearTotals }: Props) {
               labelFormatter={(label) => `Fiscal year ${label}`}
               wrapperClassName="text-xs"
               contentStyle={{
+                backgroundColor: "#ffffff",
                 borderRadius: 8,
                 borderColor: "#e2e8f0",
                 boxShadow: "0 8px 16px rgba(15,23,42,0.12)",
+              }}
+              labelStyle={{
+                color: "#0f172a",
+                fontWeight: 600,
+                marginBottom: "4px",
+              }}
+              itemStyle={{
+                color: "#334155",
               }}
             />
             <Legend verticalAlign="top" align="right" wrapperStyle={{ fontSize: 11 }} />
