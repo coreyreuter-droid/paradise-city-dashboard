@@ -1,20 +1,21 @@
 -- ============================================================================
 -- CIVIPORTAL DATABASE SCHEMA
 -- ============================================================================
--- Version: 2.0
--- Last Updated: December 2024
+-- Version: 2.1
+-- Last Updated: January 2025
 -- 
--- This schema is an EXACT replica of the production CiviPortal database.
--- Run this in a NEW Supabase project's SQL Editor to set up a customer.
+-- BASE SCHEMA for CiviPortal. After running this, you MUST also run all
+-- migrations in the migrations/ folder to complete setup.
 --
 -- INSTRUCTIONS:
 -- 1. Create a new Supabase project
 -- 2. Go to SQL Editor
--- 3. Paste this entire file
--- 4. Click "Run" (or Cmd+Enter / Ctrl+Enter)
--- 5. Verify tables exist in Table Editor
+-- 3. Paste this entire file and run it
+-- 4. Run migrations 001-005 in order (or use scripts/provision-tenant.sh)
+-- 5. Verify setup with scripts/verify-tenant.sql
 --
 -- IMPORTANT: Only run this ONCE on a fresh database.
+-- See CUSTOMER_ONBOARDING_GUIDE.md for full setup instructions.
 -- ============================================================================
 
 

@@ -16,11 +16,11 @@ export async function GET(req: NextRequest) {
   try {
     // Rate limit: 30 requests per minute per IP
     const key = rateLimitKey(req, "export_totals");
-    const allowed = await rateLimitAsync(key, 30, 60_000);
+    const { allowed, resetInSeconds } = await rateLimitAsync(key, 30, 60_000);
     if (!allowed) {
       return NextResponse.json(
         { error: "Too many requests. Please try again later." },
-        { status: 429 }
+        { status: 429, headers: { "Retry-After": String(resetInSeconds) } }
       );
     }
 

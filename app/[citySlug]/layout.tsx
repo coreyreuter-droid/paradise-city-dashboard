@@ -2,6 +2,9 @@
 import type { ReactNode } from "react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+
+// Force dynamic rendering so slug validation runs on every request
+export const dynamic = "force-dynamic";
 import ParadiseSidebar from "@/components/ParadiseSidebar";
 import { CITY_CONFIG } from "@/lib/cityConfig";
 import { supabaseAdmin } from "@/lib/supabaseService";

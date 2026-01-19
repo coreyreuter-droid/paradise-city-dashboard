@@ -47,38 +47,32 @@ echo "  CiviPortal Tenant Provisioning"
 echo "=============================================="
 echo ""
 
-# Step 1: Run main schema
+# Step 1: Run main schema (includes rate_limits table)
 echo -e "${YELLOW}[1/5] Running main schema...${NC}"
 psql "$DATABASE_URL" -f "$ROOT_DIR/database/schema.sql"
 echo -e "${GREEN}✓ Schema created${NC}"
 echo ""
 
-# Step 2: Run migration 001 (rate limits)
-echo -e "${YELLOW}[2/5] Running migration 001 (rate limits)...${NC}"
-psql "$DATABASE_URL" -f "$ROOT_DIR/migrations/001_rate_limits.sql"
-echo -e "${GREEN}✓ Rate limits table created${NC}"
-echo ""
-
-# Step 3: Run migration 002 (security lockdown)
-echo -e "${YELLOW}[3/5] Running migration 002 (security lockdown)...${NC}"
+# Step 2: Run migration 002 (security lockdown)
+echo -e "${YELLOW}[2/5] Running migration 002 (security lockdown)...${NC}"
 psql "$DATABASE_URL" -f "$ROOT_DIR/migrations/002_lock_down_security_definer.sql"
 echo -e "${GREEN}✓ SECURITY DEFINER functions locked down${NC}"
 echo ""
 
-# Step 4: Run migration 003 (search counts)
-echo -e "${YELLOW}[4/5] Running migration 003 (search counts RPC)...${NC}"
+# Step 3: Run migration 003 (search counts)
+echo -e "${YELLOW}[3/5] Running migration 003 (search counts RPC)...${NC}"
 psql "$DATABASE_URL" -f "$ROOT_DIR/migrations/003_search_counts_rpc.sql"
 echo -e "${GREEN}✓ Search count functions created${NC}"
 echo ""
 
-# Step 5: Run migration 004 (totals views)
-echo -e "${YELLOW}[5/6] Running migration 004 (totals views)...${NC}"
+# Step 4: Run migration 004 (totals views)
+echo -e "${YELLOW}[4/5] Running migration 004 (totals views)...${NC}"
 psql "$DATABASE_URL" -f "$ROOT_DIR/migrations/004_add_totals_views.sql"
 echo -e "${GREEN}✓ Totals views created${NC}"
 echo ""
 
-# Step 6: Verify setup
-echo -e "${YELLOW}[6/6] Verifying setup...${NC}"
+# Step 5: Verify setup
+echo -e "${YELLOW}[5/5] Verifying setup...${NC}"
 psql "$DATABASE_URL" -f "$ROOT_DIR/scripts/verify-tenant.sql"
 echo ""
 
@@ -99,4 +93,7 @@ echo "     INSERT INTO profiles (id, role) VALUES ('user-uuid', 'super_admin');"
 echo ""
 echo "  4. Deploy to Vercel with environment variables"
 echo ""
-echo "See ONBOARDING.md for full details."
+echo "See CUSTOMER_ONBOARDING_GUIDE.md for full details."
+echo ""
+echo "NOTE: Migration 005 (HTML entity cleanup) is optional - only run it"
+echo "      if migrating data from an older system with encoded characters."
