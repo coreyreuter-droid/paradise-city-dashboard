@@ -329,7 +329,50 @@ ALTER TABLE public.rate_limits ENABLE ROW LEVEL SECURITY;
 
 
 -- ============================================================================
--- 10. INDEXES
+-- 10. TOTALS VIEWS (aggregate rollup tables for year-level totals)
+-- ============================================================================
+
+-- Budget + Actuals totals by year
+CREATE OR REPLACE VIEW public.budget_actuals_year_totals AS
+SELECT
+  fiscal_year,
+  SUM(budget_amount) AS budget_total,
+  SUM(actual_amount) AS actual_total
+FROM public.budget_actuals_year_department
+GROUP BY fiscal_year;
+
+GRANT SELECT ON public.budget_actuals_year_totals TO anon;
+GRANT SELECT ON public.budget_actuals_year_totals TO authenticated;
+
+
+-- Transaction totals by year
+CREATE OR REPLACE VIEW public.transaction_year_totals AS
+SELECT
+  fiscal_year,
+  SUM(total_amount) AS total_amount,
+  SUM(txn_count) AS txn_count
+FROM public.transaction_year_department
+GROUP BY fiscal_year;
+
+GRANT SELECT ON public.transaction_year_totals TO anon;
+GRANT SELECT ON public.transaction_year_totals TO authenticated;
+
+
+-- Revenue totals by year
+CREATE OR REPLACE VIEW public.revenue_year_totals AS
+SELECT
+  fiscal_year,
+  SUM(amount) AS total_revenue,
+  COUNT(*) AS record_count
+FROM public.revenues
+GROUP BY fiscal_year;
+
+GRANT SELECT ON public.revenue_year_totals TO anon;
+GRANT SELECT ON public.revenue_year_totals TO authenticated;
+
+
+-- ============================================================================
+-- 11. INDEXES
 -- ============================================================================
 
 -- Actuals indexes
@@ -379,7 +422,7 @@ CREATE INDEX idx_rate_limits_key_created ON public.rate_limits (key, created_at)
 
 
 -- ============================================================================
--- 11. FUNCTIONS
+-- 12. FUNCTIONS
 -- ============================================================================
 
 -- Check if portal is published (used by RLS policies)
@@ -709,7 +752,7 @@ $$;
 
 
 -- ============================================================================
--- 12. TRIGGERS
+-- 13. TRIGGERS
 -- ============================================================================
 
 -- Log when portal is published/unpublished
@@ -720,7 +763,7 @@ CREATE TRIGGER trg_audit_log_publish_toggle
 
 
 -- ============================================================================
--- 13. ROW LEVEL SECURITY POLICIES
+-- 14. ROW LEVEL SECURITY POLICIES
 -- ============================================================================
 
 -- PROFILES
@@ -804,7 +847,7 @@ CREATE POLICY "No client writes audit log"
 
 
 -- ============================================================================
--- 14. INITIAL DATA
+-- 15. INITIAL DATA
 -- ============================================================================
 
 -- Create default portal settings row
@@ -822,7 +865,7 @@ INSERT INTO public.portal_settings (
 
 
 -- ============================================================================
--- 15. STORAGE BUCKETS (Manual Step Required)
+-- 16. STORAGE BUCKETS (Manual Step Required)
 -- ============================================================================
 -- 
 -- You must create storage buckets manually in the Supabase Dashboard:

@@ -71,8 +71,14 @@ psql "$DATABASE_URL" -f "$ROOT_DIR/migrations/003_search_counts_rpc.sql"
 echo -e "${GREEN}✓ Search count functions created${NC}"
 echo ""
 
-# Step 5: Verify setup
-echo -e "${YELLOW}[5/5] Verifying setup...${NC}"
+# Step 5: Run migration 004 (totals views)
+echo -e "${YELLOW}[5/6] Running migration 004 (totals views)...${NC}"
+psql "$DATABASE_URL" -f "$ROOT_DIR/migrations/004_add_totals_views.sql"
+echo -e "${GREEN}✓ Totals views created${NC}"
+echo ""
+
+# Step 6: Verify setup
+echo -e "${YELLOW}[6/6] Verifying setup...${NC}"
 psql "$DATABASE_URL" -f "$ROOT_DIR/scripts/verify-tenant.sql"
 echo ""
 

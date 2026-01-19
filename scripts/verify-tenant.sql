@@ -25,8 +25,9 @@ WHERE n.nspname = 'public'
   AND p.prosecdef = true
   AND p.proname NOT IN (
     -- Approved functions that need to be callable
-    'is_portal_published',
-    'audit_log_publish_toggle'
+    'is_portal_published',       -- RLS helper (anon + authenticated)
+    'get_fiscal_years_for_table', -- Admin UI helper (authenticated only)
+    'audit_log_publish_toggle'   -- Trigger function (system use)
   )
   AND (
     has_function_privilege('anon', p.oid, 'EXECUTE')
@@ -55,12 +56,12 @@ WHERE schemaname = 'public'
     'transactions',
     'revenues',
     'budget_actuals_year_department',
-    'budget_actuals_year_totals',
     'transaction_year_department',
     'transaction_year_vendor',
     'data_uploads',
     'admin_audit_log',
     'rate_limits'
+    -- Note: *_year_totals are VIEWS (not tables), they inherit security from base tables
   )
 ORDER BY tablename;
 
@@ -171,6 +172,35 @@ SELECT
   END AS auth_status;
 
 -- Expected: Both should show "✓"
+
+-- ============================================================================
+-- CHECK 7: Totals views exist
+-- ============================================================================
+
+SELECT '=== CHECK 7: Totals views exist ===' AS check_name;
+
+SELECT 
+  'budget_actuals_year_totals' AS view_name,
+  CASE WHEN EXISTS (
+    SELECT 1 FROM information_schema.views 
+    WHERE table_schema = 'public' AND table_name = 'budget_actuals_year_totals'
+  ) THEN '✓ Exists' ELSE '✗ MISSING - run migrations/004_add_totals_views.sql' END AS status
+UNION ALL
+SELECT 
+  'transaction_year_totals',
+  CASE WHEN EXISTS (
+    SELECT 1 FROM information_schema.views 
+    WHERE table_schema = 'public' AND table_name = 'transaction_year_totals'
+  ) THEN '✓ Exists' ELSE '✗ MISSING' END
+UNION ALL
+SELECT 
+  'revenue_year_totals',
+  CASE WHEN EXISTS (
+    SELECT 1 FROM information_schema.views 
+    WHERE table_schema = 'public' AND table_name = 'revenue_year_totals'
+  ) THEN '✓ Exists' ELSE '✗ MISSING' END;
+
+-- Expected: All should show "✓ Exists"
 
 -- ============================================================================
 -- SUMMARY

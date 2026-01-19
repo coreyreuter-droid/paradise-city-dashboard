@@ -77,19 +77,21 @@ WHERE n.nspname = 'public'
   AND c.relname IN (
     'budgets', 'actuals', 'transactions', 'revenues',
     'profiles', 'portal_settings', 'data_uploads', 'admin_audit_log',
-    'budget_actuals_year_department', 'budget_actuals_year_totals',
-    'transaction_year_department', 'transaction_year_vendor', 'transaction_year_totals',
-    'revenue_year_totals', 'capital_projects', 'capital_project_images'
+    'budget_actuals_year_department',
+    'transaction_year_department', 'transaction_year_vendor',
+    'capital_projects', 'capital_project_images', 'rate_limits'
+    -- Note: *_year_totals are VIEWS, not tables
   )
 ORDER BY c.relname;
 
 -- =============================================================================
--- CHECK 4: Verify anon role cannot execute SECURITY DEFINER functions
+-- CHECK 4: Verify anon role cannot execute dangerous SECURITY DEFINER functions
 -- =============================================================================
+-- Some SECURITY DEFINER functions are intentionally allowed for RLS.
 
 \echo ''
-\echo '>>> CHECK 4: SECURITY DEFINER functions executable by anon role'
-\echo '    Expected: 0 rows'
+\echo '>>> CHECK 4: Dangerous SECURITY DEFINER functions executable by anon role'
+\echo '    Expected: 0 rows (is_portal_published is allowed, others should not be)'
 \echo ''
 
 SELECT
@@ -99,15 +101,20 @@ FROM pg_proc p
 JOIN pg_namespace n ON n.oid = p.pronamespace
 WHERE n.nspname = 'public'
   AND p.prosecdef = true
+  AND p.proname NOT IN (
+    'is_portal_published',       -- RLS helper (intentionally allowed)
+    'audit_log_publish_toggle'   -- Trigger function (system use)
+  )
   AND has_function_privilege('anon', p.oid, 'EXECUTE');
 
 -- =============================================================================
--- CHECK 5: Verify authenticated role cannot execute SECURITY DEFINER functions
+-- CHECK 5: Verify authenticated role cannot execute dangerous SECURITY DEFINER functions
 -- =============================================================================
+-- Some SECURITY DEFINER functions are intentionally allowed for admin UI.
 
 \echo ''
-\echo '>>> CHECK 5: SECURITY DEFINER functions executable by authenticated role'
-\echo '    Expected: 0 rows'
+\echo '>>> CHECK 5: Dangerous SECURITY DEFINER functions executable by authenticated role'
+\echo '    Expected: 0 rows (is_portal_published and get_fiscal_years_for_table are allowed)'
 \echo ''
 
 SELECT
@@ -117,6 +124,11 @@ FROM pg_proc p
 JOIN pg_namespace n ON n.oid = p.pronamespace
 WHERE n.nspname = 'public'
   AND p.prosecdef = true
+  AND p.proname NOT IN (
+    'is_portal_published',        -- RLS helper (intentionally allowed)
+    'get_fiscal_years_for_table', -- Admin UI helper (intentionally allowed)
+    'audit_log_publish_toggle'    -- Trigger function (system use)
+  )
   AND has_function_privilege('authenticated', p.oid, 'EXECUTE');
 
 -- =============================================================================

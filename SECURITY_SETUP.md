@@ -38,6 +38,7 @@ Run each migration file in order:
 migrations/001_rate_limits.sql
 migrations/002_lock_down_security_definer.sql
 migrations/003_search_counts_rpc.sql
+migrations/004_add_totals_views.sql
 ```
 
 For each file:
@@ -47,12 +48,12 @@ For each file:
 
 ### 2c. Verify security
 
-Run `scripts/security-check.sql` in SQL Editor.
+Run `scripts/verify-tenant.sql` in SQL Editor.
 
 **Expected results:**
-- CHECK 1: 0 rows (no PUBLIC execute on SECURITY DEFINER)
-- CHECK 3: 0 rows (all data tables have RLS)
-- CHECK 4: 0 rows
+- CHECK 1: 0 rows (no dangerous SECURITY DEFINER functions exposed)
+- CHECK 2: All tables show "✓ Enabled"
+- CHECK 3-7: All show "✓ Exists" or similar
 - CHECK 5: 0 rows
 
 If any check fails, re-run migration 002.

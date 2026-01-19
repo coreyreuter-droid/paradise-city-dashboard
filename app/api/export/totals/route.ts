@@ -1,7 +1,9 @@
-// app/api/export/counts/route.ts
+// app/api/export/totals/route.ts
 // Returns all record counts at once for the download page
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { rateLimitAsync } from "@/lib/rateLimit";
+import { rateLimitKey } from "@/lib/rateLimitKey";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -10,8 +12,18 @@ if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
   throw new Error("Missing Supabase env vars");
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
+    // Rate limit: 30 requests per minute per IP
+    const key = rateLimitKey(req, "export_totals");
+    const allowed = await rateLimitAsync(key, 30, 60_000);
+    if (!allowed) {
+      return NextResponse.json(
+        { error: "Too many requests. Please try again later." },
+        { status: 429 }
+      );
+    }
+
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     // Run all count queries in parallel
