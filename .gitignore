@@ -42,3 +42,12 @@ next-env.d.ts
 
 # Sentry Config File
 .env.sentry-build-plugin
+
+# Editor/IDE
+.vscode/
+.idea/
+*.code-workspace
+
+# AI tooling
+.claude/
+.cursor/

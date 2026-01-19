@@ -6,11 +6,11 @@ Financial transparency platform for local governments.
 
 | Document | Purpose |
 |----------|---------|
-| [ONBOARDING.md](ONBOARDING.md) | New customer setup (start here) |
-| [ARCHITECTURE.md](ARCHITECTURE.md) | Technical architecture & code structure |
-| [SECURITY.md](SECURITY.md) | Security model & verification |
-| [ADMIN_AUTH_ROLES.md](ADMIN_AUTH_ROLES.md) | User roles & permissions |
-| [CONVENTIONS.md](CONVENTIONS.md) | Coding standards |
+| [ONBOARDING.md](docs/ONBOARDING.md) | New customer setup (start here) |
+| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Technical architecture & code structure |
+| [SECURITY.md](docs/SECURITY.md) | Security model & verification |
+| [ADMIN_AUTH_ROLES.md](docs/ADMIN_AUTH_ROLES.md) | User roles & permissions |
+| [CONVENTIONS.md](docs/CONVENTIONS.md) | Coding standards |
 
 ## Tech Stack
 
@@ -88,7 +88,7 @@ npm run build
 - Vercel deployment (from forked repo)
 - Subdomain ([customer].civiportal.com)
 
-See [ARCHITECTURE.md](ARCHITECTURE.md) for details.
+See [ARCHITECTURE.md](docs/ARCHITECTURE.md) for details.
 
 ## Key Directories
 
@@ -107,7 +107,7 @@ scripts/               # Setup & verification scripts
 
 ## Database Setup
 
-For new customers, see [ONBOARDING.md](ONBOARDING.md).
+For new customers, see [ONBOARDING.md](docs/ONBOARDING.md).
 
 For development:
 
