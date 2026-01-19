@@ -62,6 +62,10 @@ BEGIN
   RAISE NOTICE 'Complete. Locked down % SECURITY DEFINER function(s).', revoke_count;
 END $$;
 
+GRANT EXECUTE ON FUNCTION public.is_portal_published() TO anon;
+GRANT EXECUTE ON FUNCTION public.is_portal_published() TO authenticated;
+GRANT EXECUTE ON FUNCTION public.get_fiscal_years_for_table(text) TO authenticated;
+
 -- ============================================================================
 -- VERIFICATION
 -- ============================================================================
