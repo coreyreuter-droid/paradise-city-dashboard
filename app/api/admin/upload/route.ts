@@ -31,31 +31,10 @@ type FiscalConfig = {
   startDay: number; // 1–31
 };
 
-/**
- * Sanitize a record to prevent XSS attacks.
- * Strips script tags and escapes dangerous HTML characters from string values.
- */
-function sanitizeRecord(record: Record<string, unknown>): Record<string, unknown> {
-  const sanitized: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(record)) {
-    if (typeof value === 'string') {
-      // Remove script tags and event handlers
-      let safe = value
-        .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-        .replace(/on\w+\s*=/gi, '')
-        .replace(/javascript:/gi, '');
-      // Escape HTML entities for display safety
-      safe = safe
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;');
-      sanitized[key] = safe;
-    } else {
-      sanitized[key] = value;
-    }
-  }
-  return sanitized;
-}
+// NOTE: We intentionally do NOT sanitize/encode data at ingestion.
+// - React auto-escapes all rendered content, preventing XSS
+// - Storing raw data preserves integrity for exports and search
+// - HTML encoding at ingestion corrupts data (e.g., "AT&T" becomes "AT&amp;T")
 
 /**
  * Load fiscal-year start config from portal_settings.
@@ -383,10 +362,9 @@ export async function POST(req: NextRequest) {
     // 4) Load fiscal-year config and normalize fiscal_year on records
     const fiscalConfig = await getFiscalConfig();
 
-    // Sanitize and normalize records
+    // Normalize fiscal year on records (no sanitization - React handles XSS on render)
     const normalizedRecords = body.records.map((rec) => {
-      const sanitized = sanitizeRecord(rec);
-      return normalizeFiscalYearForRecord(sanitized, table, fiscalConfig);
+      return normalizeFiscalYearForRecord(rec, table, fiscalConfig);
     });
 
     // Compute years present in data *after* FY normalization
