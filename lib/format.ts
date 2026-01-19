@@ -122,3 +122,18 @@ export const formatCurrencyCompact = (
   return `${sign}$${abs.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
 };
 
+/**
+ * Format currency for chart axis labels.
+ * Uses compact notation: $1.2B, $1.2M, $500K, $0
+ */
+export const formatAxisCurrency = (value: number): string => {
+  if (value === 0) return "$0";
+  const abs = Math.abs(value);
+  const sign = value < 0 ? "-" : "";
+  if (abs >= 1_000_000_000) return `${sign}$${(abs / 1_000_000_000).toFixed(1)}B`;
+  if (abs >= 1_000_000) return `${sign}$${(abs / 1_000_000).toFixed(1)}M`;
+  if (abs >= 1_000) return `${sign}$${(abs / 1_000).toFixed(0)}K`;
+  return `${sign}$${abs.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
+};
+
+

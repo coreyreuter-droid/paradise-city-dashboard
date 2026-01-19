@@ -17,6 +17,7 @@ import {
 import CardContainer from "../CardContainer";
 import SectionHeader from "../SectionHeader";
 import { cityHref } from "@/lib/cityRouting";
+import { formatCurrency, formatPercent, formatAxisCurrency } from "@/lib/format";
 
 type RawRow = {
   fiscal_year: number;
@@ -62,28 +63,6 @@ type VendorSummary = {
   totalAmount: number;
   txCount: number;
   shareOfActuals: number;
-};
-
-const formatCurrency = (value: number) =>
-  value.toLocaleString("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 0,
-  });
-
-const formatPercent = (value: number) =>
-  `${value.toLocaleString("en-US", {
-    maximumFractionDigits: 1,
-  })}%`;
-
-const formatAxisCurrency = (value: number) => {
-  if (value === 0) return "$0";
-  const abs = Math.abs(value);
-  if (abs >= 1_000_000) return `$${(value / 1_000_000).toFixed(1)}M`;
-  if (abs >= 1_000) return `$${(value / 1_000).toFixed(0)}k`;
-  return `$${value.toLocaleString("en-US", {
-    maximumFractionDigits: 0,
-  })}`;
 };
 
 export default function DepartmentBudgetClient(props: Props) {

@@ -21,6 +21,8 @@ import NarrativeSummary from "../NarrativeSummary";
 import FiscalYearSelect from "../FiscalYearSelect";
 import DataTable, { DataTableColumn } from "../DataTable";
 import { cityHref } from "@/lib/cityRouting";
+import { formatCurrency, formatPercent, formatAxisCurrency } from "@/lib/format";
+import { computeSnappedDomain } from "@/lib/chartDomain";
 
 type Props = {
   sourceName: string;
@@ -34,24 +36,6 @@ type Props = {
   selectedYear: number;
   fiscalYearStartMonth: number;
 };
-
-const formatCurrency = (value: number) =>
-  value.toLocaleString("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 0,
-  });
-
-const formatAxisCurrency = (value: number) => {
-  if (value === 0) return "$0";
-  const abs = Math.abs(value);
-  if (abs >= 1_000_000) return `$${(value / 1_000_000).toFixed(1)}M`;
-  if (abs >= 1_000) return `$${(value / 1_000).toFixed(0)}k`;
-  return `$${value.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
-};
-
-const formatPercent = (value: number) =>
-  `${value.toFixed(1).replace(/-0\.0/, "0.0")}%`;
 
 const MONTH_NAMES = [
   "Jan", "Feb", "Mar", "Apr", "May", "Jun",
@@ -67,31 +51,6 @@ function fiscalPeriodToMonth(fiscalPeriod: number, fiscalYearStartMonth: number)
   // Period 1 = start month, Period 2 = start month + 1, etc.
   const monthIndex = ((fiscalYearStartMonth - 1) + (fiscalPeriod - 1)) % 12;
   return MONTH_NAMES[monthIndex];
-}
-
-function computeSnappedDomain(values: number[]): [number, number] {
-  const finite = values.filter((v) => Number.isFinite(v));
-  if (finite.length === 0) return [0, 100_000];
-
-  let min = Math.min(...finite);
-  let max = Math.max(...finite);
-
-  if (min === max) {
-    const pad = Math.max(Math.abs(min) * 0.1, 100_000);
-    min -= pad;
-    max += pad;
-  }
-
-  const range = max - min;
-  const pad = range * 0.08;
-  min -= pad;
-  max += pad;
-
-  const step = 100_000;
-  const snappedMin = Math.floor(min / step) * step;
-  const snappedMax = Math.ceil(max / step) * step;
-
-  return [snappedMin, snappedMax];
 }
 
 export default function RevenueSourceDetailClient({

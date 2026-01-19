@@ -12,7 +12,7 @@ import {
   CartesianGrid,
   Cell,
 } from "recharts";
-import { formatCurrency, formatPercent } from "@/lib/format";
+import { formatCurrency, formatPercent, formatAxisCurrency } from "@/lib/format";
 import type { DepartmentSummary } from "@/components/Budget/BudgetClient";
 
 // Decode common HTML entities
@@ -31,14 +31,6 @@ type Props = {
   accentColor?: string; // kept for API compatibility, not strictly needed
   showTable?: boolean; // Controls rendering of the inner table
   viewAllHref?: string; // Link to view all departments
-};
-
-const formatAxisCurrencyShort = (v: number) => {
-  if (v === 0) return "$0";
-  const abs = Math.abs(v);
-  if (abs >= 1_000_000) return `$${Math.round(v / 1_000_000)}M`;
-  if (abs >= 1_000) return `$${Math.round(v / 1_000)}k`;
-  return `$${v.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
 };
 
 const shortenLabel = (name: string) => {
@@ -120,7 +112,7 @@ export default function BudgetByDepartmentChart({
             <CartesianGrid strokeDasharray="3 3" horizontal={false} />
             <XAxis
               type="number"
-              tickFormatter={(v) => formatAxisCurrencyShort(Number(v))}
+              tickFormatter={(v) => formatAxisCurrency(Number(v))}
               tick={{ fontSize: 12, fill: "#334155" }}
             />
             <YAxis

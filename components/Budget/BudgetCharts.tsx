@@ -13,7 +13,7 @@ import {
   CartesianGrid,
   Cell,
 } from "recharts";
-import { formatCurrency, formatPercent } from "@/lib/format";
+import { formatCurrency, formatPercent, formatAxisCurrency } from "@/lib/format";
 
 // Decode common HTML entities in text
 const decodeHtmlEntities = (text: string): string => {
@@ -37,18 +37,6 @@ type Props = {
   departments: DepartmentSummary[];
   layout?: "two-column" | "stacked";
   viewAllHref?: string;
-};
-
-const formatAxisCurrency = (v: number) => {
-  if (v === 0) return "$0";
-  const abs = Math.abs(v);
-  if (abs >= 1_000_000) {
-    return `$${(v / 1_000_000).toFixed(1)}M`;
-  }
-  if (abs >= 1_000) {
-    return `$${(v / 1_000).toFixed(0)}K`;
-  }
-  return formatCurrency(v);
 };
 
 const shortenLabel = (name: string) => {

@@ -29,6 +29,8 @@ import DataTable, {
 import { cityHref } from "@/lib/cityRouting";
 import { buildDepartmentDetailNarrative } from "@/lib/narrativeHelpers";
 import { CITY_CONFIG } from "@/lib/cityConfig";
+import { formatCurrency, formatPercent, formatAxisCurrency } from "@/lib/format";
+import { computeSnappedDomain } from "@/lib/chartDomain";
 
 type Props = {
   departmentName?: string;
@@ -43,54 +45,6 @@ type Props = {
     actual_amount: number | string | null;
   }>;
 };
-
-const formatCurrency = (value: number) =>
-  value.toLocaleString("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 0,
-  });
-
-const formatAxisCurrency = (value: number) => {
-  if (value === 0) return "$0";
-  const abs = Math.abs(value);
-  if (abs >= 1_000_000) return `$${(value / 1_000_000).toFixed(1)}M`;
-  if (abs >= 1_000) return `$${(value / 1_000).toFixed(0)}k`;
-  return `$${value.toLocaleString("en-US", {
-    maximumFractionDigits: 0,
-  })}`;
-};
-
-function computeSnappedDomain(values: number[]): [number, number] {
-  const finite = values.filter((v) => Number.isFinite(v));
-  if (finite.length === 0) return [0, 100_000];
-
-  let min = Math.min(...finite);
-  let max = Math.max(...finite);
-
-  // If series is flat, pad it so Recharts has a visible range.
-  if (min === max) {
-    const pad = Math.max(Math.abs(min) * 0.1, 100_000);
-    min -= pad;
-    max += pad;
-  }
-
-  // Add a little breathing room.
-  const range = max - min;
-  const pad = range * 0.08;
-  min -= pad;
-  max += pad;
-
-  // Snap to 0.1M increments.
-  const step = 100_000;
-  const snappedMin = Math.floor(min / step) * step;
-  const snappedMax = Math.ceil(max / step) * step;
-
-  return [snappedMin, snappedMax];
-}
-
-const formatPercent = (value: number) =>
-  `${value.toFixed(1).replace(/-0\.0/, "0.0")}%`;
 
 const normalizeName = (name: string | null | undefined) =>
   (name ?? "").trim().toLowerCase();

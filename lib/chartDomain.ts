@@ -56,3 +56,37 @@ export function getMillionDomain<T extends Record<string, unknown>>(
   return [lowerM * 1_000_000, upperM * 1_000_000];
 }
 
+/**
+ * Compute a snapped Y-axis domain for chart values.
+ * Snaps to step increments (default 100K) for clean axis labels.
+ */
+export function computeSnappedDomain(
+  values: number[],
+  step = 100_000
+): [number, number] {
+  const finite = values.filter((v) => Number.isFinite(v));
+  if (finite.length === 0) return [0, step];
+
+  let min = Math.min(...finite);
+  let max = Math.max(...finite);
+
+  // If series is flat, pad it so the chart has a visible range.
+  if (min === max) {
+    const pad = Math.max(Math.abs(min) * 0.1, step);
+    min -= pad;
+    max += pad;
+  }
+
+  // Add breathing room.
+  const range = max - min;
+  const pad = range * 0.08;
+  min -= pad;
+  max += pad;
+
+  // Snap to step increments.
+  const snappedMin = Math.floor(min / step) * step;
+  const snappedMax = Math.ceil(max / step) * step;
+
+  return [snappedMin, snappedMax];
+}
+

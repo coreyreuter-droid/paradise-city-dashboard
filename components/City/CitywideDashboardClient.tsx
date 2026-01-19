@@ -19,7 +19,7 @@ import CardContainer from "../CardContainer";
 import SectionHeader from "../SectionHeader";
 import FiscalYearSelect from "../FiscalYearSelect";
 import BudgetByDepartmentChart from "../Analytics/BudgetByDepartmentChart";
-import { formatCurrency, formatPercent } from "@/lib/format";
+import { formatCurrency, formatPercent, formatAxisCurrency } from "@/lib/format";
 import { cityHref } from "@/lib/cityRouting";
 import type { BudgetActualsYearDeptRow, VendorYearSummary } from "@/lib/queries";
 
@@ -96,15 +96,6 @@ type Props = {
 
   revenueSummary?: RevenueSummary | null;
   fiscalYearNote?: string | null;
-};
-
-const formatAxisCurrencyShort = (v: number) => {
-  if (v === 0) return "$0";
-  const abs = Math.abs(v);
-  if (abs >= 1_000_000_000) return `$${(v / 1_000_000_000).toFixed(1)}B`;
-  if (abs >= 1_000_000) return `$${(v / 1_000_000).toFixed(1)}M`;
-  if (abs >= 1_000) return `$${(v / 1_000).toFixed(0)}K`;
-  return formatCurrency(v);
 };
 
 function buildTopNPlusOther(items: DistributionSlice[], topN: number): DistributionSlice[] {
@@ -762,7 +753,7 @@ const { yoyDomain, yoyTicks } = useMemo(() => {
 <YAxis
   domain={yoyDomain}
     ticks={yoyTicks}
-  tickFormatter={formatAxisCurrencyShort}
+  tickFormatter={formatAxisCurrency}
 />
 
                             <Tooltip

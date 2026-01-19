@@ -20,7 +20,8 @@ import {
   Legend,
 } from "recharts";
 import type { RevenueRow } from "@/lib/types";
-import { formatCurrency } from "@/lib/format";
+import { formatCurrency, formatAxisCurrency } from "@/lib/format";
+import { computeSnappedDomain } from "@/lib/chartDomain";
 import { buildRevenuesNarrative } from "@/lib/narrativeHelpers";
 import CardContainer from "../CardContainer";
 import SectionHeader from "../SectionHeader";
@@ -61,45 +62,6 @@ const TREEMAP_COLORS = [
 ];
 
 const REVENUE_LINE_COLOR = "#0f172a";
-
-const CURRENCY_COMPACT = new Intl.NumberFormat("en-US", {
-  notation: "compact",
-  compactDisplay: "short",
-  maximumFractionDigits: 1,
-});
-
-function formatCurrencyCompactTick(value: number) {
-  const n = Number(value);
-  if (!Number.isFinite(n)) return "";
-  const abs = Math.abs(n);
-  const sign = n < 0 ? "-" : "";
-  return `${sign}$${CURRENCY_COMPACT.format(abs)}`;
-}
-
-function computeSnappedDomain(values: number[]): [number, number] {
-  const finite = values.filter((v) => Number.isFinite(v));
-  if (finite.length === 0) return [0, 100_000];
-
-  let min = Math.min(...finite);
-  let max = Math.max(...finite);
-
-  if (min === max) {
-    const pad = Math.max(Math.abs(min) * 0.1, 100_000);
-    min -= pad;
-    max += pad;
-  }
-
-  const range = max - min;
-  const pad = range * 0.08;
-  min -= pad;
-  max += pad;
-
-  const step = 100_000; // 0.1M
-  const snappedMin = Math.floor(min / step) * step;
-  const snappedMax = Math.ceil(max / step) * step;
-
-  return [snappedMin, snappedMax];
-}
 
 function buildSearchUrl(
   pathname: string,
@@ -285,7 +247,7 @@ function TreemapLabels({ cells }: { cells: CellPosition[] }) {
                   textShadow: '0 1px 3px rgba(0,0,0,0.4)',
                 }}
               >
-                {formatCurrencyCompactTick(cell.value)}
+                {formatAxisCurrency(cell.value)}
               </span>
             )}
           </div>
@@ -791,7 +753,7 @@ export default function RevenuesDashboardClient({
                         />
                       <YAxis
                         domain={yoyDomain}
-                        tickFormatter={formatCurrencyCompactTick}
+                        tickFormatter={formatAxisCurrency}
                         tickLine={false}
                         axisLine={false}
                       />
@@ -802,7 +764,7 @@ export default function RevenuesDashboardClient({
                           }
                           formatter={(value, name) =>
                             typeof value === "number"
-                              ? [formatCurrencyCompactTick(value), name]
+                              ? [formatAxisCurrency(value), name]
                               : [String(value ?? ""), name]
                           }
                           contentStyle={{
