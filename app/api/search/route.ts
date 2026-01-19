@@ -2,6 +2,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { sanitizeSearchInput } from "@/lib/format";
+import { rateLimitAsync } from "@/lib/rateLimit";
+import { rateLimitKey } from "@/lib/rateLimitKey";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -43,6 +45,17 @@ const LIMIT_PER_CATEGORY = 3;
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
   try {
+    // Rate limit: 60 searches per minute per IP
+    const key = rateLimitKey(req, "search");
+    const { allowed, resetInSeconds } = await rateLimitAsync(key, 60, 60_000);
+
+    if (!allowed) {
+      return NextResponse.json(
+        { error: "Too many searches. Please slow down." },
+        { status: 429, headers: { "Retry-After": String(resetInSeconds) } }
+      );
+    }
+
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     const url = new URL(req.url);

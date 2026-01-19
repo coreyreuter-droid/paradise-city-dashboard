@@ -1,29 +1,29 @@
 // lib/supabaseService.ts
+// Service role client for admin operations (bypasses RLS)
+//
+// SECURITY: This module must NEVER be imported in client-side code.
+
 import { createClient } from "@supabase/supabase-js";
+import {
+  NEXT_PUBLIC_SUPABASE_URL,
+  SUPABASE_SERVICE_ROLE_KEY,
+} from "@/lib/env.server";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL as string | undefined;
-const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY as
-  | string
-  | undefined;
+// =============================================================================
+// SERVICE ROLE CLIENT
+// =============================================================================
+// Use this client for admin operations that need to bypass Row Level Security.
+// Examples: data uploads, user management, rollup refreshes.
+//
+// DO NOT use this for regular queries - use the anon client instead.
 
-if (!supabaseUrl) {
-  throw new Error(
-    "Missing NEXT_PUBLIC_SUPABASE_URL for Supabase admin client"
-  );
-}
-
-if (!serviceRoleKey) {
-  throw new Error(
-    "Missing SUPABASE_SERVICE_ROLE_KEY for Supabase admin client"
-  );
-}
-
-/**
- * Supabase client using the service role key.
- * SERVER-SIDE ONLY. Never import this into a client component.
- */
-export const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
-  auth: {
-    persistSession: false,
-  },
-});
+export const supabaseAdmin = createClient(
+  NEXT_PUBLIC_SUPABASE_URL,
+  SUPABASE_SERVICE_ROLE_KEY,
+  {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  }
+);

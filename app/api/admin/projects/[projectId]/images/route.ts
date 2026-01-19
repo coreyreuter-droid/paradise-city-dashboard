@@ -4,6 +4,7 @@ import { supabaseAdmin } from "@/lib/supabaseService";
 import { requireAdmin } from "@/lib/auth";
 import { requireCsrf } from "@/lib/csrf";
 import { CITY_SLUG } from "@/lib/cityRouting";
+import { isAllowedImageType, getImageTypeError, isAllowedImageSize, getImageSizeError } from "@/lib/imageTypes";
 import {
   getAdminProjectById,
   getProjectImageCount,
@@ -76,12 +77,13 @@ export async function POST(req: NextRequest, context: RouteContext) {
     }
 
     // Validate file type
-    if (!file.type.startsWith("image/")) {
-      return NextResponse.json(
-        { error: "File must be an image (PNG, JPG, WEBP, etc.)" },
-        { status: 400 }
-      );
-    }
+if (!isAllowedImageType(file.type)) {
+  return NextResponse.json({ error: getImageTypeError() }, { status: 400 });
+}
+
+if (!isAllowedImageSize(file.size)) {
+  return NextResponse.json({ error: getImageSizeError() }, { status: 400 });
+}
 
     // Validate alt text
     const finalAltText = altText?.trim() || `${project.title} image ${currentCount + 1}`;

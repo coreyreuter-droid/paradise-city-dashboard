@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseService";
 import { requireAdmin } from "@/lib/auth";
 import { requireCsrf } from "@/lib/csrf";
+import { isAllowedImageType, getImageTypeError, isAllowedImageSize, getImageSizeError } from "@/lib/imageTypes";
 
 // NOTE: You must have a public Storage bucket called "branding" in Supabase.
 
@@ -40,15 +41,13 @@ export async function POST(req: NextRequest) {
     }
 
     // 4) Check file type
-    if (!file.type.startsWith("image/")) {
-      return NextResponse.json(
-        {
-          error:
-            "Uploaded file must be an image (PNG/JPG/WEBP/etc.)",
-        },
-        { status: 400 }
-      );
-    }
+if (!isAllowedImageType(file.type)) {
+  return NextResponse.json({ error: getImageTypeError() }, { status: 400 });
+}
+
+if (!isAllowedImageSize(file.size)) {
+  return NextResponse.json({ error: getImageSizeError() }, { status: 400 });
+}
 
     const originalName = formData.get("filename") as string | null;
     const kindRaw = (formData.get("kind") as string | null) ?? "hero";
