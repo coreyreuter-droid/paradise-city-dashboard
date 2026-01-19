@@ -32,7 +32,7 @@ type SearchResults = {
   transactions: TransactionResult[];
   totalDepartments: number;
   totalVendors: number;
-  totalTransactions: number;
+  hasMoreTransactions: boolean;
 };
 
 type Props = {
@@ -92,7 +92,7 @@ export default function GlobalSearch({ fiscalYear, className = "" }: Props) {
         setActiveIndex(-1);
       } catch (err) {
         console.error("Search error:", err);
-        setResults({ departments: [], vendors: [], transactions: [], totalDepartments: 0, totalVendors: 0, totalTransactions: 0 });
+        setResults({ departments: [], vendors: [], transactions: [], totalDepartments: 0, totalVendors: 0, hasMoreTransactions: false });
       } finally {
         setIsLoading(false);
       }
@@ -455,7 +455,7 @@ export default function GlobalSearch({ fiscalYear, className = "" }: Props) {
                   }
                 />
               ))}
-              {results.totalTransactions > 3 && (
+              {results.hasMoreTransactions && (
                 <li>
                   <button
                     type="button"
@@ -636,7 +636,7 @@ export default function GlobalSearch({ fiscalYear, className = "" }: Props) {
                     </div>
                   </li>
                 ))}
-                {results && results.totalTransactions > 3 && (
+                {results && results.hasMoreTransactions && (
                   <li>
                     <button
                       type="button"

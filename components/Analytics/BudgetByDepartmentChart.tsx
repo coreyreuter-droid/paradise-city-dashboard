@@ -15,16 +15,6 @@ import {
 import { formatCurrency, formatPercent, formatAxisCurrency } from "@/lib/format";
 import type { DepartmentSummary } from "@/components/Budget/BudgetClient";
 
-// Decode common HTML entities
-const decodeHtmlEntities = (text: string): string => {
-  return text
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'");
-};
-
 type Props = {
   year: number;
   departments: DepartmentSummary[];
@@ -58,7 +48,7 @@ export default function BudgetByDepartmentChart({
     () => [...departments]
       .map(d => ({
         ...d,
-        department_name: decodeHtmlEntities(d.department_name || "Unspecified"),
+        department_name: d.department_name || "Unspecified",
       }))
       .sort((a, b) => b.budget - a.budget),
     [departments]

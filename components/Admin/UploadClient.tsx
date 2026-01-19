@@ -451,7 +451,7 @@ export default function UploadClient() {
   const [replaceYear, setReplaceYear] = useState<string>("");
   const [replaceYearConfirm, setReplaceYearConfirm] = useState<string>("");
   const [replaceTableConfirmed, setReplaceTableConfirmed] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [messageIsError, setMessageIsError] = useState(false);
@@ -639,7 +639,7 @@ export default function UploadClient() {
       return;
     }
 
-    setLoading(true);
+    setIsLoading(true);
     setMessage(null);
 
     try {
@@ -650,7 +650,7 @@ export default function UploadClient() {
 
       if (rows.length < 2) {
         setError("CSV appears to be empty or missing data rows.");
-        setLoading(false);
+        setIsLoading(false);
         return;
       }
 
@@ -682,7 +682,7 @@ export default function UploadClient() {
             "\n"
           )}${extra}`
         );
-        setLoading(false);
+        setIsLoading(false);
         return;
       }
 
@@ -692,7 +692,7 @@ export default function UploadClient() {
         targetYear = Number(replaceYear);
         if (!Number.isFinite(targetYear)) {
           setError("Fiscal year must be a valid number.");
-          setLoading(false);
+          setIsLoading(false);
           return;
         }
 
@@ -700,7 +700,7 @@ export default function UploadClient() {
           setError(
             "CSV contains no fiscal_year values; cannot perform year-specific replace."
           );
-          setLoading(false);
+          setIsLoading(false);
           return;
         }
 
@@ -711,7 +711,7 @@ export default function UploadClient() {
               ", "
             )}). For 'Replace this fiscal year only', upload a file that only contains fiscal_year = ${targetYear}.`
           );
-          setLoading(false);
+          setIsLoading(false);
           return;
         }
       }
@@ -734,7 +734,7 @@ export default function UploadClient() {
       setError("Failed to process CSV: " + (err instanceof Error ? err.message : "Unknown error"));
     }
 
-    setLoading(false);
+    setIsLoading(false);
   }
 
   async function handleConfirmUpload() {
@@ -752,7 +752,7 @@ export default function UploadClient() {
       return;
     }
 
-    setLoading(true);
+    setIsLoading(true);
     setMessage(null);
     setUploadProgress(`Uploading ${pendingRecords.length.toLocaleString()} rows...`);
 
@@ -768,7 +768,7 @@ export default function UploadClient() {
         setError(
           "You must be signed in as an admin to upload data. Please log in again."
         );
-        setLoading(false);
+        setIsLoading(false);
         setUploadProgress(null);
         return;
       }
@@ -805,7 +805,7 @@ export default function UploadClient() {
           result?.error ||
             "Upload failed on the server. Please try again or contact support."
         );
-        setLoading(false);
+        setIsLoading(false);
         setUploadProgress(null);
         return;
       }
@@ -834,7 +834,7 @@ export default function UploadClient() {
       setUploadProgress(null);
     }
 
-    setLoading(false);
+    setIsLoading(false);
   }
 
   function handleDownloadTemplate() {
@@ -1345,14 +1345,14 @@ export default function UploadClient() {
             <button
               type="button"
               onClick={handleConfirmUpload}
-              disabled={loading}
+              disabled={isLoading}
               className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
             >
-              {loading ? "Uploading..." : "Confirm upload"}
+              {isLoading ? "Uploading..." : "Confirm upload"}
             </button>
 
             {/* Upload progress indicator */}
-            {loading && uploadProgress && (
+            {isLoading && uploadProgress && (
               <div className="flex items-center gap-2 text-sm text-slate-700">
                 <svg
                   className="h-4 w-4 animate-spin text-slate-500"
@@ -1383,7 +1383,7 @@ export default function UploadClient() {
                 setPendingRecords(null);
                 setPendingYearsInData([]);
               }}
-              disabled={loading}
+              disabled={isLoading}
               className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
             >
               Back
@@ -1396,10 +1396,10 @@ export default function UploadClient() {
         <button
           type="button"
           onClick={handlePrepareUpload}
-          disabled={loading}
+          disabled={isLoading}
           className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
         >
-          {loading ? "Processing..." : "Review upload"}
+          {isLoading ? "Processing..." : "Review upload"}
         </button>
       )}
 

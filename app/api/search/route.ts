@@ -38,7 +38,7 @@ type SearchResponse = {
   transactions: TransactionResult[];
   totalDepartments: number;
   totalVendors: number;
-  totalTransactions: number;
+  hasMoreTransactions: boolean;
 };
 
 const LIMIT_PER_CATEGORY = 3;
@@ -73,7 +73,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
         transactions: [],
         totalDepartments: 0,
         totalVendors: 0,
-        totalTransactions: 0,
+        hasMoreTransactions: false,
       });
     }
 
@@ -81,7 +81,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     const fiscalYear = year ? Number(year) : null;
 
     // Run queries in parallel for performance
-    const [deptResult, vendorResult, txnResult, deptCount, vendorCount, txnCount] = await Promise.all([
+    const [deptResult, vendorResult, txnResult, deptCount, vendorCount, hasMoreTxns] = await Promise.all([
       // 1. Search departments from summary table
       (async () => {
         let q = supabase
@@ -227,13 +227,13 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
           const { data, error } = await q;
           if (error) {
             console.error("Transaction count error:", error);
-            return 0;
+            return false;
           }
-          // Return 4 if there are more than 3, otherwise actual count
-          return (data || []).length;
+          // Return true if there are more than 3 results
+          return (data || []).length > 3;
         } catch (err) {
           console.error("Transaction count exception:", err);
-          return 0;
+          return false;
         }
       })(),
     ]);
@@ -244,7 +244,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       transactions: txnResult,
       totalDepartments: deptCount,
       totalVendors: vendorCount,
-      totalTransactions: txnCount,
+      hasMoreTransactions: hasMoreTxns,
     });
   } catch (err) {
     console.error("Search route error:", err);

@@ -15,16 +15,6 @@ import {
 } from "recharts";
 import { formatCurrency, formatPercent, formatAxisCurrency } from "@/lib/format";
 
-// Decode common HTML entities in text
-const decodeHtmlEntities = (text: string): string => {
-  return text
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'");
-};
-
 export type DepartmentSummary = {
   department_name: string;
   budget: number;
@@ -74,7 +64,7 @@ export default function BudgetCharts({
   const chartData = useMemo(
     () =>
       departments.map((d) => ({
-        name: decodeHtmlEntities(d.department_name || "Unspecified"),
+        name: d.department_name || "Unspecified",
         Budget: d.budget,
         Actual: d.actuals,
         PercentSpent: d.percentSpent,
