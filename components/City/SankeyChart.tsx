@@ -314,9 +314,8 @@ export default function SankeyChart({ revenues, departments, height = 400 }: Pro
       const sourceSlug = node.fullLabel.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/-+$/, "");
       router.push(cityHref(`/revenues/${encodeURIComponent(sourceSlug)}`));
     } else if (node.column === 2 && node.id !== "dept-other") {
-      // Department - go to department detail
-      const slug = node.fullLabel.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/-+$/, "");
-      router.push(cityHref(`/budget/department/${slug}`));
+      // Department - go to department detail (use full name, not slug)
+      router.push(cityHref(`/departments/${encodeURIComponent(node.fullLabel)}`));
     }
   };
 
@@ -333,8 +332,8 @@ export default function SankeyChart({ revenues, departments, height = 400 }: Pro
     else if (target.startsWith("dept-") && target !== "dept-other") {
       const node = nodes.find(n => n.id === target);
       if (node) {
-        const slug = node.fullLabel.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/-+$/, "");
-        router.push(cityHref(`/budget/department/${slug}`));
+        // Use full name, not slug
+        router.push(cityHref(`/departments/${encodeURIComponent(node.fullLabel)}`));
       }
     }
   };
