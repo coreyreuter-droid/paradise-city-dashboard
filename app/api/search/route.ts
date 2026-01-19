@@ -183,46 +183,30 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
         }));
       })(),
 
-      // 4. Count total UNIQUE departments matching query
+      // 4. Count total UNIQUE departments matching query (via DB function)
       (async () => {
-        let q = supabase
-          .from("budget_actuals_year_department")
-          .select("department_name")
-          .ilike("department_name", searchPattern);
-
-        if (fiscalYear && Number.isFinite(fiscalYear)) {
-          q = q.eq("fiscal_year", fiscalYear);
-        }
-
-        const { data, error } = await q;
+        const { data, error } = await supabase.rpc("search_count_departments", {
+          _pattern: searchPattern,
+          _fiscal_year: fiscalYear,
+        });
         if (error) {
           console.error("Department count error:", error);
           return 0;
         }
-        // Count unique department names
-        const uniqueNames = new Set((data || []).map(r => r.department_name?.toLowerCase()));
-        return uniqueNames.size;
+        return data ?? 0;
       })(),
 
-      // 5. Count total UNIQUE vendors matching query
+      // 5. Count total UNIQUE vendors matching query (via DB function)
       (async () => {
-        let q = supabase
-          .from("transaction_year_vendor")
-          .select("vendor")
-          .ilike("vendor", searchPattern);
-
-        if (fiscalYear && Number.isFinite(fiscalYear)) {
-          q = q.eq("fiscal_year", fiscalYear);
-        }
-
-        const { data, error } = await q;
+        const { data, error } = await supabase.rpc("search_count_vendors", {
+          _pattern: searchPattern,
+          _fiscal_year: fiscalYear,
+        });
         if (error) {
           console.error("Vendor count error:", error);
           return 0;
         }
-        // Count unique vendor names
-        const uniqueNames = new Set((data || []).map(r => r.vendor?.toLowerCase()));
-        return uniqueNames.size;
+        return data ?? 0;
       })(),
 
       // 6. Check if there are more transactions (don't count all - too slow)
