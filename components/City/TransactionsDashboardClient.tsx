@@ -118,7 +118,7 @@ export default function TransactionsDashboardClient({
       vendorQuery &&
       vendorQuery.trim().length > 0
     ) {
-      filters.push(`Vendor contains "${vendorQuery.trim()}"`);
+      filters.push(`Contains "${vendorQuery.trim()}"`);
     }
     return filters;
   }, [selectedYear, effectiveDeptFilter, vendorQuery, enableVendors]);
@@ -355,18 +355,18 @@ export default function TransactionsDashboardClient({
                     </select>
                   </div>
 
-                  {/* Vendor search – only when vendors are enabled */}
+                  {/* Text search – only when vendors are enabled */}
                   {enableVendors && (
                     <form
                       onSubmit={handleSearchSubmit}
                       className="flex w-full min-w-[220px] flex-col gap-1 sm:w-64"
-                      aria-label="Vendor search"
+                      aria-label="Transaction search"
                     >
                       <label
                         htmlFor="vendor-search"
                         className="text-xs font-medium text-slate-700"
                       >
-                        Vendor contains
+                        Search
                       </label>
                       <div className="flex gap-2">
                         <input
@@ -377,7 +377,7 @@ export default function TransactionsDashboardClient({
                             setVendorInput(e.target.value)
                           }
                           className="flex-1 rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-900 shadow-sm focus:border-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900"
-                          placeholder="e.g. Utilities Inc"
+                          placeholder="vendor, dept, or description"
                         />
                         <button
                           type="submit"

@@ -670,7 +670,10 @@ export async function getTransactionsPage(options: {
   if (vendorQuery && vendorQuery.trim().length > 0) {
     const sanitized = sanitizeSearchInput(vendorQuery);
     if (sanitized) {
-      query = query.ilike("vendor", `%${sanitized}%`);
+      // Search across vendor, description, and department_name
+      query = query.or(
+        `vendor.ilike.%${sanitized}%,description.ilike.%${sanitized}%,department_name.ilike.%${sanitized}%`
+      );
     }
   }
 
