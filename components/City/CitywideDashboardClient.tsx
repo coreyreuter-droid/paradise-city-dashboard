@@ -21,22 +21,8 @@ import FiscalYearSelect from "../FiscalYearSelect";
 import BudgetByDepartmentChart from "../Analytics/BudgetByDepartmentChart";
 import { formatCurrency, formatPercent, formatAxisCurrency } from "@/lib/format";
 import { cityHref } from "@/lib/cityRouting";
+import { BUDGET_COLOR, ACTUAL_COLOR, PIE_COLORS, getPieColor } from "@/lib/chartConfig";
 import type { BudgetActualsYearDeptRow, VendorYearSummary } from "@/lib/queries";
-
-
-const BUDGET_COLOR = "#334155";
-const ACTUAL_COLOR = "#0f766e";
-
-const PIE_COLORS = [
-  "#0f172a", // slate-900
-  "#334155", // slate-700
-  "#64748b", // slate-500
-  "#0f766e", // teal-700 (positive alt)
-  "#15803d", // green-700 (positive)
-  "#b45309", // amber-700 (warning)
-  "#b91c1c", // red-700 (negative)
-  "#94a3b8", // slate-400 (fallback)
-];
 
 
 type DepartmentSummary = {
@@ -496,7 +482,7 @@ const { yoyDomain, yoyTicks } = useMemo(() => {
                               >
                                 {budgetDistribution.map((entry, index) => {
                                   const isOther = entry.name === "Other";
-                                  const color = isOther ? "#94a3b8" : PIE_COLORS[index % PIE_COLORS.length];
+                                  const color = getPieColor(index, isOther);
                                   return <Cell key={entry.name} fill={color} />;
                                 })}
                               </Pie>
@@ -530,7 +516,7 @@ const { yoyDomain, yoyTicks } = useMemo(() => {
                           <ul className="mt-2 space-y-2 text-sm text-slate-700">
                             {budgetDistribution.map((slice, idx) => {
                               const isOther = slice.name === "Other";
-                              const color = isOther ? "#94a3b8" : PIE_COLORS[idx % PIE_COLORS.length];
+                              const color = getPieColor(idx, isOther);
                               const pct =
                                 distributionTotalBudget === 0 ? 0 : (slice.value / distributionTotalBudget) * 100;
                               return (
@@ -589,7 +575,7 @@ const { yoyDomain, yoyTicks } = useMemo(() => {
                               >
                                 {actualsDistribution.map((entry, index) => {
                                   const isOther = entry.name === "Other";
-                                  const color = isOther ? "#94a3b8" : PIE_COLORS[index % PIE_COLORS.length];
+                                  const color = getPieColor(index, isOther);
                                   return <Cell key={entry.name} fill={color} />;
                                 })}
                               </Pie>
@@ -624,7 +610,7 @@ const { yoyDomain, yoyTicks } = useMemo(() => {
                           <ul className="mt-2 space-y-2 text-sm text-slate-700">
                             {actualsDistribution.map((slice, idx) => {
                               const isOther = slice.name === "Other";
-                              const color = isOther ? "#94a3b8" : PIE_COLORS[idx % PIE_COLORS.length];
+                              const color = getPieColor(idx, isOther);
                               const pct =
                                 distributionTotalActuals === 0 ? 0 : (slice.value / distributionTotalActuals) * 100;
                               return (

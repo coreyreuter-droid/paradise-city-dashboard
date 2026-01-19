@@ -30,6 +30,7 @@ import FiscalYearSelect from "../FiscalYearSelect";
 import DataTable, { DataTableColumn } from "../DataTable";
 import { CITY_CONFIG } from "@/lib/cityConfig";
 import { cityHref } from "@/lib/cityRouting";
+import { TREEMAP_COLORS, REVENUE_LINE_COLOR } from "@/lib/chartConfig";
 
 type Props = {
   years: number[];
@@ -48,20 +49,6 @@ type RevenueSourceRow = {
 };
 
 type DistributionSlice = { name: string; value: number };
-
-// Colors for treemap - gradient from dark to light for visual hierarchy
-const TREEMAP_COLORS = [
-  "#0f172a", // slate-900
-  "#1e293b", // slate-800
-  "#334155", // slate-700
-  "#475569", // slate-600
-  "#64748b", // slate-500
-  "#0f766e", // teal-700
-  "#15803d", // green-700
-  "#b45309", // amber-700
-];
-
-const REVENUE_LINE_COLOR = "#0f172a";
 
 function buildSearchUrl(
   pathname: string,
