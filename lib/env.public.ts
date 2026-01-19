@@ -32,7 +32,7 @@ if (typeof window === "undefined") {
   const validUrlPattern = /^https?:\/\//;
   if (!validUrlPattern.test(NEXT_PUBLIC_SUPABASE_URL)) {
     throw new Error(
-      \`NEXT_PUBLIC_SUPABASE_URL must start with http:// or https://. Got: \${NEXT_PUBLIC_SUPABASE_URL}\`
+      "NEXT_PUBLIC_SUPABASE_URL must start with http:// or https://. Got: " + NEXT_PUBLIC_SUPABASE_URL
     );
   }
 }
