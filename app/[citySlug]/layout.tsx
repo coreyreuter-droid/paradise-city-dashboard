@@ -1,12 +1,14 @@
 // app/[citySlug]/layout.tsx
 import type { ReactNode } from "react";
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import ParadiseSidebar from "@/components/ParadiseSidebar";
 import { CITY_CONFIG } from "@/lib/cityConfig";
 import { supabaseAdmin } from "@/lib/supabaseService";
 import CityShell from "@/components/City/CityShell";
 import { generateThemeVars } from "@/lib/theme";
 import LegalFooter from "@/components/LegalFooter";
+import { isValidSlug } from "@/lib/tenant";
 
 type PortalSettingsRow = {
   city_name: string | null;
@@ -69,9 +71,17 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function CityLayout({
   children,
+  params,
 }: {
   children: ReactNode;
+  params: Promise<{ citySlug: string }>;
 }) {
+  // Validate slug matches this deployment's configured city
+  const { citySlug } = await params;
+  if (!isValidSlug(citySlug)) {
+    notFound();
+  }
+
   const settings = await getPortalSettings();
 
   // Generate CSS custom properties for theme colors
