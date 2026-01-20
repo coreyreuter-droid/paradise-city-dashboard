@@ -385,7 +385,7 @@ export default function UploadClient() {
 
         // Shrink chunk until it fits under limit
         while (bytes > MAX_BYTES && end > start + 1) {
-          end = start + Math.max(1, Math.floor((end - start) * 0.6));
+          end = start + Math.max(1, Math.floor((end - start) * 0.8));
           chunk = pendingRecords.slice(start, end);
           payload = {
             table: preflight.table,
