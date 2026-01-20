@@ -355,24 +355,56 @@ export default function UploadClient() {
         return;
       }
 
-      // Chunk records to stay under Vercel's 4.5MB request limit
-      // ~15,000 records per chunk is safe for typical CSV data
-      const CHUNK_SIZE = 15000;
+      console.log("UPLOAD_CLIENT_BUILD", "chunking-bytes-v2", new Date().toISOString());
+
+      // Byte-based chunking to stay under Vercel's 4.5MB request limit
+      // Row count varies by table width, so we calculate actual JSON size
+      const MAX_BYTES = 3_800_000; // Safe margin under 4.5MB
       const totalRecords = pendingRecords.length;
-      const totalChunks = Math.ceil(totalRecords / CHUNK_SIZE);
       
+      let start = 0;
+      let chunkIndex = 0;
       let insertedTotal = 0;
+      const chunkSizes: number[] = [];
 
-      for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
-        const start = chunkIndex * CHUNK_SIZE;
-        const end = Math.min(start + CHUNK_SIZE, totalRecords);
-        const chunk = pendingRecords.slice(start, end);
-
-        // First chunk uses original mode, subsequent chunks append
+      while (start < totalRecords) {
+        // Initial guess: 2000 rows (conservative)
+        let end = Math.min(start + 2000, totalRecords);
+        let chunk = pendingRecords.slice(start, end);
         const chunkMode = chunkIndex === 0 ? preflight.mode : "append";
 
+        let payload = {
+          table: preflight.table,
+          mode: chunkMode,
+          replaceYear: chunkIndex === 0 ? preflight.replaceYear : null,
+          records: chunk,
+          filename: file.name,
+          yearsInData: pendingYearsInData,
+        };
+        let bytes = new TextEncoder().encode(JSON.stringify(payload)).length;
+
+        // Shrink chunk until it fits under limit
+        while (bytes > MAX_BYTES && end > start + 1) {
+          end = start + Math.max(1, Math.floor((end - start) * 0.6));
+          chunk = pendingRecords.slice(start, end);
+          payload = {
+            table: preflight.table,
+            mode: chunkMode,
+            replaceYear: chunkIndex === 0 ? preflight.replaceYear : null,
+            records: chunk,
+            filename: file.name,
+            yearsInData: pendingYearsInData,
+          };
+          bytes = new TextEncoder().encode(JSON.stringify(payload)).length;
+        }
+
+        chunkSizes.push(chunk.length);
+        const estimatedTotalChunks = Math.ceil(totalRecords / (chunk.length || 1));
+
+        console.log(`[upload] chunk ${chunkIndex + 1}`, { start, end, rows: chunk.length, bytes, mode: chunkMode });
+
         setUploadProgress(
-          `Uploading chunk ${chunkIndex + 1} of ${totalChunks} (${start.toLocaleString()}-${end.toLocaleString()} of ${totalRecords.toLocaleString()} rows)...`
+          `Uploading chunk ${chunkIndex + 1} of ~${estimatedTotalChunks} (${chunk.length.toLocaleString()} rows, ${(bytes / 1_000_000).toFixed(1)}MB)...`
         );
 
         const resp = await csrfFetch("/api/admin/upload", {
@@ -381,35 +413,49 @@ export default function UploadClient() {
             "Content-Type": "application/json",
             Authorization: `Bearer ${session.access_token}`,
           },
-          body: JSON.stringify({
-            table: preflight.table,
-            mode: chunkMode,
-            replaceYear: chunkIndex === 0 ? preflight.replaceYear : null,
-            records: chunk,
-            filename: file.name,
-            yearsInData: pendingYearsInData,
-          }),
+          body: JSON.stringify(payload),
         });
 
-        const result = await resp.json();
-
+        // Handle non-JSON error responses (like 413)
+        const contentType = resp.headers.get("content-type") || "";
+        
         if (!resp.ok) {
-          console.error("Upload API error:", resp.status, result);
-
+          let errorMsg: string;
+          if (contentType.includes("application/json")) {
+            const result = await resp.json();
+            errorMsg = result?.error || "Unknown error";
+          } else {
+            const text = await resp.text();
+            errorMsg = `HTTP ${resp.status}: ${text.slice(0, 200)}`;
+          }
+          
+          console.error("Upload API error:", resp.status, errorMsg);
           setError(
-            `Upload failed on chunk ${chunkIndex + 1} of ${totalChunks}. ${insertedTotal.toLocaleString()} rows were inserted before the error. Error: ${result?.error || "Unknown error"}`
+            `Upload failed on chunk ${chunkIndex + 1}. ${insertedTotal.toLocaleString()} rows were inserted before the error. Error: ${errorMsg}`
           );
           setIsLoading(false);
           setUploadProgress(null);
           return;
         }
 
+        if (!contentType.includes("application/json")) {
+          const text = await resp.text();
+          console.error("Non-JSON response:", contentType, text.slice(0, 200));
+          setError(`Unexpected response format: ${text.slice(0, 200)}`);
+          setIsLoading(false);
+          setUploadProgress(null);
+          return;
+        }
+
+        await resp.json(); // Consume response
         insertedTotal += chunk.length;
+        start = end;
+        chunkIndex++;
       }
 
       // Final result message
       const result = {
-        message: `Successfully uploaded ${insertedTotal.toLocaleString()} records to "${preflight.table}" in ${totalChunks} chunk(s).`,
+        message: `Successfully uploaded ${insertedTotal.toLocaleString()} records to "${preflight.table}" in ${chunkIndex} chunk(s).`,
       };
 
       setUploadProgress(null);
