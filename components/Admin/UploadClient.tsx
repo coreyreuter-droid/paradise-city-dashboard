@@ -368,8 +368,8 @@ export default function UploadClient() {
       const chunkSizes: number[] = [];
 
       while (start < totalRecords) {
-        // Initial guess: 2000 rows (conservative)
-        let end = Math.min(start + 2000, totalRecords);
+        // 1000 rows (conservative)
+        let end = Math.min(start + 1000, totalRecords);
         let chunk = pendingRecords.slice(start, end);
         const chunkMode = chunkIndex === 0 ? preflight.mode : "append";
 
