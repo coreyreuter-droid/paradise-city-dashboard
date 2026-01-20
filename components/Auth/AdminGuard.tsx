@@ -60,11 +60,11 @@ export default function AdminGuard({ children }: Props) {
       }
 
       const role = data?.role as string | null;
-      const isAdmin =
-        role === "admin" || role === "super_admin";
+      const canAccessAdmin =
+        role === "admin" || role === "super_admin" || role === "viewer";
 
-      if (!isAdmin) {
-        // Logged in but not admin → kick back to public portal
+      if (!canAccessAdmin) {
+        // Logged in but no admin panel access → kick back to public portal
         router.replace(cityHref("/"));
         return;
       }

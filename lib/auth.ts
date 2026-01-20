@@ -118,3 +118,80 @@ export async function requireSuperAdmin(req: NextRequest): Promise<RequireAdminR
   
   return result;
 }
+
+/**
+ * Validates that the request has a valid session with admin panel access.
+ * Allows viewer, admin, and super_admin roles.
+ * Use this for read-only admin endpoints.
+ */
+export async function requireAdminOrViewer(req: NextRequest): Promise<RequireAdminResult> {
+  const authHeader = req.headers.get("authorization") ?? "";
+  const token = authHeader.replace(/^Bearer\s+/i, "").trim();
+
+  if (!token) {
+    return {
+      success: false,
+      error: NextResponse.json(
+        { error: "Missing access token" },
+        { status: 401 }
+      ),
+    };
+  }
+
+  const supabaseAuthed = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    global: {
+      headers: { Authorization: `Bearer ${token}` },
+    },
+    auth: { persistSession: false },
+  });
+
+  const { data: { user }, error: userError } = await supabaseAuthed.auth.getUser();
+
+  if (userError || !user) {
+    return {
+      success: false,
+      error: NextResponse.json(
+        { error: "Invalid or expired session" },
+        { status: 401 }
+      ),
+    };
+  }
+
+  const { data: profile, error: profileError } = await supabaseAuthed
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+
+  if (profileError || !profile) {
+    return {
+      success: false,
+      error: NextResponse.json(
+        { error: "Failed to load user profile" },
+        { status: 500 }
+      ),
+    };
+  }
+
+  const role = profile.role as string;
+  const canAccess = role === "viewer" || role === "admin" || role === "super_admin";
+
+  if (!canAccess) {
+    return {
+      success: false,
+      error: NextResponse.json(
+        { error: "Admin panel access required" },
+        { status: 403 }
+      ),
+    };
+  }
+
+  return {
+    success: true,
+    data: {
+      user: { id: user.id, email: user.email },
+      profile: { role },
+      supabaseAuthed,
+    },
+  };
+}

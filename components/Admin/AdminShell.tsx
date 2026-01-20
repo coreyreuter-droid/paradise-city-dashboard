@@ -35,6 +35,7 @@ const NAV_ROW_2: { href: string; label: string }[] = [
 
 
 type PublishState = "unknown" | "published" | "draft";
+type UserRole = "unknown" | "viewer" | "admin" | "super_admin";
 
 export default function AdminShell({
   title,
@@ -46,6 +47,7 @@ export default function AdminShell({
 
   const [publishState, setPublishState] =
     useState<PublishState>("unknown");
+  const [userRole, setUserRole] = useState<UserRole>("unknown");
 
   // Normalize full URL for each tab
   const buildFullHref = (slug: string) => {
@@ -87,6 +89,37 @@ export default function AdminShell({
     }
 
     loadPublishState();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Load current user's role
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadUserRole() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (cancelled || !user) return;
+
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (cancelled) return;
+
+      if (error || !data) {
+        setUserRole("unknown");
+        return;
+      }
+
+      setUserRole(data.role as UserRole);
+    }
+
+    loadUserRole();
 
     return () => {
       cancelled = true;
@@ -171,6 +204,19 @@ export default function AdminShell({
                     Publish status
                   </Link>{" "}
                   to mark the site as published.
+                </p>
+              </div>
+            )}
+
+            {/* View-only mode banner for viewers */}
+            {userRole === "viewer" && (
+              <div className="mb-3 flex flex-col gap-1 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-[11px] text-blue-800 sm:flex-row sm:items-center sm:justify-between">
+                <p>
+                  <span className="font-semibold">View-only mode.</span>{" "}
+                  You can browse the admin panel but cannot make changes.
+                </p>
+                <p>
+                  Contact your administrator if you need edit access.
                 </p>
               </div>
             )}
