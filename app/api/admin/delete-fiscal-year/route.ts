@@ -125,7 +125,7 @@ export async function POST(req: NextRequest) {
       row_count: count ?? 0,
       fiscal_year: fiscalYear,
       filename: null,
-      admin_identifier: auth.user.email ?? auth.user.id,
+      admin_identifier: auth.data.user.email ?? auth.data.user.id,
     });
 
     if (auditError) {
