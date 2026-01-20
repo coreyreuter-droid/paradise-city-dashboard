@@ -380,6 +380,8 @@ export default function UploadClient() {
           records: chunk,
           filename: file.name,
           yearsInData: pendingYearsInData,
+          totalRowCount: chunkIndex === 0 ? totalRecords : undefined,
+          skipAuditLog: chunkIndex > 0,
         };
         let bytes = new TextEncoder().encode(JSON.stringify(payload)).length;
 
@@ -394,6 +396,8 @@ export default function UploadClient() {
             records: chunk,
             filename: file.name,
             yearsInData: pendingYearsInData,
+            totalRowCount: chunkIndex === 0 ? totalRecords : undefined,
+            skipAuditLog: chunkIndex > 0,
           };
           bytes = new TextEncoder().encode(JSON.stringify(payload)).length;
         }

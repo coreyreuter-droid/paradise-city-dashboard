@@ -21,6 +21,8 @@ type UploadPayload = {
   records: Record<string, unknown>[];
   filename?: string;
   yearsInData?: number[]; // from client — we'll recompute on server after FY normalization
+  totalRowCount?: number; // Total rows across all chunks (for audit log on first chunk)
+  skipAuditLog?: boolean; // True for continuation chunks
 };
 
 const MAX_RECORDS_PER_UPLOAD = 250_000;
@@ -544,28 +546,30 @@ if (table === "revenues") {
       insertedCount += chunk.length;
     }
 
-    // 7) Audit log
-    const fiscalYearForAudit =
-      mode === "replace_year"
-        ? replaceYear
-        : yearsInData.length === 1
-        ? yearsInData[0]
-        : null;
+    // 7) Audit log (only on first chunk, use totalRowCount if provided)
+    if (body.skipAuditLog !== true) {
+      const fiscalYearForAudit =
+        mode === "replace_year"
+          ? replaceYear
+          : yearsInData.length === 1
+          ? yearsInData[0]
+          : null;
 
-    const adminIdentifier = user.email ?? user.id;
+      const adminIdentifier = user.email ?? user.id;
 
-    const { error: auditError } = await supabaseAdmin.from("data_uploads").insert({
-      table_name: table,
-      mode,
-      row_count: insertedCount,
-      fiscal_year: fiscalYearForAudit,
-      filename: body.filename ?? null,
-      admin_identifier: adminIdentifier,
-    });
+      const { error: auditError } = await supabaseAdmin.from("data_uploads").insert({
+        table_name: table,
+        mode,
+        row_count: body.totalRowCount ?? insertedCount,
+        fiscal_year: fiscalYearForAudit,
+        filename: body.filename ?? null,
+        admin_identifier: adminIdentifier,
+      });
 
-    if (auditError) {
-      console.error("Admin upload audit log error:", auditError);
-      // non-fatal
+      if (auditError) {
+        console.error("Admin upload audit log error:", auditError);
+        // non-fatal
+      }
     }
 
     // 8) Recompute summaries if transactions were uploaded

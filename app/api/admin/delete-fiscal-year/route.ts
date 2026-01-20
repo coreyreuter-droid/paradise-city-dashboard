@@ -118,6 +118,21 @@ export async function POST(req: NextRequest) {
       // If revenue_year_totals is a view, it's already correct after base delete.
     }
 
+    // Audit log the deletion
+    const { error: auditError } = await supabaseAdmin.from("data_uploads").insert({
+      table_name: table,
+      mode: "delete",
+      row_count: count ?? 0,
+      fiscal_year: fiscalYear,
+      filename: null,
+      admin_identifier: auth.user.email ?? auth.user.id,
+    });
+
+    if (auditError) {
+      console.error("Delete audit log error:", auditError);
+      // non-fatal
+    }
+
     return NextResponse.json({
       message: `Deleted FY${fiscalYear} from ${table}. Rows deleted: ${count ?? 0}.`,
       deleted: count ?? 0,
