@@ -13,6 +13,8 @@ import { generateThemeVars } from "@/lib/theme";
 import LegalFooter from "@/components/LegalFooter";
 import { isValidSlug } from "@/lib/tenant";
 
+import { unstable_noStore as noStore } from "next/cache";
+
 type PortalSettingsRow = {
   city_name: string | null;
   tagline: string | null;
@@ -30,6 +32,7 @@ type PortalSettingsRow = {
 };
 
 async function getPortalSettings(): Promise<PortalSettingsRow | null> {
+  noStore(); // Prevent Next.js from caching this fetch
   try {
     const { data, error } = await supabaseAdmin
       .from("portal_settings")
@@ -43,6 +46,14 @@ async function getPortalSettings(): Promise<PortalSettingsRow | null> {
       console.error("CityLayout: failed to load portal_settings", error);
       return null;
     }
+
+    // Debug log - remove after confirming fix
+    console.log("PORTAL_SETTINGS_DEBUG", {
+      enable_transactions: data?.enable_transactions,
+      is_published: data?.is_published,
+      supabaseUrlHost: new URL(process.env.NEXT_PUBLIC_SUPABASE_URL || "").host,
+      ts: new Date().toISOString(),
+    });
 
     return (data as PortalSettingsRow) ?? null;
   } catch (err) {
