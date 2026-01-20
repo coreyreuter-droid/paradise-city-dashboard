@@ -192,7 +192,7 @@ CREATE TABLE public.transactions (
   vendor TEXT,
   description TEXT,
   amount NUMERIC NOT NULL,
-  search_fts TSVECTOR DEFAULT to_tsvector('english', (COALESCE(vendor, '') || ' ' || COALESCE(description, ''))),
+  search_fts TSVECTOR GENERATED ALWAYS AS (to_tsvector('english', (COALESCE(vendor, '') || ' ' || COALESCE(description, '')))) STORED,
   fiscal_period INTEGER CHECK (fiscal_period IS NULL OR (fiscal_period >= 1 AND fiscal_period <= 12)),
   CONSTRAINT transactions_pkey PRIMARY KEY (id)
 );

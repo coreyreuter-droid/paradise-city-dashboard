@@ -4,53 +4,16 @@
 -- Run this after setting up a new customer database to verify everything
 -- is configured correctly.
 --
--- Expected: All checks should return 0 rows (except CHECK 2 which shows status)
+-- Expected: All rows should show "PASS"
 -- ============================================================================
 
--- ============================================================================
--- CHECK 1: SECURITY DEFINER functions are locked down
--- ============================================================================
--- These functions run with elevated privileges and should NOT be callable
--- by anonymous or authenticated users (except approved helpers).
-
-SELECT '=== CHECK 1: SECURITY DEFINER functions exposed to anon/authenticated ===' AS check_name;
-
-SELECT
-  p.proname AS function_name,
-  CASE WHEN has_function_privilege('anon', p.oid, 'EXECUTE') THEN 'YES' ELSE 'NO' END AS anon_can_execute,
-  CASE WHEN has_function_privilege('authenticated', p.oid, 'EXECUTE') THEN 'YES' ELSE 'NO' END AS auth_can_execute
-FROM pg_proc p
-JOIN pg_namespace n ON p.pronamespace = n.oid
-WHERE n.nspname = 'public'
-  AND p.prosecdef = true
-  AND p.proname NOT IN (
-    -- Approved functions that need to be callable
-    'is_portal_published',       -- RLS helper (anon + authenticated)
-    'get_fiscal_years_for_table', -- Admin UI helper (authenticated only)
-    'audit_log_publish_toggle'   -- Trigger function (system use)
-  )
-  AND (
-    has_function_privilege('anon', p.oid, 'EXECUTE')
-    OR has_function_privilege('authenticated', p.oid, 'EXECUTE')
-  );
-
--- Expected: 0 rows
-
--- ============================================================================
--- CHECK 2: RLS is enabled on all data tables
--- ============================================================================
-
-SELECT '=== CHECK 2: RLS status on data tables ===' AS check_name;
-
-SELECT
-  schemaname,
-  tablename,
-  CASE WHEN rowsecurity THEN '✓ Enabled' ELSE '✗ DISABLED' END AS rls_status
+SELECT 'RLS Enabled' AS check_type, tablename AS item, 
+  CASE WHEN rowsecurity THEN 'PASS' ELSE 'FAIL' END AS status
 FROM pg_tables
 WHERE schemaname = 'public'
   AND tablename IN (
     'profiles',
-    'portal_settings', 
+    'portal_settings',
     'budgets',
     'actuals',
     'transactions',
@@ -61,151 +24,71 @@ WHERE schemaname = 'public'
     'data_uploads',
     'admin_audit_log',
     'rate_limits'
-    -- Note: *_year_totals are VIEWS (not tables), they inherit security from base tables
   )
-ORDER BY tablename;
 
--- Expected: All should show "✓ Enabled"
-
--- ============================================================================
--- CHECK 3: Required functions exist
--- ============================================================================
-
-SELECT '=== CHECK 3: Required functions exist ===' AS check_name;
-
-SELECT 
-  'is_portal_published' AS function_name,
-  CASE WHEN EXISTS (
-    SELECT 1 FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'is_portal_published'
-  ) THEN '✓ Exists' ELSE '✗ MISSING' END AS status
 UNION ALL
-SELECT 
-  'get_fiscal_years_for_table',
-  CASE WHEN EXISTS (
-    SELECT 1 FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'get_fiscal_years_for_table'
-  ) THEN '✓ Exists' ELSE '✗ MISSING' END
+
+SELECT 'Function Exists', proname, 'PASS'
+FROM pg_proc p 
+JOIN pg_namespace n ON p.pronamespace = n.oid
+WHERE n.nspname = 'public' 
+  AND p.proname IN (
+    'is_portal_published',
+    'get_fiscal_years_for_table',
+    'search_count_departments',
+    'search_count_vendors',
+    'refresh_budget_actuals_rollup_for_year',
+    'refresh_transaction_rollups_for_year'
+  )
+
 UNION ALL
-SELECT 
-  'search_count_departments',
-  CASE WHEN EXISTS (
-    SELECT 1 FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'search_count_departments'
-  ) THEN '✓ Exists' ELSE '✗ MISSING' END
+
+SELECT 'View Exists', table_name, 'PASS'
+FROM information_schema.views
+WHERE table_schema = 'public' 
+  AND table_name IN (
+    'budget_actuals_year_totals',
+    'transaction_year_totals',
+    'revenue_year_totals'
+  )
+
 UNION ALL
-SELECT 
-  'search_count_vendors',
-  CASE WHEN EXISTS (
-    SELECT 1 FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'search_count_vendors'
-  ) THEN '✓ Exists' ELSE '✗ MISSING' END
+
+SELECT 'Portal Settings', 'Row exists', 
+  CASE WHEN COUNT(*) = 1 THEN 'PASS' ELSE 'FAIL' END
+FROM portal_settings 
+WHERE id = 1
+
 UNION ALL
-SELECT 
-  'refresh_budget_actuals_rollup_for_year',
-  CASE WHEN EXISTS (
-    SELECT 1 FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'refresh_budget_actuals_rollup_for_year'
-  ) THEN '✓ Exists' ELSE '✗ MISSING' END
+
+SELECT 'Security', 'SECURITY DEFINER locked down',
+  CASE WHEN COUNT(*) = 0 THEN 'PASS' ELSE 'FAIL' END
+FROM pg_proc p
+JOIN pg_namespace n ON p.pronamespace = n.oid
+WHERE n.nspname = 'public'
+  AND p.prosecdef = true
+  AND p.proname NOT IN ('is_portal_published', 'get_fiscal_years_for_table', 'audit_log_publish_toggle')
+  AND (
+    has_function_privilege('anon', p.oid, 'EXECUTE')
+    OR has_function_privilege('authenticated', p.oid, 'EXECUTE')
+  )
+
 UNION ALL
-SELECT 
-  'refresh_transaction_rollups_for_year',
-  CASE WHEN EXISTS (
-    SELECT 1 FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'refresh_transaction_rollups_for_year'
-  ) THEN '✓ Exists' ELSE '✗ MISSING' END;
 
--- Expected: All should show "✓ Exists"
-
--- ============================================================================
--- CHECK 4: Portal settings row exists
--- ============================================================================
-
-SELECT '=== CHECK 4: Portal settings initialized ===' AS check_name;
-
-SELECT 
-  CASE WHEN COUNT(*) = 1 THEN '✓ Portal settings row exists' 
-       ELSE '✗ MISSING - run: INSERT INTO portal_settings (id) VALUES (1)' 
-  END AS status
-FROM portal_settings
-WHERE id = 1;
-
--- Expected: "✓ Portal settings row exists"
-
--- ============================================================================
--- CHECK 5: Rate limits table exists
--- ============================================================================
-
-SELECT '=== CHECK 5: Rate limits table ===' AS check_name;
-
-SELECT 
-  CASE WHEN EXISTS (
-    SELECT 1 FROM information_schema.tables 
-    WHERE table_schema = 'public' AND table_name = 'rate_limits'
-  ) THEN '✓ rate_limits table exists' 
-  ELSE '✗ MISSING - run migrations/001_rate_limits.sql' 
-  END AS status;
-
--- Expected: "✓ rate_limits table exists"
-
--- ============================================================================
--- CHECK 6: Helper function permissions
--- ============================================================================
-
-SELECT '=== CHECK 6: Helper function permissions ===' AS check_name;
-
-SELECT
-  'is_portal_published' AS function_name,
+SELECT 'Permissions', 'is_portal_published callable by anon',
   CASE WHEN has_function_privilege('anon', 'is_portal_published()', 'EXECUTE') 
-       THEN '✓ anon can execute' 
-       ELSE '✗ anon CANNOT execute (RLS will fail)' 
-  END AS anon_status,
-  CASE WHEN has_function_privilege('authenticated', 'is_portal_published()', 'EXECUTE') 
-       THEN '✓ auth can execute' 
-       ELSE '✗ auth CANNOT execute' 
-  END AS auth_status;
+    THEN 'PASS' ELSE 'FAIL' END
 
--- Expected: Both should show "✓"
+ORDER BY check_type, item;
 
 -- ============================================================================
--- CHECK 7: Totals views exist
+-- EXPECTED RESULTS: ~24 rows, ALL should say "PASS"
+--
+-- If any row says "FAIL":
+--   - RLS FAIL: ALTER TABLE [table] ENABLE ROW LEVEL SECURITY;
+--   - Function missing: Re-run schema.sql or relevant migration
+--   - View missing: Run migrations/004_add_totals_views.sql
+--   - Portal Settings FAIL: INSERT INTO portal_settings (id) VALUES (1);
+--   - Security FAIL: Run migrations/002_lock_down_security_definer.sql
+--   - Permissions FAIL: GRANT EXECUTE ON FUNCTION is_portal_published() TO anon;
 -- ============================================================================
-
-SELECT '=== CHECK 7: Totals views exist ===' AS check_name;
-
-SELECT 
-  'budget_actuals_year_totals' AS view_name,
-  CASE WHEN EXISTS (
-    SELECT 1 FROM information_schema.views 
-    WHERE table_schema = 'public' AND table_name = 'budget_actuals_year_totals'
-  ) THEN '✓ Exists' ELSE '✗ MISSING - run migrations/004_add_totals_views.sql' END AS status
-UNION ALL
-SELECT 
-  'transaction_year_totals',
-  CASE WHEN EXISTS (
-    SELECT 1 FROM information_schema.views 
-    WHERE table_schema = 'public' AND table_name = 'transaction_year_totals'
-  ) THEN '✓ Exists' ELSE '✗ MISSING' END
-UNION ALL
-SELECT 
-  'revenue_year_totals',
-  CASE WHEN EXISTS (
-    SELECT 1 FROM information_schema.views 
-    WHERE table_schema = 'public' AND table_name = 'revenue_year_totals'
-  ) THEN '✓ Exists' ELSE '✗ MISSING' END;
-
--- Expected: All should show "✓ Exists"
-
--- ============================================================================
--- SUMMARY
--- ============================================================================
-
-SELECT '=== VERIFICATION COMPLETE ===' AS summary;
-SELECT 'If all checks passed, this tenant is ready for use.' AS next_steps;
-SELECT 'If any checks failed, see ONBOARDING.md for remediation steps.' AS help;

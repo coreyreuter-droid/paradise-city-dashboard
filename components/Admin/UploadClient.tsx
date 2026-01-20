@@ -355,42 +355,62 @@ export default function UploadClient() {
         return;
       }
 
-      // Update progress for large uploads
-      if (pendingRecords.length > 10000) {
+      // Chunk records to stay under Vercel's 4.5MB request limit
+      // ~15,000 records per chunk is safe for typical CSV data
+      const CHUNK_SIZE = 15000;
+      const totalRecords = pendingRecords.length;
+      const totalChunks = Math.ceil(totalRecords / CHUNK_SIZE);
+      
+      let insertedTotal = 0;
+
+      for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
+        const start = chunkIndex * CHUNK_SIZE;
+        const end = Math.min(start + CHUNK_SIZE, totalRecords);
+        const chunk = pendingRecords.slice(start, end);
+
+        // First chunk uses original mode, subsequent chunks append
+        const chunkMode = chunkIndex === 0 ? preflight.mode : "append";
+
         setUploadProgress(
-          `Processing ${pendingRecords.length.toLocaleString()} rows... This may take a few minutes for large files.`
+          `Uploading chunk ${chunkIndex + 1} of ${totalChunks} (${start.toLocaleString()}-${end.toLocaleString()} of ${totalRecords.toLocaleString()} rows)...`
         );
+
+        const resp = await csrfFetch("/api/admin/upload", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            table: preflight.table,
+            mode: chunkMode,
+            replaceYear: chunkIndex === 0 ? preflight.replaceYear : null,
+            records: chunk,
+            filename: file.name,
+            yearsInData: pendingYearsInData,
+          }),
+        });
+
+        const result = await resp.json();
+
+        if (!resp.ok) {
+          console.error("Upload API error:", resp.status, result);
+
+          setError(
+            `Upload failed on chunk ${chunkIndex + 1} of ${totalChunks}. ${insertedTotal.toLocaleString()} rows were inserted before the error. Error: ${result?.error || "Unknown error"}`
+          );
+          setIsLoading(false);
+          setUploadProgress(null);
+          return;
+        }
+
+        insertedTotal += chunk.length;
       }
 
-      const resp = await csrfFetch("/api/admin/upload", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({
-          table: preflight.table,
-          mode: preflight.mode,
-          replaceYear: preflight.replaceYear,
-          records: pendingRecords,
-          filename: file.name,
-          yearsInData: pendingYearsInData,
-        }),
-      });
-
-      const result = await resp.json();
-
-      if (!resp.ok) {
-        console.error("Upload API error:", resp.status, result);
-
-        setError(
-          result?.error ||
-            "Upload failed on the server. Please try again or contact support."
-        );
-        setIsLoading(false);
-        setUploadProgress(null);
-        return;
-      }
+      // Final result message
+      const result = {
+        message: `Successfully uploaded ${insertedTotal.toLocaleString()} records to "${preflight.table}" in ${totalChunks} chunk(s).`,
+      };
 
       setUploadProgress(null);
       setInfo(result?.message || "Upload completed successfully.");
