@@ -48,7 +48,8 @@ export default function ParadiseSidebar({
 
   const pathname = usePathname();
 
-  const [branding] = useState<PortalBranding | null>(initialBranding);
+  // Use prop directly instead of stale state
+  const branding = initialBranding;
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const mobileNavRef = useRef<HTMLElement>(null);
