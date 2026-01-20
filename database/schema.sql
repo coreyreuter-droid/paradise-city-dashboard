@@ -110,6 +110,7 @@ CREATE TABLE public.portal_settings (
   enable_transactions BOOLEAN NOT NULL DEFAULT false,
   enable_vendors BOOLEAN NOT NULL DEFAULT false,
   enable_revenues BOOLEAN NOT NULL DEFAULT false,
+  enable_projects BOOLEAN NOT NULL DEFAULT false,
   
   -- Fiscal Year Config
   fiscal_year_start_month SMALLINT,
