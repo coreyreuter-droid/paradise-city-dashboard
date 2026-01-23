@@ -427,38 +427,46 @@ export default function AdminOnboardingPage() {
         <div className="flex flex-col gap-6">
           {/* Stepper navigation */}
           <nav aria-label="Onboarding steps">
-            <ol className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-stretch sm:gap-3">
+            <ol className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {visibleSteps.map((step, index) => {
                 const stepStatus = status[step.key];
                 const isActive = activeStep === step.key;
 
                 return (
-                  <li key={step.key} className="flex-1 min-w-[140px]">
+                  <li key={step.key}>
                     <button
                       type="button"
                       onClick={() => setActiveStep(step.key)}
-                      className={`flex h-full w-full flex-col justify-between rounded-xl border px-3 py-2 text-left text-sm outline-none transition focus-visible:ring-2 focus-visible:ring-slate-900 ${
+                      className={`flex h-full w-full flex-col rounded-xl border p-3 text-left outline-none transition focus-visible:ring-2 focus-visible:ring-slate-900 ${
                         isActive
-                          ? "border-slate-900 bg-slate-50"
-                          : "border-slate-200 bg-slate-50 hover:bg-slate-100"
+                          ? "border-slate-900 bg-white shadow-sm"
+                          : "border-slate-200 bg-white hover:border-slate-300"
                       }`}
                       aria-current={isActive ? "step" : undefined}
                     >
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2">
+                      {/* Top row: step number + status */}
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                          Step {index + 1}
+                        </span>
+                        <div className="flex items-center gap-1.5">
                           {statusCircle(stepStatus)}
-                          <span className="font-medium text-slate-900">
-                            {index + 1}. {step.title}
+                          <span className="text-[11px] font-medium text-slate-500">
+                            {stepStatus === "loading" ? "" : statusLabel(stepStatus)}
                           </span>
                         </div>
-                        <span className="text-xs text-slate-700">
-                          {stepStatus === "loading" ? "" : statusLabel(stepStatus)}
-                        </span>
                       </div>
-                      <p className="mt-1 text-xs text-slate-700">
+                      
+                      {/* Title */}
+                      <p className="font-semibold text-sm text-slate-900 leading-tight">
+                        {step.title}
+                      </p>
+                      
+                      {/* Description */}
+                      <p className="mt-1.5 text-xs text-slate-600 leading-relaxed">
                         {step.description}
                         {step.optional && (
-                          <span className="ml-1 text-slate-500">(optional)</span>
+                          <span className="ml-1 text-slate-400">(optional)</span>
                         )}
                       </p>
                     </button>
