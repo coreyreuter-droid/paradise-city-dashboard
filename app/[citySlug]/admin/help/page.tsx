@@ -11,20 +11,20 @@ export default function AdminHelpPage() {
     <AdminGuard>
       <AdminShell
         title="Help & FAQs"
-        description="Answers to common questions about data uploads, fiscal years, modules, publishing, and admin access."
+        description="Answers to common questions about data uploads, branding, modules, capital projects, and publishing."
       >
         <div className="space-y-6 text-sm text-slate-700">
-          {/* Intro */}
+          {/* Quick links */}
           <section aria-label="Help overview" className="space-y-2">
             <p className="text-xs text-slate-700">
-              This page is designed to help our staff manage CiviPortal on their own—especially during annual
-              budget cycles—without needing to contact the vendor for every question.
+              This page helps staff manage CiviPortal independently—especially during annual
+              budget cycles—without needing vendor support for every question.
             </p>
 
-            <div className="grid gap-3 text-xs sm:grid-cols-4">
+            <div className="grid gap-3 text-xs sm:grid-cols-2 lg:grid-cols-4">
               <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-                <p className="font-semibold text-slate-900">Getting ready for a new fiscal year</p>
-                <p className="mt-1 text-slate-700">Recommended upload order and "what to check" after imports.</p>
+                <p className="font-semibold text-slate-900">Getting started</p>
+                <p className="mt-1 text-slate-700">New fiscal year setup and upload order.</p>
                 <Link
                   href="#getting-ready"
                   className="mt-1 inline-flex text-[11px] font-semibold text-slate-800 underline-offset-2 hover:underline"
@@ -34,10 +34,8 @@ export default function AdminHelpPage() {
               </div>
 
               <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-                <p className="font-semibold text-slate-900">Fiscal year basics (read this first)</p>
-                <p className="mt-1 text-slate-700">
-                  How fiscal years are labeled, how "period" works, and why some months show under next FY.
-                </p>
+                <p className="font-semibold text-slate-900">Fiscal year basics</p>
+                <p className="mt-1 text-slate-700">How FY labels and periods work.</p>
                 <Link
                   href="#fiscal-year-basics"
                   className="mt-1 inline-flex text-[11px] font-semibold text-slate-800 underline-offset-2 hover:underline"
@@ -47,10 +45,10 @@ export default function AdminHelpPage() {
               </div>
 
               <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-                <p className="font-semibold text-slate-900">Upload formats & errors</p>
-                <p className="mt-1 text-slate-700">Templates, validation rules, and common fixes.</p>
+                <p className="font-semibold text-slate-900">Branding & images</p>
+                <p className="mt-1 text-slate-700">Logos, hero images, file sizes, and formats.</p>
                 <Link
-                  href="#uploads"
+                  href="#branding"
                   className="mt-1 inline-flex text-[11px] font-semibold text-slate-800 underline-offset-2 hover:underline"
                 >
                   Jump to section →
@@ -58,10 +56,10 @@ export default function AdminHelpPage() {
               </div>
 
               <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-                <p className="font-semibold text-slate-900">Modules, publish, & access</p>
-                <p className="mt-1 text-slate-700">What residents see depends on modules, publish status, and roles.</p>
+                <p className="font-semibold text-slate-900">Capital projects</p>
+                <p className="mt-1 text-slate-700">Adding projects, images, and statuses.</p>
                 <Link
-                  href="#modules"
+                  href="#capital-projects"
                   className="mt-1 inline-flex text-[11px] font-semibold text-slate-800 underline-offset-2 hover:underline"
                 >
                   Jump to section →
@@ -100,6 +98,9 @@ export default function AdminHelpPage() {
               <li>
                 If the Revenues module is enabled, upload <span className="font-semibold">revenues</span>.
               </li>
+              <li>
+                Update <span className="font-semibold">landing page content</span> (year-in-review, capital projects highlight) if needed.
+              </li>
             </ol>
 
             <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs">
@@ -119,20 +120,20 @@ export default function AdminHelpPage() {
                 </li>
                 <li className="text-slate-600">
                   Tip: If you uploaded a year and don&apos;t see it on the public site, check the{" "}
-                  <span className="font-semibold">Fiscal year basics</span> section below first—your month may map to
+                  <span className="font-semibold">Fiscal year basics</span> section below—your month may map to
                   the next fiscal year depending on your FY start date.
                 </li>
               </ul>
             </div>
           </section>
 
-          {/* Fiscal year basics */}
+          {/* 2. Fiscal year basics */}
           <section
             id="fiscal-year-basics"
             aria-label="Fiscal year basics"
             className="space-y-3 rounded-xl border border-slate-200 bg-white p-4"
           >
-            <h2 className="text-sm font-semibold text-slate-900">Fiscal year basics (how years & periods work)</h2>
+            <h2 className="text-sm font-semibold text-slate-900">2. Fiscal year basics (how years & periods work)</h2>
 
             <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
               <p className="font-semibold">Important (this prevents 90% of confusion):</p>
@@ -149,99 +150,187 @@ export default function AdminHelpPage() {
                   ).
                 </li>
                 <li>
-                  The portal then derives <span className="font-mono">fiscal_year</span> from the month using your
+                  The portal derives <span className="font-mono">fiscal_year</span> from the month using your
                   city&apos;s fiscal year start date.
                 </li>
                 <li>
                   If your FY starts July 1: <span className="font-mono">2027-08</span> (Aug 2027) belongs to{" "}
                   <span className="font-semibold">FY2028</span> (because FY2028 = Jul 2027–Jun 2028).
                 </li>
-                <li>
-                  The “month number within the fiscal year” is stored as{" "}
-                  <span className="font-mono">fiscal_period</span> (1–12). For a July-start FY: July = period 1, June =
-                  period 12.
-                </li>
               </ul>
             </div>
 
             <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">
               <p className="font-semibold text-slate-900">
-                How each dataset works (what determines fiscal year and period)
+                How each dataset works
               </p>
-
               <ul className="mt-1 list-disc space-y-2 pl-5">
                 <li>
                   <span className="font-semibold">Budgets:</span> Uses{" "}
-                  <span className="font-mono">fiscal_year</span> directly (FY labeled by ending year). Budgets are stored
-                  at the fiscal-year level (no monthly <span className="font-mono">period</span> field). Example (July
-                  FY start): <span className="font-semibold">FY2028</span> = Jul 2027–Jun 2028.
+                  <span className="font-mono">fiscal_year</span> directly. No monthly period field.
                 </li>
-
                 <li>
                   <span className="font-semibold">Actuals:</span> Uses{" "}
-                  <span className="font-mono">period</span> as a{" "}
-                  <span className="font-semibold">calendar month</span> in{" "}
-                  <span className="font-mono">YYYY-MM</span>. The portal derives{" "}
-                  <span className="font-mono">fiscal_year</span> and{" "}
-                  <span className="font-mono">fiscal_period</span> from{" "}
-                  <span className="font-mono">period</span> using the city’s FY start date. Example (July FY start):{" "}
-                  <span className="font-mono">2027-08</span> →{" "}
-                  <span className="font-semibold">FY2028</span>.
+                  <span className="font-mono">period</span> as a calendar month (<span className="font-mono">YYYY-MM</span>).
+                  The portal derives fiscal_year from period.
                 </li>
-
                 <li>
-                  <span className="font-semibold">Revenues:</span> Same model as actuals.{" "}
-                  <span className="font-mono">period</span> is a calendar month{" "}
-                  (<span className="font-mono">YYYY-MM</span>), and the portal derives{" "}
-                  <span className="font-mono">fiscal_year</span> +{" "}
-                  <span className="font-mono">fiscal_period</span> from it.
+                  <span className="font-semibold">Revenues:</span> Same as actuals—period is a calendar month.
                 </li>
-
                 <li>
                   <span className="font-semibold">Transactions:</span> Uses{" "}
-                  <span className="font-mono">date</span> (calendar date). The portal derives{" "}
-                  <span className="font-mono">fiscal_year</span> +{" "}
-                  <span className="font-mono">fiscal_period</span> from the date using the city’s FY start (June 30 vs
-                  July 1 flips FY in a July-start city).
+                  <span className="font-mono">date</span> (calendar date). The portal derives fiscal_year from date.
                 </li>
               </ul>
-
-              <p className="mt-2 text-xs text-slate-600">
-                Note: For actuals, revenues, and transactions, the portal treats{" "}
-                <span className="font-semibold">date/period as the source of truth</span> and normalizes fiscal year to
-                prevent mixed conventions.
-              </p>
             </div>
 
-            <div className="grid gap-3 text-xs sm:grid-cols-2">
-              <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-                <p className="font-semibold text-slate-900">Transactions</p>
-                <p className="mt-1 text-slate-700">
-                  Transactions use a calendar <span className="font-semibold">date</span>. The portal derives the fiscal
-                  year from that date using your FY start date (June 30 vs July 1 flips FY in a July-start city).
-                </p>
-              </div>
-
-              <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-                <p className="font-semibold text-slate-900">Budgets</p>
-                <p className="mt-1 text-slate-700">
-                  Budgets are stored by <span className="font-semibold">fiscal_year</span> (ending-year label). Make
-                  sure your budget file uses FY labels, not calendar-year labels.
-                </p>
-              </div>
+            <div className="text-xs text-slate-700">
+              <p className="font-semibold text-slate-900">Where to configure fiscal year</p>
+              <p className="mt-1">
+                Go to{" "}
+                <Link href={cityHref("/admin/settings")} className="font-semibold underline-offset-2 hover:underline">
+                  Admin → Branding & settings
+                </Link>{" "}
+                and open the <span className="font-semibold">Fiscal Year</span> section. Set your start month (e.g., July) and day (e.g., 1).
+              </p>
             </div>
           </section>
 
-          {/* 2. Uploads & CSV formats */}
+          {/* 3. Branding & Images */}
+          <section
+            id="branding"
+            aria-label="Branding and images"
+            className="space-y-3 rounded-xl border border-slate-200 bg-white p-4"
+          >
+            <h2 className="text-sm font-semibold text-slate-900">3. Branding & images</h2>
+            <p className="text-xs text-slate-700">
+              Configure your portal&apos;s visual identity in{" "}
+              <Link href={cityHref("/admin/settings")} className="font-semibold underline-offset-2 hover:underline">
+                Admin → Branding & settings
+              </Link>
+              . The settings page uses collapsible sections—click a section header to expand it.
+            </p>
+
+            <div className="grid gap-3 text-xs sm:grid-cols-2">
+              <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                <p className="font-semibold text-slate-900">Image requirements</p>
+                <ul className="mt-1 list-disc space-y-1 pl-4 text-slate-700">
+                  <li><span className="font-semibold">Max file size:</span> 5MB per image</li>
+                  <li><span className="font-semibold">Formats:</span> PNG, JPEG, WebP</li>
+                  <li><span className="font-semibold">Logo:</span> Square, PNG with transparency recommended</li>
+                  <li><span className="font-semibold">Seal:</span> Square, optional</li>
+                  <li><span className="font-semibold">Hero:</span> 1920×600 or wider landscape</li>
+                  <li><span className="font-semibold">Leader photo:</span> Square, 112×112 display size</li>
+                  <li><span className="font-semibold">Featured projects:</span> 800×450 landscape</li>
+                </ul>
+              </div>
+
+              <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                <p className="font-semibold text-slate-900">How to upload images</p>
+                <ul className="mt-1 list-disc space-y-1 pl-4 text-slate-700">
+                  <li>Open the <span className="font-semibold">Branding</span> section in settings</li>
+                  <li>Click the dashed drop zone or drag a file onto it</li>
+                  <li>Image uploads immediately (no need to click Save first)</li>
+                  <li>Hover over an image and click ✕ to delete it</li>
+                  <li>Click <span className="font-semibold">Save changes</span> to persist all settings</li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs">
+              <p className="font-semibold text-slate-900">Settings page sections</p>
+              <ul className="mt-1 list-disc space-y-1 pl-5 text-slate-700">
+                <li><span className="font-semibold">Modules Enable/Disable:</span> Toggle which data modules residents can see</li>
+                <li><span className="font-semibold">Branding:</span> Gov name, tagline, colors, logo, seal, hero image</li>
+                <li><span className="font-semibold">Landing Page Sections:</span> Toggle visibility of landing page sections</li>
+                <li><span className="font-semibold">Story Sections:</span> Hero message, gov description, year-in-review</li>
+                <li><span className="font-semibold">Leadership:</span> Leader name, title, message, and photo</li>
+                <li><span className="font-semibold">Gov Stats:</span> Population, employees, area</li>
+                <li><span className="font-semibold">Capital Projects:</span> Highlight text and 3 featured project cards</li>
+                <li><span className="font-semibold">Fiscal Year:</span> Start month, day, and public label</li>
+              </ul>
+            </div>
+          </section>
+
+          {/* 4. Capital Projects */}
+          <section
+            id="capital-projects"
+            aria-label="Capital projects"
+            className="space-y-3 rounded-xl border border-slate-200 bg-white p-4"
+          >
+            <h2 className="text-sm font-semibold text-slate-900">4. Capital projects</h2>
+            <p className="text-xs text-slate-700">
+              The Capital Projects module lets you showcase infrastructure investments like roads, parks, facilities, and utilities.
+            </p>
+
+            <div className="grid gap-3 text-xs sm:grid-cols-2">
+              <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                <p className="font-semibold text-slate-900">Enabling capital projects</p>
+                <ul className="mt-1 list-disc space-y-1 pl-4 text-slate-700">
+                  <li>
+                    Go to{" "}
+                    <Link href={cityHref("/admin/settings")} className="font-semibold underline-offset-2 hover:underline">
+                      Admin → Branding & settings
+                    </Link>
+                  </li>
+                  <li>Open the <span className="font-semibold">Modules Enable/Disable</span> section</li>
+                  <li>Check <span className="font-semibold">Capital Projects</span></li>
+                  <li>Save changes</li>
+                </ul>
+              </div>
+
+              <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                <p className="font-semibold text-slate-900">Managing projects</p>
+                <ul className="mt-1 list-disc space-y-1 pl-4 text-slate-700">
+                  <li>
+                    Go to{" "}
+                    <Link href={cityHref("/admin/projects")} className="font-semibold underline-offset-2 hover:underline">
+                      Admin → Capital Projects
+                    </Link>
+                  </li>
+                  <li>Click <span className="font-semibold">New Project</span> to add one</li>
+                  <li>Click a project card to edit details</li>
+                  <li>Projects appear on the public Projects page when published</li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs">
+              <p className="font-semibold text-slate-900">Project fields</p>
+              <ul className="mt-1 list-disc space-y-1 pl-5 text-slate-700">
+                <li><span className="font-semibold">Title:</span> Project name (e.g., "Main Street Reconstruction")</li>
+                <li><span className="font-semibold">Description:</span> What the project delivers and its impact</li>
+                <li><span className="font-semibold">Category:</span> Infrastructure, Parks, Facilities, Utilities, Other</li>
+                <li><span className="font-semibold">Status:</span> Planning, In Progress, Completed, On Hold</li>
+                <li><span className="font-semibold">Budget:</span> Total project budget</li>
+                <li><span className="font-semibold">Spent:</span> Amount spent to date (optional)</li>
+                <li><span className="font-semibold">Timeline:</span> Start and end dates</li>
+                <li><span className="font-semibold">Department link:</span> Optionally link to a budget department</li>
+                <li><span className="font-semibold">Images:</span> Up to 10 photos per project (5MB max each)</li>
+              </ul>
+            </div>
+
+            <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs">
+              <p className="font-semibold text-slate-900">Project images</p>
+              <ul className="mt-1 list-disc space-y-1 pl-5 text-slate-700">
+                <li>Recommended size: 800×450 or wider (16:9 aspect ratio)</li>
+                <li>Formats: PNG, JPEG, WebP</li>
+                <li>Max file size: 5MB per image</li>
+                <li>The first image becomes the project&apos;s cover photo</li>
+                <li>Drag images to reorder them</li>
+              </ul>
+            </div>
+          </section>
+
+          {/* 5. Uploads & CSV formats */}
           <section
             id="uploads"
             aria-label="Uploads and CSV formats"
             className="space-y-3 rounded-xl border border-slate-200 bg-white p-4"
           >
-            <h2 className="text-sm font-semibold text-slate-900">2. Uploads & CSV formats</h2>
+            <h2 className="text-sm font-semibold text-slate-900">5. Uploads & CSV formats</h2>
             <p className="text-xs text-slate-700">
-              CiviPortal uses CSV files with strict column names for each table. Use the built-in templates to avoid
-              format errors.
+              CiviPortal uses CSV files with strict column names. Use the built-in templates to avoid format errors.
             </p>
 
             <div className="grid gap-3 text-xs sm:grid-cols-2">
@@ -251,341 +340,227 @@ export default function AdminHelpPage() {
                   Go to{" "}
                   <Link href={cityHref("/admin/upload")} className="font-semibold underline-offset-2 hover:underline">
                     Admin → Data upload
-                  </Link>{" "}
-                  and use the <span className="font-semibold">Download template</span> button after selecting a table.
+                  </Link>
+                  , select a table, and click <span className="font-semibold">Download template</span>.
                 </p>
-                <p className="mt-1 text-slate-700">The template includes the required column headers and example values.</p>
               </div>
 
               <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
                 <p className="font-semibold text-slate-900">Required tables</p>
                 <ul className="mt-1 list-disc space-y-1 pl-4 text-slate-700">
-                  <li>
-                    <span className="font-semibold">budgets</span>: adopted budget by fund/department/category (FY is
-                    labeled by ending year).
-                  </li>
-                  <li>
-                    <span className="font-semibold">actuals</span>: spending by fund/department/category.{" "}
-                    <span className="font-mono">period</span> is a calendar month; the portal derives FY + fiscal period.
-                  </li>
-                  <li>
-                    <span className="font-semibold">transactions</span>: line items (if Transactions module is on).
-                  </li>
-                  <li>
-                    <span className="font-semibold">revenues</span>: revenue by source/fund.{" "}
-                    <span className="font-mono">period</span> is a calendar month; the portal derives FY + fiscal period.
-                  </li>
+                  <li><span className="font-semibold">budgets:</span> Adopted budget by fund/department/category</li>
+                  <li><span className="font-semibold">actuals:</span> Spending by fund/department/category</li>
+                  <li><span className="font-semibold">transactions:</span> Line items (if module enabled)</li>
+                  <li><span className="font-semibold">revenues:</span> Revenue by source/fund (if module enabled)</li>
                 </ul>
               </div>
             </div>
 
             <div className="space-y-1 text-xs">
-              <p className="font-semibold text-slate-900">Common validation errors and how to fix them</p>
+              <p className="font-semibold text-slate-900">Common validation errors</p>
               <ul className="list-disc space-y-1 pl-5 text-slate-700">
-                <li>
-                  <span className="font-semibold">Missing required columns</span>: ensure all columns in the template are
-                  present and spelled exactly the same.
-                </li>
-                <li>
-                  <span className="font-semibold">Bad fiscal_year</span>: must be a 4-digit year between 2000 and 2100
-                  (e.g., 2024).
-                </li>
-                <li>
-                  <span className="font-semibold">Bad date</span>: transactions require{" "}
-                  <span className="font-mono text-xs">YYYY-MM-DD</span> (or MM/DD/YYYY) with valid calendar dates.
-                </li>
-                <li>
-                  <span className="font-semibold">Bad period</span>: actuals and revenues use{" "}
-                  <span className="font-mono text-xs">YYYY-MM</span> (calendar month). We also accept{" "}
-                  <span className="font-mono text-xs">YYYY-M</span> and normalize it (e.g., <span className="font-mono">2027-8</span> →{" "}
-                  <span className="font-mono">2027-08</span>).
-                </li>
-                <li>
-                  <span className="font-semibold">“My data showed up under the wrong fiscal year”</span>: it&apos;s usually
-                  correct—your month maps into the next FY depending on FY start (see <Link href="#fiscal-year-basics" className="font-semibold underline-offset-2 hover:underline">Fiscal year basics</Link>).
-                </li>
-                <li>
-                  <span className="font-semibold">Negative amount</span>: negative amounts are not allowed in these tables.
-                </li>
+                <li><span className="font-semibold">Missing columns:</span> Ensure all template columns are present and spelled exactly</li>
+                <li><span className="font-semibold">Bad fiscal_year:</span> Must be 4-digit year between 2000–2100</li>
+                <li><span className="font-semibold">Bad date:</span> Use YYYY-MM-DD or MM/DD/YYYY</li>
+                <li><span className="font-semibold">Bad period:</span> Use YYYY-MM (e.g., 2027-08)</li>
+                <li><span className="font-semibold">Negative amount:</span> Negative values are not allowed</li>
               </ul>
             </div>
 
             <div className="space-y-2 text-xs">
               <p className="font-semibold text-slate-900">Append vs Replace modes</p>
               <ul className="list-disc space-y-1 pl-5 text-slate-700">
-                <li>
-                  <span className="font-semibold">Append</span>: add new rows; existing data is not changed.
-                </li>
-                <li>
-                  <span className="font-semibold">Replace this fiscal year only</span>: deletes rows for one year, then
-                  inserts the new file. Use this when correcting a single year.
-                </li>
-                <li>
-                  <span className="font-semibold">Replace entire table</span>: deletes all rows in a table before
-                  inserting. Only use this if you intentionally want to reload the whole dataset from scratch.
-                </li>
-              </ul>
-            </div>
-
-            <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">
-              <p className="font-semibold text-slate-900">Correcting mistakes (the safe way)</p>
-              <ul className="mt-1 list-disc space-y-1 pl-5">
-                <li>
-                  If you uploaded the wrong rows for a single year, use{" "}
-                  <span className="font-semibold">Replace this fiscal year only</span> with a corrected file.
-                </li>
-                <li>
-                  If you need to remove a year entirely, use the{" "}
-                  <span className="font-semibold">Delete fiscal year</span> control in{" "}
-                  <Link href={cityHref("/admin/data")} className="font-semibold underline-offset-2 hover:underline">
-                    Admin → Data
-                  </Link>
-                  , then re-upload the correct file.
-                </li>
-                <li>
-                  Always confirm success in{" "}
-                  <Link href={cityHref("/admin/upload/history")} className="font-semibold underline-offset-2 hover:underline">
-                    Admin → Upload history
-                  </Link>{" "}
-                  (row counts + status).
-                </li>
+                <li><span className="font-semibold">Append:</span> Add new rows; existing data unchanged</li>
+                <li><span className="font-semibold">Replace this fiscal year:</span> Delete one year, then insert new file</li>
+                <li><span className="font-semibold">Replace entire table:</span> Delete all rows before inserting (use carefully)</li>
               </ul>
             </div>
           </section>
 
-          {/* 3. Modules & feature flags */}
+          {/* 6. Modules & feature flags */}
           <section
             id="modules"
             aria-label="Modules and feature flags"
             className="space-y-3 rounded-xl border border-slate-200 bg-white p-4"
           >
-            <h2 className="text-sm font-semibold text-slate-900">3. Modules & feature flags</h2>
+            <h2 className="text-sm font-semibold text-slate-900">6. Modules & feature flags</h2>
             <p className="text-xs text-slate-700">
-              CiviPortal supports multiple modules. You can choose which modules are visible on the public site.
+              Control which features are visible on the public site.
             </p>
 
             <div className="grid gap-3 text-xs sm:grid-cols-2">
               <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-                <p className="font-semibold text-slate-900">What each module controls</p>
+                <p className="font-semibold text-slate-900">Available modules</p>
                 <ul className="mt-1 list-disc space-y-1 pl-4 text-slate-700">
-                  <li>
-                    <span className="font-semibold">Budget &amp; actuals</span>: Overview, Analytics, Departments.
-                  </li>
-                  <li>
-                    <span className="font-semibold">Transactions</span>: Public Transactions page and related cards.
-                  </li>
-                  <li>
-                    <span className="font-semibold">Vendors</span>: vendor names and vendor summaries (requires Transactions).
-                  </li>
-                  <li>
-                    <span className="font-semibold">Revenues</span>: Revenues page and Home revenue summary.
-                  </li>
+                  <li><span className="font-semibold">Budget & Actuals:</span> Overview, Analytics, Departments</li>
+                  <li><span className="font-semibold">Transactions:</span> Transaction explorer and cards</li>
+                  <li><span className="font-semibold">Vendors:</span> Vendor names and summaries (requires Transactions)</li>
+                  <li><span className="font-semibold">Revenues:</span> Revenue dashboards by source</li>
+                  <li><span className="font-semibold">Capital Projects:</span> Projects page and cards</li>
                 </ul>
               </div>
 
               <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-                <p className="font-semibold text-slate-900">Where to change module visibility</p>
+                <p className="font-semibold text-slate-900">Where to change modules</p>
                 <p className="mt-1 text-slate-700">
                   Go to{" "}
                   <Link href={cityHref("/admin/settings")} className="font-semibold underline-offset-2 hover:underline">
-                    Admin → Branding &amp; settings
-                  </Link>{" "}
-                  and scroll to the <span className="font-semibold">Modules &amp; visibility</span> section.
+                    Admin → Branding & settings
+                  </Link>
+                  , open the <span className="font-semibold">Modules Enable/Disable</span> section.
                 </p>
                 <p className="mt-1 text-slate-700">Turning a module off:</p>
                 <ul className="mt-1 list-disc space-y-1 pl-4 text-slate-700">
-                  <li>Removes its navigation links.</li>
-                  <li>Makes direct URLs return a 404.</li>
-                  <li>Hides related cards from Overview / Analytics / Home.</li>
-                  <li>For Vendors, hides all vendor names and removes vendor columns from exports.</li>
+                  <li>Removes its navigation links</li>
+                  <li>Makes direct URLs return 404</li>
+                  <li>Hides related cards from Overview/Home</li>
                 </ul>
               </div>
             </div>
           </section>
 
-          {/* 4. Publish vs draft */}
+          {/* 7. Publish vs draft */}
           <section
             id="publish"
             aria-label="Publish vs draft"
             className="space-y-3 rounded-xl border border-slate-200 bg-white p-4"
           >
-            <h2 className="text-sm font-semibold text-slate-900">4. Publish vs draft</h2>
-            <p className="text-xs text-slate-700">Publish status controls whether residents can see the public portal.</p>
+            <h2 className="text-sm font-semibold text-slate-900">7. Publish vs draft</h2>
+            <p className="text-xs text-slate-700">
+              Control whether residents can see the public portal.
+            </p>
 
             <div className="grid gap-3 text-xs sm:grid-cols-2">
               <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
                 <p className="font-semibold text-slate-900">Draft mode</p>
                 <ul className="mt-1 list-disc space-y-1 pl-4 text-slate-700">
-                  <li>Only authenticated admins can view the public portal.</li>
-                  <li>Safe for staging new data, checking charts, and reviewing content.</li>
+                  <li>Only authenticated admins can view the public portal</li>
+                  <li>Safe for staging new data and reviewing content</li>
+                  <li>Shows a &ldquo;Draft&rdquo; banner at top of public pages</li>
                 </ul>
               </div>
               <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
                 <p className="font-semibold text-slate-900">Published</p>
                 <ul className="mt-1 list-disc space-y-1 pl-4 text-slate-700">
-                  <li>Anyone with the link can see the portal without logging in.</li>
-                  <li>You can still update data and settings; publish is not permanent.</li>
+                  <li>Anyone with the link can see the portal</li>
+                  <li>You can still update data and settings</li>
+                  <li>You can move back to draft anytime</li>
                 </ul>
               </div>
             </div>
 
-            <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">
-              <p className="font-semibold text-slate-900">Pre-publish checklist (recommended)</p>
-              <ul className="mt-1 list-disc space-y-1 pl-5">
-                <li>
-                  Check <span className="font-semibold">Admin → Upload history</span> for successful imports (no errors).
-                </li>
-                <li>Visit the public pages you plan to share (Overview / Transactions / Revenues) and sanity-check charts.</li>
-                <li>Confirm module visibility matches what you want residents to see (Admin → Branding &amp; settings).</li>
-                <li>If a dataset is intentionally not provided, confirm the portal shows a clear “not available” message (not broken charts).</li>
-              </ul>
-            </div>
-
             <p className="text-xs text-slate-700">
-              You can change publish status from{" "}
-              <Link href={cityHref("/admin/publish")} className="font-semibold underline-offset-2 hover:underline">
-                Admin → Publish status
-              </Link>
-              . It&apos;s safe to move back to draft if you discover problems.
+              Toggle publish status from the <span className="font-semibold">Publish status</span> toggle at the top of{" "}
+              <Link href={cityHref("/admin/settings")} className="font-semibold underline-offset-2 hover:underline">
+                Admin → Branding & settings
+              </Link>.
             </p>
           </section>
 
-          {/* 5. Users & roles */}
+          {/* 8. Users & roles */}
           <section
             id="users"
             aria-label="Users and roles"
             className="space-y-3 rounded-xl border border-slate-200 bg-white p-4"
           >
-            <h2 className="text-sm font-semibold text-slate-900">5. Users & roles</h2>
-            <p className="text-xs text-slate-700">Use roles to control who can manage data and who has read-only access.</p>
+            <h2 className="text-sm font-semibold text-slate-900">8. Users & roles</h2>
+            <p className="text-xs text-slate-700">
+              Control who can manage data and who has read-only access.
+            </p>
 
             <div className="grid gap-3 text-xs sm:grid-cols-2">
               <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
                 <p className="font-semibold text-slate-900">Role definitions</p>
                 <ul className="mt-1 list-disc space-y-1 pl-4 text-slate-700">
-                  <li>
-                    <span className="font-semibold">Super admin</span>: full access, including inviting users and changing roles.
-                  </li>
-                  <li>
-                    <span className="font-semibold">Admin</span>: can upload data, manage settings, and view admin tools.
-                  </li>
-                  <li>
-                    <span className="font-semibold">Viewer / no role</span>: read-only access (not recommended for most cities).
-                  </li>
+                  <li><span className="font-semibold">Super admin:</span> Full access, can invite users and change roles</li>
+                  <li><span className="font-semibold">Admin:</span> Can upload data, manage settings, view admin tools</li>
+                  <li><span className="font-semibold">Viewer:</span> Read-only access (rarely used)</li>
                 </ul>
               </div>
 
               <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-                <p className="font-semibold text-slate-900">Where to manage users</p>
+                <p className="font-semibold text-slate-900">Managing users</p>
                 <p className="mt-1 text-slate-700">
                   Go to{" "}
                   <Link href={cityHref("/admin/users")} className="font-semibold underline-offset-2 hover:underline">
-                    Admin → Users &amp; roles
+                    Admin → Users & roles
                   </Link>{" "}
-                  to:
+                  to invite users, change roles, or remove access.
                 </p>
-                <ul className="mt-1 list-disc space-y-1 pl-4 text-slate-700">
-                  <li>Invite new users by email.</li>
-                  <li>Set or change roles (admin, super admin, viewer).</li>
-                  <li>Remove admin access when staff leave.</li>
-                  <li>Delete accounts that should no longer exist.</li>
-                </ul>
                 <p className="mt-1 text-slate-600">
-                  For safety, the system prevents you from removing the last remaining super admin.
+                  The system prevents removing the last super admin.
                 </p>
               </div>
             </div>
           </section>
 
-          {/* 6. Troubleshooting */}
+          {/* 9. Troubleshooting */}
           <section
             id="troubleshooting"
             aria-label="Troubleshooting"
             className="space-y-3 rounded-xl border border-slate-200 bg-white p-4"
           >
-            <h2 className="text-sm font-semibold text-slate-900">6. Troubleshooting common issues</h2>
+            <h2 className="text-sm font-semibold text-slate-900">9. Troubleshooting</h2>
 
             <div className="space-y-3 text-xs text-slate-700">
               <div>
-                <p className="font-semibold text-slate-900">
-                  “We uploaded data but the public site didn&apos;t change.”
-                </p>
+                <p className="font-semibold text-slate-900">&ldquo;We uploaded data but the public site didn&apos;t change.&rdquo;</p>
                 <ul className="mt-1 list-disc space-y-1 pl-5">
-                  <li>
-                    Confirm you uploaded to the correct <span className="font-semibold">table</span>.
-                  </li>
-                  <li>
-                    Check <span className="font-semibold">Admin → Upload history</span> to confirm the import succeeded.
-                  </li>
-                  <li>
-                    Ensure the relevant module (Actuals/Transactions/Revenues) is turned on in{" "}
-                    <span className="font-semibold">Branding &amp; settings</span>.
-                  </li>
-                  <li>
-                    If you expected a month to show under a different FY, re-check{" "}
-                    <Link href="#fiscal-year-basics" className="font-semibold underline-offset-2 hover:underline">
-                      Fiscal year basics
-                    </Link>
-                    .
-                  </li>
+                  <li>Confirm you uploaded to the correct table</li>
+                  <li>Check Admin → Upload history for errors</li>
+                  <li>Ensure the relevant module is enabled in settings</li>
+                  <li>Check fiscal year basics if data appears under wrong FY</li>
                 </ul>
               </div>
 
               <div>
-                <p className="font-semibold text-slate-900">“My ‘2027’ data is missing — where did it go?”</p>
+                <p className="font-semibold text-slate-900">&ldquo;My data showed up under the wrong fiscal year.&rdquo;</p>
                 <ul className="mt-1 list-disc space-y-1 pl-5">
-                  <li>
-                    For actuals/revenues, <span className="font-mono">period</span> is a calendar month. If your FY starts July 1,{" "}
-                    <span className="font-mono">2027-08</span> belongs to <span className="font-semibold">FY2028</span>.
-                  </li>
-                  <li>
-                    If you want something to appear under FY2027 in a July-start city, the month must be between{" "}
-                    <span className="font-mono">2026-07</span> and <span className="font-mono">2027-06</span>.
-                  </li>
+                  <li>For actuals/revenues, period is a calendar month</li>
+                  <li>If FY starts July 1, 2027-08 belongs to FY2028</li>
+                  <li>See <Link href="#fiscal-year-basics" className="font-semibold underline-offset-2 hover:underline">Fiscal year basics</Link></li>
                 </ul>
               </div>
 
               <div>
-                <p className="font-semibold text-slate-900">“A tab or card disappeared from the public site.”</p>
+                <p className="font-semibold text-slate-900">&ldquo;Image upload failed.&rdquo;</p>
                 <ul className="mt-1 list-disc space-y-1 pl-5">
-                  <li>
-                    Check module flags in <span className="font-semibold">Admin → Branding &amp; settings</span>.
-                  </li>
-                  <li>If a module is off, its pages and nav links are intentionally hidden.</li>
-                  <li>
-                    Vendors only show when <span className="font-semibold">Transactions</span> is on and{" "}
-                    <span className="font-semibold">Vendor names</span> is enabled.
-                  </li>
+                  <li>Check file size is under 5MB</li>
+                  <li>Ensure format is PNG, JPEG, or WebP (not SVG or GIF)</li>
+                  <li>Try a different browser or clear cache</li>
                 </ul>
               </div>
 
               <div>
-                <p className="font-semibold text-slate-900">“Residents can&apos;t see the site.”</p>
+                <p className="font-semibold text-slate-900">&ldquo;A section or tab disappeared from the public site.&rdquo;</p>
                 <ul className="mt-1 list-disc space-y-1 pl-5">
-                  <li>
-                    Confirm the portal is marked as <span className="font-semibold">Published</span> in{" "}
-                    <Link href={cityHref("/admin/publish")} className="font-semibold underline-offset-2 hover:underline">
-                      Admin → Publish status
-                    </Link>
-                    .
-                  </li>
-                  <li>Ensure they&apos;re using the correct public URL shared by your team.</li>
+                  <li>Check module flags in settings</li>
+                  <li>Check landing page section toggles</li>
+                  <li>Vendors only shows when Transactions is on AND Vendor names is enabled</li>
+                </ul>
+              </div>
+
+              <div>
+                <p className="font-semibold text-slate-900">&ldquo;Residents can&apos;t see the site.&rdquo;</p>
+                <ul className="mt-1 list-disc space-y-1 pl-5">
+                  <li>Confirm the portal is Published (not Draft) in settings</li>
+                  <li>Ensure they&apos;re using the correct URL</li>
                 </ul>
               </div>
             </div>
           </section>
 
-          {/* 7. Who to contact */}
+          {/* 10. Contact */}
           <section
             id="contact"
             aria-label="Support contact"
             className="space-y-2 rounded-xl border border-slate-200 bg-white p-4"
           >
-            <h2 className="text-sm font-semibold text-slate-900">7. Who to contact if you still need help</h2>
-            <p className="text-xs text-slate-700">If you run into issues that aren&apos;t covered here:</p>
+            <h2 className="text-sm font-semibold text-slate-900">10. Who to contact</h2>
+            <p className="text-xs text-slate-700">If you run into issues not covered here:</p>
             <ul className="list-disc space-y-1 pl-5 text-xs text-slate-700">
-              <li>Start by contacting your internal portal administrator or IT team.</li>
-              <li>If they need vendor support, they&apos;ll know how to escalate with the CiviPortal team.</li>
+              <li>Contact your internal portal administrator or IT team first</li>
+              <li>If they need vendor support, they can escalate to the CiviPortal team</li>
             </ul>
           </section>
         </div>

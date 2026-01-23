@@ -10,7 +10,7 @@ import { cityHref } from "@/lib/cityRouting";
 
 type HealthStatus = "loading" | "pass" | "warn" | "fail";
 
-type StepKey = "basic" | "branding" | "data" | "preview" | "publish";
+type StepKey = "modules" | "branding" | "content" | "data" | "projects" | "preview" | "publish";
 type DatasetKey = "budgets" | "actuals" | "transactions" | "revenues";
 
 type DatasetStatus = Record<DatasetKey, HealthStatus>;
@@ -19,15 +19,19 @@ type StepStatus = Record<StepKey, HealthStatus>;
 type OnboardingStatus = StepStatus & {
   portalSettings: HealthStatus;
   datasets: DatasetStatus;
+  projectsEnabled: boolean;
 };
 
 const INITIAL_STATUS: OnboardingStatus = {
   portalSettings: "loading",
-  basic: "loading",
+  modules: "loading",
   branding: "loading",
+  content: "loading",
   data: "loading",
+  projects: "loading",
   preview: "loading",
   publish: "loading",
+  projectsEnabled: false,
   datasets: {
     budgets: "loading",
     actuals: "loading",
@@ -36,31 +40,42 @@ const INITIAL_STATUS: OnboardingStatus = {
   },
 };
 
-const steps: { key: StepKey; title: string; description: string }[] = [
+const steps: { key: StepKey; title: string; description: string; optional?: boolean }[] = [
   {
-    key: "basic",
-    title: "Basic setup",
-    description: "City name, fiscal year, and enabled modules.",
+    key: "modules",
+    title: "Modules & Fiscal Year",
+    description: "Enable features and set fiscal year start date.",
   },
   {
     key: "branding",
-    title: "Branding",
-    description: "Logo, colors, tagline, and hero content.",
+    title: "Branding & Images",
+    description: "Logo, seal, hero image, colors, and gov name.",
+  },
+  {
+    key: "content",
+    title: "Landing Page Content",
+    description: "Hero message, story sections, leadership, and stats.",
   },
   {
     key: "data",
-    title: "Data upload",
+    title: "Data Upload",
     description: "Budgets, actuals, transactions, and revenues.",
   },
   {
+    key: "projects",
+    title: "Capital Projects",
+    description: "Add capital projects with images and details.",
+    optional: true,
+  },
+  {
     key: "preview",
-    title: "Public preview",
-    description: "Review the site in draft before launch.",
+    title: "Preview",
+    description: "Review the site before publishing.",
   },
   {
     key: "publish",
     title: "Publish",
-    description: "Make the site public once everything looks right.",
+    description: "Make the portal visible to residents.",
   },
 ];
 
@@ -80,7 +95,7 @@ function statusLabel(status: HealthStatus): string {
 }
 
 function statusCircle(status: HealthStatus) {
-  const base = "h-3 w-3 rounded-full";
+  const base = "h-3 w-3 rounded-full flex-shrink-0";
   if (status === "loading") {
     return (
       <span
@@ -115,9 +130,8 @@ function statusCircle(status: HealthStatus) {
 
 export default function AdminOnboardingPage() {
   const [status, setStatus] = useState<OnboardingStatus>(INITIAL_STATUS);
-  const [activeStep, setActiveStep] = useState<StepKey>("basic");
+  const [activeStep, setActiveStep] = useState<StepKey>("modules");
   const [coverageWarnings, setCoverageWarnings] = useState<string[]>([]);
-
 
   useEffect(() => {
     let cancelled = false;
@@ -128,8 +142,7 @@ export default function AdminOnboardingPage() {
         datasets: { ...INITIAL_STATUS.datasets },
       };
 
-      // --- Portal settings & basic / branding / publish / preview ---
-
+      // --- Portal settings ---
       const { data: psRows, error: psError } = await supabase
         .from("portal_settings")
         .select("*")
@@ -141,9 +154,11 @@ export default function AdminOnboardingPage() {
           setStatus({
             ...next,
             portalSettings: "fail",
-            basic: "fail",
+            modules: "fail",
             branding: "fail",
+            content: "fail",
             data: "warn",
+            projects: "warn",
             preview: "warn",
             publish: "fail",
           });
@@ -155,67 +170,89 @@ export default function AdminOnboardingPage() {
 
       if (!ps) {
         next.portalSettings = "fail";
-        next.basic = "fail";
-        next.branding = "warn";
+        next.modules = "fail";
+        next.branding = "fail";
+        next.content = "fail";
         next.preview = "warn";
         next.publish = "fail";
       } else {
         next.portalSettings = "pass";
+        next.projectsEnabled = ps.enable_projects === true;
 
+        // --- Modules & Fiscal Year check ---
         const hasCityName =
           typeof ps.city_name === "string" && ps.city_name.trim().length > 0;
-
         const hasFiscalConfig =
-          (ps.fiscal_year_start_month != null &&
-            ps.fiscal_year_start_day != null) ||
-          (typeof ps.fiscal_year_label === "string" &&
-            ps.fiscal_year_label.trim().length > 0);
-
+          ps.fiscal_year_start_month != null && ps.fiscal_year_start_day != null;
         const hasModuleConfig =
           ps.enable_budget != null ||
           ps.enable_actuals != null ||
           ps.enable_transactions != null ||
           ps.enable_revenues != null;
 
-        let basicScore = 0;
-        if (hasCityName) basicScore += 1;
-        if (hasFiscalConfig) basicScore += 1;
-        if (hasModuleConfig) basicScore += 1;
+        let modulesScore = 0;
+        if (hasCityName) modulesScore += 1;
+        if (hasFiscalConfig) modulesScore += 1;
+        if (hasModuleConfig) modulesScore += 1;
 
-        if (basicScore === 3) {
-          next.basic = "pass";
-        } else if (basicScore > 0) {
-          next.basic = "warn";
+        if (modulesScore === 3) {
+          next.modules = "pass";
+        } else if (modulesScore > 0) {
+          next.modules = "warn";
         } else {
-          next.basic = "fail";
+          next.modules = "fail";
         }
 
-        const hasBrandingCore =
-          !!ps.logo_url ||
-          !!ps.seal_url ||
-          !!ps.primary_color ||
-          !!ps.accent_color;
+        // --- Branding & Images check ---
+        const hasLogo = !!ps.logo_url;
+        const hasHero = !!ps.hero_image_url;
+        const hasColors = !!ps.primary_color && !!ps.accent_color;
+        const hasTagline =
+          typeof ps.tagline === "string" && ps.tagline.trim().length > 0;
 
-        const hasMessaging =
-          (typeof ps.tagline === "string" &&
-            ps.tagline.trim().length > 0) ||
-          (typeof ps.hero_message === "string" &&
-            ps.hero_message.trim().length > 0);
+        let brandingScore = 0;
+        if (hasLogo) brandingScore += 1;
+        if (hasHero) brandingScore += 1;
+        if (hasColors) brandingScore += 1;
+        if (hasTagline) brandingScore += 1;
 
-        if (hasBrandingCore && hasMessaging) {
+        if (brandingScore >= 3) {
           next.branding = "pass";
-        } else if (hasBrandingCore || hasMessaging) {
+        } else if (brandingScore > 0) {
           next.branding = "warn";
         } else {
           next.branding = "fail";
         }
 
+        // --- Content check ---
+        const hasHeroMessage =
+          typeof ps.hero_message === "string" && ps.hero_message.trim().length > 0;
+        const hasGovDescription =
+          typeof ps.story_city_description === "string" &&
+          ps.story_city_description.trim().length > 0;
+        const hasLeaderContent =
+          (typeof ps.leader_name === "string" && ps.leader_name.trim().length > 0) ||
+          (typeof ps.leader_message === "string" && ps.leader_message.trim().length > 0);
+
+        let contentScore = 0;
+        if (hasHeroMessage) contentScore += 1;
+        if (hasGovDescription) contentScore += 1;
+        if (hasLeaderContent) contentScore += 1;
+
+        if (contentScore >= 2) {
+          next.content = "pass";
+        } else if (contentScore > 0) {
+          next.content = "warn";
+        } else {
+          next.content = "fail";
+        }
+
+        // --- Publish status ---
         const isPublished = !!ps.is_published;
         next.publish = isPublished ? "pass" : "warn";
       }
 
-      // --- Dataset counts for data / preview steps ---
-
+      // --- Dataset counts ---
       async function count(table: string): Promise<number> {
         const { count, error } = await supabase
           .from(table)
@@ -237,7 +274,14 @@ export default function AdminOnboardingPage() {
           count("revenues"),
         ]);
 
-              async function maxFiscalYear(table: string): Promise<number | null> {
+      // --- Capital Projects count ---
+      let projectsCount = 0;
+      if (next.projectsEnabled) {
+        projectsCount = await count("capital_projects");
+      }
+
+      // --- Fiscal year coverage warnings ---
+      async function maxFiscalYear(table: string): Promise<number | null> {
         const { data, error } = await supabase
           .from(table)
           .select("fiscal_year")
@@ -272,7 +316,7 @@ export default function AdminOnboardingPage() {
         maxActualsFY > maxBudgetFY
       ) {
         warnings.push(
-          `Actuals include FY${maxActualsFY}, but budgets are only loaded through FY${maxBudgetFY}. Upload the adopted budget for FY${maxActualsFY} (or remove those actuals) to avoid showing $0 budget for that year.`
+          `Actuals include FY${maxActualsFY}, but budgets are only loaded through FY${maxBudgetFY}. Upload the adopted budget for FY${maxActualsFY} to avoid showing $0 budget for that year.`
         );
       }
 
@@ -283,7 +327,7 @@ export default function AdminOnboardingPage() {
         maxRevenuesFY > maxBudgetFY
       ) {
         warnings.push(
-          `Revenues include FY${maxRevenuesFY}, but budgets are only loaded through FY${maxBudgetFY}. Upload the adopted budget for FY${maxRevenuesFY} (or remove those revenues) to avoid mismatched year coverage.`
+          `Revenues include FY${maxRevenuesFY}, but budgets are only loaded through FY${maxBudgetFY}. Upload the adopted budget for FY${maxRevenuesFY} to avoid mismatched year coverage.`
         );
       }
 
@@ -291,6 +335,7 @@ export default function AdminOnboardingPage() {
         setCoverageWarnings(warnings);
       }
 
+      // --- Dataset status ---
       const mapCount = (value: number): HealthStatus =>
         value > 0 ? "pass" : "fail";
 
@@ -303,7 +348,6 @@ export default function AdminOnboardingPage() {
       if (transactionsEnabled) {
         next.datasets.transactions = mapCount(transactionsCount);
       } else {
-        // If the module is disabled, it should not block onboarding.
         next.datasets.transactions = "pass";
       }
 
@@ -323,6 +367,18 @@ export default function AdminOnboardingPage() {
         next.data = "warn";
       }
 
+      // --- Projects status ---
+      if (next.projectsEnabled) {
+        if (projectsCount > 0) {
+          next.projects = "pass";
+        } else {
+          next.projects = "warn";
+        }
+      } else {
+        next.projects = "pass"; // Not enabled, so not blocking
+      }
+
+      // --- Preview status ---
       if (!ps) {
         next.preview = "fail";
       } else if (budgetsCount > 0 && actualsCount > 0) {
@@ -343,36 +399,41 @@ export default function AdminOnboardingPage() {
     };
   }, []);
 
-  const currentStepIndex = steps.findIndex((step) => step.key === activeStep);
+  // Filter steps based on whether projects are enabled
+  const visibleSteps = steps.filter(
+    (step) => step.key !== "projects" || status.projectsEnabled
+  );
+
+  const currentStepIndex = visibleSteps.findIndex((step) => step.key === activeStep);
   const hasPrevious = currentStepIndex > 0;
-  const hasNext = currentStepIndex < steps.length - 1;
+  const hasNext = currentStepIndex < visibleSteps.length - 1;
 
   const goPrevious = () => {
     if (!hasPrevious) return;
-    setActiveStep(steps[currentStepIndex - 1]?.key ?? "basic");
+    setActiveStep(visibleSteps[currentStepIndex - 1]?.key ?? "modules");
   };
 
   const goNext = () => {
     if (!hasNext) return;
-    setActiveStep(steps[currentStepIndex + 1]?.key ?? "publish");
+    setActiveStep(visibleSteps[currentStepIndex + 1]?.key ?? "publish");
   };
 
   return (
     <AdminGuard>
       <AdminShell
-        title="Onboarding wizard"
+        title="Onboarding Checklist"
         description="A guided checklist to get your CiviPortal ready for residents."
       >
         <div className="flex flex-col gap-6">
           {/* Stepper navigation */}
           <nav aria-label="Onboarding steps">
-            <ol className="flex flex-col gap-2 sm:flex-row sm:items-stretch sm:gap-3">
-              {steps.map((step, index) => {
+            <ol className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-stretch sm:gap-3">
+              {visibleSteps.map((step, index) => {
                 const stepStatus = status[step.key];
                 const isActive = activeStep === step.key;
 
                 return (
-                  <li key={step.key} className="flex-1">
+                  <li key={step.key} className="flex-1 min-w-[140px]">
                     <button
                       type="button"
                       onClick={() => setActiveStep(step.key)}
@@ -391,11 +452,14 @@ export default function AdminOnboardingPage() {
                           </span>
                         </div>
                         <span className="text-xs text-slate-700">
-                          {statusLabel(stepStatus)}
+                          {stepStatus === "loading" ? "" : statusLabel(stepStatus)}
                         </span>
                       </div>
                       <p className="mt-1 text-xs text-slate-700">
                         {step.description}
+                        {step.optional && (
+                          <span className="ml-1 text-slate-500">(optional)</span>
+                        )}
                       </p>
                     </button>
                   </li>
@@ -404,56 +468,69 @@ export default function AdminOnboardingPage() {
             </ol>
           </nav>
 
-          {/* Active step content */}
-          <section
-            aria-live="polite"
-            aria-label="Onboarding step details"
-            className="space-y-4"
-          >
-            {activeStep === "basic" && (
+          {/* Coverage warnings */}
+          {coverageWarnings.length > 0 && (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+              <p className="text-sm font-semibold text-amber-900">
+                Data coverage warnings
+              </p>
+              <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-amber-800">
+                {coverageWarnings.map((warning, index) => (
+                  <li key={index}>{warning}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Step content */}
+          <section className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+            {/* Step 1: Modules & Fiscal Year */}
+            {activeStep === "modules" && (
               <div className="space-y-4">
                 <h2 className="text-base font-semibold text-slate-900">
-                  Step 1 – Basic setup
+                  Step 1 – Modules & Fiscal Year
                 </h2>
                 <p className="text-sm text-slate-700">
-                  Confirm the org name, fiscal year configuration, and which
-                  modules you plan to use. These settings control routing and
-                  which pages are visible to residents.
+                  Configure which modules are visible to the public and set your fiscal year start date.
                 </p>
 
-                <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                  <div className="flex items-start justify-between gap-4">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
                     <div className="flex items-start gap-3">
-                      {statusCircle(status.basic)}
+                      {statusCircle(status.modules)}
                       <div>
-                        <p className="font-medium text-slate-900">
-                          Gov details & modules
+                        <p className="font-medium text-slate-900">Module Configuration</p>
+                        <p className="mt-1 text-xs text-slate-700">
+                          Enable the modules you want residents to see: Budget & Actuals, Transactions, Vendors, Revenues, and Capital Projects.
                         </p>
-                        <p className="mt-1 text-sm text-slate-700">
-                          City name, fiscal year label, and which modules are
-                          enabled.
-                        </p>
-                        <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-slate-700">
-                          <li>City name and tagline</li>
-                          <li>
-                            Fiscal year start or label (for example,{" "}
-                            <span className="font-mono">FY 2024–2025</span>)
-                          </li>
-                          <li>
-                            Budget, actuals, transactions, and revenues toggles
-                          </li>
-                        </ul>
                       </div>
                     </div>
-                    <div className="flex flex-col items-end gap-2">
-                      <p className="text-xs text-slate-600">
-                        Status: {statusLabel(status.basic)}
-                      </p>
+                    <div className="mt-3 flex justify-end">
                       <Link
                         href={cityHref("/admin/settings")}
-                        className="inline-flex items-center justify-center rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
+                        className="rounded-md bg-slate-900 px-3 py-1.5 text-xs font-medium text-white"
                       >
-                        Edit basic settings
+                        Open Settings
+                      </Link>
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                    <div className="flex items-start gap-3">
+                      {statusCircle(status.modules)}
+                      <div>
+                        <p className="font-medium text-slate-900">Fiscal Year</p>
+                        <p className="mt-1 text-xs text-slate-700">
+                          Set your fiscal year start month (e.g., July 1 for most cities). This determines how months map to fiscal years.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="mt-3 flex justify-end">
+                      <Link
+                        href={cityHref("/admin/settings")}
+                        className="rounded-md bg-slate-900 px-3 py-1.5 text-xs font-medium text-white"
+                      >
+                        Configure
                       </Link>
                     </div>
                   </div>
@@ -461,45 +538,253 @@ export default function AdminOnboardingPage() {
               </div>
             )}
 
+            {/* Step 2: Branding & Images */}
             {activeStep === "branding" && (
               <div className="space-y-4">
                 <h2 className="text-base font-semibold text-slate-900">
-                  Step 2 – Branding
+                  Step 2 – Branding & Images
                 </h2>
                 <p className="text-sm text-slate-700">
-                  Make the portal feel like an official gov property with your
-                  logo, seal, colors, and homepage messaging.
+                  Upload your logo, hero image, and configure colors to match your government&apos;s brand.
                 </p>
 
-                <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                  <div className="flex items-start justify-between gap-4">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
                     <div className="flex items-start gap-3">
                       {statusCircle(status.branding)}
                       <div>
-                        <p className="font-medium text-slate-900">
-                          Logo, colors & messaging
+                        <p className="font-medium text-slate-900">Logo & Seal</p>
+                        <p className="mt-1 text-xs text-slate-700">
+                          Upload your government logo (required) and official seal (optional). PNG with transparency works best.
                         </p>
-                        <p className="mt-1 text-sm text-slate-700">
-                          Configure the hero message, tagline, and imagery that
-                          residents will see first.
-                        </p>
-                        <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-slate-700">
-                          <li>City logo and optional seal</li>
-                          <li>Primary and accent colors</li>
-                          <li>Hero headline and supporting text</li>
-                          <li>Optional leader message and story content</li>
-                        </ul>
+                        <p className="mt-1 text-xs text-slate-500">Max file size: 5MB</p>
                       </div>
                     </div>
-                    <div className="flex flex-col items-end gap-2">
+                  </div>
+
+                  <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                    <div className="flex items-start gap-3">
+                      {statusCircle(status.branding)}
+                      <div>
+                        <p className="font-medium text-slate-900">Hero Image</p>
+                        <p className="mt-1 text-xs text-slate-700">
+                          A wide banner image for the landing page. Recommended size: 1920×600 or wider.
+                        </p>
+                        <p className="mt-1 text-xs text-slate-500">Max file size: 5MB</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                    <div className="flex items-start gap-3">
+                      {statusCircle(status.branding)}
+                      <div>
+                        <p className="font-medium text-slate-900">Colors</p>
+                        <p className="mt-1 text-xs text-slate-700">
+                          Set headline color, button/highlight color, and sidebar color. Use a preset theme or customize.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                    <div className="flex items-start gap-3">
+                      {statusCircle(status.branding)}
+                      <div>
+                        <p className="font-medium text-slate-900">Gov Name & Tagline</p>
+                        <p className="mt-1 text-xs text-slate-700">
+                          Your government name (e.g., &ldquo;City of Springfield&rdquo;) and a short tagline for the portal.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-end">
+                  <Link
+                    href={cityHref("/admin/settings")}
+                    className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white"
+                  >
+                    Open Branding Settings
+                  </Link>
+                </div>
+              </div>
+            )}
+
+            {/* Step 3: Landing Page Content */}
+            {activeStep === "content" && (
+              <div className="space-y-4">
+                <h2 className="text-base font-semibold text-slate-900">
+                  Step 3 – Landing Page Content
+                </h2>
+                <p className="text-sm text-slate-700">
+                  Fill in the story sections that appear on your public landing page.
+                </p>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                    <div className="flex items-start gap-3">
+                      {statusCircle(status.content)}
+                      <div>
+                        <p className="font-medium text-slate-900">Hero Message</p>
+                        <p className="mt-1 text-xs text-slate-700">
+                          The welcome text that appears over your hero image. Introduce residents to your transparency portal.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                    <div className="flex items-start gap-3">
+                      {statusCircle(status.content)}
+                      <div>
+                        <p className="font-medium text-slate-900">Gov Description</p>
+                        <p className="mt-1 text-xs text-slate-700">
+                          An &ldquo;About our community&rdquo; section describing your city, population, and what makes it unique.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                    <div className="flex items-start gap-3">
+                      {statusCircle(status.content)}
+                      <div>
+                        <p className="font-medium text-slate-900">Leadership</p>
+                        <p className="mt-1 text-xs text-slate-700">
+                          Add your mayor or city manager&apos;s name, title, photo, and a welcome message about transparency.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                    <div className="flex items-start gap-3">
+                      {statusCircle(status.content)}
+                      <div>
+                        <p className="font-medium text-slate-900">Gov Stats & Featured Projects</p>
+                        <p className="mt-1 text-xs text-slate-700">
+                          Population, employees, area stats, and optionally 1–3 featured projects with images.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-end">
+                  <Link
+                    href={cityHref("/admin/settings")}
+                    className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white"
+                  >
+                    Open Content Settings
+                  </Link>
+                </div>
+              </div>
+            )}
+
+            {/* Step 4: Data Upload */}
+            {activeStep === "data" && (
+              <div className="space-y-4">
+                <h2 className="text-base font-semibold text-slate-900">
+                  Step 4 – Data Upload
+                </h2>
+                <p className="text-sm text-slate-700">
+                  Upload your financial data. At minimum, you need budgets and actuals for at least one fiscal year.
+                </p>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {/* Budgets */}
+                  <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                    <div className="flex items-start gap-3">
+                      {statusCircle(status.datasets.budgets)}
+                      <div className="flex-1">
+                        <p className="font-medium text-slate-900">Budgets</p>
+                        <p className="mt-1 text-xs text-slate-700">
+                          Adopted budget by fund, department, and category. Required.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="mt-3 flex items-center justify-between">
                       <p className="text-xs text-slate-600">
-                        Status: {statusLabel(status.branding)}
+                        {statusLabel(status.datasets.budgets)}
                       </p>
                       <Link
-                        href={cityHref("/admin/settings")}
-                        className="inline-flex items-center justify-center rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
+                        href={cityHref("/admin/upload?table=budgets")}
+                        className="rounded-md bg-slate-900 px-3 py-1.5 text-xs font-medium text-white"
                       >
-                        Edit branding
+                        Upload CSV
+                      </Link>
+                    </div>
+                  </div>
+
+                  {/* Actuals */}
+                  <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                    <div className="flex items-start gap-3">
+                      {statusCircle(status.datasets.actuals)}
+                      <div className="flex-1">
+                        <p className="font-medium text-slate-900">Actuals</p>
+                        <p className="mt-1 text-xs text-slate-700">
+                          Year-to-date or full fiscal year spending. Required.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="mt-3 flex items-center justify-between">
+                      <p className="text-xs text-slate-600">
+                        {statusLabel(status.datasets.actuals)}
+                      </p>
+                      <Link
+                        href={cityHref("/admin/upload?table=actuals")}
+                        className="rounded-md bg-slate-900 px-3 py-1.5 text-xs font-medium text-white"
+                      >
+                        Upload CSV
+                      </Link>
+                    </div>
+                  </div>
+
+                  {/* Transactions */}
+                  <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                    <div className="flex items-start gap-3">
+                      {statusCircle(status.datasets.transactions)}
+                      <div className="flex-1">
+                        <p className="font-medium text-slate-900">Transactions</p>
+                        <p className="mt-1 text-xs text-slate-700">
+                          Line-item spending detail. Only needed if Transactions module is enabled.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="mt-3 flex items-center justify-between">
+                      <p className="text-xs text-slate-600">
+                        {statusLabel(status.datasets.transactions)}
+                      </p>
+                      <Link
+                        href={cityHref("/admin/upload?table=transactions")}
+                        className="rounded-md bg-slate-900 px-3 py-1.5 text-xs font-medium text-white"
+                      >
+                        Upload CSV
+                      </Link>
+                    </div>
+                  </div>
+
+                  {/* Revenues */}
+                  <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                    <div className="flex items-start gap-3">
+                      {statusCircle(status.datasets.revenues)}
+                      <div className="flex-1">
+                        <p className="font-medium text-slate-900">Revenues</p>
+                        <p className="mt-1 text-xs text-slate-700">
+                          Revenue by source and fund. Only needed if Revenues module is enabled.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="mt-3 flex items-center justify-between">
+                      <p className="text-xs text-slate-600">
+                        {statusLabel(status.datasets.revenues)}
+                      </p>
+                      <Link
+                        href={cityHref("/admin/upload?table=revenues")}
+                        className="rounded-md bg-slate-900 px-3 py-1.5 text-xs font-medium text-white"
+                      >
+                        Upload CSV
                       </Link>
                     </div>
                   </div>
@@ -507,242 +792,134 @@ export default function AdminOnboardingPage() {
               </div>
             )}
 
-{activeStep === "data" && (
-  <div className="space-y-4">
-    <h2 className="text-base font-semibold text-slate-900">
-      Step 3 – Data upload
-    </h2>
-    <p className="text-sm text-slate-700">
-      Load at least one full fiscal year of data for each module you
-      plan to show. You can always add more years later. On the
-      upload page, you can download a CSV template for each table.
-    </p>
+            {/* Step 5: Capital Projects (if enabled) */}
+            {activeStep === "projects" && status.projectsEnabled && (
+              <div className="space-y-4">
+                <h2 className="text-base font-semibold text-slate-900">
+                  Step 5 – Capital Projects
+                </h2>
+                <p className="text-sm text-slate-700">
+                  Add your capital improvement projects with descriptions, budgets, timelines, and photos.
+                </p>
 
-    {coverageWarnings.length > 0 && (
-      <div
-        className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-slate-900"
-        role="status"
-      >
-        <p className="font-semibold">Data coverage warning</p>
-        <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-800">
-          {coverageWarnings.map((w, idx) => (
-            <li key={idx}>{w}</li>
-          ))}
-        </ul>
-      </div>
-    )}
+                <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                  <div className="flex items-start gap-3">
+                    {statusCircle(status.projects)}
+                    <div className="flex-1">
+                      <p className="font-medium text-slate-900">Capital Projects</p>
+                      <p className="mt-1 text-xs text-slate-700">
+                        Create projects for infrastructure investments like roads, parks, facilities, and utilities. Each project can have multiple images, budget information, and status updates.
+                      </p>
+                      <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-slate-600">
+                        <li>Add a title, description, and category</li>
+                        <li>Set budget, timeline, and current status</li>
+                        <li>Upload project photos (up to 10 per project)</li>
+                        <li>Optionally link to a budget department</li>
+                      </ul>
+                    </div>
+                  </div>
+                  <div className="mt-3 flex items-center justify-between">
+                    <p className="text-xs text-slate-600">
+                      {statusLabel(status.projects)}
+                    </p>
+                    <Link
+                      href={cityHref("/admin/projects")}
+                      className="rounded-md bg-slate-900 px-3 py-1.5 text-xs font-medium text-white"
+                    >
+                      Manage Projects
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            )}
 
-    <div className="grid gap-3 sm:grid-cols-2">
-      {/* Budgets */}
-      <div className="flex flex-col justify-between rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-        <div className="flex items-start gap-3">
-          {statusCircle(status.datasets.budgets)}
-          <div>
-            <p className="font-medium text-slate-900">Budgets</p>
-            <p className="mt-1 text-xs text-slate-700">
-              At least one year of adopted budget detail is required.
-            </p>
-          </div>
-        </div>
-        <div className="mt-3 flex items-center justify-between">
-          <p className="text-xs text-slate-600">
-            Status: {statusLabel(status.datasets.budgets)}
-          </p>
-          <Link
-            href={cityHref("/admin/upload?table=budgets")}
-            className="rounded-md bg-slate-900 px-3 py-1.5 text-xs font-medium text-white outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
-          >
-            Upload CSV
-          </Link>
-        </div>
-      </div>
-
-      {/* Actuals */}
-      <div className="flex flex-col justify-between rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-        <div className="flex items-start gap-3">
-          {statusCircle(status.datasets.actuals)}
-          <div>
-            <p className="font-medium text-slate-900">Actuals</p>
-            <p className="mt-1 text-xs text-slate-700">
-              Year-to-date or full fiscal year actuals to compare
-              against the budget.
-            </p>
-          </div>
-        </div>
-        <div className="mt-3 flex items-center justify-between">
-          <p className="text-xs text-slate-600">
-            Status: {statusLabel(status.datasets.actuals)}
-          </p>
-          <Link
-            href={cityHref("/admin/upload?table=actuals")}
-            className="rounded-md bg-slate-900 px-3 py-1.5 text-xs font-medium text-white outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
-          >
-            Upload CSV
-          </Link>
-        </div>
-      </div>
-
-      {/* Transactions */}
-      <div className="flex flex-col justify-between rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-        <div className="flex items-start gap-3">
-          {statusCircle(status.datasets.transactions)}
-          <div>
-            <p className="font-medium text-slate-900">Transactions</p>
-            <p className="mt-1 text-xs text-slate-700">
-              Line-item spending detail used by the Transactions
-              Explorer.
-            </p>
-          </div>
-        </div>
-        <div className="mt-3 flex items-center justify-between">
-          <p className="text-xs text-slate-600">
-            Status: {statusLabel(status.datasets.transactions)}
-          </p>
-          <Link
-            href={cityHref("/admin/upload?table=transactions")}
-            className="rounded-md bg-slate-900 px-3 py-1.5 text-xs font-medium text-white outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
-          >
-            Upload CSV
-          </Link>
-        </div>
-      </div>
-
-      {/* Revenues */}
-      <div className="flex flex-col justify-between rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-        <div className="flex items-start gap-3">
-          {statusCircle(status.datasets.revenues)}
-          <div>
-            <p className="font-medium text-slate-900">Revenues</p>
-            <p className="mt-1 text-xs text-slate-700">
-              Revenue detail powering the Revenues Explorer and
-              summaries.
-            </p>
-          </div>
-        </div>
-        <div className="mt-3 flex items-center justify-between">
-          <p className="text-xs text-slate-600">
-            Status: {statusLabel(status.datasets.revenues)}
-          </p>
-          <Link
-            href={cityHref("/admin/upload?table=revenues")}
-            className="rounded-md bg-slate-900 px-3 py-1.5 text-xs font-medium text-white outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
-          >
-            Upload CSV
-          </Link>
-        </div>
-      </div>
-    </div>
-  </div>
-)}
-
-
+            {/* Step 6: Preview */}
             {activeStep === "preview" && (
               <div className="space-y-4">
                 <h2 className="text-base font-semibold text-slate-900">
-                  Step 4 – Public preview
+                  Step {status.projectsEnabled ? "6" : "5"} – Preview
                 </h2>
                 <p className="text-sm text-slate-700">
-                  Review the public-facing site in draft mode. Confirm that the
-                  homepage, overview, analytics, and explorers look correct on
-                  both desktop and mobile.
+                  Review the public-facing site in draft mode before publishing. Check that everything looks correct on desktop and mobile.
                 </p>
 
                 <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex items-start gap-3">
-                      {statusCircle(status.preview)}
-                      <div>
-                        <p className="font-medium text-slate-900">
-                          Preview your portal
-                        </p>
-                        <p className="mt-1 text-sm text-slate-700">
-                          Your portal will show a draft banner until it is
-                          published. Use this time to confirm content,
-                          accessibility, and mobile layouts.
-                        </p>
-                        <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-slate-700">
-                          <li>Check hero text and branding</li>
-                          <li>Verify key KPIs on the Overview page</li>
-                          <li>Spot-check Analytics, Revenues, and Transactions</li>
-                          <li>Test keyboard navigation and screen reader labels</li>
-                        </ul>
-                      </div>
+                  <div className="flex items-start gap-3">
+                    {statusCircle(status.preview)}
+                    <div className="flex-1">
+                      <p className="font-medium text-slate-900">Preview Checklist</p>
+                      <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-slate-700">
+                        <li>Landing page hero, branding, and messaging</li>
+                        <li>Overview page KPIs and charts</li>
+                        <li>Department drill-downs</li>
+                        <li>Transactions and Revenues (if enabled)</li>
+                        <li>Capital Projects page (if enabled)</li>
+                        <li>Mobile layout and accessibility</li>
+                      </ul>
                     </div>
-                    <div className="flex flex-col items-end gap-2">
-                      <p className="text-xs text-slate-600">
-                        Status: {statusLabel(status.preview)}
-                      </p>
-                      <Link
-                        href={cityHref("/")}
-                        className="inline-flex items-center justify-center rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
-                      >
-                        Open public preview
-                      </Link>
-                    </div>
+                  </div>
+                  <div className="mt-3 flex items-center justify-between">
+                    <p className="text-xs text-slate-600">
+                      {statusLabel(status.preview)}
+                    </p>
+                    <Link
+                      href={cityHref("/")}
+                      className="rounded-md bg-slate-900 px-3 py-1.5 text-xs font-medium text-white"
+                    >
+                      Open Preview
+                    </Link>
                   </div>
                 </div>
               </div>
             )}
 
+            {/* Step 7: Publish */}
             {activeStep === "publish" && (
               <div className="space-y-4">
                 <h2 className="text-base font-semibold text-slate-900">
-                  Step 5 – Publish
+                  Step {status.projectsEnabled ? "7" : "6"} – Publish
                 </h2>
                 <p className="text-sm text-slate-700">
-                  When you&apos;re comfortable with the data, branding, and
-                  accessibility, publish the site to make it visible to
-                  residents.
+                  When everything looks good, publish the portal to make it visible to residents.
                 </p>
 
                 <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                  <div className="flex flex-col gap-4">
-                    <div className="flex items-start gap-3">
-                      {statusCircle(status.publish)}
-                      <div>
-                        <p className="font-medium text-slate-900">
-                          Final launch checklist
-                        </p>
-                        <p className="mt-1 text-sm text-slate-700">
-                          Make sure the core steps above are in good shape
-                          before publishing.
-                        </p>
-                        <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-slate-700">
-                          <li>
-                            Budgets and actuals loaded for at least one year
-                          </li>
-                          <li>Branding and homepage content set</li>
-                          <li>
-                            Feature flags configured for the modules you use
-                          </li>
-                          <li>Spot-check of KPIs and charts</li>
-                        </ul>
-                      </div>
+                  <div className="flex items-start gap-3">
+                    {statusCircle(status.publish)}
+                    <div className="flex-1">
+                      <p className="font-medium text-slate-900">Final Launch Checklist</p>
+                      <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-slate-700">
+                        <li>Budgets and actuals loaded for at least one year</li>
+                        <li>Branding complete (logo, colors, hero)</li>
+                        <li>Landing page content filled in</li>
+                        <li>Module flags configured correctly</li>
+                        <li>Preview looks correct on desktop and mobile</li>
+                      </ul>
                     </div>
-                    <div className="flex items-center justify-between gap-4">
-                      <p className="text-xs text-slate-600">
-                        Current status: {statusLabel(status.publish)}
-                      </p>
-                      <Link
-                        href={cityHref("/admin/publish")}
-                        className="inline-flex items-center justify-center rounded-md bg-emerald-600 px-3 py-2 text-sm font-medium text-white shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
-                      >
-                        Go to publish step
-                      </Link>
-                    </div>
+                  </div>
+                  <div className="mt-3 flex items-center justify-between">
+                    <p className="text-xs text-slate-600">
+                      Current: {status.publish === "pass" ? "Published" : "Draft"}
+                    </p>
+                    <Link
+                      href={cityHref("/admin/settings")}
+                      className="rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white"
+                    >
+                      Go to Publish Settings
+                    </Link>
                   </div>
                 </div>
               </div>
             )}
           </section>
 
-          {/* Step navigation controls */}
+          {/* Step navigation */}
           <div className="flex items-center justify-between border-t border-slate-200 pt-4">
             <button
               type="button"
               onClick={goPrevious}
               disabled={!hasPrevious}
-              className={`inline-flex items-center justify-center rounded-md border px-3 py-2 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-slate-900 ${
+              className={`rounded-md border px-3 py-2 text-sm font-medium ${
                 hasPrevious
                   ? "border-slate-300 text-slate-700 hover:bg-slate-50"
                   : "cursor-not-allowed border-slate-100 text-slate-400"
@@ -754,7 +931,7 @@ export default function AdminOnboardingPage() {
               type="button"
               onClick={goNext}
               disabled={!hasNext}
-              className={`inline-flex items-center justify-center rounded-md px-3 py-2 text-sm font-medium text-white outline-none focus-visible:ring-2 focus-visible:ring-slate-900 ${
+              className={`rounded-md px-3 py-2 text-sm font-medium text-white ${
                 hasNext
                   ? "bg-slate-900 hover:bg-slate-800"
                   : "cursor-not-allowed bg-slate-400"
