@@ -1,0 +1,284 @@
+/**
+ * Ingestion Upload API
+ * 
+ * POST /api/admin/ingestion/upload - Upload CSV file, detect columns, return preview
+ * 
+ * This endpoint:
+ * 1. Receives file via FormData
+ * 2. Computes SHA-256 checksum
+ * 3. Stores file in raw-uploads bucket
+ * 4. Creates raw_files record
+ * 5. Parses header row and sample data
+ * 6. Auto-detects column mappings
+ * 7. Returns preview data for the mapping UI
+ */
+
+import { NextRequest, NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/auth";
+import { supabaseAdmin } from "@/lib/supabaseService";
+import { DatasetType } from "@/lib/ingestion/types";
+import { autoDetectMappings } from "@/lib/ingestion/parseRow";
+import { createHash } from "crypto";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const maxDuration = 60; // 1 minute for large file uploads
+
+const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+const PREVIEW_ROWS = 10; // Number of sample rows to return
+
+// ============================================================================
+// POST - Upload file and detect columns
+// ============================================================================
+
+export async function POST(req: NextRequest) {
+  const auth = await requireAdmin(req);
+  if (!auth.success) return auth.error;
+
+  try {
+    const formData = await req.formData();
+    const file = formData.get("file") as File | null;
+    const datasetType = formData.get("dataset_type") as DatasetType | null;
+
+    // Validate inputs
+    if (!file) {
+      return NextResponse.json(
+        { error: "No file provided" },
+        { status: 400 }
+      );
+    }
+
+    if (!datasetType) {
+      return NextResponse.json(
+        { error: "dataset_type is required" },
+        { status: 400 }
+      );
+    }
+
+    const validDatasetTypes = [
+      "budgets",
+      "actuals",
+      "transactions",
+      "revenues",
+      "funds_lookup",
+      "departments_lookup",
+    ];
+
+    if (!validDatasetTypes.includes(datasetType)) {
+      return NextResponse.json(
+        { error: `Invalid dataset_type: ${datasetType}` },
+        { status: 400 }
+      );
+    }
+
+    // Check file size
+    if (file.size > MAX_FILE_SIZE) {
+      return NextResponse.json(
+        { error: `File too large. Maximum size is ${MAX_FILE_SIZE / 1024 / 1024}MB` },
+        { status: 400 }
+      );
+    }
+
+    // Check file type
+    const allowedTypes = ["text/csv", "application/vnd.ms-excel", "text/plain"];
+    if (!allowedTypes.includes(file.type) && !file.name.endsWith(".csv")) {
+      return NextResponse.json(
+        { error: "Invalid file type. Please upload a CSV file." },
+        { status: 400 }
+      );
+    }
+
+    // Read file content
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    const content = buffer.toString("utf-8");
+
+    // Compute checksum
+    const checksum = createHash("sha256").update(buffer).digest("hex");
+
+    // Check for duplicate (same file already uploaded)
+    const { data: existingFile } = await supabaseAdmin
+      .from("raw_files")
+      .select("id, filename, uploaded_at")
+      .eq("checksum", checksum)
+      .maybeSingle();
+
+    if (existingFile) {
+      return NextResponse.json(
+        {
+          error: "Duplicate file",
+          message: `This exact file was already uploaded as "${existingFile.filename}" on ${new Date(existingFile.uploaded_at).toLocaleDateString()}`,
+          existing_file_id: existingFile.id,
+        },
+        { status: 409 }
+      );
+    }
+
+    // Parse CSV to get headers and preview rows
+    const { headers, rows, totalRows } = parseCSVPreview(content, PREVIEW_ROWS);
+
+    if (headers.length === 0) {
+      return NextResponse.json(
+        { error: "Could not parse CSV headers. File may be empty or malformed." },
+        { status: 400 }
+      );
+    }
+
+    // Generate storage path
+    const timestamp = Date.now();
+    const safeFilename = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+    const storagePath = `${datasetType}/${timestamp}_${safeFilename}`;
+
+    // Upload to raw-uploads bucket
+    const { error: uploadError } = await supabaseAdmin.storage
+      .from("raw-uploads")
+      .upload(storagePath, buffer, {
+        contentType: "text/csv",
+        upsert: false,
+      });
+
+    if (uploadError) {
+      console.error("Error uploading to storage:", uploadError);
+      return NextResponse.json(
+        { error: "Failed to upload file to storage" },
+        { status: 500 }
+      );
+    }
+
+    // Create raw_files record
+    const { data: rawFile, error: insertError } = await supabaseAdmin
+      .from("raw_files")
+      .insert({
+        dataset_type: datasetType,
+        filename: file.name,
+        file_size_bytes: file.size,
+        checksum,
+        storage_path: storagePath,
+        row_count: totalRows,
+        uploaded_by: auth.data.user.id,
+      })
+      .select()
+      .single();
+
+    if (insertError) {
+      console.error("Error creating raw_files record:", insertError);
+      // Try to clean up uploaded file
+      await supabaseAdmin.storage.from("raw-uploads").remove([storagePath]);
+      return NextResponse.json(
+        { error: "Failed to create file record" },
+        { status: 500 }
+      );
+    }
+
+    // Auto-detect column mappings
+    const detectedMappings = autoDetectMappings(headers, datasetType);
+
+    // Get active profile for this dataset type (if exists)
+    const { data: activeProfile } = await supabaseAdmin
+      .from("ingestion_profiles")
+      .select("*")
+      .eq("dataset_type", datasetType)
+      .eq("is_active", true)
+      .maybeSingle();
+
+    return NextResponse.json({
+      ok: true,
+      raw_file: rawFile,
+      preview: {
+        headers,
+        sample_rows: rows,
+        total_rows: totalRows,
+      },
+      detected_mappings: detectedMappings,
+      active_profile: activeProfile,
+    });
+  } catch (err) {
+    console.error("Ingestion upload error:", err);
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : "Unexpected server error" },
+      { status: 500 }
+    );
+  }
+}
+
+// ============================================================================
+// CSV PARSING HELPERS
+// ============================================================================
+
+interface CSVPreview {
+  headers: string[];
+  rows: string[][];
+  totalRows: number;
+}
+
+/**
+ * Parse CSV content and return headers + sample rows
+ */
+function parseCSVPreview(content: string, maxRows: number): CSVPreview {
+  const lines = content.split(/\r?\n/);
+  const headers: string[] = [];
+  const rows: string[][] = [];
+  let totalRows = 0;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
+
+    const parsedRow = parseCSVLine(line);
+
+    if (i === 0) {
+      // First non-empty line is headers
+      headers.push(...parsedRow);
+    } else {
+      totalRows++;
+      if (rows.length < maxRows) {
+        rows.push(parsedRow);
+      }
+    }
+  }
+
+  return { headers, rows, totalRows };
+}
+
+/**
+ * Parse a single CSV line, handling quoted fields
+ */
+function parseCSVLine(line: string): string[] {
+  const result: string[] = [];
+  let current = "";
+  let inQuotes = false;
+
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    const nextChar = line[i + 1];
+
+    if (inQuotes) {
+      if (char === '"' && nextChar === '"') {
+        // Escaped quote
+        current += '"';
+        i++; // Skip next quote
+      } else if (char === '"') {
+        // End of quoted field
+        inQuotes = false;
+      } else {
+        current += char;
+      }
+    } else {
+      if (char === '"') {
+        // Start of quoted field
+        inQuotes = true;
+      } else if (char === ",") {
+        // Field separator
+        result.push(current.trim());
+        current = "";
+      } else {
+        current += char;
+      }
+    }
+  }
+
+  // Push last field
+  result.push(current.trim());
+
+  return result;
+}
