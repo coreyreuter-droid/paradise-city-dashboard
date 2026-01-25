@@ -99,19 +99,57 @@ export async function POST(req: NextRequest) {
     // Check for duplicate (same file already uploaded)
     const { data: existingFile } = await supabaseAdmin
       .from("raw_files")
-      .select("id, filename, uploaded_at")
+      .select("id, filename, uploaded_at, storage_path")
       .eq("checksum", checksum)
       .maybeSingle();
 
     if (existingFile) {
-      return NextResponse.json(
-        {
-          error: "Duplicate file",
-          message: `This exact file was already uploaded as "${existingFile.filename}" on ${new Date(existingFile.uploaded_at).toLocaleDateString()}`,
-          existing_file_id: existingFile.id,
-        },
-        { status: 409 }
-      );
+      // Check if all jobs for this file have failed or don't exist
+      const { data: jobs } = await supabaseAdmin
+        .from("ingestion_jobs")
+        .select("id, status")
+        .eq("raw_file_id", existingFile.id);
+
+      const allJobsFailed = !jobs || jobs.length === 0 || 
+        jobs.every(job => job.status === "failed");
+
+      if (allJobsFailed) {
+        // Clean up the old file and allow re-upload
+        console.log(`[upload] Cleaning up failed file ${existingFile.id} to allow re-upload`);
+        
+        // Delete jobs first (foreign key constraint)
+        if (jobs && jobs.length > 0) {
+          await supabaseAdmin
+            .from("ingestion_jobs")
+            .delete()
+            .eq("raw_file_id", existingFile.id);
+        }
+        
+        // Delete raw_files record
+        await supabaseAdmin
+          .from("raw_files")
+          .delete()
+          .eq("id", existingFile.id);
+        
+        // Delete from storage
+        if (existingFile.storage_path) {
+          await supabaseAdmin.storage
+            .from("raw-uploads")
+            .remove([existingFile.storage_path]);
+        }
+        
+        // Continue with upload (don't return error)
+      } else {
+        // File has a successful or in-progress job - block re-upload
+        return NextResponse.json(
+          {
+            error: "Duplicate file",
+            message: `This exact file was already uploaded as "${existingFile.filename}" on ${new Date(existingFile.uploaded_at).toLocaleDateString()}`,
+            existing_file_id: existingFile.id,
+          },
+          { status: 409 }
+        );
+      }
     }
 
     // Parse CSV to get headers and preview rows
