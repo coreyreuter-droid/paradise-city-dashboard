@@ -161,7 +161,9 @@ export async function POST(req: NextRequest) {
 
       if (baseUrl && workerSecret) {
         const workerUrl = `${baseUrl}/api/worker/process-ingestion`;
+        const bypassSecret = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
         console.log("[jobs/POST] workerUrl:", workerUrl);
+        console.log("[jobs/POST] bypass secret set:", !!bypassSecret);
 
         // Use waitUntil to ensure fetch completes after response is sent
         waitUntil(
@@ -170,6 +172,8 @@ export async function POST(req: NextRequest) {
             headers: {
               "Content-Type": "application/json",
               "x-worker-secret": workerSecret,
+              // Bypass Vercel Deployment Protection for server-to-server calls
+              ...(bypassSecret ? { "x-vercel-protection-bypass": bypassSecret } : {}),
             },
             body: JSON.stringify({ job_id: body.job_id }),
           })
