@@ -6,6 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { waitUntil } from "@vercel/functions";
 import { requireAdmin } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabaseService";
 
@@ -143,25 +144,48 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Optionally trigger worker immediately (for dev/testing)
-    // In production, the cron job will pick this up
+    // Trigger worker immediately if configured
     const triggerWorker = process.env.TRIGGER_WORKER_IMMEDIATELY === "true";
     if (triggerWorker) {
-      try {
-        const workerUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/worker/process-ingestion`;
-        const workerSecret = process.env.WORKER_SECRET;
-        
-        // Fire and forget - don't wait for response
-        fetch(workerUrl, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...(workerSecret ? { "x-worker-secret": workerSecret } : {}),
-          },
-          body: JSON.stringify({ job_id: body.job_id }),
-        }).catch((e) => console.warn("Non-fatal: worker trigger failed:", e));
-      } catch (e) {
-        console.warn("Non-fatal: worker trigger failed:", e);
+      // Build base URL - prefer APP_URL, fall back to VERCEL_URL, then NEXT_PUBLIC_APP_URL
+      const baseUrl =
+        process.env.APP_URL ??
+        (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null) ??
+        process.env.NEXT_PUBLIC_APP_URL;
+
+      const workerSecret = process.env.WORKER_SECRET;
+
+      console.log("[jobs/POST] Triggering worker...");
+      console.log("[jobs/POST] baseUrl:", baseUrl);
+      console.log("[jobs/POST] WORKER_SECRET set:", !!workerSecret);
+
+      if (baseUrl && workerSecret) {
+        const workerUrl = `${baseUrl}/api/worker/process-ingestion`;
+        console.log("[jobs/POST] workerUrl:", workerUrl);
+
+        // Use waitUntil to ensure fetch completes after response is sent
+        waitUntil(
+          fetch(workerUrl, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "x-worker-secret": workerSecret,
+            },
+            body: JSON.stringify({ job_id: body.job_id }),
+          })
+            .then((res) => {
+              console.log("[jobs/POST] Worker trigger response:", res.status);
+              return res.text();
+            })
+            .then((text) => {
+              console.log("[jobs/POST] Worker response body:", text.slice(0, 200));
+            })
+            .catch((e) => {
+              console.error("[jobs/POST] Worker trigger failed:", e);
+            })
+        );
+      } else {
+        console.warn("[jobs/POST] Cannot trigger worker: missing baseUrl or WORKER_SECRET");
       }
     }
 
