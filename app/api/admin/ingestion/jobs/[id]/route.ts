@@ -15,14 +15,17 @@ export const dynamic = "force-dynamic";
 // GET - Get job status
 // ============================================================================
 
-export async function GET(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+type Context = {
+  params: Promise<{ id: string }>;
+};
+
+export async function GET(req: NextRequest, context: Context) {
   const auth = await requireAdmin(req);
   if (!auth.success) return auth.error;
 
-  const jobId = params.id;
+  // Next.js 15 requires awaiting params
+  const params = await context.params;
+  const jobId = params?.id;
 
   if (!jobId) {
     return NextResponse.json(
