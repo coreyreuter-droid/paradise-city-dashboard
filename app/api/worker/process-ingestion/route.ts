@@ -11,6 +11,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { waitUntil } from "@vercel/functions";
 import { supabaseAdmin } from "@/lib/supabaseService";
 import { normalizeCode, normalizeLabel } from "@/lib/normalizeCode";
 import {
@@ -43,6 +44,7 @@ export async function POST(req: NextRequest) {
     cronAuth === `Bearer ${process.env.CRON_SECRET}`;
 
   if (!isAuthorized && process.env.NODE_ENV === "production") {
+    console.log("[worker] Unauthorized request");
     return NextResponse.json(
       { error: "Unauthorized" },
       { status: 401 }
@@ -54,56 +56,59 @@ export async function POST(req: NextRequest) {
     const body = await req.json().catch(() => ({}));
     const specificJobId = body.job_id;
 
+    console.log("[worker] Attempting to claim job:", specificJobId || "any pending");
+
     // Claim a job (find pending, lock it)
     const job = await claimJob(specificJobId);
 
     if (!job) {
+      console.log("[worker] No pending jobs to process");
       return NextResponse.json({
         ok: true,
         message: "No pending jobs to process",
       });
     }
 
-    console.log(`Processing ingestion job ${job.id} for ${job.dataset_type}`);
+    console.log(`[worker] Claimed job ${job.id} for ${job.dataset_type}`);
 
-    try {
-      // Process the job
-      await processJob(job);
+    // Return immediately, process in background
+    waitUntil(
+      processJobWithErrorHandling(job)
+    );
 
-      return NextResponse.json({
-        ok: true,
-        message: `Job ${job.id} processed successfully`,
-        job_id: job.id,
-      });
-    } catch (err) {
-      // Update job with error
-      const errorMessage = err instanceof Error ? err.message : "Unknown error";
-      
-      await supabaseAdmin
-        .from("ingestion_jobs")
-        .update({
-          status: "failed",
-          last_error: errorMessage,
-          finished_at: new Date().toISOString(),
-          locked_at: null,
-          locked_by: null,
-        })
-        .eq("id", job.id);
-
-      console.error(`Job ${job.id} failed:`, err);
-      
-      return NextResponse.json({
-        ok: false,
-        error: errorMessage,
-        job_id: job.id,
-      });
-    }
+    return NextResponse.json({
+      ok: true,
+      message: `Job ${job.id} claimed and processing started`,
+      job_id: job.id,
+    });
   } catch (err) {
-    console.error("Worker error:", err);
+    console.error("[worker] Error:", err);
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Worker error" },
       { status: 500 }
     );
+  }
+}
+
+// Wrapper to handle errors in background processing
+async function processJobWithErrorHandling(job: IngestionJob): Promise<void> {
+  try {
+    await processJob(job);
+    console.log(`[worker] Job ${job.id} completed successfully`);
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : "Unknown error";
+    console.error(`[worker] Job ${job.id} failed:`, err);
+    
+    await supabaseAdmin
+      .from("ingestion_jobs")
+      .update({
+        status: "failed",
+        last_error: errorMessage,
+        finished_at: new Date().toISOString(),
+        locked_at: null,
+        locked_by: null,
+      })
+      .eq("id", job.id);
   }
 }
 
@@ -186,6 +191,8 @@ async function claimJob(specificJobId?: string): Promise<IngestionJob | null> {
 // ============================================================================
 
 async function processJob(job: IngestionJob): Promise<void> {
+  console.log(`[worker] Processing job ${job.id} - downloading file`);
+
   // 1. Download the raw file
   const { data: rawFile } = await supabaseAdmin
     .from("raw_files")
@@ -206,6 +213,7 @@ async function processJob(job: IngestionJob): Promise<void> {
   }
 
   const content = await fileData.text();
+  console.log(`[worker] Job ${job.id} - file downloaded, parsing CSV`);
 
   // 2. Parse CSV
   const { headers, rows } = parseCSV(
@@ -213,6 +221,8 @@ async function processJob(job: IngestionJob): Promise<void> {
     job.profile_snapshot.header_row_index ?? 1,
     job.profile_snapshot.skip_rows_after_header ?? 0
   );
+
+  console.log(`[worker] Job ${job.id} - parsed ${rows.length} rows`);
 
   // 3. Handle delete for replace modes (only once per job)
   if (!job.delete_applied) {
@@ -257,6 +267,8 @@ async function processJob(job: IngestionJob): Promise<void> {
   let rowsRejected = 0;
   const startRow = job.checkpoint_row_number;
 
+  console.log(`[worker] Job ${job.id} - starting from row ${startRow}`);
+
   for (let i = startRow; i < rows.length; i += BATCH_SIZE) {
     const batch = rows.slice(i, i + BATCH_SIZE);
     const batchStartRow = (job.profile_snapshot.header_row_index ?? 1) +
@@ -295,6 +307,8 @@ async function processJob(job: IngestionJob): Promise<void> {
         rows_rejected: rowsRejected,
       })
       .eq("id", job.id);
+
+    console.log(`[worker] Job ${job.id} - processed ${i + batch.length}/${rows.length} rows`);
   }
 
   // 7. Calculate coverage (for financial datasets)
@@ -319,7 +333,7 @@ async function processJob(job: IngestionJob): Promise<void> {
     })
     .eq("id", job.id);
 
-  console.log(`Job ${job.id} completed: ${rowsLoaded} loaded, ${rowsRejected} rejected`);
+  console.log(`[worker] Job ${job.id} completed: ${rowsLoaded} loaded, ${rowsRejected} rejected`);
 }
 
 // ============================================================================
