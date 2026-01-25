@@ -29,6 +29,32 @@ const BATCH_SIZE = 1000; // Rows to process per batch
 const LOCK_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes lock timeout
 
 // ============================================================================
+// DATASET TYPE TO TABLE NAME MAPPING
+// ============================================================================
+
+/**
+ * Maps dataset type to actual database table name
+ * Most types map directly, but lookup types map to _dim tables
+ */
+function getTableName(datasetType: DatasetType): string {
+  switch (datasetType) {
+    case "funds_lookup":
+      return "funds_dim";
+    case "departments_lookup":
+      return "departments_dim";
+    default:
+      return datasetType;
+  }
+}
+
+/**
+ * Check if dataset type is a lookup table
+ */
+function isLookupType(datasetType: DatasetType): boolean {
+  return datasetType === "funds_lookup" || datasetType === "departments_lookup";
+}
+
+// ============================================================================
 // POST - Process pending jobs
 // ============================================================================
 
@@ -191,7 +217,10 @@ async function claimJob(specificJobId?: string): Promise<IngestionJob | null> {
 // ============================================================================
 
 async function processJob(job: IngestionJob): Promise<void> {
-  console.log(`[worker] Processing job ${job.id} - downloading file`);
+  const tableName = getTableName(job.dataset_type);
+  const isLookup = isLookupType(job.dataset_type);
+  
+  console.log(`[worker] Processing job ${job.id} - dataset: ${job.dataset_type}, table: ${tableName}`);
 
   // 1. Download the raw file
   const { data: rawFile } = await supabaseAdmin
@@ -224,9 +253,9 @@ async function processJob(job: IngestionJob): Promise<void> {
 
   console.log(`[worker] Job ${job.id} - parsed ${rows.length} rows`);
 
-  // 3. Handle delete for replace modes (only once per job)
-  if (!job.delete_applied) {
-    await handleDelete(job);
+  // 3. Handle delete for replace modes (only once per job, not for lookups with upsert)
+  if (!job.delete_applied && !isLookup) {
+    await handleDelete(job, tableName);
     
     // Mark delete as applied
     await supabaseAdmin
@@ -235,14 +264,30 @@ async function processJob(job: IngestionJob): Promise<void> {
       .eq("id", job.id);
   }
 
-  // 4. Get fiscal config
-  const { data: settings } = await supabaseAdmin
-    .from("portal_settings")
-    .select("fiscal_year_start_month")
-    .eq("id", 1)
-    .maybeSingle();
+  // For lookup tables with replace_all, delete all before inserting
+  if (!job.delete_applied && isLookup && job.import_mode === "replace_all") {
+    await supabaseAdmin
+      .from(tableName)
+      .delete()
+      .gte("id", "00000000-0000-0000-0000-000000000000");
+    
+    await supabaseAdmin
+      .from("ingestion_jobs")
+      .update({ delete_applied: true })
+      .eq("id", job.id);
+  }
 
-  const fyStartMonth = settings?.fiscal_year_start_month ?? 7;
+  // 4. Get fiscal config (only needed for non-lookup types)
+  let fyStartMonth = 7;
+  if (!isLookup) {
+    const { data: settings } = await supabaseAdmin
+      .from("portal_settings")
+      .select("fiscal_year_start_month")
+      .eq("id", 1)
+      .maybeSingle();
+
+    fyStartMonth = settings?.fiscal_year_start_month ?? 7;
+  }
 
   // 5. Build parse options
   const coaConfig: COAConfig | undefined = job.profile_snapshot.coa_enabled
@@ -282,16 +327,22 @@ async function processJob(job: IngestionJob): Promise<void> {
     // Build records for valid rows
     const records = parsedRows
       .filter((r) => r.isValid)
-      .map((r) => buildRecord(r.data, job));
+      .map((r, idx) => buildRecord(r.data, job, batchStartRow + idx));
 
-    // Insert batch
+    // Insert or upsert batch
     if (records.length > 0) {
-      const { error: insertError } = await supabaseAdmin
-        .from(job.dataset_type)
-        .insert(records);
+      if (isLookup) {
+        // Use upsert for lookup tables (they have unique constraints on codes)
+        await upsertLookupRecords(tableName, job.dataset_type, records);
+      } else {
+        // Regular insert for financial data
+        const { error: insertError } = await supabaseAdmin
+          .from(tableName)
+          .insert(records);
 
-      if (insertError) {
-        throw new Error(`Insert error at row ${i}: ${insertError.message}`);
+        if (insertError) {
+          throw new Error(`Insert error at row ${i}: ${insertError.message}`);
+        }
       }
     }
 
@@ -311,11 +362,16 @@ async function processJob(job: IngestionJob): Promise<void> {
     console.log(`[worker] Job ${job.id} - processed ${i + batch.length}/${rows.length} rows`);
   }
 
-  // 7. Calculate coverage (for financial datasets)
-  const coverageSummary = await calculateCoverage(job.dataset_type, job.id);
+  // 7. Calculate coverage (for financial datasets only)
+  let coverageSummary: Record<string, unknown> = {};
+  if (!isLookup) {
+    coverageSummary = await calculateCoverage(job.dataset_type, job.id, tableName);
+  }
 
-  // 8. Recompute rollups
-  await recomputeRollups(job);
+  // 8. Recompute rollups (for financial datasets only)
+  if (!isLookup) {
+    await recomputeRollups(job, tableName);
+  }
 
   // 9. Mark job complete
   const finalStatus = rowsRejected > 0 ? "completed_with_warnings" : "completed";
@@ -414,10 +470,12 @@ function parseCSVLine(line: string): string[] {
 
 function buildRecord(
   data: Record<string, string | number | null>,
-  job: IngestionJob
+  job: IngestionJob,
+  sourceRowNumber: number
 ): Record<string, unknown> {
   const record: Record<string, unknown> = {
     job_id: job.id,
+    source_row_number: sourceRowNumber,
   };
 
   // Copy all data fields
@@ -435,14 +493,39 @@ function buildRecord(
   return record;
 }
 
-async function handleDelete(job: IngestionJob): Promise<void> {
+/**
+ * Upsert records into lookup tables
+ * Uses ON CONFLICT to update existing records based on code
+ */
+async function upsertLookupRecords(
+  tableName: string,
+  datasetType: DatasetType,
+  records: Record<string, unknown>[]
+): Promise<void> {
+  // Determine the unique key field based on table
+  const conflictColumn = datasetType === "funds_lookup" ? "fund_code" : "department_code";
+  
+  // Supabase upsert with onConflict
+  const { error } = await supabaseAdmin
+    .from(tableName)
+    .upsert(records, {
+      onConflict: conflictColumn,
+      ignoreDuplicates: false, // Update on conflict
+    });
+
+  if (error) {
+    throw new Error(`Upsert error: ${error.message}`);
+  }
+}
+
+async function handleDelete(job: IngestionJob, tableName: string): Promise<void> {
   if (job.import_mode === "append") {
     return; // No delete needed
   }
 
   if (job.import_mode === "replace_year" && job.replace_target_year) {
     const { error } = await supabaseAdmin
-      .from(job.dataset_type)
+      .from(tableName)
       .delete()
       .eq("fiscal_year", job.replace_target_year);
 
@@ -451,7 +534,7 @@ async function handleDelete(job: IngestionJob): Promise<void> {
     }
   } else if (job.import_mode === "replace_all") {
     const { error } = await supabaseAdmin
-      .from(job.dataset_type)
+      .from(tableName)
       .delete()
       .gte("id", "00000000-0000-0000-0000-000000000000"); // Delete all
 
@@ -463,7 +546,8 @@ async function handleDelete(job: IngestionJob): Promise<void> {
 
 async function calculateCoverage(
   datasetType: DatasetType,
-  jobId: string
+  jobId: string,
+  tableName: string
 ): Promise<Record<string, unknown>> {
   // Only calculate for financial datasets
   if (!["budgets", "actuals", "transactions", "revenues"].includes(datasetType)) {
@@ -472,13 +556,13 @@ async function calculateCoverage(
 
   // Count distinct codes
   const { data: fundCodes } = await supabaseAdmin
-    .from(datasetType)
+    .from(tableName)
     .select("fund_code")
     .eq("job_id", jobId)
     .not("fund_code", "is", null);
 
   const { data: deptCodes } = await supabaseAdmin
-    .from(datasetType)
+    .from(tableName)
     .select("department_code")
     .eq("job_id", jobId)
     .not("department_code", "is", null);
@@ -514,10 +598,15 @@ async function calculateCoverage(
   };
 }
 
-async function recomputeRollups(job: IngestionJob): Promise<void> {
+async function recomputeRollups(job: IngestionJob, tableName: string): Promise<void> {
+  // Skip for lookup tables (they don't have fiscal_year)
+  if (isLookupType(job.dataset_type)) {
+    return;
+  }
+
   // Get affected fiscal years
   const { data: years } = await supabaseAdmin
-    .from(job.dataset_type)
+    .from(tableName)
     .select("fiscal_year")
     .eq("job_id", job.id);
 
