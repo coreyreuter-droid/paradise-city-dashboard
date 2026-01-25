@@ -178,7 +178,7 @@ ALTER TABLE public.actuals ENABLE ROW LEVEL SECURITY;
 -- ============================================================================
 -- 5. TRANSACTIONS TABLE
 -- ============================================================================
--- Stores individual payment/transaction records.
+-- Stores individual payment/transaction records
 
 CREATE TABLE public.transactions (
   id UUID NOT NULL DEFAULT gen_random_uuid(),
