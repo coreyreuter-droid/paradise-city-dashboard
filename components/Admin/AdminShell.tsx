@@ -20,13 +20,15 @@ type Props = {
 const NAV_ROW_1: { href: string; label: string }[] = [
   { href: "", label: "Overview" },
   { href: "upload", label: "Data upload" },
+  { href: "mapping", label: "CSV mapping" },
   { href: "upload/history", label: "Upload history" },
   { href: "data", label: "Data management" },
   { href: "projects", label: "Projects" },
-  { href: "settings", label: "Branding & settings" },
 ];
 
 const NAV_ROW_2: { href: string; label: string }[] = [
+  { href: "settings", label: "Branding & settings" },
+  { href: "lookups", label: "Lookup tables" },
   { href: "users", label: "Users & roles" },
   { href: "publish", label: "Publish status" },
   { href: "onboarding", label: "Onboarding checklist" },
@@ -255,11 +257,9 @@ export default function AdminShell({
               <div className="grid grid-cols-6 border-b border-slate-200">
                 {NAV_ROW_1.map(renderNavItem)}
               </div>
-              {/* Row 2 - 3 tabs aligned to first 3 columns */}
+              {/* Row 2 - 6 tabs */}
               <div className="grid grid-cols-6 border-b border-slate-200">
                 {NAV_ROW_2.map(renderNavItem)}
-                {/* Empty cells for columns 4-6 */}
-                <div className="col-span-3" />
               </div>
             </nav>
 
