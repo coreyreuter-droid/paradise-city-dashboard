@@ -1,7 +1,7 @@
 // components/Admin/UploadClient.tsx
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { cityHref } from "@/lib/cityRouting";
 import { parseCsv } from "@/lib/csvParser";
@@ -24,6 +24,72 @@ type PreflightSummary = {
   mode: Mode;
   replaceYear: number | null;
 };
+
+// Mapping profile type
+interface MappingProfile {
+  id: string;
+  name: string;
+  dataset_type: string;
+  column_mappings: Record<string, string>;
+  is_system: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Transform CSV headers using a mapping profile.
+ * The mapping is stored as { targetField: csvColumnName }
+ * We need to reverse it to { csvColumnName: targetField } for transformation.
+ */
+function transformHeadersWithMapping(
+  rawHeaders: string[],
+  columnMappings: Record<string, string>
+): string[] {
+  // Build reverse mapping: csvColumnName -> targetField
+  const reverseMapping: Record<string, string> = {};
+  for (const [targetField, csvColumnName] of Object.entries(columnMappings)) {
+    if (csvColumnName) {
+      reverseMapping[csvColumnName.toLowerCase().trim()] = targetField;
+    }
+  }
+
+  // Transform each header
+  return rawHeaders.map((h) => {
+    const normalized = h.toLowerCase().trim();
+    return reverseMapping[normalized] || h;
+  });
+}
+
+/**
+ * Check which expected columns are missing from CSV headers.
+ * Returns the expected CSV column names that are not found.
+ */
+function getMissingMappedColumns(
+  rawHeaders: string[],
+  columnMappings: Record<string, string>,
+  requiredFields: string[]
+): { missingFields: string[]; missingCsvColumns: string[] } {
+  const normalizedHeaders = new Set(rawHeaders.map((h) => h.toLowerCase().trim()));
+  
+  const missingFields: string[] = [];
+  const missingCsvColumns: string[] = [];
+
+  for (const field of requiredFields) {
+    const expectedCsvColumn = columnMappings[field];
+    if (!expectedCsvColumn) {
+      missingFields.push(field);
+      missingCsvColumns.push(field); // No mapping defined
+    } else {
+      const normalizedExpected = expectedCsvColumn.toLowerCase().trim();
+      if (!normalizedHeaders.has(normalizedExpected)) {
+        missingFields.push(field);
+        missingCsvColumns.push(expectedCsvColumn);
+      }
+    }
+  }
+
+  return { missingFields, missingCsvColumns };
+}
 
 export default function UploadClient() {
   // --- Upload state ---
@@ -51,8 +117,17 @@ export default function UploadClient() {
   const [previewRows, setPreviewRows] = useState<string[][] | null>(null);
   const [previewMessage, setPreviewMessage] = useState<string | null>(null);
 
+  // --- Mapping profile state ---
+  const [mappingProfiles, setMappingProfiles] = useState<MappingProfile[]>([]);
+  const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);
+  const [profilesLoading, setProfilesLoading] = useState(false);
+  const [profileError, setProfileError] = useState<string | null>(null);
+
   const messageRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Get the currently selected profile
+  const selectedProfile = mappingProfiles.find((p) => p.id === selectedProfileId) || null;
 
   useEffect(() => {
     if (message && messageRef.current) {
@@ -70,7 +145,7 @@ export default function UploadClient() {
     setMessageIsError(false);
   }
 
-    function resetUploadState() {
+  function resetUploadState() {
     setFile(null);
 
     setPreviewHeaders(null);
@@ -95,6 +170,63 @@ export default function UploadClient() {
     }
   }
 
+  // Load mapping profiles for the current table
+  const loadMappingProfiles = useCallback(async (datasetType: string) => {
+    setProfilesLoading(true);
+    setProfileError(null);
+
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session?.access_token) {
+        setProfileError("Not authenticated");
+        setProfilesLoading(false);
+        return;
+      }
+
+      const res = await fetch(
+        `/api/admin/mapping-profiles?dataset_type=${encodeURIComponent(datasetType)}`,
+        {
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
+        }
+      );
+
+      if (!res.ok) {
+        const data = await res.json();
+        setProfileError(data.error || "Failed to load mapping profiles");
+        setMappingProfiles([]);
+        setSelectedProfileId(null);
+        setProfilesLoading(false);
+        return;
+      }
+
+      const data = await res.json();
+      const profiles: MappingProfile[] = data.profiles || [];
+      setMappingProfiles(profiles);
+
+      // Select the system default profile by default
+      const defaultProfile = profiles.find((p) => p.is_system && p.name === "Default Template");
+      if (defaultProfile) {
+        setSelectedProfileId(defaultProfile.id);
+      } else if (profiles.length > 0) {
+        setSelectedProfileId(profiles[0].id);
+      } else {
+        setSelectedProfileId(null);
+      }
+    } catch (err) {
+      console.error("Error loading mapping profiles:", err);
+      setProfileError("Failed to load mapping profiles");
+      setMappingProfiles([]);
+      setSelectedProfileId(null);
+    } finally {
+      setProfilesLoading(false);
+    }
+  }, []);
+
   function handleTableChange(nextTable: string) {
     if (nextTable === table) return;
 
@@ -107,7 +239,12 @@ export default function UploadClient() {
     setTable(nextTable);
   }
 
-    async function refreshCoverageWarnings() {
+  // Load profiles when table changes
+  useEffect(() => {
+    loadMappingProfiles(table);
+  }, [table, loadMappingProfiles]);
+
+  async function refreshCoverageWarnings() {
     try {
       const { data: psRows, error: psError } = await supabase
         .from("portal_settings")
@@ -184,7 +321,6 @@ export default function UploadClient() {
 
   useEffect(() => {
     // Initial coverage check on mount
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     refreshCoverageWarnings();
   }, []);
 
@@ -197,6 +333,11 @@ export default function UploadClient() {
     const schema = TABLE_SCHEMAS[table];
     if (!schema) {
       setError(`No schema defined for table "${table}".`);
+      return;
+    }
+
+    if (!selectedProfile) {
+      setError("Please select a mapping profile.");
       return;
     }
 
@@ -236,10 +377,34 @@ export default function UploadClient() {
         return;
       }
 
-      const headers = rows[0].map((h) => h.trim());
+      const rawHeaders = rows[0].map((h) => h.trim());
       const dataRows = rows.slice(1);
 
-      // Validation + record building
+      // Check if CSV headers match the selected mapping profile
+      const { missingFields, missingCsvColumns } = getMissingMappedColumns(
+        rawHeaders,
+        selectedProfile.column_mappings,
+        schema.required
+      );
+
+      if (missingCsvColumns.length > 0) {
+        setError(
+          `CSV is missing required columns for the selected mapping profile "${selectedProfile.name}":\n\n` +
+            `Expected columns: ${missingCsvColumns.join(", ")}\n\n` +
+            `Found columns: ${rawHeaders.join(", ")}\n\n` +
+            `Please check that you selected the correct mapping profile for this CSV file.`
+        );
+        setIsLoading(false);
+        return;
+      }
+
+      // Transform headers using the mapping profile
+      const headers = transformHeadersWithMapping(
+        rawHeaders,
+        selectedProfile.column_mappings
+      );
+
+      // Validation + record building (now using transformed headers)
       const { records, yearsInData, issues } = validateAndBuildRecords(
         table,
         schema,
@@ -499,13 +664,21 @@ export default function UploadClient() {
     downloadCsv(csv, `${table}_template.csv`);
   }
 
-  // Compute preview-time missing required columns (based on selected table)
-  const previewMissingRequired =
-    previewHeaders && TABLE_SCHEMAS[table]
-      ? TABLE_SCHEMAS[table].required.filter(
-          (col) => !previewHeaders.includes(col)
-        )
-      : [];
+  // Compute preview-time missing columns (using selected mapping profile)
+  const previewMissingInfo = (() => {
+    if (!previewHeaders || !selectedProfile) {
+      return { missingFields: [], missingCsvColumns: [] };
+    }
+    const schema = TABLE_SCHEMAS[table];
+    if (!schema) {
+      return { missingFields: [], missingCsvColumns: [] };
+    }
+    return getMissingMappedColumns(
+      previewHeaders,
+      selectedProfile.column_mappings,
+      schema.required
+    );
+  })();
 
   return (
     <div
@@ -519,14 +692,14 @@ export default function UploadClient() {
           </h1>
           <p className="mt-1 text-sm text-slate-700">
             Upload CSV files for budgets, actuals, transactions, or
-            revenues. Use the template to ensure columns match exactly.
+            revenues. Select the appropriate mapping profile for your CSV format.
           </p>
           {table === "transactions" && (
             <p className="mt-2 rounded-md border border-red-200 bg-red-50 p-2 text-xs text-red-800">
               <span className="font-semibold">Important:</span> Transactions use a calendar date (
               <span className="font-mono">MM/DD/YYYY</span> or{" "}
               <span className="font-mono">YYYY-MM-DD</span>) and we derive the fiscal year from the date
-              using the city’s fiscal-year start (June 30 vs July 1 flips FY).
+              using the city&apos;s fiscal-year start (June 30 vs July 1 flips FY).
             </p>
           )}
 
@@ -537,7 +710,7 @@ export default function UploadClient() {
               (<span className="font-mono">YYYY-MM</span>, e.g.{" "}
               <span className="font-mono">2027-08</span>). The portal derives{" "}
               <span className="font-mono">fiscal_year</span> from <span className="font-mono">period</span>{" "}
-              using the city’s FY start (FY labeled by ending year). Example (July-start):{" "}
+              using the city&apos;s FY start (FY labeled by ending year). Example (July-start):{" "}
               <span className="font-mono">2027-08</span> belongs to <span className="font-semibold">FY2028</span>.
             </p>
           )}
@@ -547,7 +720,7 @@ export default function UploadClient() {
               <span className="font-semibold">Important:</span> Budgets use{" "}
               <span className="font-semibold">fiscal years labeled by ending year</span>.{" "}
               <span className="font-mono">FY2028</span> = Jul 2027–Jun 2028 (July-start example).{" "}
-              Don’t upload calendar-year labeling by mistake.
+              Don&apos;t upload calendar-year labeling by mistake.
             </p>
           )}
 
@@ -593,17 +766,67 @@ export default function UploadClient() {
           <option value="transactions">transactions</option>
           <option value="revenues">revenues</option>
         </select>
+      </div>
+
+      {/* Mapping profile selector */}
+      <div className="mb-4">
+        <label
+          className="mb-1 block text-sm font-medium text-slate-700"
+          htmlFor="mapping-profile-select"
+        >
+          Mapping profile
+        </label>
+        {profilesLoading ? (
+          <p className="text-xs text-slate-500">Loading mapping profiles...</p>
+        ) : profileError ? (
+          <p className="text-xs text-red-600">{profileError}</p>
+        ) : mappingProfiles.length === 0 ? (
+          <p className="text-xs text-slate-500">No mapping profiles found for {table}.</p>
+        ) : (
+          <select
+            id="mapping-profile-select"
+            value={selectedProfileId || ""}
+            onChange={(e) => {
+              setSelectedProfileId(e.target.value || null);
+              // Reset file state when profile changes to re-validate
+              if (previewHeaders) {
+                setPreflight(null);
+                setPendingRecords(null);
+              }
+            }}
+            className="rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
+          >
+            {mappingProfiles.map((profile) => (
+              <option key={profile.id} value={profile.id}>
+                {profile.name}
+                {profile.is_system ? " (default)" : ""}
+              </option>
+            ))}
+          </select>
+        )}
         <div className="mt-1 flex items-center justify-between gap-2">
           <p className="text-xs text-slate-600">
-            Make sure your CSV columns match the template for this table.
+            {selectedProfile?.is_system
+              ? "Using standard column names. CSV must match the template exactly."
+              : selectedProfile
+              ? `Using custom column mapping "${selectedProfile.name}".`
+              : "Select a mapping profile for your CSV format."}
           </p>
-          <button
-            type="button"
-            onClick={handleDownloadTemplate}
-            className="rounded-md border border-slate-300 px-3 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
-          >
-            Download template
-          </button>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={handleDownloadTemplate}
+              className="rounded-md border border-slate-300 px-3 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
+            >
+              Download template
+            </button>
+            <a
+              href={cityHref("/admin/mapping")}
+              className="rounded-md border border-slate-300 px-3 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
+            >
+              Manage mappings
+            </a>
+          </div>
         </div>
       </div>
 
@@ -679,24 +902,23 @@ export default function UploadClient() {
               <div className="flex items-center gap-2">
                 <label
                   htmlFor="replaceYear"
-                  className="text-xs font-medium"
+                  className="text-xs font-medium whitespace-nowrap"
                 >
-                  Fiscal year to replace
+                  Fiscal year to replace:
                 </label>
                 <input
                   id="replaceYear"
                   type="text"
-                  inputMode="numeric"
                   value={replaceYear}
                   onChange={(e) => setReplaceYear(e.target.value)}
-                  className="w-24 rounded-md border border-slate-300 px-2 py-1 text-xs text-slate-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
-                  aria-describedby="replace-year-help"
+                  className="w-20 rounded-md border border-slate-300 px-2 py-1 text-xs text-slate-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
+                  placeholder="e.g. 2024"
                 />
               </div>
-              <div className="flex flex-1 flex-col gap-1">
+              <div className="flex items-center gap-2">
                 <label
                   htmlFor="replaceYearConfirm"
-                  className="text-xs font-medium"
+                  className="text-xs font-medium whitespace-nowrap"
                 >
                   Confirm fiscal year
                 </label>
@@ -868,16 +1090,26 @@ export default function UploadClient() {
       </div>
 
       {/* Preview warnings */}
-      {previewHeaders && (
+      {previewHeaders && selectedProfile && (
         <div className="mb-2 text-xs">
-          {previewMissingRequired.length > 0 ? (
-            <p className="text-red-700">
-              Preview warning: CSV is missing required column(s) for{" "}
-              {table}: {previewMissingRequired.join(", ")}.
-            </p>
+          {previewMissingInfo.missingCsvColumns.length > 0 ? (
+            <div className="rounded-md border border-red-200 bg-red-50 p-2 text-red-700">
+              <p className="font-semibold">
+                ⚠️ CSV doesn&apos;t match selected mapping profile &quot;{selectedProfile.name}&quot;
+              </p>
+              <p className="mt-1">
+                Missing columns: {previewMissingInfo.missingCsvColumns.join(", ")}
+              </p>
+              <p className="mt-1">
+                Found columns: {previewHeaders.join(", ")}
+              </p>
+              <p className="mt-2 font-medium">
+                Please check that you selected the correct mapping profile for this CSV file.
+              </p>
+            </div>
           ) : (
             <p className="text-emerald-700">
-              Preview: All required columns for {table} are present.
+              ✓ All required columns found for mapping profile &quot;{selectedProfile.name}&quot;.
             </p>
           )}
         </div>
@@ -948,6 +1180,12 @@ export default function UploadClient() {
             </div>
             <div>
               <dt className="text-xs font-medium text-slate-600">
+                Mapping profile
+              </dt>
+              <dd className="text-sm">{selectedProfile?.name || "None"}</dd>
+            </div>
+            <div>
+              <dt className="text-xs font-medium text-slate-600">
                 Rows to upload
               </dt>
               <dd className="text-sm">
@@ -967,7 +1205,7 @@ export default function UploadClient() {
                       .join(", ")}
               </dd>
             </div>
-            <div>
+            <div className="sm:col-span-2">
               <dt className="text-xs font-medium text-slate-600">
                 Upload mode
               </dt>
@@ -1048,7 +1286,7 @@ export default function UploadClient() {
         <button
           type="button"
           onClick={handlePrepareUpload}
-          disabled={isLoading}
+          disabled={isLoading || !selectedProfile}
           className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
         >
           {isLoading ? "Processing..." : "Review upload"}
@@ -1074,4 +1312,3 @@ export default function UploadClient() {
     </div>
   );
 }
-

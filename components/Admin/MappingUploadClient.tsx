@@ -156,6 +156,13 @@ export default function MappingUploadClient() {
   const [jobProgress, setJobProgress] = useState<number>(0);
   const [pollCount, setPollCount] = useState<number>(0);
 
+  // Save profile state
+  const [showSaveProfileModal, setShowSaveProfileModal] = useState(false);
+  const [saveProfileName, setSaveProfileName] = useState("");
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [saveProfileError, setSaveProfileError] = useState<string | null>(null);
+  const [saveProfileSuccess, setSaveProfileSuccess] = useState(false);
+
   const messageRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -192,6 +199,11 @@ export default function MappingUploadClient() {
     setImportMode("append");
     setReplaceYear("");
     clearMessage();
+    // Reset save profile state
+    setShowSaveProfileModal(false);
+    setSaveProfileName("");
+    setSaveProfileError(null);
+    setSaveProfileSuccess(false);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -291,6 +303,75 @@ export default function MappingUploadClient() {
     }
     
     return true;
+  }
+
+  // ============================================================================
+  // SAVE MAPPING PROFILE
+  // ============================================================================
+
+  async function handleSaveProfile() {
+    if (!saveProfileName.trim()) {
+      setSaveProfileError("Please enter a profile name");
+      return;
+    }
+
+    setSavingProfile(true);
+    setSaveProfileError(null);
+    setSaveProfileSuccess(false);
+
+    try {
+      const token = await getAuthToken();
+      if (!token) {
+        setSaveProfileError("Not authenticated");
+        setSavingProfile(false);
+        return;
+      }
+
+      // Build the column_mappings object for the profile
+      // Format: { targetField: csvColumnName }
+      const profileMappings: Record<string, string> = {};
+      for (const [targetField, mapping] of Object.entries(columnMappings)) {
+        if (mapping.enabled && mapping.csvColumnIndex >= 0) {
+          profileMappings[targetField] = mapping.csvColumnName;
+        }
+      }
+
+      const res = await fetch("/api/admin/mapping-profiles", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: saveProfileName.trim(),
+          dataset_type: datasetType,
+          column_mappings: profileMappings,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setSaveProfileError(data.error || "Failed to save profile");
+        setSavingProfile(false);
+        return;
+      }
+
+      setSaveProfileSuccess(true);
+      setInfo(`Mapping profile "${saveProfileName.trim()}" saved successfully! You can now use it from the Upload page.`);
+      
+      // Close modal after short delay
+      setTimeout(() => {
+        setShowSaveProfileModal(false);
+        setSaveProfileName("");
+        setSaveProfileSuccess(false);
+      }, 2000);
+
+    } catch (err) {
+      setSaveProfileError("Failed to save profile");
+    } finally {
+      setSavingProfile(false);
+    }
   }
 
   // ============================================================================
@@ -746,13 +827,26 @@ export default function MappingUploadClient() {
             </div>
           </div>
 
-          <div className="flex gap-3">
+          <div className="flex flex-wrap gap-3">
             <button
               type="button"
               onClick={() => setStep("upload")}
               className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
             >
               Back
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setSaveProfileError(null);
+                setSaveProfileSuccess(false);
+                setSaveProfileName("");
+                setShowSaveProfileModal(true);
+              }}
+              disabled={!isMappingComplete()}
+              className="rounded-md border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-100 disabled:opacity-50"
+            >
+              Save as Profile
             </button>
             <button
               type="button"
@@ -763,6 +857,64 @@ export default function MappingUploadClient() {
               {isLoading ? "Validating..." : "Validate data"}
             </button>
           </div>
+
+          {/* Save Profile Modal */}
+          {showSaveProfileModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+              <div className="mx-4 w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
+                <h3 className="text-lg font-semibold text-slate-900">Save Mapping Profile</h3>
+                <p className="mt-1 text-sm text-slate-600">
+                  Save this column mapping for reuse on the Upload page. This lets you quickly upload files with the same format in the future.
+                </p>
+                
+                <div className="mt-4">
+                  <label htmlFor="profile-name" className="block text-sm font-medium text-slate-700">
+                    Profile name
+                  </label>
+                  <input
+                    id="profile-name"
+                    type="text"
+                    value={saveProfileName}
+                    onChange={(e) => setSaveProfileName(e.target.value)}
+                    placeholder="e.g., Tyler Tech Export, Munis Format"
+                    className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+                    autoFocus
+                  />
+                </div>
+
+                {saveProfileError && (
+                  <p className="mt-2 text-sm text-red-600">{saveProfileError}</p>
+                )}
+
+                {saveProfileSuccess && (
+                  <p className="mt-2 text-sm text-emerald-600">✓ Profile saved successfully!</p>
+                )}
+
+                <div className="mt-4 flex justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowSaveProfileModal(false);
+                      setSaveProfileName("");
+                      setSaveProfileError(null);
+                    }}
+                    disabled={savingProfile}
+                    className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSaveProfile}
+                    disabled={savingProfile || !saveProfileName.trim() || saveProfileSuccess}
+                    className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+                  >
+                    {savingProfile ? "Saving..." : "Save Profile"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
