@@ -7,8 +7,8 @@ import { requireCsrf } from "@/lib/csrf";
 import { logAuditEvent } from "@/lib/auditLog";
 
 type ActionType = 
-  | "clear_funds_lookup"
-  | "clear_departments_lookup"
+  | "clear_funds_dim"
+  | "clear_departments_dim"
   | "clear_job_history"
   | "clear_failed_jobs"
   | "get_stats";
@@ -38,8 +38,8 @@ export async function GET(req: NextRequest) {
       supabaseAdmin.from("actuals").select("*", { count: "exact", head: true }),
       supabaseAdmin.from("transactions").select("*", { count: "exact", head: true }),
       supabaseAdmin.from("revenues").select("*", { count: "exact", head: true }),
-      supabaseAdmin.from("funds_lookup").select("*", { count: "exact", head: true }),
-      supabaseAdmin.from("departments_lookup").select("*", { count: "exact", head: true }),
+      supabaseAdmin.from("funds_dim").select("*", { count: "exact", head: true }),
+      supabaseAdmin.from("departments_dim").select("*", { count: "exact", head: true }),
       supabaseAdmin.from("ingestion_jobs").select("*", { count: "exact", head: true }),
       supabaseAdmin.from("mapping_profiles").select("*", { count: "exact", head: true }).eq("is_system", false),
       supabaseAdmin.from("raw_files").select("*", { count: "exact", head: true }),
@@ -118,7 +118,7 @@ export async function POST(req: NextRequest) {
     const userEmail = auth.data.user.email ?? auth.data.user.id;
 
     switch (action) {
-      case "clear_funds_lookup": {
+      case "clear_funds_dim": {
         if (confirm !== "CLEAR FUNDS") {
           return NextResponse.json(
             { error: "Please type 'CLEAR FUNDS' to confirm" },
@@ -127,7 +127,7 @@ export async function POST(req: NextRequest) {
         }
 
         const { count, error } = await supabaseAdmin
-          .from("funds_lookup")
+          .from("funds_dim")
           .delete({ count: "exact" })
           .neq("code", ""); // Delete all (code is never empty)
 
@@ -142,7 +142,7 @@ export async function POST(req: NextRequest) {
           actor_email: userEmail,
           actor_user_id: auth.data.user.id,
           action: "lookup.deleted",
-          target_table: "funds_lookup",
+          target_table: "funds_dim",
           rows_affected: count ?? 0,
           meta: { cleared_all: true },
         });
@@ -153,7 +153,7 @@ export async function POST(req: NextRequest) {
         });
       }
 
-      case "clear_departments_lookup": {
+      case "clear_departments_dim": {
         if (confirm !== "CLEAR DEPARTMENTS") {
           return NextResponse.json(
             { error: "Please type 'CLEAR DEPARTMENTS' to confirm" },
@@ -162,7 +162,7 @@ export async function POST(req: NextRequest) {
         }
 
         const { count, error } = await supabaseAdmin
-          .from("departments_lookup")
+          .from("departments_dim")
           .delete({ count: "exact" })
           .neq("code", "");
 
@@ -177,7 +177,7 @@ export async function POST(req: NextRequest) {
           actor_email: userEmail,
           actor_user_id: auth.data.user.id,
           action: "lookup.deleted",
-          target_table: "departments_lookup",
+          target_table: "departments_dim",
           rows_affected: count ?? 0,
           meta: { cleared_all: true },
         });

@@ -12,6 +12,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { waitUntil } from "@vercel/functions";
+import Papa from "papaparse";
 import { supabaseAdmin } from "@/lib/supabaseService";
 import { normalizeCode, normalizeLabel } from "@/lib/normalizeCode";
 import { logAuditEvent } from "@/lib/auditLog";
@@ -310,7 +311,7 @@ async function processJob(job: IngestionJob): Promise<void> {
     await supabaseAdmin
       .from(tableName)
       .delete()
-      .gte("id", "00000000-0000-0000-0000-000000000000");
+      .not("id", "is", null); // Safe way to delete all rows
     
     await supabaseAdmin
       .from("ingestion_jobs")
@@ -442,23 +443,38 @@ function parseCSV(
   headerRowIndex: number,
   skipRowsAfterHeader: number
 ): { headers: string[]; rows: string[][] } {
-  const lines = content.split(/\r?\n/);
+  // Use papaparse for robust CSV parsing that handles:
+  // - Quoted fields with commas
+  // - Quoted fields with embedded newlines
+  // - Escaped quotes ("")
+  // - Windows/Mac/Unix line endings
+  const result = Papa.parse<string[]>(content, {
+    skipEmptyLines: true,
+    // Don't use header option - we handle it manually to support headerRowIndex
+  });
+
+  if (result.errors.length > 0) {
+    console.warn("[worker] CSV parse warnings:", result.errors.slice(0, 5));
+  }
+
+  const allRows = result.data;
   const headers: string[] = [];
   const rows: string[][] = [];
 
-  let lineIndex = 0;
   let dataStarted = false;
   let rowsSkipped = 0;
 
-  for (const line of lines) {
-    lineIndex++;
-    const trimmed = line.trim();
-    if (!trimmed) continue;
+  for (let lineIndex = 0; lineIndex < allRows.length; lineIndex++) {
+    const row = allRows[lineIndex];
+    const rowNumber = lineIndex + 1; // 1-indexed for user-facing row numbers
 
-    const parsedRow = parseCSVLine(trimmed);
+    // Skip empty rows
+    if (!row || row.length === 0 || (row.length === 1 && !row[0]?.trim())) {
+      continue;
+    }
 
-    if (lineIndex === headerRowIndex) {
-      headers.push(...parsedRow);
+    if (rowNumber === headerRowIndex) {
+      headers.push(...row.map(h => h?.trim() ?? ""));
       dataStarted = true;
       continue;
     }
@@ -468,45 +484,12 @@ function parseCSV(
         rowsSkipped++;
         continue;
       }
-      rows.push(parsedRow);
+      // Trim each cell value
+      rows.push(row.map(cell => cell?.trim() ?? ""));
     }
   }
 
   return { headers, rows };
-}
-
-function parseCSVLine(line: string): string[] {
-  const result: string[] = [];
-  let current = "";
-  let inQuotes = false;
-
-  for (let i = 0; i < line.length; i++) {
-    const char = line[i];
-    const nextChar = line[i + 1];
-
-    if (inQuotes) {
-      if (char === '"' && nextChar === '"') {
-        current += '"';
-        i++;
-      } else if (char === '"') {
-        inQuotes = false;
-      } else {
-        current += char;
-      }
-    } else {
-      if (char === '"') {
-        inQuotes = true;
-      } else if (char === ",") {
-        result.push(current.trim());
-        current = "";
-      } else {
-        current += char;
-      }
-    }
-  }
-
-  result.push(current.trim());
-  return result;
 }
 
 function buildRecord(
@@ -577,7 +560,7 @@ async function handleDelete(job: IngestionJob, tableName: string): Promise<void>
     const { error } = await supabaseAdmin
       .from(tableName)
       .delete()
-      .gte("id", "00000000-0000-0000-0000-000000000000"); // Delete all
+      .not("id", "is", null); // Safe way to delete all rows
 
     if (error) {
       throw new Error(`Failed to delete existing data: ${error.message}`);

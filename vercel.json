@@ -1,8 +1,26 @@
 {
+  "crons": [
+    {
+      "path": "/api/worker/process-ingestion",
+      "schedule": "* * * * *"
+    }
+  ],
   "functions": {
     "app/api/admin/upload/route.ts": {
       "maxDuration": 300,
       "memory": 1024
+    },
+    "app/api/worker/process-ingestion/route.ts": {
+      "maxDuration": 300,
+      "memory": 1024
+    },
+    "app/api/admin/ingestion/validate/route.ts": {
+      "maxDuration": 120,
+      "memory": 1024
+    },
+    "app/api/admin/ingestion/upload/route.ts": {
+      "maxDuration": 60,
+      "memory": 512
     }
   }
 }

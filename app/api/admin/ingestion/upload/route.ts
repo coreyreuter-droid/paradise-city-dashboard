@@ -213,7 +213,7 @@ export async function POST(req: NextRequest) {
 
     // Get active profile for this dataset type (if exists)
     const { data: activeProfile } = await supabaseAdmin
-      .from("ingestion_profiles")
+      .from("mapping_profiles")
       .select("*")
       .eq("dataset_type", datasetType)
       .eq("is_active", true)

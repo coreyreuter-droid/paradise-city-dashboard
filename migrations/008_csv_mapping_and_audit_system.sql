@@ -114,7 +114,7 @@ CREATE TABLE IF NOT EXISTS public.ingestion_jobs (
   replace_target_year INTEGER,
   
   -- Progress tracking
-  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'processing', 'completed', 'completed_with_warnings', 'failed', 'cancelled')),
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'validating', 'validated', 'importing', 'processing', 'completed', 'completed_with_warnings', 'failed', 'cancelled')),
   rows_total INTEGER DEFAULT 0,
   rows_loaded INTEGER DEFAULT 0,
   rows_rejected INTEGER DEFAULT 0,
@@ -145,6 +145,32 @@ ALTER TABLE public.ingestion_jobs ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Admin access ingestion_jobs" ON public.ingestion_jobs;
 CREATE POLICY "Admin access ingestion_jobs" ON public.ingestion_jobs FOR ALL
+  USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('admin', 'super_admin')))
+  WITH CHECK (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('admin', 'super_admin')));
+
+
+-- ============================================================================
+-- 3.5 INGESTION ROW ERRORS TABLE (tracks validation errors per row)
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS public.ingestion_row_errors (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  job_id UUID NOT NULL REFERENCES public.ingestion_jobs(id) ON DELETE CASCADE,
+  row_number INTEGER NOT NULL,
+  field_name TEXT,
+  error_type TEXT NOT NULL,
+  error_message TEXT NOT NULL,
+  raw_value TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_ingestion_row_errors_job_id ON public.ingestion_row_errors(job_id);
+CREATE INDEX IF NOT EXISTS idx_ingestion_row_errors_row ON public.ingestion_row_errors(job_id, row_number);
+
+ALTER TABLE public.ingestion_row_errors ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Admin access ingestion_row_errors" ON public.ingestion_row_errors;
+CREATE POLICY "Admin access ingestion_row_errors" ON public.ingestion_row_errors FOR ALL
   USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('admin', 'super_admin')))
   WITH CHECK (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('admin', 'super_admin')));
 

@@ -796,7 +796,7 @@ function LookupsTab({ stats, onStatsRefresh }: { stats: Stats | null; onStatsRef
                 const resp = await csrfFetch("/api/admin/data-management", {
                   method: "POST",
                   headers,
-                  body: JSON.stringify({ action: "clear_funds_lookup", confirm: "CLEAR FUNDS" }),
+                  body: JSON.stringify({ action: "clear_funds_dim", confirm: "CLEAR FUNDS" }),
                 });
                 if (!resp.ok) {
                   const data = await resp.json();
@@ -838,7 +838,7 @@ function LookupsTab({ stats, onStatsRefresh }: { stats: Stats | null; onStatsRef
                 const resp = await csrfFetch("/api/admin/data-management", {
                   method: "POST",
                   headers,
-                  body: JSON.stringify({ action: "clear_departments_lookup", confirm: "CLEAR DEPARTMENTS" }),
+                  body: JSON.stringify({ action: "clear_departments_dim", confirm: "CLEAR DEPARTMENTS" }),
                 });
                 if (!resp.ok) {
                   const data = await resp.json();

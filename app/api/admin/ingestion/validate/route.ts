@@ -256,7 +256,7 @@ export async function POST(req: NextRequest) {
     // Optionally save the profile
     if (body.save_profile) {
       const { error: profileError } = await supabaseAdmin
-        .from("ingestion_profiles")
+        .from("mapping_profiles")
         .upsert(
           {
             dataset_type: rawFile.dataset_type,

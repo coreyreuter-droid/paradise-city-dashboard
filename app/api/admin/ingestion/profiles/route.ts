@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
 
   try {
     let query = supabaseAdmin
-      .from("ingestion_profiles")
+      .from("mapping_profiles")
       .select("*")
       .order("updated_at", { ascending: false });
 
@@ -129,7 +129,7 @@ export async function POST(req: NextRequest) {
       // First, deactivate any existing active profile for this dataset type
       // (except the one we're updating, if it's an update)
       let deactivateQuery = supabaseAdmin
-        .from("ingestion_profiles")
+        .from("mapping_profiles")
         .update({ is_active: false })
         .eq("dataset_type", body.dataset_type)
         .eq("is_active", true);
@@ -149,7 +149,7 @@ export async function POST(req: NextRequest) {
     if (body.id) {
       // Update existing profile
       const { data, error } = await supabaseAdmin
-        .from("ingestion_profiles")
+        .from("mapping_profiles")
         .update({
           ...record,
           version: supabaseAdmin.rpc("increment_version"), // Increment version
@@ -161,7 +161,7 @@ export async function POST(req: NextRequest) {
       if (error) {
         // Version increment via RPC might not work, try without
         const { data: data2, error: error2 } = await supabaseAdmin
-          .from("ingestion_profiles")
+          .from("mapping_profiles")
           .update(record)
           .eq("id", body.id)
           .select()
@@ -182,7 +182,7 @@ export async function POST(req: NextRequest) {
     } else {
       // Create new profile
       const { data, error } = await supabaseAdmin
-        .from("ingestion_profiles")
+        .from("mapping_profiles")
         .insert({
           ...record,
           created_by: auth.data.user.id,
