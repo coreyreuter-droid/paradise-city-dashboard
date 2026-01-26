@@ -24,6 +24,11 @@ interface DepartmentEntry {
   updated_at: string;
 }
 
+interface UnmappedCode {
+  code: string;
+  type: "fund" | "department";
+}
+
 export default function LookupsClient() {
   const [activeTab, setActiveTab] = useState<LookupType>("funds");
   const [isLoading, setIsLoading] = useState(false);
@@ -39,6 +44,11 @@ export default function LookupsClient() {
   const [departments, setDepartments] = useState<DepartmentEntry[]>([]);
   const [newDeptCode, setNewDeptCode] = useState("");
   const [newDeptName, setNewDeptName] = useState("");
+
+  // Unmapped codes state
+  const [unmappedFunds, setUnmappedFunds] = useState<UnmappedCode[]>([]);
+  const [unmappedDepts, setUnmappedDepts] = useState<UnmappedCode[]>([]);
+  const [loadingUnmapped, setLoadingUnmapped] = useState(false);
 
   // Search
   const [search, setSearch] = useState("");
@@ -116,9 +126,87 @@ export default function LookupsClient() {
     }
   }
 
-  // Add fund
-  async function handleAddFund() {
-    if (!newFundCode.trim() || !newFundName.trim()) {
+  // Load unmapped codes from rollup tables
+  async function loadUnmappedCodes() {
+    setLoadingUnmapped(true);
+    try {
+      // Get all fund codes from rollups that are NOT in funds_dim
+      const { data: rollupFunds, error: fundError } = await supabase
+        .from("budget_actuals_year_fund")
+        .select("fund_code")
+        .neq("fund_code", "__UNKNOWN__");
+
+      if (fundError) {
+        console.error("Error loading rollup funds:", fundError);
+      }
+
+      // Get existing fund codes from dims
+      const { data: dimFunds } = await supabase
+        .from("funds_dim")
+        .select("fund_code")
+        .eq("is_active", true);
+
+      const dimFundCodes = new Set((dimFunds || []).map(f => f.fund_code));
+      const rollupFundCodes = new Set((rollupFunds || []).map(f => f.fund_code));
+      
+      // Find codes in rollups but not in dims
+      const unmappedFundCodes: UnmappedCode[] = [];
+      rollupFundCodes.forEach(code => {
+        if (!dimFundCodes.has(code)) {
+          unmappedFundCodes.push({ code, type: "fund" });
+        }
+      });
+      setUnmappedFunds(unmappedFundCodes);
+
+      // Get all department codes from rollups that are NOT in departments_dim
+      const { data: rollupDepts, error: deptError } = await supabase
+        .from("budget_actuals_year_fund_department")
+        .select("department_code")
+        .neq("department_code", "__UNKNOWN__");
+
+      if (deptError) {
+        console.error("Error loading rollup depts:", deptError);
+      }
+
+      // Get existing department codes from dims
+      const { data: dimDepts } = await supabase
+        .from("departments_dim")
+        .select("department_code")
+        .eq("is_active", true);
+
+      const dimDeptCodes = new Set((dimDepts || []).map(d => d.department_code));
+      const rollupDeptCodes = new Set((rollupDepts || []).map(d => d.department_code));
+      
+      // Find codes in rollups but not in dims
+      const unmappedDeptCodes: UnmappedCode[] = [];
+      rollupDeptCodes.forEach(code => {
+        if (!dimDeptCodes.has(code)) {
+          unmappedDeptCodes.push({ code, type: "department" });
+        }
+      });
+      setUnmappedDepts(unmappedDeptCodes);
+
+    } catch (err) {
+      console.error("Failed to load unmapped codes:", err);
+    } finally {
+      setLoadingUnmapped(false);
+    }
+  }
+
+  // Add fund (can be called with a code from unmapped list)
+  async function handleAddFund(codeFromUnmapped?: string) {
+    const codeToAdd = codeFromUnmapped || newFundCode.trim();
+    const nameToAdd = newFundName.trim();
+    
+    // If clicking from unmapped list, populate the input and focus
+    if (codeFromUnmapped) {
+      setNewFundCode(codeFromUnmapped);
+      setActiveTab("funds");
+      setInfo(`Enter a name for fund code "${codeFromUnmapped}" and click Add`);
+      return;
+    }
+
+    if (!codeToAdd || !nameToAdd) {
       setError("Fund code and name are required");
       return;
     }
@@ -137,7 +225,7 @@ export default function LookupsClient() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          funds: [{ fund_code: newFundCode.trim(), fund_name: newFundName.trim() }],
+          funds: [{ fund_code: codeToAdd, fund_name: nameToAdd }],
         }),
       });
 
@@ -147,6 +235,7 @@ export default function LookupsClient() {
         setNewFundCode("");
         setNewFundName("");
         loadFunds();
+        loadUnmappedCodes(); // Refresh unmapped list
       } else {
         setError(data.error || "Failed to add fund");
       }
@@ -157,9 +246,20 @@ export default function LookupsClient() {
     }
   }
 
-  // Add department
-  async function handleAddDepartment() {
-    if (!newDeptCode.trim() || !newDeptName.trim()) {
+  // Add department (can be called with a code from unmapped list)
+  async function handleAddDepartment(codeFromUnmapped?: string) {
+    const codeToAdd = codeFromUnmapped || newDeptCode.trim();
+    const nameToAdd = newDeptName.trim();
+    
+    // If clicking from unmapped list, populate the input and focus
+    if (codeFromUnmapped) {
+      setNewDeptCode(codeFromUnmapped);
+      setActiveTab("departments");
+      setInfo(`Enter a name for department code "${codeFromUnmapped}" and click Add`);
+      return;
+    }
+
+    if (!codeToAdd || !nameToAdd) {
       setError("Department code and name are required");
       return;
     }
@@ -178,7 +278,7 @@ export default function LookupsClient() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          departments: [{ department_code: newDeptCode.trim(), department_name: newDeptName.trim() }],
+          departments: [{ department_code: codeToAdd, department_name: nameToAdd }],
         }),
       });
 
@@ -188,6 +288,7 @@ export default function LookupsClient() {
         setNewDeptCode("");
         setNewDeptName("");
         loadDepartments();
+        loadUnmappedCodes(); // Refresh unmapped list
       } else {
         setError(data.error || "Failed to add department");
       }
@@ -207,6 +308,11 @@ export default function LookupsClient() {
     }
   }, [activeTab]);
 
+  // Load unmapped codes on mount
+  useEffect(() => {
+    loadUnmappedCodes();
+  }, []);
+
   // Search handler
   function handleSearch() {
     if (activeTab === "funds") {
@@ -216,8 +322,71 @@ export default function LookupsClient() {
     }
   }
 
+  const totalUnmapped = unmappedFunds.length + unmappedDepts.length;
+
   return (
     <div className="space-y-6">
+      {/* Unmapped codes warning */}
+      {totalUnmapped > 0 && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+          <h3 className="text-sm font-semibold text-amber-900 flex items-center gap-2">
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-amber-500 text-white text-xs">!</span>
+            {totalUnmapped} unmapped code{totalUnmapped !== 1 ? "s" : ""} found
+          </h3>
+          <p className="mt-1 text-xs text-amber-800">
+            These codes appear in your data but don&apos;t have names assigned. Citizens will see &quot;Unknown (code)&quot; until you add mappings.
+          </p>
+          
+          <div className="mt-3 space-y-2">
+            {unmappedFunds.length > 0 && (
+              <div>
+                <span className="text-xs font-medium text-amber-900">Unmapped fund codes: </span>
+                <div className="mt-1 flex flex-wrap gap-1">
+                  {unmappedFunds.map((u) => (
+                    <button
+                      key={u.code}
+                      onClick={() => handleAddFund(u.code)}
+                      className="inline-flex items-center gap-1 rounded bg-amber-100 px-2 py-0.5 text-xs font-mono text-amber-800 hover:bg-amber-200 transition-colors"
+                      title={`Click to add mapping for ${u.code}`}
+                    >
+                      {u.code}
+                      <span className="text-amber-500">+</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            {unmappedDepts.length > 0 && (
+              <div>
+                <span className="text-xs font-medium text-amber-900">Unmapped department codes: </span>
+                <div className="mt-1 flex flex-wrap gap-1">
+                  {unmappedDepts.map((u) => (
+                    <button
+                      key={u.code}
+                      onClick={() => handleAddDepartment(u.code)}
+                      className="inline-flex items-center gap-1 rounded bg-amber-100 px-2 py-0.5 text-xs font-mono text-amber-800 hover:bg-amber-200 transition-colors"
+                      title={`Click to add mapping for ${u.code}`}
+                    >
+                      {u.code}
+                      <span className="text-amber-500">+</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+          
+          <button
+            onClick={loadUnmappedCodes}
+            disabled={loadingUnmapped}
+            className="mt-3 text-xs text-amber-700 underline hover:text-amber-900 disabled:opacity-50"
+          >
+            {loadingUnmapped ? "Checking..." : "Refresh"}
+          </button>
+        </div>
+      )}
+
       {/* Tabs */}
       <div className="border-b border-slate-200">
         <div className="flex gap-4">
@@ -284,7 +453,7 @@ export default function LookupsClient() {
                 className="flex-1 min-w-[200px] rounded-md border border-slate-300 px-3 py-2 text-sm"
               />
               <button
-                onClick={handleAddFund}
+                onClick={() => handleAddFund()}
                 disabled={isLoading}
                 className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50"
               >
@@ -358,7 +527,7 @@ export default function LookupsClient() {
                 className="flex-1 min-w-[200px] rounded-md border border-slate-300 px-3 py-2 text-sm"
               />
               <button
-                onClick={handleAddDepartment}
+                onClick={() => handleAddDepartment()}
                 disabled={isLoading}
                 className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50"
               >

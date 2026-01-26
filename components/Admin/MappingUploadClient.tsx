@@ -457,18 +457,22 @@ export default function MappingUploadClient() {
             const isCurrent = step === s;
             const isPast = ["upload", "mapping", "validate", "import", "complete"].indexOf(step) > i;
 
+            // Complete step should be green when current
+            const isCompleteStep = s === "complete";
+            const showGreen = isPast || (isCurrent && isCompleteStep);
+
             return (
               <li key={s} className="flex items-center gap-2">
                 <span
                   className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold ${
-                    isCurrent
-                      ? "bg-slate-900 text-white"
-                      : isPast
+                    showGreen
                       ? "bg-emerald-600 text-white"
+                      : isCurrent
+                      ? "bg-slate-900 text-white"
                       : "bg-slate-200 text-slate-500"
                   }`}
                 >
-                  {isPast ? "✓" : i + 1}
+                  {showGreen ? "✓" : i + 1}
                 </span>
                 <span className={isCurrent ? "font-semibold text-slate-900" : "text-slate-500"}>
                   {labels[s]}
@@ -852,16 +856,10 @@ export default function MappingUploadClient() {
                 />
               </svg>
             </div>
-            <h3 className="text-sm font-semibold text-slate-900">Import in progress...</h3>
+            <h3 className="text-sm font-semibold text-slate-900">Working on it...</h3>
             <p className="mt-1 text-xs text-slate-600">
-              Status: {jobStatus || "Processing"} • {jobProgress}% complete
+              Please wait while your data is being imported. This may take a moment.
             </p>
-            <div className="mt-3 h-2 w-full rounded-full bg-slate-200">
-              <div
-                className="h-2 rounded-full bg-emerald-500 transition-all"
-                style={{ width: `${jobProgress}%` }}
-              />
-            </div>
           </div>
         </div>
       )}
