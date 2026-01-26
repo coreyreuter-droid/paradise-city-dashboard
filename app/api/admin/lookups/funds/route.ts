@@ -148,8 +148,8 @@ export async function POST(req: NextRequest) {
     // Log the action
     for (const fund of normalizedFunds) {
       await logAuditEvent({
-        actor_email: auth.email,
-        actor_user_id: auth.userId,
+        actor_email: auth.data.user.email,
+        actor_user_id: auth.data.user.id,
         action: "lookup.added",
         target_table: "funds_dim",
         meta: {

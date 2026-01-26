@@ -159,8 +159,8 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
 
     // Log the action
     await logAuditEvent({
-      actor_email: auth.email,
-      actor_user_id: auth.userId,
+      actor_email: auth.data.user.email,
+      actor_user_id: auth.data.user.id,
       action: "profile.updated",
       target_table: existing.dataset_type,
       meta: {
@@ -228,8 +228,8 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
 
     // Log the action
     await logAuditEvent({
-      actor_email: auth.email,
-      actor_user_id: auth.userId,
+      actor_email: auth.data.user.email,
+      actor_user_id: auth.data.user.id,
       action: "profile.deleted",
       target_table: existing.dataset_type,
       meta: {

@@ -92,8 +92,8 @@ if (!isAllowedImageSize(file.size)) {
 
     // Log the branding update
     await logAuditEvent({
-      actor_email: auth.email,
-      actor_user_id: auth.userId,
+      actor_email: user.email,
+      actor_user_id: user.id,
       action: "branding.updated",
       meta: {
         field: kind,

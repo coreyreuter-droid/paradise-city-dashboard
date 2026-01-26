@@ -144,8 +144,8 @@ export async function POST(req: NextRequest) {
 
     // Log the action
     await logAuditEvent({
-      actor_email: auth.email,
-      actor_user_id: auth.userId,
+      actor_email: auth.data.user.email,
+      actor_user_id: auth.data.user.id,
       action: "profile.created",
       target_table: dataset_type,
       meta: {
