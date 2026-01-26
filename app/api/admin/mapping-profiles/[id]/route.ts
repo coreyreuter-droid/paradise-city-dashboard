@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseService";
 import { requireAdmin } from "@/lib/auth";
+import { logAuditEvent } from "@/lib/auditLog";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -156,6 +157,19 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
       );
     }
 
+    // Log the action
+    await logAuditEvent({
+      actor_email: auth.email,
+      actor_user_id: auth.userId,
+      action: "profile.updated",
+      target_table: existing.dataset_type,
+      meta: {
+        profile_name: profile.name,
+        dataset_type: existing.dataset_type,
+        updated_fields: Object.keys(updates),
+      },
+    });
+
     return NextResponse.json({ profile });
   } catch (err) {
     console.error("mapping-profiles/[id] PUT error:", err);
@@ -184,7 +198,7 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
     // Check if profile exists and is not a system profile
     const { data: existing, error: fetchError } = await supabaseAdmin
       .from("mapping_profiles")
-      .select("id, is_system, name")
+      .select("id, is_system, name, dataset_type")
       .eq("id", id)
       .single();
 
@@ -211,6 +225,18 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
         { status: 500 }
       );
     }
+
+    // Log the action
+    await logAuditEvent({
+      actor_email: auth.email,
+      actor_user_id: auth.userId,
+      action: "profile.deleted",
+      target_table: existing.dataset_type,
+      meta: {
+        profile_name: existing.name,
+        dataset_type: existing.dataset_type,
+      },
+    });
 
     return NextResponse.json({ 
       message: `Profile "${existing.name}" deleted successfully` 

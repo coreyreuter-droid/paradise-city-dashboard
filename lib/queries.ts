@@ -976,3 +976,271 @@ export async function hasPublishedProjects(citySlug: string): Promise<boolean> {
 
   return (count ?? 0) > 0;
 }
+
+/* =========================
+   Admin Audit Log Queries
+========================= */
+
+export type AdminAuditLogRow = {
+  id: number;
+  created_at: string;
+  city_slug: string | null;
+  actor_user_id: string | null;
+  actor_email: string | null;
+  actor_role: string | null;
+  action: string;
+  target_table: string | null;
+  fiscal_year: number | null;
+  mode: string | null;
+  filename: string | null;
+  rows_affected: number | null;
+  status: string;
+  error_message: string | null;
+  meta: Record<string, unknown>;
+};
+
+/**
+ * Get admin audit log entries filtered by action category
+ */
+export async function getAdminAuditLogs(
+  category?: "data" | "users" | "branding"
+): Promise<AdminAuditLogRow[]> {
+  let query = supabase
+    .from("admin_audit_log")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(200);
+
+  // Filter by action category if specified
+  if (category === "data") {
+    query = query.or(
+      "action.like.upload.%,action.like.import.%,action.like.profile.%,action.like.lookup.%,action.like.data.%"
+    );
+  } else if (category === "users") {
+    query = query.or("action.like.user.%");
+  } else if (category === "branding") {
+    query = query.or("action.like.branding.%,action.like.portal.%");
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    console.error("getAdminAuditLogs error:", error);
+    return [];
+  }
+
+  return (data ?? []) as AdminAuditLogRow[];
+}
+
+/**
+ * Get combined activity log (both data_uploads and admin_audit_log for data tab)
+ * Returns a unified format for display
+ */
+export type UnifiedActivityLog = {
+  id: string;
+  created_at: string;
+  action: string;
+  description: string;
+  actor: string | null;
+  status: "SUCCESS" | "FAILED" | null;
+  meta: Record<string, unknown>;
+};
+
+export async function getUnifiedDataActivity(): Promise<UnifiedActivityLog[]> {
+  // Get from data_uploads (traditional uploads)
+  const { data: uploads, error: uploadsError } = await supabase
+    .from("data_uploads")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(100);
+
+  if (uploadsError) {
+    console.error("getUnifiedDataActivity uploads error:", uploadsError);
+  }
+
+  // Get from admin_audit_log (new system)
+  const { data: auditLogs, error: auditError } = await supabase
+    .from("admin_audit_log")
+    .select("*")
+    .or(
+      "action.like.upload.%,action.like.import.%,action.like.profile.%,action.like.lookup.%,action.like.data.%"
+    )
+    .order("created_at", { ascending: false })
+    .limit(100);
+
+  if (auditError) {
+    console.error("getUnifiedDataActivity audit error:", auditError);
+  }
+
+  // Transform data_uploads to unified format
+  const uploadEntries: UnifiedActivityLog[] = (uploads ?? []).map((u) => ({
+    id: `upload-${u.id}`,
+    created_at: u.created_at,
+    action: "upload.completed",
+    description: `Uploaded ${u.row_count?.toLocaleString() ?? 0} rows to ${u.table_name}${u.fiscal_year ? ` (FY ${u.fiscal_year})` : ""}`,
+    actor: u.admin_identifier,
+    status: "SUCCESS" as const,
+    meta: {
+      table_name: u.table_name,
+      mode: u.mode,
+      row_count: u.row_count,
+      fiscal_year: u.fiscal_year,
+      filename: u.filename,
+      source: "data_uploads",
+    },
+  }));
+
+  // Transform admin_audit_log to unified format
+  const auditEntries: UnifiedActivityLog[] = (auditLogs ?? []).map((a) => ({
+    id: `audit-${a.id}`,
+    created_at: a.created_at,
+    action: a.action,
+    description: formatAuditDescription(a),
+    actor: a.actor_email,
+    status: a.status as "SUCCESS" | "FAILED" | null,
+    meta: {
+      ...a.meta,
+      target_table: a.target_table,
+      fiscal_year: a.fiscal_year,
+      rows_affected: a.rows_affected,
+      filename: a.filename,
+      error_message: a.error_message,
+      source: "admin_audit_log",
+    },
+  }));
+
+  // Merge and sort by date
+  const combined = [...uploadEntries, ...auditEntries];
+  combined.sort(
+    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  );
+
+  // Deduplicate (if same action within 2 seconds, keep only one)
+  const deduped: UnifiedActivityLog[] = [];
+  for (const entry of combined) {
+    const isDupe = deduped.some(
+      (e) =>
+        e.action === entry.action &&
+        Math.abs(
+          new Date(e.created_at).getTime() - new Date(entry.created_at).getTime()
+        ) < 2000 &&
+        JSON.stringify(e.meta) === JSON.stringify(entry.meta)
+    );
+    if (!isDupe) {
+      deduped.push(entry);
+    }
+  }
+
+  return deduped.slice(0, 100);
+}
+
+function formatAuditDescription(log: AdminAuditLogRow): string {
+  const meta = log.meta || {};
+  
+  switch (log.action) {
+    case "upload.completed":
+      return `Uploaded ${log.rows_affected?.toLocaleString() ?? 0} rows to ${log.target_table}${log.fiscal_year ? ` (FY ${log.fiscal_year})` : ""}`;
+    case "upload.failed":
+      return `Upload to ${log.target_table} failed: ${log.error_message || "Unknown error"}`;
+    case "import.started":
+      return `Started import job for ${log.target_table}${log.filename ? ` (${log.filename})` : ""}`;
+    case "import.completed":
+      return `Completed import: ${log.rows_affected?.toLocaleString() ?? 0} rows to ${log.target_table}`;
+    case "import.failed":
+      return `Import failed: ${log.error_message || "Unknown error"}`;
+    case "profile.created":
+      return `Created mapping profile "${meta.profile_name || "Unknown"}" for ${meta.dataset_type || log.target_table}`;
+    case "profile.updated":
+      return `Updated mapping profile "${meta.profile_name || "Unknown"}"`;
+    case "profile.deleted":
+      return `Deleted mapping profile "${meta.profile_name || "Unknown"}"`;
+    case "lookup.added":
+      return `Added ${meta.lookup_type || "lookup"}: ${meta.code} = "${meta.name}"`;
+    case "lookup.updated":
+      return `Updated ${meta.lookup_type || "lookup"} ${meta.code}: "${meta.old_name}" → "${meta.new_name}"`;
+    case "lookup.deleted":
+      return `Deleted ${meta.lookup_type || "lookup"}: ${meta.code}`;
+    case "data.deleted":
+      return `Deleted ${log.rows_affected?.toLocaleString() ?? 0} rows from ${log.target_table}${log.fiscal_year ? ` (FY ${log.fiscal_year})` : ""}`;
+    default:
+      return log.action;
+  }
+}
+
+export async function getUserActivityLogs(): Promise<UnifiedActivityLog[]> {
+  const { data, error } = await supabase
+    .from("admin_audit_log")
+    .select("*")
+    .or("action.like.user.%")
+    .order("created_at", { ascending: false })
+    .limit(100);
+
+  if (error) {
+    console.error("getUserActivityLogs error:", error);
+    return [];
+  }
+
+  return (data ?? []).map((a) => ({
+    id: `audit-${a.id}`,
+    created_at: a.created_at,
+    action: a.action,
+    description: formatUserDescription(a),
+    actor: a.actor_email,
+    status: a.status as "SUCCESS" | "FAILED" | null,
+    meta: a.meta || {},
+  }));
+}
+
+function formatUserDescription(log: AdminAuditLogRow): string {
+  const meta = log.meta || {};
+  
+  switch (log.action) {
+    case "user.invited":
+      return `Invited ${meta.invited_email || "user"} as ${meta.role || "member"}`;
+    case "user.role_changed":
+      return `Changed ${meta.target_email || "user"} role: ${meta.old_role || "?"} → ${meta.new_role || "?"}`;
+    case "user.removed":
+      return `Removed ${meta.removed_email || "user"}`;
+    default:
+      return log.action;
+  }
+}
+
+export async function getBrandingActivityLogs(): Promise<UnifiedActivityLog[]> {
+  const { data, error } = await supabase
+    .from("admin_audit_log")
+    .select("*")
+    .or("action.like.branding.%,action.like.portal.%")
+    .order("created_at", { ascending: false })
+    .limit(100);
+
+  if (error) {
+    console.error("getBrandingActivityLogs error:", error);
+    return [];
+  }
+
+  return (data ?? []).map((a) => ({
+    id: `audit-${a.id}`,
+    created_at: a.created_at,
+    action: a.action,
+    description: formatBrandingDescription(a),
+    actor: a.actor_email,
+    status: a.status as "SUCCESS" | "FAILED" | null,
+    meta: a.meta || {},
+  }));
+}
+
+function formatBrandingDescription(log: AdminAuditLogRow): string {
+  const meta = log.meta || {};
+  
+  switch (log.action) {
+    case "branding.updated":
+      return `Updated branding settings${meta.field ? `: ${meta.field}` : ""}`;
+    case "portal.published":
+      return "Published portal";
+    case "portal.unpublished":
+      return "Unpublished portal";
+    default:
+      return log.action;
+  }
+}

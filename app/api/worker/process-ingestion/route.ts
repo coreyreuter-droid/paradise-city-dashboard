@@ -14,6 +14,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { waitUntil } from "@vercel/functions";
 import { supabaseAdmin } from "@/lib/supabaseService";
 import { normalizeCode, normalizeLabel } from "@/lib/normalizeCode";
+import { logAuditEvent } from "@/lib/auditLog";
 import {
   DatasetType,
   ColumnMappings,
@@ -118,9 +119,36 @@ export async function POST(req: NextRequest) {
 
 // Wrapper to handle errors in background processing
 async function processJobWithErrorHandling(job: IngestionJob): Promise<void> {
+  const startTime = Date.now();
+  
   try {
     await processJob(job);
     console.log(`[worker] Job ${job.id} completed successfully`);
+    
+    // Log successful import
+    const duration = Date.now() - startTime;
+    
+    // Get job info for audit log
+    const { data: jobData } = await supabaseAdmin
+      .from("ingestion_jobs")
+      .select("rows_loaded, rows_rejected")
+      .eq("id", job.id)
+      .single();
+    
+    await logAuditEvent({
+      action: "import.completed",
+      target_table: job.dataset_type,
+      rows_affected: jobData?.rows_loaded ?? 0,
+      status: "SUCCESS",
+      meta: {
+        job_id: job.id,
+        dataset_type: job.dataset_type,
+        import_mode: job.import_mode,
+        rows_loaded: jobData?.rows_loaded,
+        rows_rejected: jobData?.rows_rejected,
+        duration_ms: duration,
+      },
+    });
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : "Unknown error";
     console.error(`[worker] Job ${job.id} failed:`, err);
@@ -135,6 +163,19 @@ async function processJobWithErrorHandling(job: IngestionJob): Promise<void> {
         locked_by: null,
       })
       .eq("id", job.id);
+    
+    // Log failed import
+    await logAuditEvent({
+      action: "import.failed",
+      target_table: job.dataset_type,
+      status: "FAILED",
+      error_message: errorMessage,
+      meta: {
+        job_id: job.id,
+        dataset_type: job.dataset_type,
+        import_mode: job.import_mode,
+      },
+    });
   }
 }
 

@@ -4,6 +4,7 @@ import { supabaseAdmin } from "@/lib/supabaseService";
 import { requireAdmin } from "@/lib/auth";
 import { requireCsrf } from "@/lib/csrf";
 import { isAllowedImageType, getImageTypeError, isAllowedImageSize, getImageSizeError } from "@/lib/imageTypes";
+import { logAuditEvent } from "@/lib/auditLog";
 
 // NOTE: You must have a public Storage bucket called "branding" in Supabase.
 
@@ -88,6 +89,17 @@ if (!isAllowedImageSize(file.size)) {
     const {
       data: { publicUrl },
     } = supabaseAdmin.storage.from(bucket).getPublicUrl(uploadData.path);
+
+    // Log the branding update
+    await logAuditEvent({
+      actor_email: auth.email,
+      actor_user_id: auth.userId,
+      action: "branding.updated",
+      meta: {
+        field: kind,
+        filename: originalName,
+      },
+    });
 
     return NextResponse.json({ url: publicUrl });
   } catch (err: unknown) {

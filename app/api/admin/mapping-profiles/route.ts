@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseService";
 import { requireAdmin } from "@/lib/auth";
+import { logAuditEvent } from "@/lib/auditLog";
 
 const VALID_DATASET_TYPES = new Set([
   "budgets",
@@ -140,6 +141,19 @@ export async function POST(req: NextRequest) {
         { status: 500 }
       );
     }
+
+    // Log the action
+    await logAuditEvent({
+      actor_email: auth.email,
+      actor_user_id: auth.userId,
+      action: "profile.created",
+      target_table: dataset_type,
+      meta: {
+        profile_name: name.trim(),
+        dataset_type,
+        column_count: Object.keys(column_mappings).length,
+      },
+    });
 
     return NextResponse.json({ profile }, { status: 201 });
   } catch (err) {

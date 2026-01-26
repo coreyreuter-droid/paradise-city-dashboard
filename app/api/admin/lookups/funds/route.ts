@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabaseService";
 import { normalizeCode, normalizeLabel, validateLabel } from "@/lib/normalizeCode";
+import { logAuditEvent } from "@/lib/auditLog";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -142,6 +143,21 @@ export async function POST(req: NextRequest) {
         { error: "Failed to save funds" },
         { status: 500 }
       );
+    }
+
+    // Log the action
+    for (const fund of normalizedFunds) {
+      await logAuditEvent({
+        actor_email: auth.email,
+        actor_user_id: auth.userId,
+        action: "lookup.added",
+        target_table: "funds_dim",
+        meta: {
+          lookup_type: "fund",
+          code: fund.fund_code,
+          name: fund.fund_name,
+        },
+      });
     }
 
     return NextResponse.json({
