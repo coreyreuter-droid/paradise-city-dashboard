@@ -1073,22 +1073,29 @@ export async function getUnifiedDataActivity(): Promise<UnifiedActivityLog[]> {
   }
 
   // Transform data_uploads to unified format
-  const uploadEntries: UnifiedActivityLog[] = (uploads ?? []).map((u) => ({
-    id: `upload-${u.id}`,
-    created_at: u.created_at,
-    action: "upload.completed",
-    description: `Uploaded ${u.row_count?.toLocaleString() ?? 0} rows to ${u.table_name}${u.fiscal_year ? ` (FY ${u.fiscal_year})` : ""}`,
-    actor: u.admin_identifier,
-    status: "SUCCESS" as const,
-    meta: {
-      table_name: u.table_name,
-      mode: u.mode,
-      row_count: u.row_count,
-      fiscal_year: u.fiscal_year,
-      filename: u.filename,
-      source: "data_uploads",
-    },
-  }));
+  const uploadEntries: UnifiedActivityLog[] = (uploads ?? []).map((u) => {
+    // Check if this is a delete operation
+    const isDelete = u.mode === "delete";
+    
+    return {
+      id: `upload-${u.id}`,
+      created_at: u.created_at,
+      action: isDelete ? "data.deleted" : "upload.completed",
+      description: isDelete
+        ? `Deleted ${u.row_count?.toLocaleString() ?? 0} rows from ${u.table_name}${u.fiscal_year ? ` (FY ${u.fiscal_year})` : ""}`
+        : `Uploaded ${u.row_count?.toLocaleString() ?? 0} rows to ${u.table_name}${u.fiscal_year ? ` (FY ${u.fiscal_year})` : ""}`,
+      actor: u.admin_identifier,
+      status: "SUCCESS" as const,
+      meta: {
+        table_name: u.table_name,
+        mode: u.mode,
+        row_count: u.row_count,
+        fiscal_year: u.fiscal_year,
+        filename: u.filename,
+        source: "data_uploads",
+      },
+    };
+  });
 
   // Transform admin_audit_log to unified format
   const auditEntries: UnifiedActivityLog[] = (auditLogs ?? []).map((a) => ({
