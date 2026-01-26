@@ -155,6 +155,9 @@ export default function MappingUploadClient() {
   const [jobStatus, setJobStatus] = useState<string | null>(null);
   const [jobProgress, setJobProgress] = useState<number>(0);
   const [pollCount, setPollCount] = useState<number>(0);
+  const [jobStartTime, setJobStartTime] = useState<number | null>(null);
+  const [isCancelling, setIsCancelling] = useState(false);
+  const [isRetrying, setIsRetrying] = useState(false);
 
   // Save profile state
   const [showSaveProfileModal, setShowSaveProfileModal] = useState(false);
@@ -196,6 +199,9 @@ export default function MappingUploadClient() {
     setJobStatus(null);
     setJobProgress(0);
     setPollCount(0);
+    setJobStartTime(null);
+    setIsCancelling(false);
+    setIsRetrying(false);
     setImportMode("append");
     setReplaceYear("");
     clearMessage();
@@ -468,6 +474,7 @@ export default function MappingUploadClient() {
 
       setInfo("Import started. Processing...");
       setStep("import");
+      setJobStartTime(Date.now());
       
       // Start polling for job status
       pollJobStatus(jobId);
@@ -505,11 +512,15 @@ export default function MappingUploadClient() {
           setInfo(`Import complete! ${job.rows_loaded.toLocaleString()} rows imported.`);
         } else if (job.status === "failed") {
           setError(`Import failed: ${job.last_error || "Unknown error"}`);
-          setStep("validate"); // Go back to validate step so they can retry
+          // Stay on import step so they can use the retry button
+        } else if (job.status === "cancelled") {
+          setError("Import was cancelled.");
+          setStep("validate"); // Go back to validate step
         } else if (job.status === "pending" && pollCount > 30) {
           // Job stuck at pending for over 60 seconds (30 polls * 2 seconds)
-          setError("Import appears to be stuck in the queue. If this problem persists, contact your CiviPortal admin or reach out to us at hello@civiportal.com");
-          return; // Stop polling
+          // Don't automatically error - let the user decide to cancel
+          // Continue polling but show warning in UI
+          setTimeout(poll, 2000);
         } else {
           // Continue polling
           setTimeout(poll, 2000);
@@ -522,6 +533,92 @@ export default function MappingUploadClient() {
     };
 
     poll();
+  }
+
+  async function handleCancelJob() {
+    if (!jobId) return;
+
+    setIsCancelling(true);
+
+    try {
+      const token = await getAuthToken();
+      if (!token) {
+        setError("Not authenticated.");
+        setIsCancelling(false);
+        return;
+      }
+
+      const res = await fetch(`/api/admin/ingestion/jobs/${jobId}`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ action: "cancel" }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || "Failed to cancel job");
+        setIsCancelling(false);
+        return;
+      }
+
+      setJobStatus("cancelled");
+      setError("Import cancelled.");
+      setStep("validate");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to cancel job");
+    } finally {
+      setIsCancelling(false);
+    }
+  }
+
+  async function handleRetryJob() {
+    if (!jobId) return;
+
+    setIsRetrying(true);
+    clearMessage();
+
+    try {
+      const token = await getAuthToken();
+      if (!token) {
+        setError("Not authenticated.");
+        setIsRetrying(false);
+        return;
+      }
+
+      const res = await fetch(`/api/admin/ingestion/jobs/${jobId}`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ action: "retry" }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || "Failed to retry job");
+        setIsRetrying(false);
+        return;
+      }
+
+      setInfo("Retrying import...");
+      setJobStatus("pending");
+      setJobProgress(0);
+      setPollCount(0);
+      setJobStartTime(Date.now());
+      
+      // Start polling again
+      pollJobStatus(jobId);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to retry job");
+    } finally {
+      setIsRetrying(false);
+    }
   }
 
   // ============================================================================
@@ -1024,27 +1121,118 @@ export default function MappingUploadClient() {
       {/* Step 4: Import in progress */}
       {step === "import" && (
         <div className="space-y-4">
-          <div className="rounded-lg border border-slate-200 bg-slate-50 p-6 text-center">
-            <div className="flex justify-center mb-4">
-              <svg className="h-8 w-8 animate-spin text-slate-500" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                />
-              </svg>
-            </div>
-            <h3 className="text-sm font-semibold text-slate-900">Working on it...</h3>
-            <p className="mt-1 text-xs text-slate-600">
-              Please wait while your data is being imported. This may take a moment.
-            </p>
-            {pollCount > 15 && (
-              <p className="mt-3 text-xs text-amber-600">
-                Taking longer than expected. The import is still running — please don&apos;t close this page.
+          {/* Show different UI based on job status */}
+          {jobStatus === "failed" ? (
+            // Failed state - show error with retry option
+            <div className="rounded-lg border border-red-200 bg-red-50 p-6 text-center">
+              <div className="flex justify-center mb-4">
+                <span className="flex h-12 w-12 items-center justify-center rounded-full bg-red-600 text-white text-xl">
+                  ✗
+                </span>
+              </div>
+              <h3 className="text-sm font-semibold text-red-900">Import failed</h3>
+              <p className="mt-2 text-xs text-red-700">
+                The import encountered an error. You can try again or go back to fix any issues.
               </p>
-            )}
-          </div>
+              <div className="mt-4 flex justify-center gap-3">
+                <button
+                  type="button"
+                  onClick={handleRetryJob}
+                  disabled={isRetrying}
+                  className="rounded-md bg-red-700 px-4 py-2 text-sm font-medium text-white hover:bg-red-800 disabled:opacity-60"
+                >
+                  {isRetrying ? "Retrying..." : "Retry import"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStep("validate")}
+                  className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                >
+                  Go back
+                </button>
+              </div>
+            </div>
+          ) : (
+            // Processing state - show spinner and progress
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-6 text-center">
+              <div className="flex justify-center mb-4">
+                <svg className="h-8 w-8 animate-spin text-slate-500" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  />
+                </svg>
+              </div>
+              
+              {/* Status title based on job status */}
+              <h3 className="text-sm font-semibold text-slate-900">
+                {jobStatus === "pending" && "Waiting to start..."}
+                {jobStatus === "validating" && "Validating data..."}
+                {jobStatus === "validated" && "Preparing import..."}
+                {jobStatus === "importing" && "Importing data..."}
+                {!jobStatus && "Starting..."}
+              </h3>
+              
+              {/* Progress bar for importing status */}
+              {(jobStatus === "importing" || jobStatus === "validating") && jobProgress > 0 && (
+                <div className="mt-3">
+                  <div className="h-2 w-full rounded-full bg-slate-200">
+                    <div
+                      className="h-2 rounded-full bg-slate-600 transition-all duration-300"
+                      style={{ width: `${Math.min(jobProgress, 100)}%` }}
+                    />
+                  </div>
+                  <p className="mt-1 text-xs text-slate-600">{jobProgress}% complete</p>
+                </div>
+              )}
+              
+              <p className="mt-2 text-xs text-slate-600">
+                Please wait while your data is being processed. This may take a moment.
+              </p>
+              
+              {/* Warning if taking too long */}
+              {pollCount > 15 && pollCount <= 30 && (
+                <p className="mt-3 text-xs text-amber-600">
+                  Taking longer than expected. The import is still running — please don&apos;t close this page.
+                </p>
+              )}
+              
+              {/* Stuck warning with helpful info */}
+              {pollCount > 30 && jobStatus === "pending" && (
+                <div className="mt-4 rounded-md border border-amber-300 bg-amber-50 p-3 text-left">
+                  <p className="text-xs font-semibold text-amber-800">
+                    ⚠️ Import appears to be stuck
+                  </p>
+                  <p className="mt-1 text-xs text-amber-700">
+                    The job has been waiting to start for over a minute. This could be due to:
+                  </p>
+                  <ul className="mt-1 text-xs text-amber-700 list-disc list-inside">
+                    <li>Server is busy processing other jobs</li>
+                    <li>Worker service may need to be restarted</li>
+                    <li>Network connectivity issues</li>
+                  </ul>
+                  <p className="mt-2 text-xs text-amber-700">
+                    You can cancel and try again, or contact support at{" "}
+                    <a href="mailto:hello@civiportal.com" className="underline">hello@civiportal.com</a>
+                  </p>
+                </div>
+              )}
+              
+              {/* Cancel button */}
+              <div className="mt-4">
+                <button
+                  type="button"
+                  onClick={handleCancelJob}
+                  disabled={isCancelling}
+                  className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+                >
+                  {isCancelling ? "Cancelling..." : "Cancel import"}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
