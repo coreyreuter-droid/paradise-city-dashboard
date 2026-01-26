@@ -65,6 +65,8 @@ function ActionBadge({ action, status }: { action: string; status: string | null
     bgColor = "bg-amber-100 text-amber-700";
   } else if (action.includes("deleted") || action.includes("removed")) {
     bgColor = "bg-rose-100 text-rose-700";
+  } else if (action.includes("branding") || action === "PUBLISH" || action === "UNPUBLISH") {
+    bgColor = "bg-purple-100 text-purple-700";
   }
 
   // Friendly labels
@@ -87,6 +89,8 @@ function ActionBadge({ action, status }: { action: string; status: string | null
     "branding.updated": "Branding Updated",
     "portal.published": "Published",
     "portal.unpublished": "Unpublished",
+    "PUBLISH": "Published",
+    "UNPUBLISH": "Unpublished",
   };
   label = labelMap[action] || action;
 

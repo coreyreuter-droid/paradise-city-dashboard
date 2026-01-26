@@ -1210,7 +1210,7 @@ export async function getBrandingActivityLogs(): Promise<UnifiedActivityLog[]> {
   const { data, error } = await supabase
     .from("admin_audit_log")
     .select("*")
-    .or("action.like.branding.%,action.like.portal.%")
+    .or("action.like.branding.%,action.like.portal.%,action.eq.PUBLISH,action.eq.UNPUBLISH")
     .order("created_at", { ascending: false })
     .limit(100);
 
@@ -1234,10 +1234,23 @@ function formatBrandingDescription(log: AdminAuditLogRow): string {
   const meta = log.meta || {};
   
   switch (log.action) {
-    case "branding.updated":
-      return `Updated branding settings${meta.field ? `: ${meta.field}` : ""}`;
+    case "branding.updated": {
+      // Handle trigger-based logging with changed_fields array
+      if (Array.isArray(meta.changed_fields) && meta.changed_fields.length > 0) {
+        const fields = meta.changed_fields as string[];
+        const formatted = fields.map(f => String(f).replace(/_/g, ' ')).join(', ');
+        return `Updated branding: ${formatted}`;
+      }
+      // Handle API-based logging with single field
+      if (meta.field) {
+        return `Updated branding: ${String(meta.field).replace(/_/g, ' ')}`;
+      }
+      return "Updated branding settings";
+    }
+    case "PUBLISH":
     case "portal.published":
       return "Published portal";
+    case "UNPUBLISH":
     case "portal.unpublished":
       return "Unpublished portal";
     default:
