@@ -435,10 +435,25 @@ export default function UploadClient() {
         selectedProfile.column_mappings
       );
 
-      // Validation + record building (now using transformed headers)
+      // Build a filtered schema that only includes fields that are actually mapped
+      // This allows optional fields to be unmapped without causing validation errors
+      const mappedFields = Object.keys(selectedProfile.column_mappings).filter(
+        (field) => selectedProfile.column_mappings[field]
+      );
+      
+      // Always include truly required fields in validation
+      const trulyRequired = TRULY_REQUIRED_FIELDS[table] || [];
+      const fieldsToValidate = new Set([...mappedFields, ...trulyRequired]);
+      
+      const filteredSchema = {
+        required: schema.required.filter((field) => fieldsToValidate.has(field)),
+        numeric: schema.numeric,
+      };
+
+      // Validation + record building (using filtered schema for mapped fields only)
       const { records, yearsInData, issues } = validateAndBuildRecords(
         table,
-        schema,
+        filteredSchema,
         headers,
         dataRows
       );
