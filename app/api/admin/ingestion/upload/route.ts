@@ -14,6 +14,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import Papa from "papaparse";
 import { requireAdmin } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabaseService";
 import { DatasetType } from "@/lib/ingestion/types";
@@ -251,72 +252,44 @@ interface CSVPreview {
 
 /**
  * Parse CSV content and return headers + sample rows
+ * Uses PapaParse for robust handling of:
+ * - Quoted fields with commas
+ * - Quoted fields with embedded newlines
+ * - Escaped quotes ("")
+ * - Windows/Mac/Unix line endings
  */
 function parseCSVPreview(content: string, maxRows: number): CSVPreview {
-  const lines = content.split(/\r?\n/);
+  const result = Papa.parse<string[]>(content, {
+    skipEmptyLines: true,
+  });
+
+  if (result.errors.length > 0) {
+    console.warn("[upload] CSV parse warnings:", result.errors.slice(0, 5));
+  }
+
+  const allRows = result.data;
   const headers: string[] = [];
   const rows: string[][] = [];
   let totalRows = 0;
 
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trim();
-    if (!line) continue;
+  for (let i = 0; i < allRows.length; i++) {
+    const row = allRows[i];
+    
+    // Skip empty rows
+    if (!row || row.length === 0 || (row.length === 1 && !row[0]?.trim())) {
+      continue;
+    }
 
-    const parsedRow = parseCSVLine(line);
-
-    if (i === 0) {
-      // First non-empty line is headers
-      headers.push(...parsedRow);
+    if (headers.length === 0) {
+      // First non-empty row is headers
+      headers.push(...row.map(h => h?.trim() ?? ""));
     } else {
       totalRows++;
       if (rows.length < maxRows) {
-        rows.push(parsedRow);
+        rows.push(row.map(cell => cell?.trim() ?? ""));
       }
     }
   }
 
   return { headers, rows, totalRows };
-}
-
-/**
- * Parse a single CSV line, handling quoted fields
- */
-function parseCSVLine(line: string): string[] {
-  const result: string[] = [];
-  let current = "";
-  let inQuotes = false;
-
-  for (let i = 0; i < line.length; i++) {
-    const char = line[i];
-    const nextChar = line[i + 1];
-
-    if (inQuotes) {
-      if (char === '"' && nextChar === '"') {
-        // Escaped quote
-        current += '"';
-        i++; // Skip next quote
-      } else if (char === '"') {
-        // End of quoted field
-        inQuotes = false;
-      } else {
-        current += char;
-      }
-    } else {
-      if (char === '"') {
-        // Start of quoted field
-        inQuotes = true;
-      } else if (char === ",") {
-        // Field separator
-        result.push(current.trim());
-        current = "";
-      } else {
-        current += char;
-      }
-    }
-  }
-
-  // Push last field
-  result.push(current.trim());
-
-  return result;
 }

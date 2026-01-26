@@ -12,6 +12,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import Papa from "papaparse";
 import { requireAdmin } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabaseService";
 import {
@@ -310,30 +311,43 @@ interface ParsedCSV {
 }
 
 /**
- * Parse full CSV content
+ * Parse full CSV content using PapaParse for robust handling of:
+ * - Quoted fields with commas
+ * - Quoted fields with embedded newlines
+ * - Escaped quotes ("")
+ * - Windows/Mac/Unix line endings
  */
 function parseCSV(
   content: string,
   headerRowIndex: number,
   skipRowsAfterHeader: number
 ): ParsedCSV {
-  const lines = content.split(/\r?\n/);
+  const result = Papa.parse<string[]>(content, {
+    skipEmptyLines: true,
+  });
+
+  if (result.errors.length > 0) {
+    console.warn("[validate] CSV parse warnings:", result.errors.slice(0, 5));
+  }
+
+  const allRows = result.data;
   const headers: string[] = [];
   const rows: string[][] = [];
 
-  let lineIndex = 0;
   let dataStarted = false;
   let rowsSkipped = 0;
 
-  for (const line of lines) {
-    lineIndex++;
-    const trimmed = line.trim();
-    if (!trimmed) continue;
+  for (let lineIndex = 0; lineIndex < allRows.length; lineIndex++) {
+    const row = allRows[lineIndex];
+    const rowNumber = lineIndex + 1; // 1-indexed
 
-    const parsedRow = parseCSVLine(trimmed);
+    // Skip empty rows
+    if (!row || row.length === 0 || (row.length === 1 && !row[0]?.trim())) {
+      continue;
+    }
 
-    if (lineIndex === headerRowIndex) {
-      headers.push(...parsedRow);
+    if (rowNumber === headerRowIndex) {
+      headers.push(...row.map(h => h?.trim() ?? ""));
       dataStarted = true;
       continue;
     }
@@ -343,46 +357,9 @@ function parseCSV(
         rowsSkipped++;
         continue;
       }
-      rows.push(parsedRow);
+      rows.push(row.map(cell => cell?.trim() ?? ""));
     }
   }
 
   return { headers, rows };
-}
-
-/**
- * Parse a single CSV line, handling quoted fields
- */
-function parseCSVLine(line: string): string[] {
-  const result: string[] = [];
-  let current = "";
-  let inQuotes = false;
-
-  for (let i = 0; i < line.length; i++) {
-    const char = line[i];
-    const nextChar = line[i + 1];
-
-    if (inQuotes) {
-      if (char === '"' && nextChar === '"') {
-        current += '"';
-        i++;
-      } else if (char === '"') {
-        inQuotes = false;
-      } else {
-        current += char;
-      }
-    } else {
-      if (char === '"') {
-        inQuotes = true;
-      } else if (char === ",") {
-        result.push(current.trim());
-        current = "";
-      } else {
-        current += char;
-      }
-    }
-  }
-
-  result.push(current.trim());
-  return result;
 }
