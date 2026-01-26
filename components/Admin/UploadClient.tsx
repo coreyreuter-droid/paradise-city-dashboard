@@ -61,34 +61,53 @@ function transformHeadersWithMapping(
 }
 
 /**
+ * Truly required fields per dataset type.
+ * These are the minimum fields needed for a valid import.
+ * Other fields are optional and can be left unmapped.
+ */
+const TRULY_REQUIRED_FIELDS: Record<string, string[]> = {
+  budgets: ["fiscal_year", "amount"],
+  actuals: ["fiscal_year", "period", "amount"],
+  transactions: ["fiscal_year", "date", "amount"],
+  revenues: ["fiscal_year", "period", "amount"],
+};
+
+/**
  * Check which expected columns are missing from CSV headers.
- * Returns the expected CSV column names that are not found.
+ * Only checks:
+ * 1. That truly required fields have mappings defined
+ * 2. That all MAPPED columns actually exist in the CSV
  */
 function getMissingMappedColumns(
   rawHeaders: string[],
   columnMappings: Record<string, string>,
-  requiredFields: string[]
-): { missingFields: string[]; missingCsvColumns: string[] } {
+  datasetType: string
+): { missingRequired: string[]; missingCsvColumns: string[] } {
   const normalizedHeaders = new Set(rawHeaders.map((h) => h.toLowerCase().trim()));
   
-  const missingFields: string[] = [];
+  const missingRequired: string[] = [];
   const missingCsvColumns: string[] = [];
 
+  // Check that truly required fields have mappings
+  const requiredFields = TRULY_REQUIRED_FIELDS[datasetType] || [];
   for (const field of requiredFields) {
-    const expectedCsvColumn = columnMappings[field];
-    if (!expectedCsvColumn) {
-      missingFields.push(field);
-      missingCsvColumns.push(field); // No mapping defined
-    } else {
-      const normalizedExpected = expectedCsvColumn.toLowerCase().trim();
+    const mappedColumn = columnMappings[field];
+    if (!mappedColumn) {
+      missingRequired.push(field);
+    }
+  }
+
+  // Check that all mapped columns exist in the CSV
+  for (const [field, csvColumn] of Object.entries(columnMappings)) {
+    if (csvColumn) {
+      const normalizedExpected = csvColumn.toLowerCase().trim();
       if (!normalizedHeaders.has(normalizedExpected)) {
-        missingFields.push(field);
-        missingCsvColumns.push(expectedCsvColumn);
+        missingCsvColumns.push(csvColumn);
       }
     }
   }
 
-  return { missingFields, missingCsvColumns };
+  return { missingRequired, missingCsvColumns };
 }
 
 export default function UploadClient() {
@@ -381,15 +400,27 @@ export default function UploadClient() {
       const dataRows = rows.slice(1);
 
       // Check if CSV headers match the selected mapping profile
-      const { missingFields, missingCsvColumns } = getMissingMappedColumns(
+      const { missingRequired, missingCsvColumns } = getMissingMappedColumns(
         rawHeaders,
         selectedProfile.column_mappings,
-        schema.required
+        table
       );
 
+      // Check for truly required fields that aren't mapped
+      if (missingRequired.length > 0) {
+        setError(
+          `The mapping profile "${selectedProfile.name}" is missing required field mappings:\n\n` +
+            `Missing: ${missingRequired.join(", ")}\n\n` +
+            `Please edit the mapping profile to include these required fields.`
+        );
+        setIsLoading(false);
+        return;
+      }
+
+      // Check for mapped columns that don't exist in CSV
       if (missingCsvColumns.length > 0) {
         setError(
-          `CSV is missing required columns for the selected mapping profile "${selectedProfile.name}":\n\n` +
+          `CSV is missing columns expected by mapping profile "${selectedProfile.name}":\n\n` +
             `Expected columns: ${missingCsvColumns.join(", ")}\n\n` +
             `Found columns: ${rawHeaders.join(", ")}\n\n` +
             `Please check that you selected the correct mapping profile for this CSV file.`
@@ -667,16 +698,12 @@ export default function UploadClient() {
   // Compute preview-time missing columns (using selected mapping profile)
   const previewMissingInfo = (() => {
     if (!previewHeaders || !selectedProfile) {
-      return { missingFields: [], missingCsvColumns: [] };
-    }
-    const schema = TABLE_SCHEMAS[table];
-    if (!schema) {
-      return { missingFields: [], missingCsvColumns: [] };
+      return { missingRequired: [], missingCsvColumns: [] };
     }
     return getMissingMappedColumns(
       previewHeaders,
       selectedProfile.column_mappings,
-      schema.required
+      table
     );
   })();
 
@@ -1092,7 +1119,19 @@ export default function UploadClient() {
       {/* Preview warnings */}
       {previewHeaders && selectedProfile && (
         <div className="mb-2 text-xs">
-          {previewMissingInfo.missingCsvColumns.length > 0 ? (
+          {previewMissingInfo.missingRequired.length > 0 ? (
+            <div className="rounded-md border border-amber-200 bg-amber-50 p-2 text-amber-700">
+              <p className="font-semibold">
+                ⚠️ Mapping profile &quot;{selectedProfile.name}&quot; is missing required field mappings
+              </p>
+              <p className="mt-1">
+                Missing: {previewMissingInfo.missingRequired.join(", ")}
+              </p>
+              <p className="mt-2 font-medium">
+                Please edit the mapping profile to include these required fields.
+              </p>
+            </div>
+          ) : previewMissingInfo.missingCsvColumns.length > 0 ? (
             <div className="rounded-md border border-red-200 bg-red-50 p-2 text-red-700">
               <p className="font-semibold">
                 ⚠️ CSV doesn&apos;t match selected mapping profile &quot;{selectedProfile.name}&quot;
@@ -1109,7 +1148,7 @@ export default function UploadClient() {
             </div>
           ) : (
             <p className="text-emerald-700">
-              ✓ All required columns found for mapping profile &quot;{selectedProfile.name}&quot;.
+              ✓ All mapped columns found for profile &quot;{selectedProfile.name}&quot;.
             </p>
           )}
         </div>
