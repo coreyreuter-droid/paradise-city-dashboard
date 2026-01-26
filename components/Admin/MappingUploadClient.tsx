@@ -154,6 +154,7 @@ export default function MappingUploadClient() {
   const [jobId, setJobId] = useState<string | null>(null);
   const [jobStatus, setJobStatus] = useState<string | null>(null);
   const [jobProgress, setJobProgress] = useState<number>(0);
+  const [pollCount, setPollCount] = useState<number>(0);
 
   const messageRef = useRef<HTMLDivElement | null>(null);
 
@@ -187,6 +188,7 @@ export default function MappingUploadClient() {
     setJobId(null);
     setJobStatus(null);
     setJobProgress(0);
+    setPollCount(0);
     setImportMode("append");
     setReplaceYear("");
     clearMessage();
@@ -408,25 +410,32 @@ export default function MappingUploadClient() {
         const data = await res.json();
 
         if (!res.ok) {
-          setError("Failed to fetch job status");
+          setError("Failed to fetch job status. Please refresh the page and check the Data Management page for job status.");
           return;
         }
 
         const job = data.job;
         setJobStatus(job.status);
         setJobProgress(job.progress || 0);
+        setPollCount(prev => prev + 1);
 
         if (job.status === "completed" || job.status === "completed_with_warnings") {
           setStep("complete");
           setInfo(`Import complete! ${job.rows_loaded.toLocaleString()} rows imported.`);
         } else if (job.status === "failed") {
           setError(`Import failed: ${job.last_error || "Unknown error"}`);
+          setStep("validate"); // Go back to validate step so they can retry
+        } else if (job.status === "pending" && pollCount > 30) {
+          // Job stuck at pending for over 60 seconds (30 polls * 2 seconds)
+          setError("Import appears to be stuck in the queue. If this problem persists, contact your CiviPortal admin or reach out to us at hello@civiportal.com");
+          return; // Stop polling
         } else {
           // Continue polling
           setTimeout(poll, 2000);
         }
       } catch (err) {
         console.error("Poll error:", err);
+        // Network error - retry with backoff
         setTimeout(poll, 5000);
       }
     };
@@ -598,6 +607,13 @@ export default function MappingUploadClient() {
                       ? sampleRows[0][mapping.csvColumnIndex] || ""
                       : "";
 
+                    // Get indices that are already used by OTHER fields
+                    const usedIndices = new Set(
+                      Object.entries(columnMappings)
+                        .filter(([key, m]) => key !== field.name && m.csvColumnIndex >= 0)
+                        .map(([, m]) => m.csvColumnIndex)
+                    );
+
                     return (
                       <tr key={field.name} className="border-t border-slate-200">
                         <td className="px-3 py-2">
@@ -617,11 +633,22 @@ export default function MappingUploadClient() {
                             }`}
                           >
                             <option value={-1}>— Not mapped —</option>
-                            {headers.map((h, i) => (
-                              <option key={i} value={i}>
-                                {h}
-                              </option>
-                            ))}
+                            {headers.map((h, i) => {
+                              // Show this option if it's not used by another field
+                              // OR if it's the currently selected value for this field
+                              const isUsedElsewhere = usedIndices.has(i);
+                              const isCurrentSelection = mapping?.csvColumnIndex === i;
+                              
+                              if (isUsedElsewhere && !isCurrentSelection) {
+                                return null; // Hide options already used by other fields
+                              }
+                              
+                              return (
+                                <option key={i} value={i}>
+                                  {h}
+                                </option>
+                              );
+                            })}
                           </select>
                         </td>
                         <td className="px-3 py-2 text-slate-500 text-xs font-mono">
@@ -860,6 +887,11 @@ export default function MappingUploadClient() {
             <p className="mt-1 text-xs text-slate-600">
               Please wait while your data is being imported. This may take a moment.
             </p>
+            {pollCount > 15 && (
+              <p className="mt-3 text-xs text-amber-600">
+                Taking longer than expected. The import is still running — please don&apos;t close this page.
+              </p>
+            )}
           </div>
         </div>
       )}
