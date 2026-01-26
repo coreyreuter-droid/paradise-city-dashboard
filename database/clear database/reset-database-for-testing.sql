@@ -13,22 +13,31 @@ TRUNCATE TABLE public.transactions CASCADE;
 TRUNCATE TABLE public.revenues CASCADE;
 
 -- ============================================================================
--- STEP 2: Clear rollup/materialized tables (if they exist)
+-- STEP 2: Clear rollup tables
 -- ============================================================================
 
-TRUNCATE TABLE public.budget_actuals_year_department CASCADE;
-TRUNCATE TABLE public.transaction_year_department CASCADE;
-TRUNCATE TABLE public.transaction_year_vendor CASCADE;
-
--- These may or may not exist depending on v2.1 migration
 DO $$
 BEGIN
+  -- Budget/Actuals rollups
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'budget_actuals_year_fund_department') THEN
+    TRUNCATE TABLE public.budget_actuals_year_fund_department CASCADE;
+  END IF;
+  
   IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'budget_actuals_year_fund') THEN
     TRUNCATE TABLE public.budget_actuals_year_fund CASCADE;
   END IF;
   
-  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'budget_actuals_year_fund_department') THEN
-    TRUNCATE TABLE public.budget_actuals_year_fund_department CASCADE;
+  -- Transaction rollups
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'transaction_year_fund_department') THEN
+    TRUNCATE TABLE public.transaction_year_fund_department CASCADE;
+  END IF;
+  
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'transaction_year_fund') THEN
+    TRUNCATE TABLE public.transaction_year_fund CASCADE;
+  END IF;
+  
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'transaction_year_vendor') THEN
+    TRUNCATE TABLE public.transaction_year_vendor CASCADE;
   END IF;
 END $$;
 
@@ -48,29 +57,24 @@ BEGIN
 END $$;
 
 -- ============================================================================
--- STEP 4: Clear ingestion system tables (if they exist)
+-- STEP 4: Clear ingestion system tables
 -- ============================================================================
 
 DO $$
 BEGIN
+  -- Clear ingestion row errors first (has FK to jobs)
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'ingestion_row_errors') THEN
+    TRUNCATE TABLE public.ingestion_row_errors CASCADE;
+  END IF;
+  
   -- Clear ingestion jobs
   IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'ingestion_jobs') THEN
     TRUNCATE TABLE public.ingestion_jobs CASCADE;
   END IF;
   
-  -- Clear ingestion errors
-  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'ingestion_errors') THEN
-    TRUNCATE TABLE public.ingestion_errors CASCADE;
-  END IF;
-  
   -- Clear raw files
   IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'raw_files') THEN
     TRUNCATE TABLE public.raw_files CASCADE;
-  END IF;
-  
-  -- Clear ingestion profiles (but keep if you want to preserve custom mappings)
-  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'ingestion_profiles') THEN
-    TRUNCATE TABLE public.ingestion_profiles CASCADE;
   END IF;
 END $$;
 
@@ -90,14 +94,27 @@ END $$;
 -- STEP 6: Clear audit/history tables
 -- ============================================================================
 
-TRUNCATE TABLE public.data_uploads CASCADE;
-TRUNCATE TABLE public.admin_audit_log CASCADE;
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'data_uploads') THEN
+    TRUNCATE TABLE public.data_uploads CASCADE;
+  END IF;
+  
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'admin_audit_log') THEN
+    TRUNCATE TABLE public.admin_audit_log CASCADE;
+  END IF;
+END $$;
 
 -- ============================================================================
 -- STEP 7: Clear rate limits (optional - allows fresh API calls)
 -- ============================================================================
 
-TRUNCATE TABLE public.rate_limits CASCADE;
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'rate_limits') THEN
+    TRUNCATE TABLE public.rate_limits CASCADE;
+  END IF;
+END $$;
 
 -- ============================================================================
 -- WHAT'S PRESERVED:
@@ -106,7 +123,7 @@ TRUNCATE TABLE public.rate_limits CASCADE;
 -- ✓ Portal settings (public.portal_settings)
 -- ✓ Auth users (auth.users)
 -- ✓ System mapping profiles (Default Template for each dataset type)
--- ✓ Projects (if you have any)
+-- ✓ Capital projects (if you have any)
 --
 -- WHAT'S CLEARED:
 -- ✗ All financial data (budgets, actuals, transactions, revenues)
@@ -114,6 +131,7 @@ TRUNCATE TABLE public.rate_limits CASCADE;
 -- ✗ All lookup tables (funds_dim, departments_dim)
 -- ✗ Upload history
 -- ✗ Audit logs
+-- ✗ Ingestion jobs and errors
 -- ✗ User-created mapping profiles
 -- ============================================================================
 
