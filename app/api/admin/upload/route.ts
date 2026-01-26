@@ -246,7 +246,7 @@ function normalizeFiscalYearForRecord(
 
 /**
  * Recompute transaction summaries for all fiscal years touched by an upload.
- * This keeps transaction_year_vendor and transaction_year_department accurate.
+ * This keeps transaction_year_vendor and transaction_year_fund_department accurate.
  *
  * This is intentionally strict: if recompute fails, we return 500 because the
  * UI would otherwise show stale/incorrect data.
@@ -276,7 +276,7 @@ async function recomputeTransactionSummaries(years: number[]) {
 
 /**
  * Recompute budget/actuals summaries for all fiscal years touched by an upload.
- * Keeps budget_actuals_year_department accurate.
+ * Keeps budget_actuals_year_fund_department accurate.
  */
 async function recomputeBudgetActualsSummaries(years: number[]) {
   const uniqueYears = Array.from(new Set(years))
@@ -470,14 +470,14 @@ const safeDeleteSummary = async (
 // Transactions summaries
 if (table === "transactions") {
   if (mode === "replace_table") {
-    await safeDeleteSummary("transaction_year_department", (q) =>
+    await safeDeleteSummary("transaction_year_fund_department", (q) =>
       q.gte("fiscal_year", 0)
     );
     await safeDeleteSummary("transaction_year_vendor", (q) =>
       q.gte("fiscal_year", 0)
     );
   } else if (mode === "replace_year" && replaceYear) {
-    await safeDeleteSummary("transaction_year_department", (q) =>
+    await safeDeleteSummary("transaction_year_fund_department", (q) =>
       q.eq("fiscal_year", replaceYear)
     );
     await safeDeleteSummary("transaction_year_vendor", (q) =>
@@ -492,14 +492,14 @@ if (table === "budgets" || table === "actuals") {
     await safeDeleteSummary("budget_actuals_year_totals", (q) =>
       q.gte("fiscal_year", 0)
     );
-    await safeDeleteSummary("budget_actuals_year_department", (q) =>
+    await safeDeleteSummary("budget_actuals_year_fund_department", (q) =>
       q.gte("fiscal_year", 0)
     );
   } else if (mode === "replace_year" && replaceYear) {
     await safeDeleteSummary("budget_actuals_year_totals", (q) =>
       q.eq("fiscal_year", replaceYear)
     );
-    await safeDeleteSummary("budget_actuals_year_department", (q) =>
+    await safeDeleteSummary("budget_actuals_year_fund_department", (q) =>
       q.eq("fiscal_year", replaceYear)
     );
   }

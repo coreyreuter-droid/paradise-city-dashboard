@@ -179,7 +179,7 @@ export async function getVendorSummariesForYear(
   const sanitized = search?.trim() ? sanitizeSearchInput(search) : null;
 
   const query = supabase
-    .from("transaction_year_vendor")
+    .from("v_transaction_year_vendor")
     .select("*")
     .eq("fiscal_year", fiscalYear)
     .order("total_amount", { ascending: false })
@@ -207,7 +207,7 @@ export async function getDepartmentTransactionSummariesForYear(
   fiscalYear: number
 ): Promise<DepartmentYearTxSummary[]> {
   const { data, error } = await supabase
-    .from("transaction_year_department")
+    .from("v_transaction_year_fund_department")
     .select("*")
     .eq("fiscal_year", fiscalYear)
     .order("total_amount", { ascending: false });
@@ -230,7 +230,7 @@ export async function getBudgetActualsSummaryForYear(
   fiscalYear: number
 ): Promise<BudgetActualsYearDeptRow[]> {
   const { data, error } = await supabase
-    .from("budget_actuals_year_department")
+    .from("v_budget_actuals_year_fund_department")
     .select("*")
     .eq("fiscal_year", fiscalYear)
     .order("budget_amount", { ascending: false });
@@ -250,7 +250,7 @@ export async function getBudgetActualsSummaryForDepartment(
   if (!name) return [];
 
   const { data, error } = await supabase
-    .from("budget_actuals_year_department")
+    .from("v_budget_actuals_year_fund_department")
     .select("*")
     .eq("department_name", name)
     .order("fiscal_year", { ascending: true });
@@ -265,7 +265,7 @@ export async function getBudgetActualsSummaryForDepartment(
 
 export async function getBudgetActualsSummaryAllYears(): Promise<BudgetActualsYearDeptRow[]> {
   const { data, error } = await supabase
-    .from("budget_actuals_year_department")
+    .from("v_budget_actuals_year_fund_department")
     .select("*")
     .order("fiscal_year", { ascending: false });
 
@@ -282,7 +282,7 @@ export async function getBudgetActualsYearTotals(): Promise<
 > {
   // Use the year+department rollup (which already exists and includes the full year range)
   const { data, error } = await supabase
-    .from("budget_actuals_year_department")
+    .from("v_budget_actuals_year_fund_department")
     .select("fiscal_year, budget_amount, actual_amount");
 
   if (error) {
@@ -452,7 +452,7 @@ export async function getAvailableFiscalYears(): Promise<number[]> {
  */
 export async function getTransactionYears(): Promise<number[]> {
   const { data, error } = await supabase
-    .from("transaction_year_department")
+    .from("v_transaction_year_fund_department")
     .select("fiscal_year")
     .order("fiscal_year", { ascending: false });
 
@@ -704,7 +704,7 @@ export async function getTransactionDepartmentsForYear(
   fiscalYear: number
 ): Promise<string[]> {
   const { data, error } = await supabase
-    .from("transaction_year_department")
+    .from("v_transaction_year_fund_department")
     .select("department_name")
     .eq("fiscal_year", fiscalYear)
     .order("department_name", { ascending: true });
@@ -730,7 +730,7 @@ export async function getBudgetPageDepartmentSummaries(
   fiscalYear: number
 ): Promise<BudgetPageDepartmentSummary[]> {
   const { data, error } = await supabase
-    .from("budget_actuals_year_department")
+    .from("v_budget_actuals_year_fund_department")
     .select("department_name,budget_amount,actual_amount")
     .eq("fiscal_year", fiscalYear);
 

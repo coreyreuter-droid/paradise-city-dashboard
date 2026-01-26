@@ -85,7 +85,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       // 1. Search departments from summary table
       (async () => {
         let q = supabase
-          .from("budget_actuals_year_department")
+          .from("v_budget_actuals_year_fund_department")
           .select("department_name, budget_amount, actual_amount")
           .ilike("department_name", searchPattern)
           .limit(LIMIT_PER_CATEGORY);
@@ -120,7 +120,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       // 2. Search vendors from summary table
       (async () => {
         let q = supabase
-          .from("transaction_year_vendor")
+          .from("v_transaction_year_vendor")
           .select("vendor, total_amount, txn_count")
           .ilike("vendor", searchPattern)
           .order("total_amount", { ascending: false })

@@ -11,7 +11,7 @@ export const revalidate = 0;
 
 async function getDepartments(): Promise<string[]> {
   const { data, error } = await supabase
-    .from("budget_actuals_year_department")
+    .from("v_budget_actuals_year_fund_department")
     .select("department_name")
     .order("department_name");
 
@@ -34,7 +34,7 @@ async function getVendors(): Promise<string[]> {
   // Use pre-aggregated view instead of raw transactions table
   // This has one row per vendor per year, much smaller than raw transactions
   const { data, error } = await supabase
-    .from("transaction_year_vendor")
+    .from("v_transaction_year_vendor")
     .select("vendor")
     .not("vendor", "is", null);
 

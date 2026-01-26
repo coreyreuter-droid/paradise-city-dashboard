@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
     // 2) Clear summary tables (this is what the dropdowns read)
     if (table === "budgets" || table === "actuals") {
       await safeDeleteSummaryYear("budget_actuals_year_totals", fiscalYear);
-      await safeDeleteSummaryYear("budget_actuals_year_department", fiscalYear);
+      await safeDeleteSummaryYear("budget_actuals_year_fund_department", fiscalYear);
 
       // Recompute summaries so if the OTHER dataset still exists (budgets vs actuals),
       // the rollups get re-created correctly.
@@ -87,7 +87,7 @@ export async function POST(req: NextRequest) {
 
     if (table === "transactions") {
       await safeDeleteSummaryYear("transaction_year_totals", fiscalYear);
-      await safeDeleteSummaryYear("transaction_year_department", fiscalYear);
+      await safeDeleteSummaryYear("transaction_year_fund_department", fiscalYear);
       await safeDeleteSummaryYear("transaction_year_vendor", fiscalYear);
 
       const { error: e1 } = await supabaseAdmin.rpc(
