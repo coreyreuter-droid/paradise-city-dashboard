@@ -126,10 +126,17 @@ export async function POST(req: NextRequest) {
           );
         }
 
+        // Clear the by-year table first (has FK to funds_dim)
+        await supabaseAdmin
+          .from("funds_dim_by_year")
+          .delete()
+          .neq("fund_code", "");
+
+        // Clear the main lookup table
         const { count, error } = await supabaseAdmin
           .from("funds_dim")
           .delete({ count: "exact" })
-          .neq("code", ""); // Delete all (code is never empty)
+          .neq("fund_code", ""); // Delete all (fund_code is never empty)
 
         if (error) {
           return NextResponse.json(
@@ -161,10 +168,17 @@ export async function POST(req: NextRequest) {
           );
         }
 
+        // Clear the by-year table first (has FK to departments_dim)
+        await supabaseAdmin
+          .from("departments_dim_by_year")
+          .delete()
+          .neq("department_code", "");
+
+        // Clear the main lookup table
         const { count, error } = await supabaseAdmin
           .from("departments_dim")
           .delete({ count: "exact" })
-          .neq("code", "");
+          .neq("department_code", ""); // Delete all (department_code is never empty)
 
         if (error) {
           return NextResponse.json(

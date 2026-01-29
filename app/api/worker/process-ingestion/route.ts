@@ -600,15 +600,17 @@ async function calculateCoverage(
   const uniqueFundCodes = new Set((fundCodes ?? []).map((r: { fund_code: string }) => r.fund_code));
   const uniqueDeptCodes = new Set((deptCodes ?? []).map((r: { department_code: string }) => r.department_code));
 
-  // Check against lookup tables
+  // Check against lookup tables (only current/active lookups)
   const { data: mappedFunds } = await supabaseAdmin
     .from("funds_dim")
     .select("fund_code")
+    .is("effective_end_fy", null)
     .in("fund_code", Array.from(uniqueFundCodes));
 
   const { data: mappedDepts } = await supabaseAdmin
     .from("departments_dim")
     .select("department_code")
+    .is("effective_end_fy", null)
     .in("department_code", Array.from(uniqueDeptCodes));
 
   const mappedFundCodes = new Set((mappedFunds ?? []).map((r: { fund_code: string }) => r.fund_code));
@@ -631,6 +633,9 @@ async function calculateCoverage(
 async function recomputeRollups(job: IngestionJob, tableName: string): Promise<void> {
   // Skip for lookup tables (they don't have fiscal_year)
   if (isLookupType(job.dataset_type)) {
+    // For lookup uploads, refresh the by-year tables
+    await supabaseAdmin.rpc("refresh_funds_by_year");
+    await supabaseAdmin.rpc("refresh_departments_by_year");
     return;
   }
 
@@ -643,6 +648,15 @@ async function recomputeRollups(job: IngestionJob, tableName: string): Promise<v
   const uniqueYears = Array.from(
     new Set((years ?? []).map((r: { fiscal_year: number }) => r.fiscal_year))
   ).filter((y) => typeof y === "number");
+
+  // Refresh by-year lookup tables for the affected years
+  // This ensures lookups resolve correctly for new fiscal years
+  if (uniqueYears.length > 0) {
+    const minFy = Math.min(...uniqueYears);
+    const maxFy = Math.max(...uniqueYears);
+    await supabaseAdmin.rpc("refresh_funds_by_year", { p_start_fy: minFy, p_end_fy: maxFy });
+    await supabaseAdmin.rpc("refresh_departments_by_year", { p_start_fy: minFy, p_end_fy: maxFy });
+  }
 
   // Recompute based on dataset type
   if (job.dataset_type === "budgets" || job.dataset_type === "actuals") {
