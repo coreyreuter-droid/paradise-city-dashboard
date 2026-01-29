@@ -83,7 +83,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Map to common format
-    const mappedCurrent = (currentLookups ?? []).map((row: DepartmentDimRow) => ({
+    const mappedCurrent = (currentLookups ?? []).map((row) => ({
       id: row.id,
       code: row.department_code,
       name: row.department_name,
