@@ -13,10 +13,9 @@ const supabaseAdmin = createClient(
 export async function POST(req: NextRequest) {
   try {
     // Auth check
-    const { user } = await requireAdmin(req);
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const auth = await requireAdmin(req);
+    if (!auth.success) return auth.error;
+    const user = auth.data.user;
 
     // Parse request
     const body = await req.json() as ApplyLookupRequest;
