@@ -142,14 +142,28 @@ export function parseRow(
   }
   
   if ((datasetType === 'actuals' || datasetType === 'revenues') && data.period) {
-    // Derive fiscal_period from period
+    // Derive fiscal_period AND fiscal_year from period (e.g., "2024-07")
     const periodStr = String(data.period);
     const match = periodStr.match(/^(\d{4})-(\d{2})$/);
     if (match) {
+      const year = parseInt(match[1], 10);
       const month = parseInt(match[2], 10);
+      
+      // Derive fiscal_period (1-12 within fiscal year)
       let fiscalPeriod = month - fyStartMonth + 1;
       if (fiscalPeriod <= 0) fiscalPeriod += 12;
       data.fiscal_period = fiscalPeriod;
+      
+      // Derive fiscal_year if not already set
+      // If month >= fyStartMonth, we're in the NEXT fiscal year
+      // E.g., July 2024 with FY start July = FY 2025
+      if (!data.fiscal_year) {
+        if (month >= fyStartMonth) {
+          data.fiscal_year = year + 1;
+        } else {
+          data.fiscal_year = year;
+        }
+      }
     }
   }
   
