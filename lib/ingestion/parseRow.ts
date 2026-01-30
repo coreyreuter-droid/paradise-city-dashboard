@@ -505,6 +505,7 @@ const HEADER_ALIASES: Record<string, string[]> = {
 
 /**
  * Attempts to auto-detect column mappings based on header names
+ * Only detects mappings for fields that are valid for the given dataset type
  */
 export function autoDetectMappings(
   headers: string[],
@@ -512,10 +513,18 @@ export function autoDetectMappings(
 ): ColumnMappings {
   const mappings: ColumnMappings = {};
   
+  // Get valid fields for this dataset type
+  const validFields = new Set(AllFields[datasetType] || []);
+  
   // Normalize headers for matching
   const normalizedHeaders = headers.map(h => h.toLowerCase().trim().replace(/[^a-z0-9_]/g, '_'));
   
   for (const [targetField, aliases] of Object.entries(HEADER_ALIASES)) {
+    // Skip fields that aren't valid for this dataset type
+    if (!validFields.has(targetField)) {
+      continue;
+    }
+    
     for (let i = 0; i < normalizedHeaders.length; i++) {
       const header = normalizedHeaders[i];
       

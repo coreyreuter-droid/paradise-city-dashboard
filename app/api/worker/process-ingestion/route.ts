@@ -20,6 +20,7 @@ import {
   DatasetType,
   ColumnMappings,
   COAConfig,
+  AllFields,
 } from "@/lib/ingestion/types";
 import { parseRow, ParseRowOptions } from "@/lib/ingestion/parseRow";
 
@@ -508,9 +509,12 @@ function buildRecord(
     source_row_number: sourceRowNumber,
   };
 
-  // Copy all data fields
+  // Get valid fields for this dataset type
+  const validFields = new Set(AllFields[job.dataset_type] || []);
+
+  // Copy only data fields that are valid for this dataset type
   for (const [key, value] of Object.entries(data)) {
-    if (value !== null && value !== undefined) {
+    if (value !== null && value !== undefined && validFields.has(key)) {
       record[key] = value;
     }
   }
