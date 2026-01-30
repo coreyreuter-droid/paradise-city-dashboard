@@ -320,11 +320,13 @@ export interface ParsedRow {
  * Required fields for each dataset type
  * MVP: Only fiscal_year, amount, and period (for actuals/revenues) are required
  * Everything else optional (supports mapping system)
+ * 
+ * Note: transactions only requires date + amount; fiscal_year is auto-derived from date
  */
 export const RequiredFields: Record<DatasetType, string[]> = {
   budgets: ['fiscal_year', 'amount'],
   actuals: ['fiscal_year', 'period', 'amount'],
-  transactions: ['fiscal_year', 'date', 'amount'],
+  transactions: ['date', 'amount'],
   revenues: ['fiscal_year', 'period', 'amount'],
   funds_lookup: ['fund_code', 'fund_name'],
   departments_lookup: ['department_code', 'department_name'],

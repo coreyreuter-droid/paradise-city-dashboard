@@ -86,7 +86,7 @@ const DATASET_FIELDS: Record<DatasetType, { name: string; label: string; require
     { name: "amount", label: "Amount", required: true },
   ],
   transactions: [
-    { name: "fiscal_year", label: "Fiscal Year", required: true },
+    { name: "fiscal_year", label: "Fiscal Year (auto-derived from date)", required: false },
     { name: "date", label: "Date", required: true },
     { name: "fund_code", label: "Fund Code", required: false },
     { name: "fund_name", label: "Fund Name", required: false },
