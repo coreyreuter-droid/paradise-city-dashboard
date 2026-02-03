@@ -2,7 +2,7 @@
 "use client";
 
 import AdminGuard from "@/components/Auth/AdminGuard";
-import UploadClient from "@/components/Admin/UploadClient";
+import UploadWizardClient from "@/components/Admin/UploadWizardClient";
 import AdminShell from "@/components/Admin/AdminShell";
 
 export default function UploadPage() {
@@ -10,9 +10,9 @@ export default function UploadPage() {
     <AdminGuard>
       <AdminShell
         title="Data upload"
-        description="Upload CSV files for budgets, actuals, and transactions. We’ll validate the structure before importing."
+        description="Upload CSV files for budgets, actuals, transactions, and revenues."
       >
-        <UploadClient />
+        <UploadWizardClient />
       </AdminShell>
     </AdminGuard>
   );
