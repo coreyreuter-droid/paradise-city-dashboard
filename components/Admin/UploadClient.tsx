@@ -67,7 +67,7 @@ function transformHeadersWithMapping(
 const TRULY_REQUIRED_FIELDS: Record<string, string[]> = {
   budgets: ["fiscal_year", "amount"],
   actuals: ["fiscal_year", "period", "amount"],
-  transactions: ["fiscal_year", "date", "amount"],
+  transactions: ["date", "amount"],
   revenues: ["fiscal_year", "period", "amount"],
 };
 
