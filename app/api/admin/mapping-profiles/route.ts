@@ -64,7 +64,8 @@ export async function GET(req: NextRequest) {
  * Body: {
  *   name: string,
  *   dataset_type: string,
- *   column_mappings: Record<string, string>
+ *   column_mappings: Record<string, string>,
+ *   original_headers?: string[]  // Original CSV headers in order for position matching
  * }
  */
 export async function POST(req: NextRequest) {
@@ -73,7 +74,7 @@ export async function POST(req: NextRequest) {
     if (!auth.success) return auth.error;
 
     const body = await req.json();
-    const { name, dataset_type, column_mappings } = body;
+    const { name, dataset_type, column_mappings, original_headers } = body;
 
     // Validate required fields
     if (!name || typeof name !== "string" || !name.trim()) {
@@ -107,6 +108,16 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Validate original_headers if provided
+    if (original_headers !== undefined && original_headers !== null) {
+      if (!Array.isArray(original_headers) || !original_headers.every(h => typeof h === "string")) {
+        return NextResponse.json(
+          { error: "original_headers must be an array of strings" },
+          { status: 400 }
+        );
+      }
+    }
+
     // Check for duplicate name
     const { data: existing } = await supabaseAdmin
       .from("mapping_profiles")
@@ -129,6 +140,7 @@ export async function POST(req: NextRequest) {
         name: name.trim(),
         dataset_type,
         column_mappings,
+        original_headers: original_headers || null,
         is_system: false,
       })
       .select()
@@ -152,6 +164,7 @@ export async function POST(req: NextRequest) {
         profile_name: name.trim(),
         dataset_type,
         column_count: Object.keys(column_mappings).length,
+        has_original_headers: !!original_headers,
       },
     });
 

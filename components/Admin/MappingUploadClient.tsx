@@ -360,6 +360,9 @@ export default function MappingUploadClient() {
         }
       }
 
+      // Include original headers for position-based matching
+      const originalHeaders = previewData?.headers || [];
+
       const res = await fetch("/api/admin/mapping-profiles", {
         method: "POST",
         headers: {
@@ -370,6 +373,7 @@ export default function MappingUploadClient() {
           name: profileName.trim(),
           dataset_type: datasetType,
           column_mappings: simpleColumnMappings,
+          original_headers: originalHeaders,
         }),
       });
 

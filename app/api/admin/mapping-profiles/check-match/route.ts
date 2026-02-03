@@ -5,9 +5,9 @@
  * 
  * Given headers and dataset_type, finds a matching mapping profile.
  * Matching rules:
- * - Case insensitive comparison
- * - All mapped columns must exist in the file
- * - Extra columns in the file are OK (returns warning)
+ * - If profile has original_headers: exact position match required (case insensitive)
+ * - If profile lacks original_headers (legacy): all mapped columns must exist (any order)
+ * - Extra columns at the end of the file are OK (returns warning)
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -21,7 +21,8 @@ interface MappingProfile {
   id: string;
   name: string;
   dataset_type: string;
-  column_mappings: Record<string, string>; // Simple format: { targetField: csvColumnName }
+  column_mappings: Record<string, string>;
+  original_headers: string[] | null;
   is_system: boolean;
   created_at: string;
 }
@@ -52,7 +53,6 @@ export async function POST(req: NextRequest) {
     const normalizedInputHeaders = headers.map((h: string) => 
       h.toLowerCase().trim()
     );
-    const inputHeaderSet = new Set(normalizedInputHeaders);
 
     // Fetch all mapping profiles for this dataset type
     const { data: profiles, error } = await supabaseAdmin
@@ -71,49 +71,97 @@ export async function POST(req: NextRequest) {
     }
 
     // Check each profile for a match
-    for (const profile of profiles || []) {
-      const columnMappings = profile.column_mappings as Record<string, string>;
+    for (const profile of (profiles || []) as MappingProfile[]) {
+      const originalHeaders = profile.original_headers;
       
-      // Get all mapped CSV column names from this profile
-      const mappedColumnNames: string[] = [];
-      for (const [_targetField, csvColumnName] of Object.entries(columnMappings)) {
-        if (csvColumnName && typeof csvColumnName === "string") {
-          mappedColumnNames.push(csvColumnName.toLowerCase().trim());
-        }
-      }
-
-      // Check if ALL mapped columns exist in the input headers
-      let isMatch = true;
-      for (const colName of mappedColumnNames) {
-        if (!inputHeaderSet.has(colName)) {
-          isMatch = false;
-          break;
-        }
-      }
-
-      if (isMatch && mappedColumnNames.length > 0) {
-        // Find extra columns (in file but not mapped)
-        const mappedSet = new Set(mappedColumnNames);
-        const extraColumns: string[] = [];
+      // If profile has original_headers, use POSITION-BASED matching
+      if (originalHeaders && Array.isArray(originalHeaders) && originalHeaders.length > 0) {
+        const normalizedOriginalHeaders = originalHeaders.map(h => h.toLowerCase().trim());
         
-        for (let i = 0; i < headers.length; i++) {
-          const normalizedHeader = normalizedInputHeaders[i];
-          if (!mappedSet.has(normalizedHeader)) {
-            extraColumns.push(headers[i]); // Use original case
+        // Check if file has at least as many columns as the mapping
+        if (normalizedInputHeaders.length < normalizedOriginalHeaders.length) {
+          continue; // Not enough columns
+        }
+
+        // Check each position - headers must match exactly at each position
+        let isMatch = true;
+        for (let i = 0; i < normalizedOriginalHeaders.length; i++) {
+          if (normalizedInputHeaders[i] !== normalizedOriginalHeaders[i]) {
+            isMatch = false;
+            break;
           }
         }
 
-        return NextResponse.json({
-          match: true,
-          profile: {
-            id: profile.id,
-            name: profile.name,
-            dataset_type: profile.dataset_type,
-            is_system: profile.is_system,
-          },
-          extra_columns: extraColumns,
-          has_extra_columns: extraColumns.length > 0,
-        });
+        if (isMatch) {
+          // Find extra columns (columns beyond the mapping)
+          const extraColumns: string[] = [];
+          for (let i = normalizedOriginalHeaders.length; i < headers.length; i++) {
+            extraColumns.push(headers[i]);
+          }
+
+          return NextResponse.json({
+            match: true,
+            profile: {
+              id: profile.id,
+              name: profile.name,
+              dataset_type: profile.dataset_type,
+              is_system: profile.is_system,
+              original_headers: originalHeaders,
+              column_mappings: profile.column_mappings,
+            },
+            extra_columns: extraColumns,
+            has_extra_columns: extraColumns.length > 0,
+          });
+        }
+      } else {
+        // LEGACY: No original_headers - use name-based matching (any order)
+        // For backwards compatibility with profiles created before position matching
+        const columnMappings = profile.column_mappings;
+        const inputHeaderSet = new Set(normalizedInputHeaders);
+        
+        // Get all mapped CSV column names from this profile
+        const mappedColumnNames: string[] = [];
+        for (const [_targetField, csvColumnName] of Object.entries(columnMappings)) {
+          if (csvColumnName && typeof csvColumnName === "string") {
+            mappedColumnNames.push(csvColumnName.toLowerCase().trim());
+          }
+        }
+
+        // Check if ALL mapped columns exist in the input headers
+        let isMatch = true;
+        for (const colName of mappedColumnNames) {
+          if (!inputHeaderSet.has(colName)) {
+            isMatch = false;
+            break;
+          }
+        }
+
+        if (isMatch && mappedColumnNames.length > 0) {
+          // Find extra columns (in file but not mapped)
+          const mappedSet = new Set(mappedColumnNames);
+          const extraColumns: string[] = [];
+          
+          for (let i = 0; i < headers.length; i++) {
+            const normalizedHeader = normalizedInputHeaders[i];
+            if (!mappedSet.has(normalizedHeader)) {
+              extraColumns.push(headers[i]);
+            }
+          }
+
+          return NextResponse.json({
+            match: true,
+            profile: {
+              id: profile.id,
+              name: profile.name,
+              dataset_type: profile.dataset_type,
+              is_system: profile.is_system,
+              original_headers: null,
+              column_mappings: profile.column_mappings,
+            },
+            extra_columns: extraColumns,
+            has_extra_columns: extraColumns.length > 0,
+          });
+        }
       }
     }
 

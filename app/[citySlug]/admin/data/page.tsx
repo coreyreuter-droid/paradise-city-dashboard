@@ -27,6 +27,8 @@ type MappingProfile = {
   dataset_type: string;
   is_system: boolean;
   created_at: string;
+  column_mappings: Record<string, string>;
+  original_headers: string[] | null;
 };
 
 type Stats = {
@@ -681,26 +683,76 @@ function MappingProfilesTab() {
                     <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">
                       {DATASET_TYPE_LABELS[datasetType] || datasetType}
                     </p>
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                       {typeProfiles.map((profile) => (
                         <div
                           key={profile.id}
-                          className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2"
+                          className="rounded-xl border border-slate-200 bg-slate-50 p-3"
                         >
-                          <div className="min-w-0">
-                            <p className="text-sm font-medium text-slate-900">{profile.name}</p>
-                            <p className="text-[11px] text-slate-600">
-                              Created {new Date(profile.created_at).toLocaleDateString()}
-                            </p>
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0 flex-1">
+                              <p className="text-sm font-medium text-slate-900">{profile.name}</p>
+                              <p className="text-[11px] text-slate-500">
+                                Created {new Date(profile.created_at).toLocaleDateString()}
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => deleteProfile(profile)}
+                              disabled={deleting === profile.id}
+                              className="shrink-0 rounded-md border border-red-300 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-800 hover:bg-red-100 disabled:opacity-60"
+                            >
+                              {deleting === profile.id ? "Deleting…" : "Delete"}
+                            </button>
                           </div>
-                          <button
-                            type="button"
-                            onClick={() => deleteProfile(profile)}
-                            disabled={deleting === profile.id}
-                            className="rounded-md border border-red-300 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-800 hover:bg-red-100 disabled:opacity-60"
-                          >
-                            {deleting === profile.id ? "Deleting…" : "Delete"}
-                          </button>
+                          
+                          {/* Show mapping structure */}
+                          <div className="mt-3 rounded-lg bg-white border border-slate-200 p-2.5">
+                            {profile.original_headers && profile.original_headers.length > 0 ? (
+                              <>
+                                <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 mb-1.5">
+                                  Expected CSV Headers (in order)
+                                </p>
+                                <div className="flex flex-wrap gap-1 mb-2">
+                                  {profile.original_headers.map((header, i) => (
+                                    <span
+                                      key={i}
+                                      className="inline-flex items-center rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-mono text-slate-700"
+                                    >
+                                      {header}
+                                    </span>
+                                  ))}
+                                </div>
+                                <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 mb-1.5">
+                                  Column Mappings
+                                </p>
+                                <div className="space-y-0.5">
+                                  {Object.entries(profile.column_mappings || {}).map(([targetField, csvColumn]) => (
+                                    <div key={targetField} className="flex items-center gap-1.5 text-[11px]">
+                                      <span className="font-mono text-slate-600">{csvColumn}</span>
+                                      <span className="text-slate-400">→</span>
+                                      <span className="font-medium text-slate-800">{targetField}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </>
+                            ) : (
+                              <>
+                                <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 mb-1.5">
+                                  Column Mappings (legacy - no position matching)
+                                </p>
+                                <div className="space-y-0.5">
+                                  {Object.entries(profile.column_mappings || {}).map(([targetField, csvColumn]) => (
+                                    <div key={targetField} className="flex items-center gap-1.5 text-[11px]">
+                                      <span className="font-mono text-slate-600">{csvColumn}</span>
+                                      <span className="text-slate-400">→</span>
+                                      <span className="font-medium text-slate-800">{targetField}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </>
+                            )}
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -717,17 +769,35 @@ function MappingProfilesTab() {
               {systemProfiles.length} default profile{systemProfiles.length === 1 ? "" : "s"} (cannot be deleted)
             </p>
 
-            <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="mt-4 space-y-3">
               {systemProfiles.map((profile) => (
-                <div
+                <details
                   key={profile.id}
-                  className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2"
+                  className="rounded-xl border border-slate-200 bg-slate-50 overflow-hidden group"
                 >
-                  <p className="text-xs font-medium text-slate-900">{profile.name}</p>
-                  <p className="text-[10px] text-slate-600">
-                    {DATASET_TYPE_LABELS[profile.dataset_type] || profile.dataset_type}
-                  </p>
-                </div>
+                  <summary className="px-3 py-2 cursor-pointer hover:bg-slate-100 transition-colors">
+                    <div className="inline-flex items-center gap-2">
+                      <span className="text-xs font-medium text-slate-900">{profile.name}</span>
+                      <span className="text-[10px] text-slate-500">
+                        ({DATASET_TYPE_LABELS[profile.dataset_type] || profile.dataset_type})
+                      </span>
+                    </div>
+                  </summary>
+                  <div className="px-3 pb-3 pt-1 bg-white border-t border-slate-200">
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 mb-1.5">
+                      Column Mappings
+                    </p>
+                    <div className="space-y-0.5">
+                      {Object.entries(profile.column_mappings || {}).map(([targetField, csvColumn]) => (
+                        <div key={targetField} className="flex items-center gap-1.5 text-[11px]">
+                          <span className="font-mono text-slate-600">{csvColumn}</span>
+                          <span className="text-slate-400">→</span>
+                          <span className="font-medium text-slate-800">{targetField}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </details>
               ))}
             </div>
           </div>
