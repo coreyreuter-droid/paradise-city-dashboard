@@ -11,7 +11,6 @@ import {
   TABLE_SCHEMAS,
   validateAndBuildRecords,
   buildTemplateCsv,
-  isBadDeptName,
   type ValidationIssue,
 } from "@/lib/uploadValidation";
 
@@ -142,6 +141,11 @@ export default function UploadClient() {
   const [profilesLoading, setProfilesLoading] = useState(false);
   const [profileError, setProfileError] = useState<string | null>(null);
 
+  // --- Auto-match state ---
+  const [matchStatus, setMatchStatus] = useState<"checking" | "matched" | "matched_extra" | "no_match" | null>(null);
+  const [matchedProfileName, setMatchedProfileName] = useState<string | null>(null);
+  const [extraColumns, setExtraColumns] = useState<string[]>([]);
+
   const messageRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -183,6 +187,11 @@ export default function UploadClient() {
     setReplaceTableConfirmed(false);
     setReplaceYear("");
     setReplaceYearConfirm("");
+
+    // Reset match state
+    setMatchStatus(null);
+    setMatchedProfileName(null);
+    setExtraColumns([]);
 
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
@@ -245,6 +254,71 @@ export default function UploadClient() {
       setProfilesLoading(false);
     }
   }, []);
+
+  // Check if file headers match any saved mapping profile
+  const checkFileMatch = useCallback(async (headers: string[], datasetType: string) => {
+    setMatchStatus("checking");
+    setMatchedProfileName(null);
+    setExtraColumns([]);
+
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session?.access_token) {
+        setMatchStatus("no_match");
+        return;
+      }
+
+      const res = await fetch("/api/admin/mapping-profiles/check-match", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          headers,
+          dataset_type: datasetType,
+        }),
+      });
+
+      if (!res.ok) {
+        console.error("Check match failed:", await res.text());
+        setMatchStatus("no_match");
+        return;
+      }
+
+      const data = await res.json();
+
+      if (data.match) {
+        setMatchedProfileName(data.profile.name);
+        setExtraColumns(data.extra_columns || []);
+        
+        // Auto-select the matched profile
+        let matchedProfile = mappingProfiles.find((p) => p.id === data.profile.id);
+        
+        // If profile not found locally (race condition), reload profiles
+        if (!matchedProfile) {
+          await loadMappingProfiles(datasetType);
+          // Try to find again after reload - this will be picked up on next render
+        }
+        
+        setSelectedProfileId(data.profile.id);
+
+        if (data.has_extra_columns) {
+          setMatchStatus("matched_extra");
+        } else {
+          setMatchStatus("matched");
+        }
+      } else {
+        setMatchStatus("no_match");
+      }
+    } catch (err) {
+      console.error("Error checking file match:", err);
+      setMatchStatus("no_match");
+    }
+  }, [mappingProfiles, loadMappingProfiles]);
 
   function handleTableChange(nextTable: string) {
     if (nextTable === table) return;
@@ -356,7 +430,7 @@ export default function UploadClient() {
     }
 
     if (!selectedProfile) {
-      setError("Please select a mapping profile.");
+      setError("No matching mapping profile found. Please create a mapping for this file structure in CSV Mapping.");
       return;
     }
 
@@ -710,18 +784,6 @@ export default function UploadClient() {
     downloadCsv(csv, `${table}_template.csv`);
   }
 
-  // Compute preview-time missing columns (using selected mapping profile)
-  const previewMissingInfo = (() => {
-    if (!previewHeaders || !selectedProfile) {
-      return { missingRequired: [], missingCsvColumns: [] };
-    }
-    return getMissingMappedColumns(
-      previewHeaders,
-      selectedProfile.column_mappings,
-      table
-    );
-  })();
-
   return (
     <div
       className="max-w-4xl rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
@@ -810,50 +872,12 @@ export default function UploadClient() {
         </select>
       </div>
 
-      {/* Mapping profile selector */}
+      {/* Mapping profile info */}
       <div className="mb-4">
-        <label
-          className="mb-1 block text-sm font-medium text-slate-700"
-          htmlFor="mapping-profile-select"
-        >
-          Mapping profile
-        </label>
-        {profilesLoading ? (
-          <p className="text-xs text-slate-500">Loading mapping profiles...</p>
-        ) : profileError ? (
-          <p className="text-xs text-red-600">{profileError}</p>
-        ) : mappingProfiles.length === 0 ? (
-          <p className="text-xs text-slate-500">No mapping profiles found for {table}.</p>
-        ) : (
-          <select
-            id="mapping-profile-select"
-            value={selectedProfileId || ""}
-            onChange={(e) => {
-              setSelectedProfileId(e.target.value || null);
-              // Reset file state when profile changes to re-validate
-              if (previewHeaders) {
-                setPreflight(null);
-                setPendingRecords(null);
-              }
-            }}
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
-          >
-            {mappingProfiles.map((profile) => (
-              <option key={profile.id} value={profile.id}>
-                {profile.name}
-                {profile.is_system ? " (default)" : ""}
-              </option>
-            ))}
-          </select>
-        )}
-        <div className="mt-1 flex items-center justify-between gap-2">
-          <p className="text-xs text-slate-600">
-            {selectedProfile?.is_system
-              ? "Using standard column names. CSV must match the template exactly."
-              : selectedProfile
-              ? `Using custom column mapping "${selectedProfile.name}".`
-              : "Select a mapping profile for your CSV format."}
-          </p>
+        <div className="flex items-center justify-between">
+          <label className="block text-sm font-medium text-slate-700">
+            Mapping profile
+          </label>
           <div className="flex gap-2">
             <button
               type="button"
@@ -863,13 +887,20 @@ export default function UploadClient() {
               Download template
             </button>
             <a
-              href={cityHref("/admin/mapping")}
+              href="mapping"
               className="rounded-md border border-slate-300 px-3 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
             >
-              Manage mappings
+              Create new mapping
             </a>
           </div>
         </div>
+        <p className="mt-1 text-xs text-slate-600">
+          {matchedProfileName 
+            ? `Using mapping "${matchedProfileName}" (auto-detected from file headers).`
+            : file 
+            ? "Upload a file to auto-detect the matching profile."
+            : "Mapping will be auto-detected when you upload a file."}
+        </p>
       </div>
 
       {/* Mode selector */}
@@ -1037,6 +1068,10 @@ export default function UploadClient() {
               setPendingRecords(null);
               setPendingYearsInData([]);
               setFileSizeWarning(null);
+              // Reset match state
+              setMatchStatus(null);
+              setMatchedProfileName(null);
+              setExtraColumns([]);
 
               if (!f) return;
 
@@ -1084,6 +1119,10 @@ export default function UploadClient() {
                   `${totalDataRows} row(s) detected in this file.`
                 );
               }
+
+              // Check if this file matches any saved mapping profile
+              checkFileMatch(headers, table);
+
             } catch (err) {
               console.error("Preview parse error:", err);
               setPreviewMessage(
@@ -1131,40 +1170,36 @@ export default function UploadClient() {
         )}
       </div>
 
-      {/* Preview warnings */}
-      {previewHeaders && selectedProfile && (
-        <div className="mb-2 text-xs">
-          {previewMissingInfo.missingRequired.length > 0 ? (
-            <div className="rounded-md border border-amber-200 bg-amber-50 p-2 text-amber-700">
-              <p className="font-semibold">
-                ⚠️ Mapping profile &quot;{selectedProfile.name}&quot; is missing required field mappings
+      {/* Match status display */}
+      {file && matchStatus && (
+        <div className="mb-4">
+          {matchStatus === "checking" && (
+            <div className="rounded-md border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
+              Checking file structure...
+            </div>
+          )}
+          {matchStatus === "matched" && matchedProfileName && (
+            <div className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
+              This file matches mapping <strong>&quot;{matchedProfileName}&quot;</strong>. Ready to upload.
+            </div>
+          )}
+          {matchStatus === "matched_extra" && matchedProfileName && (
+            <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+              <p>
+                This file matches mapping <strong>&quot;{matchedProfileName}&quot;</strong> but has unmapped column(s): <strong>{extraColumns.join(", ")}</strong>
               </p>
               <p className="mt-1">
-                Missing: {previewMissingInfo.missingRequired.join(", ")}
-              </p>
-              <p className="mt-2 font-medium">
-                Please edit the mapping profile to include these required fields.
+                Please double check the file before proceeding. Unmapped columns will be ignored.
               </p>
             </div>
-          ) : previewMissingInfo.missingCsvColumns.length > 0 ? (
-            <div className="rounded-md border border-red-200 bg-red-50 p-2 text-red-700">
-              <p className="font-semibold">
-                ⚠️ CSV doesn&apos;t match selected mapping profile &quot;{selectedProfile.name}&quot;
-              </p>
+          )}
+          {matchStatus === "no_match" && (
+            <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+              <p className="font-semibold">No matching mapping found for this file structure.</p>
               <p className="mt-1">
-                Missing columns: {previewMissingInfo.missingCsvColumns.join(", ")}
-              </p>
-              <p className="mt-1">
-                Found columns: {previewHeaders.join(", ")}
-              </p>
-              <p className="mt-2 font-medium">
-                Please check that you selected the correct mapping profile for this CSV file.
+                Go to <a href="mapping" className="underline font-medium">CSV mapping</a> to create a mapping for this file format.
               </p>
             </div>
-          ) : (
-            <p className="text-emerald-700">
-              ✓ All mapped columns found for profile &quot;{selectedProfile.name}&quot;.
-            </p>
           )}
         </div>
       )}
@@ -1340,7 +1375,7 @@ export default function UploadClient() {
         <button
           type="button"
           onClick={handlePrepareUpload}
-          disabled={isLoading || !selectedProfile}
+          disabled={isLoading || !selectedProfile || matchStatus === "no_match" || matchStatus === "checking" || !matchStatus}
           className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
         >
           {isLoading ? "Processing..." : "Review upload"}

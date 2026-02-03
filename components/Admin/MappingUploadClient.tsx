@@ -6,8 +6,7 @@ import { supabase } from "@/lib/supabase";
 
 // Types
 type DatasetType = "budgets" | "actuals" | "transactions" | "revenues" | "funds_lookup" | "departments_lookup";
-type ImportMode = "append" | "replace_year" | "replace_all";
-type WizardStep = "upload" | "mapping" | "validate" | "import" | "complete";
+type WizardStep = "upload" | "mapping" | "complete";
 
 interface ColumnMapping {
   csvColumnIndex: number;
@@ -16,48 +15,11 @@ interface ColumnMapping {
   enabled: boolean;
 }
 
-interface UploadPreview {
-  raw_file: {
-    id: string;
-    filename: string;
-    file_size_bytes: number;
-  };
-  preview: {
-    headers: string[];
-    sample_rows: string[][];
-    total_rows: number;
-  };
-  detected_mappings: Record<string, ColumnMapping>;
-  active_profile: unknown | null;
-}
-
-interface ValidationResult {
-  job_id: string;
-  validation: {
-    totalRows: number;
-    validRows: number;
-    invalidRows: number;
-    warningRows: number;
-    errorCount: number;
-    warningCount: number;
-    errorsByCode: Record<string, number>;
-    sampleErrors: Array<{
-      row_number: number;
-      error_code: string;
-      error_level: string;
-      message: string;
-      field_name?: string;
-      field_value?: string;
-    }>;
-    detected_years: number[];
-  };
-  delete_preview: {
-    mode: string;
-    target_year?: number;
-    rows_to_delete: number;
-    fiscal_years_affected: number[];
-  } | null;
-  can_import: boolean;
+interface PreviewData {
+  filename: string;
+  headers: string[];
+  sample_rows: string[][];
+  total_rows: number;
 }
 
 // Field definitions for each dataset type
@@ -120,14 +82,57 @@ const DATASET_FIELDS: Record<DatasetType, { name: string; label: string; require
   ],
 };
 
-const DATASET_LABELS: Record<DatasetType, string> = {
-  budgets: "Budgets",
-  actuals: "Actuals",
-  transactions: "Transactions",
-  revenues: "Revenues",
-  funds_lookup: "Fund Names (Lookup)",
-  departments_lookup: "Department Names (Lookup)",
+// Header aliases for auto-detection
+const HEADER_ALIASES: Record<string, string[]> = {
+  fiscal_year: ["fiscal_year", "fiscal year", "fy", "year", "fiscalyear"],
+  period: ["period", "month", "yearmonth", "year_month", "accounting_period"],
+  date: ["date", "transaction_date", "txn_date", "trans_date", "posting_date"],
+  fund_code: ["fund_code", "fund code", "fundcode", "fund", "fund_id", "fund_number"],
+  fund_name: ["fund_name", "fund name", "fundname", "fund_description", "fund_desc"],
+  department_code: ["department_code", "department code", "deptcode", "dept_code", "dept", "dept_id", "department", "org_code"],
+  department_name: ["department_name", "department name", "deptname", "dept_name", "dept_description", "department_description"],
+  category: ["category", "budget_category", "expense_category", "account_category", "type"],
+  account_code: ["account_code", "account code", "accountcode", "account", "gl_account", "object_code", "object", "acct"],
+  account_name: ["account_name", "account name", "accountname", "account_description", "acct_name", "gl_description"],
+  vendor: ["vendor", "vendor_name", "vendorname", "payee", "supplier"],
+  description: ["description", "desc", "memo", "narrative", "comments", "transaction_description"],
+  amount: ["amount", "amt", "total", "dollars", "value", "sum", "budget_amount", "actual_amount"],
 };
+
+// Valid fields per dataset type
+const VALID_FIELDS: Record<DatasetType, string[]> = {
+  budgets: ["fiscal_year", "fund_code", "fund_name", "department_code", "department_name", "category", "account_code", "account_name", "amount"],
+  actuals: ["fiscal_year", "period", "fund_code", "fund_name", "department_code", "department_name", "category", "account_code", "account_name", "amount"],
+  transactions: ["fiscal_year", "date", "fund_code", "fund_name", "department_code", "department_name", "account_code", "account_name", "vendor", "description", "amount"],
+  revenues: ["fiscal_year", "period", "fund_code", "fund_name", "department_code", "department_name", "category", "account_code", "account_name", "amount"],
+  funds_lookup: ["fund_code", "fund_name"],
+  departments_lookup: ["department_code", "department_name"],
+};
+
+function autoDetectMappings(headers: string[], datasetType: DatasetType): Record<string, ColumnMapping> {
+  const mappings: Record<string, ColumnMapping> = {};
+  const validFields = new Set(VALID_FIELDS[datasetType] || []);
+  const normalizedHeaders = headers.map(h => h.toLowerCase().trim().replace(/[^a-z0-9_]/g, "_"));
+
+  for (const [targetField, aliases] of Object.entries(HEADER_ALIASES)) {
+    if (!validFields.has(targetField)) continue;
+
+    for (let i = 0; i < normalizedHeaders.length; i++) {
+      const header = normalizedHeaders[i];
+      if (aliases.includes(header)) {
+        mappings[targetField] = {
+          csvColumnIndex: i,
+          csvColumnName: headers[i],
+          targetField,
+          enabled: true,
+        };
+        break;
+      }
+    }
+  }
+
+  return mappings;
+}
 
 export default function MappingUploadClient() {
   // Wizard state
@@ -139,32 +144,13 @@ export default function MappingUploadClient() {
   // Upload step state
   const [datasetType, setDatasetType] = useState<DatasetType>("budgets");
   const [file, setFile] = useState<File | null>(null);
-  const [uploadPreview, setUploadPreview] = useState<UploadPreview | null>(null);
+  const [previewData, setPreviewData] = useState<PreviewData | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // Mapping step state
   const [columnMappings, setColumnMappings] = useState<Record<string, ColumnMapping>>({});
-
-  // Validate step state
-  const [importMode, setImportMode] = useState<ImportMode>("append");
-  const [replaceYear, setReplaceYear] = useState<string>("");
-  const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
-
-  // Import step state
-  const [jobId, setJobId] = useState<string | null>(null);
-  const [jobStatus, setJobStatus] = useState<string | null>(null);
-  const [jobProgress, setJobProgress] = useState<number>(0);
-  const [pollCount, setPollCount] = useState<number>(0);
-  const [jobStartTime, setJobStartTime] = useState<number | null>(null);
-  const [isCancelling, setIsCancelling] = useState(false);
-  const [isRetrying, setIsRetrying] = useState(false);
-
-  // Save profile state
-  const [showSaveProfileModal, setShowSaveProfileModal] = useState(false);
-  const [saveProfileName, setSaveProfileName] = useState("");
-  const [savingProfile, setSavingProfile] = useState(false);
-  const [saveProfileError, setSaveProfileError] = useState<string | null>(null);
-  const [saveProfileSuccess, setSaveProfileSuccess] = useState(false);
+  const [profileName, setProfileName] = useState("");
+  const [existingProfileName, setExistingProfileName] = useState<string | null>(null);
 
   const messageRef = useRef<HTMLDivElement | null>(null);
 
@@ -192,43 +178,30 @@ export default function MappingUploadClient() {
   function resetWizard() {
     setStep("upload");
     setFile(null);
-    setUploadPreview(null);
+    setPreviewData(null);
     setColumnMappings({});
-    setValidationResult(null);
-    setJobId(null);
-    setJobStatus(null);
-    setJobProgress(0);
-    setPollCount(0);
-    setJobStartTime(null);
-    setIsCancelling(false);
-    setIsRetrying(false);
-    setImportMode("append");
-    setReplaceYear("");
+    setProfileName("");
+    setExistingProfileName(null);
     clearMessage();
-    // Reset save profile state
-    setShowSaveProfileModal(false);
-    setSaveProfileName("");
-    setSaveProfileError(null);
-    setSaveProfileSuccess(false);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
   }
 
-  // Get auth token
   async function getAuthToken(): Promise<string | null> {
     const { data } = await supabase.auth.getSession();
     return data.session?.access_token ?? null;
   }
 
   // ============================================================================
-  // STEP 1: UPLOAD
+  // STEP 1: UPLOAD SAMPLE FILE
   // ============================================================================
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const selected = e.target.files?.[0] ?? null;
     setFile(selected);
-    setUploadPreview(null);
+    setPreviewData(null);
+    setExistingProfileName(null);
     clearMessage();
   }
 
@@ -249,11 +222,12 @@ export default function MappingUploadClient() {
         return;
       }
 
+      // Preview headers only - don't store file
       const formData = new FormData();
       formData.append("file", file);
       formData.append("dataset_type", datasetType);
 
-      const res = await fetch("/api/admin/ingestion/upload", {
+      const res = await fetch("/api/admin/ingestion/preview-headers", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -264,17 +238,40 @@ export default function MappingUploadClient() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error || "Upload failed");
+        setError(data.error || "Failed to parse file");
         setIsLoading(false);
         return;
       }
 
-      setUploadPreview(data);
-      setColumnMappings(data.detected_mappings || {});
-      setInfo(`File uploaded. ${data.preview.total_rows.toLocaleString()} rows detected.`);
+      // Check if this structure already has a mapping
+      const matchRes = await fetch("/api/admin/mapping-profiles/check-match", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          headers: data.headers,
+          dataset_type: datasetType,
+        }),
+      });
+
+      const matchData = await matchRes.json();
+
+      if (matchRes.ok && matchData.match) {
+        setExistingProfileName(matchData.profile.name);
+      }
+
+      setPreviewData(data);
+      
+      // Auto-detect mappings
+      const detected = autoDetectMappings(data.headers, datasetType);
+      setColumnMappings(detected);
+      
+      setInfo(`Parsed ${data.total_rows.toLocaleString()} rows, ${data.headers.length} columns.`);
       setStep("mapping");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Upload failed");
+      setError(err instanceof Error ? err.message : "Failed to parse file");
     } finally {
       setIsLoading(false);
     }
@@ -285,8 +282,8 @@ export default function MappingUploadClient() {
   // ============================================================================
 
   function handleMappingChange(targetField: string, csvColumnIndex: number) {
-    const headers = uploadPreview?.preview.headers ?? [];
-    
+    const headers = previewData?.headers ?? [];
+
     setColumnMappings(prev => ({
       ...prev,
       [targetField]: {
@@ -300,45 +297,66 @@ export default function MappingUploadClient() {
 
   function isMappingComplete(): boolean {
     const requiredFields = DATASET_FIELDS[datasetType].filter(f => f.required);
-    
+
     for (const field of requiredFields) {
       const mapping = columnMappings[field.name];
       if (!mapping || !mapping.enabled || mapping.csvColumnIndex < 0) {
         return false;
       }
     }
-    
+
     return true;
   }
 
-  // ============================================================================
-  // SAVE MAPPING PROFILE
-  // ============================================================================
-
-  async function handleSaveProfile() {
-    if (!saveProfileName.trim()) {
-      setSaveProfileError("Please enter a profile name");
+  async function handleSaveMapping() {
+    if (!profileName.trim()) {
+      setError("Please enter a name for this mapping.");
       return;
     }
 
-    setSavingProfile(true);
-    setSaveProfileError(null);
-    setSaveProfileSuccess(false);
+    if (!isMappingComplete()) {
+      setError("Please map all required fields before saving.");
+      return;
+    }
+
+    setIsLoading(true);
+    clearMessage();
 
     try {
       const token = await getAuthToken();
       if (!token) {
-        setSaveProfileError("Not authenticated");
-        setSavingProfile(false);
+        setError("Not authenticated.");
+        setIsLoading(false);
         return;
       }
 
-      // Build the column_mappings object for the profile
-      // Format: { targetField: csvColumnName }
-      const profileMappings: Record<string, string> = {};
+      // Check for duplicate structure one more time
+      const matchRes = await fetch("/api/admin/mapping-profiles/check-match", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          headers: previewData?.headers || [],
+          dataset_type: datasetType,
+        }),
+      });
+
+      const matchData = await matchRes.json();
+
+      if (matchRes.ok && matchData.match) {
+        setError(`This file structure is already saved as "${matchData.profile.name}". Cannot create duplicate mapping.`);
+        setIsLoading(false);
+        return;
+      }
+
+      // Save the mapping profile - convert complex format to simple format
+      // Simple format: { targetField: csvColumnName }
+      const simpleColumnMappings: Record<string, string> = {};
       for (const [targetField, mapping] of Object.entries(columnMappings)) {
         if (mapping.enabled && mapping.csvColumnIndex >= 0) {
-          profileMappings[targetField] = mapping.csvColumnName;
+          simpleColumnMappings[targetField] = mapping.csvColumnName;
         }
       }
 
@@ -349,275 +367,26 @@ export default function MappingUploadClient() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          name: saveProfileName.trim(),
+          name: profileName.trim(),
           dataset_type: datasetType,
-          column_mappings: profileMappings,
+          column_mappings: simpleColumnMappings,
         }),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
-        setSaveProfileError(data.error || "Failed to save profile");
-        setSavingProfile(false);
-        return;
-      }
-
-      setSaveProfileSuccess(true);
-      setInfo(`Mapping profile "${saveProfileName.trim()}" saved successfully! You can now use it from the Upload page.`);
-      
-      // Close modal after short delay
-      setTimeout(() => {
-        setShowSaveProfileModal(false);
-        setSaveProfileName("");
-        setSaveProfileSuccess(false);
-      }, 2000);
-
-    } catch (err) {
-      setSaveProfileError("Failed to save profile");
-    } finally {
-      setSavingProfile(false);
-    }
-  }
-
-  // ============================================================================
-  // STEP 3: VALIDATE
-  // ============================================================================
-
-  async function handleValidate() {
-    if (!uploadPreview) return;
-
-    setIsLoading(true);
-    clearMessage();
-
-    try {
-      const token = await getAuthToken();
-      if (!token) {
-        setError("Not authenticated.");
+        setError(data.error || "Failed to save mapping");
         setIsLoading(false);
         return;
       }
 
-      const res = await fetch("/api/admin/ingestion/validate", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          raw_file_id: uploadPreview.raw_file.id,
-          column_mappings: columnMappings,
-          import_mode: importMode,
-          replace_target_year: importMode === "replace_year" ? parseInt(replaceYear, 10) : undefined,
-        }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error || "Validation failed");
-        setIsLoading(false);
-        return;
-      }
-
-      setValidationResult(data);
-      setJobId(data.job_id);
-      
-      if (data.can_import) {
-        setInfo(`Validation passed. ${data.validation.validRows.toLocaleString()} rows ready to import.`);
-      } else {
-        setError(`Validation found ${data.validation.invalidRows.toLocaleString()} rows with errors.`);
-      }
-      
-      setStep("validate");
+      setInfo(`Mapping "${profileName}" saved successfully!`);
+      setStep("complete");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Validation failed");
+      setError(err instanceof Error ? err.message : "Failed to save mapping");
     } finally {
       setIsLoading(false);
-    }
-  }
-
-  // ============================================================================
-  // STEP 4: IMPORT
-  // ============================================================================
-
-  async function handleStartImport() {
-    if (!jobId) return;
-
-    setIsLoading(true);
-    clearMessage();
-
-    try {
-      const token = await getAuthToken();
-      if (!token) {
-        setError("Not authenticated.");
-        setIsLoading(false);
-        return;
-      }
-
-      const res = await fetch("/api/admin/ingestion/jobs", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ job_id: jobId }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error || "Failed to start import");
-        setIsLoading(false);
-        return;
-      }
-
-      setInfo("Import started. Processing...");
-      setStep("import");
-      setJobStartTime(Date.now());
-      
-      // Start polling for job status
-      pollJobStatus(jobId);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to start import");
-    } finally {
-      setIsLoading(false);
-    }
-  }
-
-  async function pollJobStatus(id: string) {
-    const token = await getAuthToken();
-    if (!token) return;
-
-    const poll = async () => {
-      try {
-        const res = await fetch(`/api/admin/ingestion/jobs/${id}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        const data = await res.json();
-
-        if (!res.ok) {
-          setError("Failed to fetch job status. Please refresh the page and check the Data Management page for job status.");
-          return;
-        }
-
-        const job = data.job;
-        setJobStatus(job.status);
-        setJobProgress(job.progress || 0);
-        setPollCount(prev => prev + 1);
-
-        if (job.status === "completed" || job.status === "completed_with_warnings") {
-          setStep("complete");
-          setInfo(`Import complete! ${job.rows_loaded.toLocaleString()} rows imported.`);
-        } else if (job.status === "failed") {
-          setError(`Import failed: ${job.last_error || "Unknown error"}`);
-          // Stay on import step so they can use the retry button
-        } else if (job.status === "cancelled") {
-          setError("Import was cancelled.");
-          setStep("validate"); // Go back to validate step
-        } else if (job.status === "pending" && pollCount > 30) {
-          // Job stuck at pending for over 60 seconds (30 polls * 2 seconds)
-          // Don't automatically error - let the user decide to cancel
-          // Continue polling but show warning in UI
-          setTimeout(poll, 2000);
-        } else {
-          // Continue polling
-          setTimeout(poll, 2000);
-        }
-      } catch (err) {
-        console.error("Poll error:", err);
-        // Network error - retry with backoff
-        setTimeout(poll, 5000);
-      }
-    };
-
-    poll();
-  }
-
-  async function handleCancelJob() {
-    if (!jobId) return;
-
-    setIsCancelling(true);
-
-    try {
-      const token = await getAuthToken();
-      if (!token) {
-        setError("Not authenticated.");
-        setIsCancelling(false);
-        return;
-      }
-
-      const res = await fetch(`/api/admin/ingestion/jobs/${jobId}`, {
-        method: "PATCH",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ action: "cancel" }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error || "Failed to cancel job");
-        setIsCancelling(false);
-        return;
-      }
-
-      setJobStatus("cancelled");
-      setError("Import cancelled.");
-      setStep("validate");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to cancel job");
-    } finally {
-      setIsCancelling(false);
-    }
-  }
-
-  async function handleRetryJob() {
-    if (!jobId) return;
-
-    setIsRetrying(true);
-    clearMessage();
-
-    try {
-      const token = await getAuthToken();
-      if (!token) {
-        setError("Not authenticated.");
-        setIsRetrying(false);
-        return;
-      }
-
-      const res = await fetch(`/api/admin/ingestion/jobs/${jobId}`, {
-        method: "PATCH",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ action: "retry" }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error || "Failed to retry job");
-        setIsRetrying(false);
-        return;
-      }
-
-      setInfo("Retrying import...");
-      setJobStatus("pending");
-      setJobProgress(0);
-      setPollCount(0);
-      setJobStartTime(Date.now());
-      
-      // Start polling again
-      pollJobStatus(jobId);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to retry job");
-    } finally {
-      setIsRetrying(false);
     }
   }
 
@@ -625,26 +394,22 @@ export default function MappingUploadClient() {
   // RENDER
   // ============================================================================
 
-  const headers = uploadPreview?.preview.headers ?? [];
-  const sampleRows = uploadPreview?.preview.sample_rows ?? [];
+  const headers = previewData?.headers ?? [];
+  const sampleRows = previewData?.sample_rows ?? [];
 
   return (
     <div className="space-y-6">
       {/* Progress steps */}
-      <nav aria-label="Upload wizard progress" className="mb-6">
+      <nav aria-label="Mapping wizard progress" className="mb-6">
         <ol className="flex items-center gap-2 text-xs">
-          {(["upload", "mapping", "validate", "import", "complete"] as WizardStep[]).map((s, i) => {
+          {(["upload", "mapping", "complete"] as WizardStep[]).map((s, i) => {
             const labels = {
-              upload: "1. Upload",
+              upload: "1. Upload sample",
               mapping: "2. Map columns",
-              validate: "3. Validate",
-              import: "4. Import",
-              complete: "5. Complete",
+              complete: "3. Done",
             };
             const isCurrent = step === s;
-            const isPast = ["upload", "mapping", "validate", "import", "complete"].indexOf(step) > i;
-
-            // Complete step should be green when current
+            const isPast = ["upload", "mapping", "complete"].indexOf(step) > i;
             const isCompleteStep = s === "complete";
             const showGreen = isPast || (isCurrent && isCompleteStep);
 
@@ -664,7 +429,7 @@ export default function MappingUploadClient() {
                 <span className={isCurrent ? "font-semibold text-slate-900" : "text-slate-500"}>
                   {labels[s]}
                 </span>
-                {i < 4 && <span className="text-slate-300">→</span>}
+                {i < 2 && <span className="text-slate-300">-</span>}
               </li>
             );
           })}
@@ -674,6 +439,12 @@ export default function MappingUploadClient() {
       {/* Step 1: Upload */}
       {step === "upload" && (
         <div className="space-y-4">
+          <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+            <p className="text-sm text-blue-800">
+              Upload a sample CSV file to create a column mapping. The file will be parsed to detect headers but <strong>no data will be imported</strong>.
+            </p>
+          </div>
+
           {/* Dataset type selector */}
           <div>
             <label htmlFor="dataset-type" className="block text-xs font-semibold text-slate-700 mb-1">
@@ -684,7 +455,12 @@ export default function MappingUploadClient() {
               value={datasetType}
               onChange={(e) => {
                 setDatasetType(e.target.value as DatasetType);
-                resetWizard();
+                setFile(null);
+                setPreviewData(null);
+                setExistingProfileName(null);
+                if (fileInputRef.current) {
+                  fileInputRef.current.value = "";
+                }
               }}
               className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
             >
@@ -699,15 +475,12 @@ export default function MappingUploadClient() {
                 <option value="departments_lookup">Department Names (Lookup)</option>
               </optgroup>
             </select>
-            <p className="mt-1 text-xs text-slate-500">
-              Select the type of data you&apos;re uploading. Lookup tables help label codes with human-readable names.
-            </p>
           </div>
 
           {/* File input */}
           <div>
             <label htmlFor="csv-file" className="block text-xs font-semibold text-slate-700 mb-1">
-              CSV file
+              Sample CSV file
             </label>
             <div className="flex items-center gap-3">
               <label
@@ -743,22 +516,31 @@ export default function MappingUploadClient() {
             type="button"
             onClick={handleUpload}
             disabled={!file || isLoading}
-            className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
+            className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50"
           >
-            {isLoading ? "Uploading..." : "Upload & detect columns"}
+            {isLoading ? "Parsing..." : "Parse headers"}
           </button>
         </div>
       )}
 
       {/* Step 2: Mapping */}
-      {step === "mapping" && uploadPreview && (
+      {step === "mapping" && previewData && (
         <div className="space-y-4">
+          {/* Existing mapping warning */}
+          {existingProfileName && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+              <p className="text-sm text-amber-800">
+                This file structure is already saved as <strong>&quot;{existingProfileName}&quot;</strong>. You cannot create a duplicate mapping.
+              </p>
+            </div>
+          )}
+
           <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
             <h3 className="text-sm font-semibold text-slate-900 mb-2">
-              File: {uploadPreview.raw_file.filename}
+              File: {previewData.filename}
             </h3>
             <p className="text-xs text-slate-600">
-              {uploadPreview.preview.total_rows.toLocaleString()} rows • {headers.length} columns detected
+              {previewData.total_rows.toLocaleString()} rows, {headers.length} columns detected
             </p>
           </div>
 
@@ -768,7 +550,7 @@ export default function MappingUploadClient() {
             <p className="text-xs text-slate-500 mb-3">
               Match each required field to a column in your CSV. Fields marked with * are required.
             </p>
-            
+
             <div className="rounded-md border border-slate-200 overflow-hidden">
               <table className="min-w-full text-sm">
                 <thead className="bg-slate-100">
@@ -785,7 +567,6 @@ export default function MappingUploadClient() {
                       ? sampleRows[0][mapping.csvColumnIndex] || ""
                       : "";
 
-                    // Get indices that are already used by OTHER fields
                     const usedIndices = new Set(
                       Object.entries(columnMappings)
                         .filter(([key, m]) => key !== field.name && m.csvColumnIndex >= 0)
@@ -804,23 +585,22 @@ export default function MappingUploadClient() {
                           <select
                             value={mapping?.csvColumnIndex ?? -1}
                             onChange={(e) => handleMappingChange(field.name, parseInt(e.target.value, 10))}
+                            disabled={!!existingProfileName}
                             className={`w-full rounded border px-2 py-1 text-sm ${
                               field.required && (!mapping || mapping.csvColumnIndex < 0)
                                 ? "border-red-300 bg-red-50"
                                 : "border-slate-300"
-                            }`}
+                            } ${existingProfileName ? "opacity-50 cursor-not-allowed" : ""}`}
                           >
-                            <option value={-1}>— Not mapped —</option>
+                            <option value={-1}>-- Not mapped --</option>
                             {headers.map((h, i) => {
-                              // Show this option if it's not used by another field
-                              // OR if it's the currently selected value for this field
                               const isUsedElsewhere = usedIndices.has(i);
                               const isCurrentSelection = mapping?.csvColumnIndex === i;
-                              
+
                               if (isUsedElsewhere && !isCurrentSelection) {
-                                return null; // Hide options already used by other fields
+                                return null;
                               }
-                              
+
                               return (
                                 <option key={i} value={i}>
                                   {h}
@@ -830,7 +610,7 @@ export default function MappingUploadClient() {
                           </select>
                         </td>
                         <td className="px-3 py-2 text-slate-500 text-xs font-mono">
-                          {sampleValue ? sampleValue.slice(0, 30) : "—"}
+                          {sampleValue ? sampleValue.slice(0, 30) : "--"}
                         </td>
                       </tr>
                     );
@@ -873,370 +653,49 @@ export default function MappingUploadClient() {
             </div>
           )}
 
-          {/* Import mode */}
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">Import mode</label>
-            <div className="space-y-2">
-              <label className="flex items-center gap-2">
-                <input
-                  type="radio"
-                  name="import-mode"
-                  value="append"
-                  checked={importMode === "append"}
-                  onChange={() => setImportMode("append")}
-                  className="text-slate-900"
-                />
-                <span className="text-sm">Append: Add rows without deleting existing data</span>
-              </label>
-              <label className="flex items-center gap-2">
-                <input
-                  type="radio"
-                  name="import-mode"
-                  value="replace_year"
-                  checked={importMode === "replace_year"}
-                  onChange={() => setImportMode("replace_year")}
-                  className="text-slate-900"
-                />
-                <span className="text-sm">Replace year: Delete all rows for a fiscal year, then insert</span>
-              </label>
-              {importMode === "replace_year" && (
-                <input
-                  type="number"
-                  placeholder="Fiscal year to replace (e.g., 2024)"
-                  value={replaceYear}
-                  onChange={(e) => setReplaceYear(e.target.value)}
-                  className="ml-6 w-48 rounded border border-slate-300 px-2 py-1 text-sm"
-                />
-              )}
-              <label className="flex items-center gap-2">
-                <input
-                  type="radio"
-                  name="import-mode"
-                  value="replace_all"
-                  checked={importMode === "replace_all"}
-                  onChange={() => setImportMode("replace_all")}
-                  className="text-slate-900"
-                />
-                <span className="text-sm text-red-700 font-medium">
-                  Replace all: Delete ALL existing rows, then insert (use with caution!)
-                </span>
-              </label>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap gap-3">
-            <button
-              type="button"
-              onClick={() => setStep("upload")}
-              className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-            >
-              Back
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setSaveProfileError(null);
-                setSaveProfileSuccess(false);
-                setSaveProfileName("");
-                setShowSaveProfileModal(true);
-              }}
-              disabled={!isMappingComplete()}
-              className="rounded-md border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-100 disabled:opacity-50"
-            >
-              Save as Profile
-            </button>
-            <button
-              type="button"
-              onClick={handleValidate}
-              disabled={!isMappingComplete() || isLoading}
-              className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
-            >
-              {isLoading ? "Validating..." : "Validate data"}
-            </button>
-          </div>
-
-          {/* Save Profile Modal */}
-          {showSaveProfileModal && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-              <div className="mx-4 w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
-                <h3 className="text-lg font-semibold text-slate-900">Save Mapping Profile</h3>
-                <p className="mt-1 text-sm text-slate-600">
-                  Save this column mapping for reuse on the Upload page. This lets you quickly upload files with the same format in the future.
-                </p>
-                
-                <div className="mt-4">
-                  <label htmlFor="profile-name" className="block text-sm font-medium text-slate-700">
-                    Profile name
-                  </label>
-                  <input
-                    id="profile-name"
-                    type="text"
-                    value={saveProfileName}
-                    onChange={(e) => setSaveProfileName(e.target.value)}
-                    placeholder="e.g., Tyler Tech Export, Munis Format"
-                    className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
-                    autoFocus
-                  />
-                </div>
-
-                {saveProfileError && (
-                  <p className="mt-2 text-sm text-red-600">{saveProfileError}</p>
-                )}
-
-                {saveProfileSuccess && (
-                  <p className="mt-2 text-sm text-emerald-600">✓ Profile saved successfully!</p>
-                )}
-
-                <div className="mt-4 flex justify-end gap-3">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowSaveProfileModal(false);
-                      setSaveProfileName("");
-                      setSaveProfileError(null);
-                    }}
-                    disabled={savingProfile}
-                    className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleSaveProfile}
-                    disabled={savingProfile || !saveProfileName.trim() || saveProfileSuccess}
-                    className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
-                  >
-                    {savingProfile ? "Saving..." : "Save Profile"}
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Step 3: Validation results */}
-      {step === "validate" && validationResult && (
-        <div className="space-y-4">
-          {/* Summary */}
-          <div className={`rounded-lg border p-4 ${
-            validationResult.can_import
-              ? "border-emerald-200 bg-emerald-50"
-              : "border-red-200 bg-red-50"
-          }`}>
-            <h3 className={`text-sm font-semibold ${
-              validationResult.can_import ? "text-emerald-900" : "text-red-900"
-            }`}>
-              {validationResult.can_import ? "✓ Validation passed" : "✗ Validation failed"}
-            </h3>
-            <div className="mt-2 grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
-              <div>
-                <span className="text-slate-600">Total rows:</span>{" "}
-                <span className="font-medium">{validationResult.validation.totalRows.toLocaleString()}</span>
-              </div>
-              <div>
-                <span className="text-slate-600">Valid:</span>{" "}
-                <span className="font-medium text-emerald-700">{validationResult.validation.validRows.toLocaleString()}</span>
-              </div>
-              <div>
-                <span className="text-slate-600">Errors:</span>{" "}
-                <span className="font-medium text-red-700">{validationResult.validation.invalidRows.toLocaleString()}</span>
-              </div>
-              <div>
-                <span className="text-slate-600">Warnings:</span>{" "}
-                <span className="font-medium text-amber-700">{validationResult.validation.warningRows.toLocaleString()}</span>
-              </div>
-            </div>
-            {validationResult.validation.detected_years.length > 0 && (
-              <p className="mt-2 text-xs text-slate-600">
-                Fiscal years detected: {validationResult.validation.detected_years.join(", ")}
-              </p>
-            )}
-          </div>
-
-          {/* Delete preview */}
-          {validationResult.delete_preview && validationResult.delete_preview.rows_to_delete > 0 && (
-            <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
-              <h3 className="text-sm font-semibold text-amber-900">⚠ Data will be deleted</h3>
-              <p className="mt-1 text-xs text-amber-800">
-                {validationResult.delete_preview.rows_to_delete.toLocaleString()} existing rows will be deleted
-                {validationResult.delete_preview.target_year && ` for fiscal year ${validationResult.delete_preview.target_year}`}.
-              </p>
-            </div>
-          )}
-
-          {/* Error details */}
-          {validationResult.validation.sampleErrors.length > 0 && (
+          {/* Profile name input */}
+          {!existingProfileName && (
             <div>
-              <h3 className="text-sm font-semibold text-slate-700 mb-2">
-                Sample errors ({Math.min(validationResult.validation.sampleErrors.length, 10)} of {validationResult.validation.errorCount})
-              </h3>
-              <div className="rounded-md border border-slate-200 overflow-hidden">
-                <table className="min-w-full text-xs">
-                  <thead className="bg-slate-100">
-                    <tr>
-                      <th className="px-2 py-1 text-left font-semibold">Row</th>
-                      <th className="px-2 py-1 text-left font-semibold">Field</th>
-                      <th className="px-2 py-1 text-left font-semibold">Error</th>
-                      <th className="px-2 py-1 text-left font-semibold">Value</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {validationResult.validation.sampleErrors.slice(0, 10).map((err, i) => (
-                      <tr key={i} className="border-t border-slate-200">
-                        <td className="px-2 py-1 font-mono">{err.row_number}</td>
-                        <td className="px-2 py-1">{err.field_name || "—"}</td>
-                        <td className="px-2 py-1 text-red-700">{err.message}</td>
-                        <td className="px-2 py-1 font-mono text-slate-500">{err.field_value || "—"}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <label htmlFor="profile-name" className="block text-xs font-semibold text-slate-700 mb-1">
+                Mapping name <span className="text-red-500">*</span>
+              </label>
+              <input
+                id="profile-name"
+                type="text"
+                value={profileName}
+                onChange={(e) => setProfileName(e.target.value)}
+                placeholder="e.g., Budget Export FY24"
+                className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
+              />
+              <p className="mt-1 text-xs text-slate-500">
+                Give this mapping a descriptive name so you can find it later.
+              </p>
             </div>
           )}
 
           <div className="flex gap-3">
             <button
               type="button"
-              onClick={() => setStep("mapping")}
+              onClick={resetWizard}
               className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
             >
-              Back to mapping
+              Start over
             </button>
-            {validationResult.can_import && (
+            {!existingProfileName && (
               <button
                 type="button"
-                onClick={handleStartImport}
-                disabled={isLoading}
-                className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+                onClick={handleSaveMapping}
+                disabled={isLoading || !isMappingComplete() || !profileName.trim()}
+                className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50"
               >
-                {isLoading ? "Starting..." : "Start import"}
+                {isLoading ? "Saving..." : "Save mapping"}
               </button>
             )}
           </div>
         </div>
       )}
 
-      {/* Step 4: Import in progress */}
-      {step === "import" && (
-        <div className="space-y-4">
-          {/* Show different UI based on job status */}
-          {jobStatus === "failed" ? (
-            // Failed state - show error with retry option
-            <div className="rounded-lg border border-red-200 bg-red-50 p-6 text-center">
-              <div className="flex justify-center mb-4">
-                <span className="flex h-12 w-12 items-center justify-center rounded-full bg-red-600 text-white text-xl">
-                  ✗
-                </span>
-              </div>
-              <h3 className="text-sm font-semibold text-red-900">Import failed</h3>
-              <p className="mt-2 text-xs text-red-700">
-                The import encountered an error. You can try again or go back to fix any issues.
-              </p>
-              <div className="mt-4 flex justify-center gap-3">
-                <button
-                  type="button"
-                  onClick={handleRetryJob}
-                  disabled={isRetrying}
-                  className="rounded-md bg-red-700 px-4 py-2 text-sm font-medium text-white hover:bg-red-800 disabled:opacity-60"
-                >
-                  {isRetrying ? "Retrying..." : "Retry import"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setStep("validate")}
-                  className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-                >
-                  Go back
-                </button>
-              </div>
-            </div>
-          ) : (
-            // Processing state - show spinner and progress
-            <div className="rounded-lg border border-slate-200 bg-slate-50 p-6 text-center">
-              <div className="flex justify-center mb-4">
-                <svg className="h-8 w-8 animate-spin text-slate-500" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  />
-                </svg>
-              </div>
-              
-              {/* Status title based on job status */}
-              <h3 className="text-sm font-semibold text-slate-900">
-                {jobStatus === "pending" && "Waiting to start..."}
-                {jobStatus === "validating" && "Validating data..."}
-                {jobStatus === "validated" && "Preparing import..."}
-                {jobStatus === "importing" && "Importing data..."}
-                {!jobStatus && "Starting..."}
-              </h3>
-              
-              {/* Progress bar for importing status */}
-              {(jobStatus === "importing" || jobStatus === "validating") && jobProgress > 0 && (
-                <div className="mt-3">
-                  <div className="h-2 w-full rounded-full bg-slate-200">
-                    <div
-                      className="h-2 rounded-full bg-slate-600 transition-all duration-300"
-                      style={{ width: `${Math.min(jobProgress, 100)}%` }}
-                    />
-                  </div>
-                  <p className="mt-1 text-xs text-slate-600">{jobProgress}% complete</p>
-                </div>
-              )}
-              
-              <p className="mt-2 text-xs text-slate-600">
-                Please wait while your data is being processed. This may take a moment.
-              </p>
-              
-              {/* Warning if taking too long */}
-              {pollCount > 15 && pollCount <= 30 && (
-                <p className="mt-3 text-xs text-amber-600">
-                  Taking longer than expected. The import is still running — please don&apos;t close this page.
-                </p>
-              )}
-              
-              {/* Stuck warning with helpful info */}
-              {pollCount > 30 && jobStatus === "pending" && (
-                <div className="mt-4 rounded-md border border-amber-300 bg-amber-50 p-3 text-left">
-                  <p className="text-xs font-semibold text-amber-800">
-                    ⚠️ Import appears to be stuck
-                  </p>
-                  <p className="mt-1 text-xs text-amber-700">
-                    The job has been waiting to start for over a minute. This could be due to:
-                  </p>
-                  <ul className="mt-1 text-xs text-amber-700 list-disc list-inside">
-                    <li>Server is busy processing other jobs</li>
-                    <li>Worker service may need to be restarted</li>
-                    <li>Network connectivity issues</li>
-                  </ul>
-                  <p className="mt-2 text-xs text-amber-700">
-                    You can cancel and try again, or contact support at{" "}
-                    <a href="mailto:hello@civiportal.com" className="underline">hello@civiportal.com</a>
-                  </p>
-                </div>
-              )}
-              
-              {/* Cancel button */}
-              <div className="mt-4">
-                <button
-                  type="button"
-                  onClick={handleCancelJob}
-                  disabled={isCancelling}
-                  className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
-                >
-                  {isCancelling ? "Cancelling..." : "Cancel import"}
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Step 5: Complete */}
+      {/* Step 3: Complete */}
       {step === "complete" && (
         <div className="space-y-4">
           <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-6 text-center">
@@ -1245,19 +704,27 @@ export default function MappingUploadClient() {
                 ✓
               </span>
             </div>
-            <h3 className="text-lg font-semibold text-emerald-900">Import complete!</h3>
+            <h3 className="text-lg font-semibold text-emerald-900">Mapping saved!</h3>
             <p className="mt-1 text-sm text-emerald-800">
-              Your data has been successfully imported.
+              Your mapping <strong>&quot;{profileName}&quot;</strong> has been saved. You can now use it when uploading data.
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={resetWizard}
-            className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700"
-          >
-            Upload another file
-          </button>
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={resetWizard}
+              className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700"
+            >
+              Create another mapping
+            </button>
+            <a
+              href="upload"
+              className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            >
+              Go to Data upload
+            </a>
+          </div>
         </div>
       )}
 

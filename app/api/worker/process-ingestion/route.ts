@@ -635,11 +635,42 @@ async function calculateCoverage(
 }
 
 async function recomputeRollups(job: IngestionJob, tableName: string): Promise<void> {
-  // Skip for lookup tables (they don't have fiscal_year)
+  // For lookup tables, refresh by-year tables AND recompute all data rollups
   if (isLookupType(job.dataset_type)) {
-    // For lookup uploads, refresh the by-year tables
+    // Refresh the by-year lookup tables
     await supabaseAdmin.rpc("refresh_funds_by_year");
     await supabaseAdmin.rpc("refresh_departments_by_year");
+    
+    // Also refresh all data rollups since lookup names may have changed
+    // Get all fiscal years that have budget/actuals data
+    const { data: budgetYears } = await supabaseAdmin
+      .from("budgets")
+      .select("fiscal_year");
+    const { data: actualsYears } = await supabaseAdmin
+      .from("actuals")
+      .select("fiscal_year");
+    const budgetActualsYears = Array.from(new Set([
+      ...((budgetYears ?? []).map((r: { fiscal_year: number }) => r.fiscal_year)),
+      ...((actualsYears ?? []).map((r: { fiscal_year: number }) => r.fiscal_year)),
+    ])).filter((y) => typeof y === "number");
+    
+    for (const fy of budgetActualsYears) {
+      await supabaseAdmin.rpc("refresh_budget_actuals_rollup_for_year", { _fy: fy });
+    }
+    
+    // Get all fiscal years that have transaction data
+    const { data: txnYears } = await supabaseAdmin
+      .from("transactions")
+      .select("fiscal_year");
+    const transactionYears = Array.from(new Set(
+      (txnYears ?? []).map((r: { fiscal_year: number }) => r.fiscal_year)
+    )).filter((y) => typeof y === "number");
+    
+    for (const fy of transactionYears) {
+      await supabaseAdmin.rpc("refresh_transaction_rollups_for_year", { _fy: fy });
+    }
+    
+    console.log(`[worker] Lookup upload - refreshed rollups for ${budgetActualsYears.length} budget/actuals years, ${transactionYears.length} transaction years`);
     return;
   }
 
