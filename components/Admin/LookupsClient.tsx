@@ -540,9 +540,12 @@ export default function LookupsClient() {
         <h1 className="text-2xl font-bold text-slate-900">Lookup Tables</h1>
         <button
           onClick={openWizard}
-          className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+          className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
         >
-          + Upload Lookups
+          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z" />
+          </svg>
+          Upload Lookups
         </button>
       </div>
 
@@ -966,19 +969,46 @@ export default function LookupsClient() {
                 <div className="space-y-6">
                   {/* File Upload */}
                   <div>
-                    <label className="block text-sm font-medium text-slate-700">Upload CSV file</label>
-                    <div className="mt-2">
-                      <input
-                        type="file"
-                        accept=".csv"
-                        onChange={handleFileSelect}
-                        className="block w-full text-sm text-slate-500 file:mr-4 file:rounded file:border-0 file:bg-slate-100 file:px-4 file:py-2 file:text-sm file:font-medium file:text-slate-700 hover:file:bg-slate-200"
-                      />
-                    </div>
-                    {wizard.file && (
-                      <p className="mt-2 text-sm text-green-600">
-                        ✓ {wizard.file.name} ({wizard.parsedRows.length} rows)
-                      </p>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Upload CSV file</label>
+                    
+                    {/* Styled drop zone */}
+                    {!wizard.file ? (
+                      <label className="flex h-32 cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 transition-colors hover:border-blue-400 hover:bg-blue-50">
+                        <input
+                          type="file"
+                          accept=".csv"
+                          onChange={handleFileSelect}
+                          className="sr-only"
+                        />
+                        <svg className="h-10 w-10 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z" />
+                        </svg>
+                        <span className="mt-2 text-sm font-medium text-slate-600">Click to choose a CSV file</span>
+                        <span className="mt-1 text-xs text-slate-500">or drag and drop</span>
+                      </label>
+                    ) : (
+                      <div className="flex items-center justify-between rounded-lg border border-green-200 bg-green-50 p-4">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-100">
+                            <svg className="h-5 w-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-green-800">{wizard.file.name}</p>
+                            <p className="text-xs text-green-600">{wizard.parsedRows.length} rows detected</p>
+                          </div>
+                        </div>
+                        <label className="cursor-pointer text-xs font-medium text-green-700 underline hover:text-green-900">
+                          <input
+                            type="file"
+                            accept=".csv"
+                            onChange={handleFileSelect}
+                            className="sr-only"
+                          />
+                          Change file
+                        </label>
+                      </div>
                     )}
                   </div>
 
