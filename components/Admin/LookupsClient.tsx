@@ -91,6 +91,11 @@ export default function LookupsClient() {
   const [confirmRemovals, setConfirmRemovals] = useState(false);
   const [confirmRenames, setConfirmRenames] = useState(false);
 
+  // Unmapped codes state
+  const [unmappedFunds, setUnmappedFunds] = useState<string[]>([]);
+  const [unmappedDepartments, setUnmappedDepartments] = useState<string[]>([]);
+  const [loadingUnmapped, setLoadingUnmapped] = useState(true);
+
   // ============================================================================
   // Helpers
   // ============================================================================
@@ -185,6 +190,30 @@ export default function LookupsClient() {
       loadDepartments();
     }
   }, [activeTab, loadFunds, loadDepartments]);
+
+  // Load unmapped codes on mount and after any data changes
+  useEffect(() => {
+    async function loadUnmapped() {
+      try {
+        const token = await getAuthToken();
+        if (!token) return;
+
+        const resp = await fetch("/api/admin/lookups/unmapped", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (resp.ok) {
+          const data = await resp.json();
+          setUnmappedFunds(data.unmapped_funds || []);
+          setUnmappedDepartments(data.unmapped_departments || []);
+        }
+      } catch (e) {
+        console.error("Failed to load unmapped codes:", e);
+      } finally {
+        setLoadingUnmapped(false);
+      }
+    }
+    loadUnmapped();
+  }, [funds, departments]); // Reload when lookup data changes
 
   // ============================================================================
   // Quick Add
@@ -516,6 +545,68 @@ export default function LookupsClient() {
           + Upload Lookups
         </button>
       </div>
+
+      {/* Unmapped Codes Warning */}
+      {!loadingUnmapped && (unmappedFunds.length > 0 || unmappedDepartments.length > 0) && (
+        <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 space-y-3">
+          <div className="flex items-start gap-3">
+            <span className="text-amber-600 text-lg">⚠️</span>
+            <div className="flex-1">
+              <p className="font-semibold text-amber-900">Unmapped Codes Detected</p>
+              <p className="mt-1 text-sm text-amber-800">
+                The following codes appear in your data but don&apos;t have lookup entries.
+                They will display as raw codes instead of names.
+              </p>
+            </div>
+          </div>
+          
+          {unmappedFunds.length > 0 && (
+            <div className="ml-8">
+              <p className="text-xs font-semibold uppercase tracking-wide text-amber-700 mb-1">
+                Unmapped Fund Codes ({unmappedFunds.length})
+              </p>
+              <div className="flex flex-wrap gap-1">
+                {unmappedFunds.slice(0, 20).map((code) => (
+                  <span
+                    key={code}
+                    className="inline-flex items-center rounded bg-amber-100 px-2 py-0.5 text-xs font-mono text-amber-800"
+                  >
+                    {code}
+                  </span>
+                ))}
+                {unmappedFunds.length > 20 && (
+                  <span className="text-xs text-amber-700">
+                    +{unmappedFunds.length - 20} more
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+          
+          {unmappedDepartments.length > 0 && (
+            <div className="ml-8">
+              <p className="text-xs font-semibold uppercase tracking-wide text-amber-700 mb-1">
+                Unmapped Department Codes ({unmappedDepartments.length})
+              </p>
+              <div className="flex flex-wrap gap-1">
+                {unmappedDepartments.slice(0, 20).map((code) => (
+                  <span
+                    key={code}
+                    className="inline-flex items-center rounded bg-amber-100 px-2 py-0.5 text-xs font-mono text-amber-800"
+                  >
+                    {code}
+                  </span>
+                ))}
+                {unmappedDepartments.length > 20 && (
+                  <span className="text-xs text-amber-700">
+                    +{unmappedDepartments.length - 20} more
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Message */}
       {message && (

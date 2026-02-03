@@ -554,7 +554,7 @@ function MappingProfilesTab() {
       const headers = await getAuthHeaders();
 
       // Fetch profiles for all dataset types
-      const types = ["budgets", "actuals", "transactions", "revenues", "funds_lookup", "departments_lookup"];
+      const types = ["budgets", "actuals", "transactions", "revenues"];
       const allProfiles: MappingProfile[] = [];
 
       for (const type of types) {
@@ -812,8 +812,55 @@ function MappingProfilesTab() {
 // =============================================================================
 
 function LookupsTab({ stats, onStatsRefresh }: { stats: Stats | null; onStatsRefresh: () => void }) {
+  const [unmappedFunds, setUnmappedFunds] = useState<string[]>([]);
+  const [unmappedDepartments, setUnmappedDepartments] = useState<string[]>([]);
+  const [loadingUnmapped, setLoadingUnmapped] = useState(true);
+
+  useEffect(() => {
+    async function loadUnmapped() {
+      try {
+        const headers = await getAuthHeaders();
+        const resp = await fetch("/api/admin/lookups/unmapped", { headers });
+        if (resp.ok) {
+          const data = await resp.json();
+          setUnmappedFunds(data.unmapped_funds || []);
+          setUnmappedDepartments(data.unmapped_departments || []);
+        }
+      } catch (e) {
+        console.error("Failed to load unmapped codes:", e);
+      } finally {
+        setLoadingUnmapped(false);
+      }
+    }
+    loadUnmapped();
+  }, []);
+
+  const hasUnmapped = unmappedFunds.length > 0 || unmappedDepartments.length > 0;
+
   return (
     <div className="space-y-4">
+      {/* Unmapped codes warning */}
+      {!loadingUnmapped && hasUnmapped && (
+        <div className="rounded-xl border border-amber-300 bg-amber-50 p-4">
+          <div className="flex items-start gap-3">
+            <span className="text-amber-600 text-lg">⚠️</span>
+            <div className="flex-1">
+              <p className="font-semibold text-amber-900">Unmapped Codes Detected</p>
+              <p className="mt-1 text-sm text-amber-800">
+                Some fund or department codes in your data don&apos;t have lookup entries. 
+                These will display as raw codes instead of names.
+              </p>
+              <a
+                href={cityHref("/admin/lookups")}
+                className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-amber-900 underline hover:no-underline"
+              >
+                Go to Lookup Tables to add them →
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
         <p className="font-semibold text-slate-900">About Lookup Tables</p>
         <ul className="mt-2 list-disc space-y-1 pl-5 text-sm">

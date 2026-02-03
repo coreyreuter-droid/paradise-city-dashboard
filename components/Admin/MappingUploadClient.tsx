@@ -5,7 +5,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 
 // Types
-type DatasetType = "budgets" | "actuals" | "transactions" | "revenues" | "funds_lookup" | "departments_lookup";
+type DatasetType = "budgets" | "actuals" | "transactions" | "revenues";
 type WizardStep = "upload" | "mapping" | "complete";
 
 interface ColumnMapping {
@@ -72,14 +72,6 @@ const DATASET_FIELDS: Record<DatasetType, { name: string; label: string; require
     { name: "account_name", label: "Account Name", required: false },
     { name: "amount", label: "Amount", required: true },
   ],
-  funds_lookup: [
-    { name: "fund_code", label: "Fund Code", required: true },
-    { name: "fund_name", label: "Fund Name", required: true },
-  ],
-  departments_lookup: [
-    { name: "department_code", label: "Department Code", required: true },
-    { name: "department_name", label: "Department Name", required: true },
-  ],
 };
 
 // Header aliases for auto-detection
@@ -105,8 +97,6 @@ const VALID_FIELDS: Record<DatasetType, string[]> = {
   actuals: ["fiscal_year", "period", "fund_code", "fund_name", "department_code", "department_name", "category", "account_code", "account_name", "amount"],
   transactions: ["fiscal_year", "date", "fund_code", "fund_name", "department_code", "department_name", "account_code", "account_name", "vendor", "description", "amount"],
   revenues: ["fiscal_year", "period", "fund_code", "fund_name", "department_code", "department_name", "category", "account_code", "account_name", "amount"],
-  funds_lookup: ["fund_code", "fund_name"],
-  departments_lookup: ["department_code", "department_name"],
 };
 
 function autoDetectMappings(headers: string[], datasetType: DatasetType): Record<string, ColumnMapping> {
@@ -473,10 +463,6 @@ export default function MappingUploadClient() {
                 <option value="actuals">Actuals</option>
                 <option value="transactions">Transactions</option>
                 <option value="revenues">Revenues</option>
-              </optgroup>
-              <optgroup label="Lookup Tables">
-                <option value="funds_lookup">Fund Names (Lookup)</option>
-                <option value="departments_lookup">Department Names (Lookup)</option>
               </optgroup>
             </select>
           </div>
