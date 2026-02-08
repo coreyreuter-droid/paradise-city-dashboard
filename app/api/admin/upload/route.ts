@@ -76,6 +76,102 @@ async function getFiscalConfig(): Promise<FiscalConfig> {
 }
 
 /**
+ * Auto-populate lookup tables with any new department/fund codes from uploaded data.
+ * This ensures the rollup views can resolve names instead of showing "Unknown (code)".
+ * 
+ * Called automatically during data upload to prevent "Unknown" department/fund names.
+ */
+async function autoPopulateLookups(
+  records: Record<string, unknown>[],
+  affectedYears: number[]
+): Promise<void> {
+  if (records.length === 0 || affectedYears.length === 0) return;
+
+  const minYear = Math.min(...affectedYears);
+
+  // Extract unique department and fund entries from the uploaded records
+  const departmentMap = new Map<string, string>();
+  const fundMap = new Map<string, string>();
+
+  for (const record of records) {
+    const deptCode = record.department_code;
+    const deptName = record.department_name;
+    const fundCode = record.fund_code;
+    const fundName = record.fund_name;
+
+    // Collect departments (code -> name mapping)
+    if (deptCode && typeof deptCode === "string" && deptCode.trim()) {
+      const code = deptCode.trim();
+      if (!departmentMap.has(code) && deptName && typeof deptName === "string") {
+        departmentMap.set(code, deptName.trim());
+      }
+    }
+
+    // Collect funds (code -> name mapping)
+    if (fundCode && typeof fundCode === "string" && fundCode.trim()) {
+      const code = fundCode.trim();
+      if (!fundMap.has(code) && fundName && typeof fundName === "string") {
+        fundMap.set(code, fundName.trim());
+      }
+    }
+  }
+
+  // Insert missing departments (ignore conflicts with existing entries)
+  if (departmentMap.size > 0) {
+    for (const [code, name] of departmentMap.entries()) {
+      const { error } = await supabaseAdmin
+        .from("departments_dim")
+        .insert({
+          department_code: code,
+          department_name: name,
+          effective_start_fy: minYear,
+          effective_end_fy: null,
+        })
+        .select()
+        .maybeSingle();
+
+      // Ignore unique constraint violations (entry already exists)
+      if (error && !error.message.includes("duplicate") && !error.message.includes("unique")) {
+        console.warn(`Non-fatal: Failed to auto-populate department ${code}:`, error.message);
+      }
+    }
+    console.log(`Auto-populate: Processed ${departmentMap.size} department entries`);
+  }
+
+  // Insert missing funds (ignore conflicts with existing entries)
+  if (fundMap.size > 0) {
+    for (const [code, name] of fundMap.entries()) {
+      const { error } = await supabaseAdmin
+        .from("funds_dim")
+        .insert({
+          fund_code: code,
+          fund_name: name,
+          effective_start_fy: minYear,
+          effective_end_fy: null,
+        })
+        .select()
+        .maybeSingle();
+
+      // Ignore unique constraint violations (entry already exists)
+      if (error && !error.message.includes("duplicate") && !error.message.includes("unique")) {
+        console.warn(`Non-fatal: Failed to auto-populate fund ${code}:`, error.message);
+      }
+    }
+    console.log(`Auto-populate: Processed ${fundMap.size} fund entries`);
+  }
+
+  // Refresh the by-year lookup tables so views can resolve names
+  if (departmentMap.size > 0 || fundMap.size > 0) {
+    const { error: refreshError } = await supabaseAdmin.rpc("refresh_lookup_by_year_tables");
+    if (refreshError) {
+      console.warn("Non-fatal: Failed to refresh by-year lookup tables:", refreshError.message);
+    } else {
+      console.log("Auto-populate: Refreshed by-year lookup tables");
+    }
+  }
+}
+
+/**
  * Compute fiscal year from a date string and a fiscal-year start (month/day).
  * Uses UTC so we don't get burned by timezones.
  *
@@ -647,6 +743,12 @@ if (table === "revenues") {
     // Refresh rollups for affected fiscal years so citizen portal updates immediately.
     // This MUST be non-fatal. Recompute RPCs already guarantee correctness.
     const affectedYears = (yearsInData ?? []).filter((y) => Number.isFinite(y));
+
+    // Auto-populate lookup tables with any new department/fund codes from uploaded data.
+    // This must happen BEFORE rollup refresh so views can resolve names correctly.
+    if (affectedYears.length > 0) {
+      await autoPopulateLookups(normalizedRecords, affectedYears);
+    }
 
     if ((table === "budgets" || table === "actuals") && affectedYears.length > 0) {
       for (const fy of affectedYears) {
