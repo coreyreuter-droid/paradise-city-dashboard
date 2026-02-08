@@ -411,6 +411,12 @@ async function processJob(job: IngestionJob): Promise<void> {
     coverageSummary = await calculateCoverage(job.dataset_type, job.id, tableName);
   }
 
+  // 7.5. Auto-populate lookup tables from uploaded data (for financial datasets only)
+  // This MUST happen BEFORE rollup refresh so views can resolve names correctly
+  if (!isLookup) {
+    await autoPopulateLookupsFromTable(tableName, job.id);
+  }
+
   // 8. Recompute rollups (for financial datasets only)
   if (!isLookup) {
     await recomputeRollups(job, tableName);
@@ -697,6 +703,134 @@ async function recomputeRollups(job: IngestionJob, tableName: string): Promise<v
   if (job.dataset_type === "transactions") {
     for (const fy of uniqueYears) {
       await supabaseAdmin.rpc("refresh_transaction_rollups_for_year", { _fy: fy });
+    }
+  }
+}
+
+/**
+ * Auto-populate lookup dimension tables from uploaded data.
+ * This ensures department/fund names resolve correctly in views.
+ * Runs BEFORE rollup refresh.
+ */
+async function autoPopulateLookupsFromTable(
+  tableName: string,
+  jobId: string
+): Promise<void> {
+  console.log(`[worker] Auto-populating lookups from ${tableName} (job ${jobId})`);
+
+  // Get unique department_code/department_name pairs from the uploaded data
+  const { data: deptData, error: deptError } = await supabaseAdmin
+    .from(tableName)
+    .select("department_code, department_name, fiscal_year")
+    .eq("job_id", jobId)
+    .not("department_code", "is", null)
+    .not("department_name", "is", null);
+
+  if (deptError) {
+    console.warn(`[worker] Failed to fetch departments for auto-populate: ${deptError.message}`);
+  }
+
+  // Get unique fund_code/fund_name pairs from the uploaded data
+  const { data: fundData, error: fundError } = await supabaseAdmin
+    .from(tableName)
+    .select("fund_code, fund_name, fiscal_year")
+    .eq("job_id", jobId)
+    .not("fund_code", "is", null)
+    .not("fund_name", "is", null);
+
+  if (fundError) {
+    console.warn(`[worker] Failed to fetch funds for auto-populate: ${fundError.message}`);
+  }
+
+  // Build unique maps and find min fiscal year
+  const departmentMap = new Map<string, { name: string; minYear: number }>();
+  const fundMap = new Map<string, { name: string; minYear: number }>();
+
+  for (const row of (deptData ?? []) as Array<{ department_code: string; department_name: string; fiscal_year: number }>) {
+    const code = String(row.department_code).trim();
+    const name = String(row.department_name).trim();
+    const year = Number(row.fiscal_year);
+    
+    if (code && name && Number.isFinite(year)) {
+      const existing = departmentMap.get(code);
+      if (!existing || year < existing.minYear) {
+        departmentMap.set(code, { name, minYear: year });
+      }
+    }
+  }
+
+  for (const row of (fundData ?? []) as Array<{ fund_code: string; fund_name: string; fiscal_year: number }>) {
+    const code = String(row.fund_code).trim();
+    const name = String(row.fund_name).trim();
+    const year = Number(row.fiscal_year);
+    
+    if (code && name && Number.isFinite(year)) {
+      const existing = fundMap.get(code);
+      if (!existing || year < existing.minYear) {
+        fundMap.set(code, { name, minYear: year });
+      }
+    }
+  }
+
+  console.log(`[worker] Found ${departmentMap.size} unique departments, ${fundMap.size} unique funds`);
+
+  // Insert missing departments
+  let deptInserted = 0;
+  let deptSkipped = 0;
+  for (const [code, { name, minYear }] of departmentMap.entries()) {
+    const { error } = await supabaseAdmin
+      .from("departments_dim")
+      .insert({
+        department_code: code,
+        department_name: name,
+        effective_start_fy: minYear,
+        effective_end_fy: null,
+      });
+
+    if (error) {
+      if (error.code === "23505" || error.message.includes("duplicate") || error.message.includes("unique")) {
+        deptSkipped++;
+      } else {
+        console.warn(`[worker] Failed to insert department ${code}: ${error.message}`);
+      }
+    } else {
+      deptInserted++;
+    }
+  }
+
+  // Insert missing funds
+  let fundInserted = 0;
+  let fundSkipped = 0;
+  for (const [code, { name, minYear }] of fundMap.entries()) {
+    const { error } = await supabaseAdmin
+      .from("funds_dim")
+      .insert({
+        fund_code: code,
+        fund_name: name,
+        effective_start_fy: minYear,
+        effective_end_fy: null,
+      });
+
+    if (error) {
+      if (error.code === "23505" || error.message.includes("duplicate") || error.message.includes("unique")) {
+        fundSkipped++;
+      } else {
+        console.warn(`[worker] Failed to insert fund ${code}: ${error.message}`);
+      }
+    } else {
+      fundInserted++;
+    }
+  }
+
+  console.log(`[worker] Auto-populate complete: departments ${deptInserted} inserted/${deptSkipped} skipped, funds ${fundInserted} inserted/${fundSkipped} skipped`);
+
+  // Refresh by-year lookup tables so views can resolve names
+  if (deptInserted > 0 || fundInserted > 0) {
+    try {
+      await supabaseAdmin.rpc("refresh_lookup_by_year_tables");
+      console.log("[worker] Refreshed lookup by-year tables");
+    } catch (err) {
+      console.warn("[worker] Failed to refresh lookup by-year tables:", err);
     }
   }
 }
