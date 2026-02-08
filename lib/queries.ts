@@ -5,7 +5,7 @@
 
 
 import { supabase } from "./supabase";
-import { sanitizeSearchInput } from "./format";
+import { sanitizeSearchInput, sanitizePostgrestValue } from "./format";
 import type { ActualRow, BudgetRow, TransactionRow, RevenueRow } from "./schema";
 
 // Internal types for Supabase query results
@@ -328,7 +328,7 @@ export async function getRevenuesForYear(fiscalYear: number): Promise<RevenueRow
  * Get all revenues for a specific source/category.
  */
 export async function getRevenuesForSource(category: string): Promise<RevenueRow[]> {
-  return fetchAllRows<RevenueRow>("revenues", (q) => q.ilike("category", category));
+  return fetchAllRows<RevenueRow>("revenues", (q) => q.eq("category", category));
 }
 
 /**
@@ -336,7 +336,7 @@ export async function getRevenuesForSource(category: string): Promise<RevenueRow
  */
 export async function getRevenuesForSourceYear(category: string, fiscalYear: number): Promise<RevenueRow[]> {
   return fetchAllRows<RevenueRow>("revenues", (q) => 
-    q.ilike("category", category).eq("fiscal_year", fiscalYear)
+    q.eq("category", category).eq("fiscal_year", fiscalYear)
   );
 }
 
@@ -668,7 +668,7 @@ export async function getTransactionsPage(options: {
   if (department) query = query.eq("department_name", department);
 
   if (vendorQuery && vendorQuery.trim().length > 0) {
-    const sanitized = sanitizeSearchInput(vendorQuery);
+    const sanitized = sanitizePostgrestValue(vendorQuery);
     if (sanitized) {
       // Search across vendor, description, and department_name
       query = query.or(

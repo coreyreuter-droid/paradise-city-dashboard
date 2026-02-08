@@ -1,4 +1,20 @@
 // lib/format.ts
+//
+// SANITIZER GUIDE — two sanitizers, different purposes:
+//
+//   sanitizeSearchInput()      → Use when passing values to the Supabase SDK's
+//                                .ilike(column, pattern) method. Escapes LIKE
+//                                wildcards (%, _, \) so patterns behave predictably.
+//
+//   sanitizePostgrestValue()   → Use when interpolating values into PostgREST
+//                                filter strings like .or("col.ilike.%VALUE%").
+//                                Strips grammar characters (commas, dots, parens)
+//                                that could inject additional filter clauses.
+//
+// Rule of thumb:
+//   .ilike("col", `%${value}%`)                        → sanitizeSearchInput()
+//   .or(`col.ilike.%${value}%,other.ilike.%${value}%`) → sanitizePostgrestValue()
+//
 
 /**
  * Sanitize user input for use in Postgres ILIKE queries.
