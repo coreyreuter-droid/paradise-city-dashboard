@@ -82,10 +82,10 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 
     // Run queries in parallel for performance
     const [deptResult, vendorResult, txnResult, deptCount, vendorCount, hasMoreTxns] = await Promise.all([
-      // 1. Search departments from summary table
+      // 1. Search departments from department-level view (aggregated across funds)
       (async () => {
         let q = supabase
-          .from("v_budget_actuals_year_fund_department")
+          .from("v_budget_actuals_year_department")
           .select("department_name, budget_amount, actual_amount")
           .ilike("department_name", searchPattern)
           .limit(LIMIT_PER_CATEGORY);

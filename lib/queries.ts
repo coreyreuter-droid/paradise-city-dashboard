@@ -206,8 +206,9 @@ export type DepartmentYearTxSummary = {
 export async function getDepartmentTransactionSummariesForYear(
   fiscalYear: number
 ): Promise<DepartmentYearTxSummary[]> {
+  // Use department-level view (aggregates across all funds)
   const { data, error } = await supabase
-    .from("v_transaction_year_fund_department")
+    .from("v_transaction_year_department")
     .select("*")
     .eq("fiscal_year", fiscalYear)
     .order("total_amount", { ascending: false });
@@ -229,8 +230,9 @@ export type BudgetActualsYearDeptRow = {
 export async function getBudgetActualsSummaryForYear(
   fiscalYear: number
 ): Promise<BudgetActualsYearDeptRow[]> {
+  // Use department-level view (aggregates across all funds)
   const { data, error } = await supabase
-    .from("v_budget_actuals_year_fund_department")
+    .from("v_budget_actuals_year_department")
     .select("*")
     .eq("fiscal_year", fiscalYear)
     .order("budget_amount", { ascending: false });
@@ -249,8 +251,9 @@ export async function getBudgetActualsSummaryForDepartment(
   const name = (departmentName ?? "").trim();
   if (!name) return [];
 
+  // Use department-level view (aggregates across all funds)
   const { data, error } = await supabase
-    .from("v_budget_actuals_year_fund_department")
+    .from("v_budget_actuals_year_department")
     .select("*")
     .eq("department_name", name)
     .order("fiscal_year", { ascending: true });
@@ -264,8 +267,9 @@ export async function getBudgetActualsSummaryForDepartment(
 }
 
 export async function getBudgetActualsSummaryAllYears(): Promise<BudgetActualsYearDeptRow[]> {
+  // Use department-level view (aggregates across all funds)
   const { data, error } = await supabase
-    .from("v_budget_actuals_year_fund_department")
+    .from("v_budget_actuals_year_department")
     .select("*")
     .order("fiscal_year", { ascending: false });
 
@@ -280,9 +284,9 @@ export async function getBudgetActualsSummaryAllYears(): Promise<BudgetActualsYe
 export async function getBudgetActualsYearTotals(): Promise<
   Array<{ year: number; Budget: number; Actuals: number; Variance: number }>
 > {
-  // Use the year+department rollup (which already exists and includes the full year range)
+  // Use department-level view (already aggregated across funds, fewer rows to process)
   const { data, error } = await supabase
-    .from("v_budget_actuals_year_fund_department")
+    .from("v_budget_actuals_year_department")
     .select("fiscal_year, budget_amount, actual_amount");
 
   if (error) {
@@ -451,8 +455,9 @@ export async function getAvailableFiscalYears(): Promise<number[]> {
  * Used by /transactions and other filters.
  */
 export async function getTransactionYears(): Promise<number[]> {
+  // Use department-level view (aggregated, fewer rows to scan)
   const { data, error } = await supabase
-    .from("v_transaction_year_fund_department")
+    .from("v_transaction_year_department")
     .select("fiscal_year")
     .order("fiscal_year", { ascending: false });
 
@@ -698,13 +703,13 @@ export async function getTransactionsPage(options: {
 
 /**
  * Distinct transaction departments for a year.
- * Uses summary table for performance.
+ * Uses department-level view for performance.
  */
 export async function getTransactionDepartmentsForYear(
   fiscalYear: number
 ): Promise<string[]> {
   const { data, error } = await supabase
-    .from("v_transaction_year_fund_department")
+    .from("v_transaction_year_department")
     .select("department_name")
     .eq("fiscal_year", fiscalYear)
     .order("department_name", { ascending: true });
@@ -724,13 +729,13 @@ export async function getTransactionDepartmentsForYear(
 
 /**
  * Department summaries for Budget page.
- * Uses summary table (no JS aggregation over raw tables).
+ * Uses department-level view (aggregated across all funds).
  */
 export async function getBudgetPageDepartmentSummaries(
   fiscalYear: number
 ): Promise<BudgetPageDepartmentSummary[]> {
   const { data, error } = await supabase
-    .from("v_budget_actuals_year_fund_department")
+    .from("v_budget_actuals_year_department")
     .select("department_name,budget_amount,actual_amount")
     .eq("fiscal_year", fiscalYear);
 

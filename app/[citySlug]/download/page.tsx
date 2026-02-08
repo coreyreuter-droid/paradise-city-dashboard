@@ -10,8 +10,9 @@ import { supabase } from "@/lib/supabase";
 export const revalidate = 0;
 
 async function getDepartments(): Promise<string[]> {
+  // Use department-level view (aggregated, fewer rows)
   const { data, error } = await supabase
-    .from("v_budget_actuals_year_fund_department")
+    .from("v_budget_actuals_year_department")
     .select("department_name")
     .order("department_name");
 
