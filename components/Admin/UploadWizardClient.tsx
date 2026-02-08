@@ -5,7 +5,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { cityHref } from "@/lib/cityRouting";
 import { parseCsv } from "@/lib/csvParser";
-import { csrfFetch } from "@/components/CsrfProvider";
+import { csrfFetch, getCsrfHeaders } from "@/components/CsrfProvider";
 import { downloadCsv } from "@/lib/downloadFile";
 import {
   TABLE_SCHEMAS,
@@ -371,11 +371,13 @@ export default function UploadWizardClient() {
         return;
       }
 
+      const csrfHeaders = getCsrfHeaders();
       const res = await fetch("/api/admin/mapping-profiles/check-match", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
+          "x-csrf-token": csrfHeaders.get("x-csrf-token") || "",
         },
         body: JSON.stringify({ headers, dataset_type: datasetType }),
       });

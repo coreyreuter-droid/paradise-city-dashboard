@@ -4,6 +4,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import Papa from "papaparse";
+import { getCsrfHeaders } from "@/components/CsrfProvider";
 import {
   FundDimRow,
   DepartmentDimRow,
@@ -243,11 +244,13 @@ export default function LookupsClient() {
         ? { fund_code: quickAddCode.trim(), fund_name: quickAddName.trim(), effective_start_fy: quickAddFy }
         : { department_code: quickAddCode.trim(), department_name: quickAddName.trim(), effective_start_fy: quickAddFy };
 
+      const csrfHeaders = getCsrfHeaders();
       const res = await fetch(endpoint, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
+          "x-csrf-token": csrfHeaders.get("x-csrf-token") || "",
         },
         body: JSON.stringify(body),
       });
@@ -304,11 +307,13 @@ export default function LookupsClient() {
         ? { id: editingEntry.id, fund_name: editName, effective_start_fy: editStartFy, effective_end_fy: editEndFy }
         : { id: editingEntry.id, department_name: editName, effective_start_fy: editStartFy, effective_end_fy: editEndFy };
 
+      const csrfHeaders = getCsrfHeaders();
       const res = await fetch(endpoint, {
         method: "PATCH",
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
+          "x-csrf-token": csrfHeaders.get("x-csrf-token") || "",
         },
         body: JSON.stringify(body),
       });
@@ -414,11 +419,13 @@ export default function LookupsClient() {
         return;
       }
 
+      const csrfHeaders = getCsrfHeaders();
       const res = await fetch(`/api/admin/lookups/${wizard.lookupType}/validate`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
+          "x-csrf-token": csrfHeaders.get("x-csrf-token") || "",
         },
         body: JSON.stringify({
           rows: wizard.parsedRows,
@@ -473,11 +480,13 @@ export default function LookupsClient() {
         return;
       }
 
+      const csrfHeaders = getCsrfHeaders();
       const res = await fetch(`/api/admin/lookups/${wizard.lookupType}/apply`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
+          "x-csrf-token": csrfHeaders.get("x-csrf-token") || "",
         },
         body: JSON.stringify({
           validationToken: validationResult.validationToken,
