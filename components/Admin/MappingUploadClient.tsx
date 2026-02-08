@@ -3,6 +3,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
+import { getCsrfHeaders } from "@/components/CsrfProvider";
 
 // Types
 type DatasetType = "budgets" | "actuals" | "transactions" | "revenues";
@@ -217,10 +218,12 @@ export default function MappingUploadClient() {
       formData.append("file", file);
       formData.append("dataset_type", datasetType);
 
+      const csrfHeaders = getCsrfHeaders();
       const res = await fetch("/api/admin/ingestion/preview-headers", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
+          "x-csrf-token": csrfHeaders.get("x-csrf-token") || "",
         },
         body: formData,
       });
@@ -239,6 +242,7 @@ export default function MappingUploadClient() {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
+          "x-csrf-token": csrfHeaders.get("x-csrf-token") || "",
         },
         body: JSON.stringify({
           headers: data.headers,
@@ -320,12 +324,15 @@ export default function MappingUploadClient() {
         return;
       }
 
+      const csrfHeaders = getCsrfHeaders();
+
       // Check for duplicate structure one more time
       const matchRes = await fetch("/api/admin/mapping-profiles/check-match", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
+          "x-csrf-token": csrfHeaders.get("x-csrf-token") || "",
         },
         body: JSON.stringify({
           headers: previewData?.headers || [],
@@ -358,6 +365,7 @@ export default function MappingUploadClient() {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
+          "x-csrf-token": csrfHeaders.get("x-csrf-token") || "",
         },
         body: JSON.stringify({
           name: profileName.trim(),
