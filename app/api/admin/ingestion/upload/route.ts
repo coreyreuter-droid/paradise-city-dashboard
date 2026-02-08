@@ -16,6 +16,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Papa from "papaparse";
 import { requireAdmin } from "@/lib/auth";
+import { requireCsrf } from "@/lib/csrf";
 import { supabaseAdmin } from "@/lib/supabaseService";
 import { DatasetType } from "@/lib/ingestion/types";
 import { autoDetectMappings } from "@/lib/ingestion/parseRow";
@@ -33,6 +34,9 @@ const PREVIEW_ROWS = 10; // Number of sample rows to return
 // ============================================================================
 
 export async function POST(req: NextRequest) {
+  const csrfError = await requireCsrf(req);
+  if (csrfError) return csrfError;
+
   const auth = await requireAdmin(req);
   if (!auth.success) return auth.error;
 
@@ -116,7 +120,6 @@ export async function POST(req: NextRequest) {
 
       if (allJobsFailed) {
         // Clean up the old file and allow re-upload
-        console.log(`[upload] Cleaning up failed file ${existingFile.id} to allow re-upload`);
         
         // Delete jobs first (foreign key constraint)
         if (jobs && jobs.length > 0) {

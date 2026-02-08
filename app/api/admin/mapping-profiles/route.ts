@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseService";
 import { requireAdmin } from "@/lib/auth";
+import { requireCsrf } from "@/lib/csrf";
 import { logAuditEvent } from "@/lib/auditLog";
 
 const VALID_DATASET_TYPES = new Set([
@@ -69,6 +70,9 @@ export async function GET(req: NextRequest) {
  * }
  */
 export async function POST(req: NextRequest) {
+  const csrfError = await requireCsrf(req);
+  if (csrfError) return csrfError;
+
   try {
     const auth = await requireAdmin(req);
     if (!auth.success) return auth.error;

@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseService";
 import { requireAdmin } from "@/lib/auth";
+import { requireCsrf } from "@/lib/csrf";
 import { logAuditEvent } from "@/lib/auditLog";
 
 interface RouteParams {
@@ -53,6 +54,9 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
  * }
  */
 export async function PUT(req: NextRequest, { params }: RouteParams) {
+  const csrfError = await requireCsrf(req);
+  if (csrfError) return csrfError;
+
   try {
     const auth = await requireAdmin(req);
     if (!auth.success) return auth.error;
@@ -185,6 +189,9 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
  * Deletes a mapping profile (only non-system profiles)
  */
 export async function DELETE(req: NextRequest, { params }: RouteParams) {
+  const csrfError = await requireCsrf(req);
+  if (csrfError) return csrfError;
+
   try {
     const auth = await requireAdmin(req);
     if (!auth.success) return auth.error;

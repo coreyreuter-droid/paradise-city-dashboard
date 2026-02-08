@@ -66,20 +66,14 @@ export async function POST(req: NextRequest) {
   const workerSecret = process.env.WORKER_SECRET;
   const providedSecret = req.headers.get("x-worker-secret");
   const cronAuth = req.headers.get("authorization");
-  const vercelCron = req.headers.get("x-vercel-cron");
 
-  // Allow if: correct secret OR Vercel cron auth OR Vercel cron header
+  // Allow if: correct worker secret OR correct cron secret (must be defined)
   const isAuthorized =
     (workerSecret && providedSecret === workerSecret) ||
-    cronAuth === `Bearer ${process.env.CRON_SECRET}` ||
-    vercelCron === "1"; // Vercel cron sets this header automatically
+    (process.env.CRON_SECRET && cronAuth === `Bearer ${process.env.CRON_SECRET}`);
 
-  if (!isAuthorized && process.env.NODE_ENV === "production") {
-    console.log("[worker] Unauthorized request - headers:", {
-      hasWorkerSecret: !!providedSecret,
-      hasCronAuth: !!cronAuth,
-      hasVercelCron: !!vercelCron,
-    });
+  const isLocalDev = process.env.NODE_ENV === "development" && !process.env.VERCEL;
+  if (!isAuthorized && !isLocalDev) {
     return NextResponse.json(
       { error: "Unauthorized" },
       { status: 401 }

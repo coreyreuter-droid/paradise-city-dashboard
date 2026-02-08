@@ -7,6 +7,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
+import { requireCsrf } from "@/lib/csrf";
 import { supabaseAdmin } from "@/lib/supabaseService";
 import { logAuditEvent } from "@/lib/auditLog";
 
@@ -129,6 +130,9 @@ export async function GET(req: NextRequest, context: Context) {
 // ============================================================================
 
 export async function PATCH(req: NextRequest, context: Context) {
+  const csrfError = await requireCsrf(req);
+  if (csrfError) return csrfError;
+
   const auth = await requireAdmin(req);
   if (!auth.success) return auth.error;
 

@@ -19,6 +19,21 @@ export function sanitizeSearchInput(input: string, maxLength = 100): string {
   return escaped.trim().slice(0, maxLength);
 }
 
+/**
+ * Sanitize user input for safe interpolation into PostgREST .or() filter strings.
+ * Strips characters that are meaningful in PostgREST expression grammar
+ * (commas, dots, parens, colons, etc.) to prevent filter injection.
+ * Use this instead of sanitizeSearchInput when building .or() expressions.
+ */
+export function sanitizePostgrestValue(input: string, maxLength = 60): string {
+  if (!input || typeof input !== "string") return "";
+  // Allow only alphanumeric, spaces, hyphens, and apostrophes
+  return input
+    .replace(/[^a-zA-Z0-9\s\-']/g, "")
+    .trim()
+    .slice(0, maxLength);
+}
+
 export const formatCurrency = (
   value: number | null | undefined
 ): string => {

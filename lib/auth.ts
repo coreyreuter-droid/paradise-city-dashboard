@@ -18,15 +18,10 @@ type RequireAdminResult =
   | { success: false; error: AuthError };
 
 /**
- * Validates that the request has a valid admin or super_admin session.
- * Returns the user, profile, and an authenticated Supabase client.
- * 
- * Usage:
- *   const auth = await requireAdmin(req);
- *   if (!auth.success) return auth.error;
- *   const { user, profile, supabaseAuthed } = auth.data;
+ * Shared authentication: extract token, validate user, load profile.
+ * Returns authenticated user data or an error response.
  */
-export async function requireAdmin(req: NextRequest): Promise<RequireAdminResult> {
+async function authenticateUser(req: NextRequest): Promise<RequireAdminResult> {
   const authHeader = req.headers.get("authorization") ?? "";
   const token = authHeader.replace(/^Bearer\s+/i, "").trim();
 
@@ -75,10 +70,31 @@ export async function requireAdmin(req: NextRequest): Promise<RequireAdminResult
     };
   }
 
-  const role = profile.role as string;
-  const isAdmin = role === "admin" || role === "super_admin";
+  return {
+    success: true,
+    data: {
+      user: { id: user.id, email: user.email },
+      profile: { role: profile.role as string },
+      supabaseAuthed,
+    },
+  };
+}
 
-  if (!isAdmin) {
+/**
+ * Validates that the request has a valid admin or super_admin session.
+ * Returns the user, profile, and an authenticated Supabase client.
+ * 
+ * Usage:
+ *   const auth = await requireAdmin(req);
+ *   if (!auth.success) return auth.error;
+ *   const { user, profile, supabaseAuthed } = auth.data;
+ */
+export async function requireAdmin(req: NextRequest): Promise<RequireAdminResult> {
+  const result = await authenticateUser(req);
+  if (!result.success) return result;
+
+  const role = result.data.profile.role;
+  if (role !== "admin" && role !== "super_admin") {
     return {
       success: false,
       error: NextResponse.json(
@@ -88,14 +104,7 @@ export async function requireAdmin(req: NextRequest): Promise<RequireAdminResult
     };
   }
 
-  return {
-    success: true,
-    data: {
-      user: { id: user.id, email: user.email },
-      profile: { role },
-      supabaseAuthed,
-    },
-  };
+  return result;
 }
 
 /**
@@ -125,58 +134,11 @@ export async function requireSuperAdmin(req: NextRequest): Promise<RequireAdminR
  * Use this for read-only admin endpoints.
  */
 export async function requireAdminOrViewer(req: NextRequest): Promise<RequireAdminResult> {
-  const authHeader = req.headers.get("authorization") ?? "";
-  const token = authHeader.replace(/^Bearer\s+/i, "").trim();
+  const result = await authenticateUser(req);
+  if (!result.success) return result;
 
-  if (!token) {
-    return {
-      success: false,
-      error: NextResponse.json(
-        { error: "Missing access token" },
-        { status: 401 }
-      ),
-    };
-  }
-
-  const supabaseAuthed = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    global: {
-      headers: { Authorization: `Bearer ${token}` },
-    },
-    auth: { persistSession: false },
-  });
-
-  const { data: { user }, error: userError } = await supabaseAuthed.auth.getUser();
-
-  if (userError || !user) {
-    return {
-      success: false,
-      error: NextResponse.json(
-        { error: "Invalid or expired session" },
-        { status: 401 }
-      ),
-    };
-  }
-
-  const { data: profile, error: profileError } = await supabaseAuthed
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-
-  if (profileError || !profile) {
-    return {
-      success: false,
-      error: NextResponse.json(
-        { error: "Failed to load user profile" },
-        { status: 500 }
-      ),
-    };
-  }
-
-  const role = profile.role as string;
-  const canAccess = role === "viewer" || role === "admin" || role === "super_admin";
-
-  if (!canAccess) {
+  const role = result.data.profile.role;
+  if (role !== "viewer" && role !== "admin" && role !== "super_admin") {
     return {
       success: false,
       error: NextResponse.json(
@@ -186,12 +148,5 @@ export async function requireAdminOrViewer(req: NextRequest): Promise<RequireAdm
     };
   }
 
-  return {
-    success: true,
-    data: {
-      user: { id: user.id, email: user.email },
-      profile: { role },
-      supabaseAuthed,
-    },
-  };
+  return result;
 }

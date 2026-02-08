@@ -47,14 +47,6 @@ async function getPortalSettings(): Promise<PortalSettingsRow | null> {
       return null;
     }
 
-    // Debug log - remove after confirming fix
-    console.log("PORTAL_SETTINGS_DEBUG", {
-      enable_transactions: data?.enable_transactions,
-      is_published: data?.is_published,
-      supabaseUrlHost: new URL(process.env.NEXT_PUBLIC_SUPABASE_URL || "").host,
-      ts: new Date().toISOString(),
-    });
-
     return (data as PortalSettingsRow) ?? null;
   } catch (err) {
     console.error("CityLayout: unexpected error loading portal_settings", err);

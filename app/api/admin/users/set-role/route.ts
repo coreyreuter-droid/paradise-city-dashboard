@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseService";
 import { requireSuperAdmin } from "@/lib/auth";
 import { requireCsrf } from "@/lib/csrf";
+import { logAuditEvent } from "@/lib/auditLog";
 
 // Valid roles that can be assigned
 const VALID_ROLES = ["viewer", "admin", "super_admin"] as const;
@@ -95,11 +96,11 @@ export async function POST(req: NextRequest) {
 
     // 9) Log the action for audit purposes
     try {
-      await supabaseAdmin.from("admin_audit_log").insert({
-        admin_id: user.id,
-        action: "set_role",
-        target_user_id: userId,
-        details: { newRole: effectiveRole },
+      await logAuditEvent({
+        actor_user_id: user.id,
+        actor_email: user.email,
+        action: "user.role_changed",
+        meta: { targetUserId: userId, newRole: effectiveRole },
       });
     } catch (auditError) {
       // Don't fail the request if audit logging fails

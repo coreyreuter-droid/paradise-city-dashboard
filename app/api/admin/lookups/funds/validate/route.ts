@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { requireAdmin } from '@/lib/auth';
+import { requireCsrf } from '@/lib/csrf';
 import {
   ValidateLookupRequest,
   ValidateLookupResponse,
@@ -20,6 +21,9 @@ const supabaseAdmin = createClient(
 );
 
 export async function POST(req: NextRequest) {
+  const csrfError = await requireCsrf(req);
+  if (csrfError) return csrfError;
+
   try {
     // Auth check
     const auth = await requireAdmin(req);

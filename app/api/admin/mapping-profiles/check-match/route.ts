@@ -12,6 +12,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
+import { requireCsrf } from "@/lib/csrf";
 import { supabaseAdmin } from "@/lib/supabaseService";
 
 export const runtime = "nodejs";
@@ -28,6 +29,9 @@ interface MappingProfile {
 }
 
 export async function POST(req: NextRequest) {
+  const csrfError = await requireCsrf(req);
+  if (csrfError) return csrfError;
+
   const auth = await requireAdmin(req);
   if (!auth.success) return auth.error;
 

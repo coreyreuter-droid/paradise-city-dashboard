@@ -32,7 +32,7 @@ const securityHeaders = [
     key: "Content-Security-Policy",
     value: [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval'", // Next.js requires these
+      "script-src 'self' 'unsafe-inline'", // Next.js requires unsafe-inline
       "style-src 'self' 'unsafe-inline'", // Tailwind and inline styles
       "img-src 'self' data: blob: https:", // Allow images from any HTTPS source
       "font-src 'self' data:",

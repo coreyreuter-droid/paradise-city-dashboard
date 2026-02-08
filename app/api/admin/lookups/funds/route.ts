@@ -11,8 +11,10 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
+import { requireCsrf } from "@/lib/csrf";
 import { supabaseAdmin } from "@/lib/supabaseService";
 import { normalizeCode, normalizeLabel, validateLabel } from "@/lib/normalizeCode";
+import { sanitizePostgrestValue } from "@/lib/format";
 import { FundDimRow, FundByYearRow, LookupAuditLogRow } from "@/lib/lookups/types";
 
 export const runtime = "nodejs";
@@ -51,7 +53,8 @@ export async function GET(req: NextRequest) {
 
     // Search filter
     if (search) {
-      query = query.or(`fund_code.ilike.%${search}%,fund_name.ilike.%${search}%`);
+      const sanitized = sanitizePostgrestValue(search);
+      query = query.or(`fund_code.ilike.%${sanitized}%,fund_name.ilike.%${sanitized}%`);
     }
 
     const { data: funds, error } = await query;
@@ -123,6 +126,9 @@ interface CreateFundBody {
 }
 
 export async function POST(req: NextRequest) {
+  const csrfError = await requireCsrf(req);
+  if (csrfError) return csrfError;
+
   const auth = await requireAdmin(req);
   if (!auth.success) return auth.error;
 
@@ -185,7 +191,7 @@ export async function POST(req: NextRequest) {
     if (error) {
       console.error("Error creating fund:", error);
       return NextResponse.json(
-        { error: `Failed to create fund: ${error.message}` },
+        { error: "Failed to create fund" },
         { status: 500 }
       );
     }
@@ -224,6 +230,9 @@ export async function POST(req: NextRequest) {
 // ============================================================================
 
 export async function PATCH(req: NextRequest) {
+  const csrfError = await requireCsrf(req);
+  if (csrfError) return csrfError;
+
   const auth = await requireAdmin(req);
   if (!auth.success) return auth.error;
 
@@ -292,7 +301,7 @@ export async function PATCH(req: NextRequest) {
     if (error) {
       console.error("Error updating fund:", error);
       return NextResponse.json(
-        { error: `Failed to update fund: ${error.message}` },
+        { error: "Failed to update fund" },
         { status: 500 }
       );
     }

@@ -10,6 +10,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Papa from "papaparse";
 import { requireAdmin } from "@/lib/auth";
+import { requireCsrf } from "@/lib/csrf";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,6 +19,9 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB for preview
 const PREVIEW_ROWS = 5;
 
 export async function POST(req: NextRequest) {
+  const csrfError = await requireCsrf(req);
+  if (csrfError) return csrfError;
+
   const auth = await requireAdmin(req);
   if (!auth.success) return auth.error;
 

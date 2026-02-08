@@ -14,6 +14,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Papa from "papaparse";
 import { requireAdmin } from "@/lib/auth";
+import { requireCsrf } from "@/lib/csrf";
 import { supabaseAdmin } from "@/lib/supabaseService";
 import {
   DatasetType,
@@ -49,6 +50,9 @@ interface ValidateBody {
 }
 
 export async function POST(req: NextRequest) {
+  const csrfError = await requireCsrf(req);
+  if (csrfError) return csrfError;
+
   const auth = await requireAdmin(req);
   if (!auth.success) return auth.error;
 

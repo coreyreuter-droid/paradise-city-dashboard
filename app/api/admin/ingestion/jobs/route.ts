@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { waitUntil } from "@vercel/functions";
 import { requireAdmin } from "@/lib/auth";
+import { requireCsrf } from "@/lib/csrf";
 import { supabaseAdmin } from "@/lib/supabaseService";
 
 export const runtime = "nodejs";
@@ -78,6 +79,9 @@ interface StartImportBody {
 }
 
 export async function POST(req: NextRequest) {
+  const csrfError = await requireCsrf(req);
+  if (csrfError) return csrfError;
+
   const auth = await requireAdmin(req);
   if (!auth.success) return auth.error;
 
@@ -155,15 +159,9 @@ export async function POST(req: NextRequest) {
 
       const workerSecret = process.env.WORKER_SECRET;
 
-      console.log("[jobs/POST] Triggering worker...");
-      console.log("[jobs/POST] baseUrl:", baseUrl);
-      console.log("[jobs/POST] WORKER_SECRET set:", !!workerSecret);
-
       if (baseUrl && workerSecret) {
         const workerUrl = `${baseUrl}/api/worker/process-ingestion`;
         const bypassSecret = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
-        console.log("[jobs/POST] workerUrl:", workerUrl);
-        console.log("[jobs/POST] bypass secret set:", !!bypassSecret);
 
         // Use waitUntil to ensure fetch completes after response is sent
         waitUntil(
@@ -177,12 +175,8 @@ export async function POST(req: NextRequest) {
             },
             body: JSON.stringify({ job_id: body.job_id }),
           })
-            .then((res) => {
-              console.log("[jobs/POST] Worker trigger response:", res.status);
-              return res.text();
-            })
-            .then((text) => {
-              console.log("[jobs/POST] Worker response body:", text.slice(0, 200));
+            .then(() => {
+              // Worker triggered successfully
             })
             .catch((e) => {
               console.error("[jobs/POST] Worker trigger failed:", e);
