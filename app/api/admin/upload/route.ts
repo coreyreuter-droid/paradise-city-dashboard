@@ -85,9 +85,22 @@ async function autoPopulateLookups(
   records: Record<string, unknown>[],
   affectedYears: number[]
 ): Promise<void> {
-  if (records.length === 0 || affectedYears.length === 0) return;
+  console.log(`Auto-populate: Starting with ${records.length} records, years: ${affectedYears.join(", ")}`);
+  
+  // Log sample record to debug field names
+  if (records.length > 0) {
+    const sample = records[0];
+    console.log("Auto-populate: Sample record keys:", Object.keys(sample));
+    console.log("Auto-populate: Sample record:", JSON.stringify(sample).slice(0, 500));
+  }
+  
+  if (records.length === 0 || affectedYears.length === 0) {
+    console.log("Auto-populate: Skipping - no records or years");
+    return;
+  }
 
   const minYear = Math.min(...affectedYears);
+  console.log(`Auto-populate: Min year = ${minYear}`);
 
   // Extract unique department and fund entries from the uploaded records
   const departmentMap = new Map<string, string>();
@@ -100,24 +113,31 @@ async function autoPopulateLookups(
     const fundName = record.fund_name;
 
     // Collect departments (code -> name mapping)
-    if (deptCode && typeof deptCode === "string" && deptCode.trim()) {
-      const code = deptCode.trim();
-      if (!departmentMap.has(code) && deptName && typeof deptName === "string") {
-        departmentMap.set(code, deptName.trim());
+    if (deptCode && deptCode !== "" && deptName && deptName !== "") {
+      const code = String(deptCode).trim();
+      const name = String(deptName).trim();
+      if (code && name && !departmentMap.has(code)) {
+        departmentMap.set(code, name);
       }
     }
 
     // Collect funds (code -> name mapping)
-    if (fundCode && typeof fundCode === "string" && fundCode.trim()) {
-      const code = fundCode.trim();
-      if (!fundMap.has(code) && fundName && typeof fundName === "string") {
-        fundMap.set(code, fundName.trim());
+    if (fundCode && fundCode !== "" && fundName && fundName !== "") {
+      const code = String(fundCode).trim();
+      const name = String(fundName).trim();
+      if (code && name && !fundMap.has(code)) {
+        fundMap.set(code, name);
       }
     }
   }
 
+  console.log(`Auto-populate: Found ${departmentMap.size} unique departments, ${fundMap.size} unique funds`);
+
   // Insert missing departments (ignore conflicts with existing entries)
   if (departmentMap.size > 0) {
+    let insertedCount = 0;
+    let skippedCount = 0;
+    
     for (const [code, name] of departmentMap.entries()) {
       const { error } = await supabaseAdmin
         .from("departments_dim")
@@ -126,20 +146,27 @@ async function autoPopulateLookups(
           department_name: name,
           effective_start_fy: minYear,
           effective_end_fy: null,
-        })
-        .select()
-        .maybeSingle();
+        });
 
-      // Ignore unique constraint violations (entry already exists)
-      if (error && !error.message.includes("duplicate") && !error.message.includes("unique")) {
-        console.warn(`Non-fatal: Failed to auto-populate department ${code}:`, error.message);
+      if (error) {
+        // Ignore unique constraint violations (entry already exists)
+        if (error.message.includes("duplicate") || error.message.includes("unique") || error.code === "23505") {
+          skippedCount++;
+        } else {
+          console.error(`Auto-populate ERROR for department ${code}:`, error.message, error.code);
+        }
+      } else {
+        insertedCount++;
       }
     }
-    console.log(`Auto-populate: Processed ${departmentMap.size} department entries`);
+    console.log(`Auto-populate departments: ${insertedCount} inserted, ${skippedCount} skipped (already exist)`);
   }
 
   // Insert missing funds (ignore conflicts with existing entries)
   if (fundMap.size > 0) {
+    let insertedCount = 0;
+    let skippedCount = 0;
+    
     for (const [code, name] of fundMap.entries()) {
       const { error } = await supabaseAdmin
         .from("funds_dim")
@@ -148,26 +175,33 @@ async function autoPopulateLookups(
           fund_name: name,
           effective_start_fy: minYear,
           effective_end_fy: null,
-        })
-        .select()
-        .maybeSingle();
+        });
 
-      // Ignore unique constraint violations (entry already exists)
-      if (error && !error.message.includes("duplicate") && !error.message.includes("unique")) {
-        console.warn(`Non-fatal: Failed to auto-populate fund ${code}:`, error.message);
+      if (error) {
+        // Ignore unique constraint violations (entry already exists)
+        if (error.message.includes("duplicate") || error.message.includes("unique") || error.code === "23505") {
+          skippedCount++;
+        } else {
+          console.error(`Auto-populate ERROR for fund ${code}:`, error.message, error.code);
+        }
+      } else {
+        insertedCount++;
       }
     }
-    console.log(`Auto-populate: Processed ${fundMap.size} fund entries`);
+    console.log(`Auto-populate funds: ${insertedCount} inserted, ${skippedCount} skipped (already exist)`);
   }
 
   // Refresh the by-year lookup tables so views can resolve names
   if (departmentMap.size > 0 || fundMap.size > 0) {
+    console.log("Auto-populate: Calling refresh_lookup_by_year_tables()...");
     const { error: refreshError } = await supabaseAdmin.rpc("refresh_lookup_by_year_tables");
     if (refreshError) {
-      console.warn("Non-fatal: Failed to refresh by-year lookup tables:", refreshError.message);
+      console.error("Auto-populate ERROR: Failed to refresh by-year lookup tables:", refreshError.message, refreshError.code, refreshError.details);
     } else {
-      console.log("Auto-populate: Refreshed by-year lookup tables");
+      console.log("Auto-populate: Successfully refreshed by-year lookup tables");
     }
+  } else {
+    console.log("Auto-populate: No new departments or funds to add");
   }
 }
 
