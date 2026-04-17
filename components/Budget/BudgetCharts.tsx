@@ -3,6 +3,7 @@
 
 import React, { useMemo, useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   BarChart,
   Bar,
@@ -14,6 +15,7 @@ import {
   Cell,
 } from "recharts";
 import { formatCurrency, formatPercent, formatAxisCurrency } from "@/lib/format";
+import { cityHref } from "@/lib/cityRouting";
 
 export type DepartmentSummary = {
   department_name: string;
@@ -40,6 +42,15 @@ export default function BudgetCharts({
   layout = "two-column",
   viewAllHref,
 }: Props) {
+  const router = useRouter();
+
+  // Handle clicking a department bar to drill into its detail
+  const handleBarClick = (data: { name?: string }) => {
+    if (!data?.name) return;
+    const encoded = encodeURIComponent(data.name);
+    router.push(`${cityHref(`/departments/${encoded}`)}?year=${year}`);
+  };
+
   // WCAG 2.1 AA: Respect reduced motion preference
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   useEffect(() => {
@@ -178,6 +189,7 @@ export default function BudgetCharts({
           id="dept-spend-chart-desc"
           className="text-xs text-slate-600"
         >
+          Click any department bar to explore its budget detail.
         </p>
       </header>
 
@@ -193,6 +205,12 @@ export default function BudgetCharts({
             barCategoryGap={16}
             barGap={2}
             barSize={10}
+            onClick={(state) => {
+              if (state?.activeLabel) {
+                handleBarClick({ name: state.activeLabel });
+              }
+            }}
+            style={{ cursor: "pointer" }}
           >
             
             <CartesianGrid strokeDasharray="3 3" horizontal={false} />
@@ -240,6 +258,7 @@ export default function BudgetCharts({
               isAnimationActive={!prefersReducedMotion}
               animationDuration={800}
               animationEasing="ease-out"
+              cursor="pointer"
             >
               {chartData.map((entry, index) => (
                 <Cell
@@ -257,6 +276,7 @@ export default function BudgetCharts({
               isAnimationActive={!prefersReducedMotion}
               animationDuration={800}
               animationEasing="ease-out"
+              cursor="pointer"
             >
               {chartData.map((entry, index) => {
                 const pct = entry.PercentSpent;

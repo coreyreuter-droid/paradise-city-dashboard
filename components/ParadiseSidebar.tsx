@@ -10,11 +10,10 @@ import { CITY_SLUG, cityHref } from "@/lib/cityRouting";
 
 const navItems = [
   { path: "/", label: "Home" },
-  { path: "/overview", label: "Overview" },
-  { path: "/analytics", label: "Analytics" },
+  { path: "/overview", label: "Dashboard" },
   { path: "/budget", label: "Budget" },
-  { path: "/departments", label: "Departments" },
-  { path: "/revenues", label: "Revenues" },
+  { path: "/departments", label: "Spending" },
+  { path: "/revenues", label: "Revenue" },
   { path: "/projects", label: "Projects" },
   { path: "/transactions", label: "Transactions" },
   { path: "/vendors", label: "Vendors" },
@@ -210,8 +209,7 @@ export default function ParadiseSidebar({
               {navItems.map((item) => {
                 // Strict feature gating on nav visibility
                 if (
-                  (item.path === "/analytics" ||
-                    item.path === "/departments") &&
+                  item.path === "/departments" &&
                   !enableActuals
                 ) {
                   return null;
@@ -336,8 +334,7 @@ export default function ParadiseSidebar({
               {navItems.map((item) => {
                 // Strict feature gating on nav visibility
                 if (
-                  (item.path === "/analytics" ||
-                    item.path === "/departments") &&
+                  item.path === "/departments" &&
                   !enableActuals
                 ) {
                   return null;

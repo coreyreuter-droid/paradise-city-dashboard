@@ -1242,6 +1242,251 @@ export async function getBrandingActivityLogs(): Promise<UnifiedActivityLog[]> {
   }));
 }
 
+/* =========================
+   Fund-level queries (drill-through)
+========================= */
+
+export type BudgetActualsYearFundRow = {
+  fiscal_year: number;
+  fund_code: string | null;
+  fund_name: string;
+  budget_amount: number;
+  actual_amount: number;
+};
+
+export async function getBudgetActualsByFundForYear(
+  fiscalYear: number
+): Promise<BudgetActualsYearFundRow[]> {
+  const { data, error } = await supabase
+    .from("v_budget_actuals_year_fund")
+    .select("*")
+    .eq("fiscal_year", fiscalYear)
+    .order("budget_amount", { ascending: false });
+
+  if (error) {
+    console.error("getBudgetActualsByFundForYear error:", error);
+    return [];
+  }
+  return (data ?? []) as BudgetActualsYearFundRow[];
+}
+
+export type BudgetActualsYearFundDeptRow = {
+  fiscal_year: number;
+  fund_code: string | null;
+  fund_name: string;
+  department_code: string | null;
+  department_name: string;
+  budget_amount: number;
+  actual_amount: number;
+};
+
+export async function getBudgetActualsByFundDeptForYear(
+  fiscalYear: number
+): Promise<BudgetActualsYearFundDeptRow[]> {
+  const { data, error } = await supabase
+    .from("v_budget_actuals_year_fund_department")
+    .select("*")
+    .eq("fiscal_year", fiscalYear)
+    .order("budget_amount", { ascending: false });
+
+  if (error) {
+    console.error("getBudgetActualsByFundDeptForYear error:", error);
+    return [];
+  }
+  return (data ?? []) as BudgetActualsYearFundDeptRow[];
+}
+
+export async function getBudgetActualsByFundDeptForFund(
+  fiscalYear: number,
+  fundName: string
+): Promise<BudgetActualsYearFundDeptRow[]> {
+  const { data, error } = await supabase
+    .from("v_budget_actuals_year_fund_department")
+    .select("*")
+    .eq("fiscal_year", fiscalYear)
+    .eq("fund_name", fundName)
+    .order("budget_amount", { ascending: false });
+
+  if (error) {
+    console.error("getBudgetActualsByFundDeptForFund error:", error);
+    return [];
+  }
+  return (data ?? []) as BudgetActualsYearFundDeptRow[];
+}
+
+/* =========================
+   Year-scoping queries (per-dataset)
+========================= */
+
+export async function getBudgetOnlyYears(): Promise<number[]> {
+  const { data, error } = await supabase
+    .from("budgets")
+    .select("fiscal_year")
+    .order("fiscal_year", { ascending: false });
+
+  if (error) {
+    console.error("getBudgetOnlyYears error:", error);
+    return [];
+  }
+
+  const years = new Set<number>();
+  ((data ?? []) as { fiscal_year: number }[]).forEach((r) =>
+    years.add(Number(r.fiscal_year))
+  );
+  return Array.from(years).filter((y) => Number.isFinite(y)).sort((a, b) => b - a);
+}
+
+export async function getActualOnlyYears(): Promise<number[]> {
+  const { data, error } = await supabase
+    .from("actuals")
+    .select("fiscal_year")
+    .order("fiscal_year", { ascending: false });
+
+  if (error) {
+    console.error("getActualOnlyYears error:", error);
+    return [];
+  }
+
+  const years = new Set<number>();
+  ((data ?? []) as { fiscal_year: number }[]).forEach((r) =>
+    years.add(Number(r.fiscal_year))
+  );
+  return Array.from(years).filter((y) => Number.isFinite(y)).sort((a, b) => b - a);
+}
+
+/** Returns only fiscal years that have BOTH budget and actuals data */
+export async function getBudgetVsActualYears(): Promise<number[]> {
+  const [budgetYears, actualYears] = await Promise.all([
+    getBudgetOnlyYears(),
+    getActualOnlyYears(),
+  ]);
+
+  const actualSet = new Set(actualYears);
+  return budgetYears.filter((y) => actualSet.has(y));
+}
+
+/* =========================
+   Category / account drill-through
+========================= */
+
+export type CategorySummary = {
+  category: string;
+  budget_total: number;
+  actual_total: number;
+};
+
+export async function getCategorySummaryForDeptFundYear(
+  fiscalYear: number,
+  departmentName: string,
+  fundName?: string
+): Promise<CategorySummary[]> {
+  // Get budget by category
+  let budgetQuery = supabase
+    .from("budgets")
+    .select("category, amount")
+    .eq("fiscal_year", fiscalYear)
+    .eq("department_name", departmentName);
+
+  if (fundName) {
+    budgetQuery = budgetQuery.eq("fund_name", fundName);
+  }
+
+  let actualQuery = supabase
+    .from("actuals")
+    .select("category, amount")
+    .eq("fiscal_year", fiscalYear)
+    .eq("department_name", departmentName);
+
+  if (fundName) {
+    actualQuery = actualQuery.eq("fund_name", fundName);
+  }
+
+  const [budgetResult, actualResult] = await Promise.all([
+    budgetQuery,
+    actualQuery,
+  ]);
+
+  if (budgetResult.error) {
+    console.error("getCategorySummary budget error:", budgetResult.error);
+  }
+  if (actualResult.error) {
+    console.error("getCategorySummary actual error:", actualResult.error);
+  }
+
+  const catMap = new Map<string, { budget: number; actual: number }>();
+
+  for (const row of budgetResult.data ?? []) {
+    const cat = (row as { category: string | null; amount: number }).category || "Uncategorized";
+    const amt = Number((row as { amount: number }).amount || 0);
+    const existing = catMap.get(cat) || { budget: 0, actual: 0 };
+    existing.budget += amt;
+    catMap.set(cat, existing);
+  }
+
+  for (const row of actualResult.data ?? []) {
+    const cat = (row as { category: string | null; amount: number }).category || "Uncategorized";
+    const amt = Number((row as { amount: number }).amount || 0);
+    const existing = catMap.get(cat) || { budget: 0, actual: 0 };
+    existing.actual += amt;
+    catMap.set(cat, existing);
+  }
+
+  return Array.from(catMap.entries())
+    .map(([category, totals]) => ({
+      category,
+      budget_total: totals.budget,
+      actual_total: totals.actual,
+    }))
+    .sort((a, b) => b.budget_total - a.budget_total);
+}
+
+export type VendorSummaryForDrill = {
+  vendor: string;
+  total_amount: number;
+  txn_count: number;
+};
+
+export async function getVendorSummaryForDeptYear(
+  fiscalYear: number,
+  departmentName: string,
+  fundName?: string
+): Promise<VendorSummaryForDrill[]> {
+  let query = supabase
+    .from("transactions")
+    .select("vendor, amount")
+    .eq("fiscal_year", fiscalYear)
+    .eq("department_name", departmentName);
+
+  if (fundName) {
+    query = query.eq("fund_name", fundName);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    console.error("getVendorSummaryForDeptYear error:", error);
+    return [];
+  }
+
+  const vendorMap = new Map<string, { total: number; count: number }>();
+  for (const row of data ?? []) {
+    const v = (row as { vendor: string | null }).vendor?.trim() || "Unspecified";
+    const amt = Number((row as { amount: number }).amount || 0);
+    const existing = vendorMap.get(v) || { total: 0, count: 0 };
+    existing.total += amt;
+    existing.count += 1;
+    vendorMap.set(v, existing);
+  }
+
+  return Array.from(vendorMap.entries())
+    .map(([vendor, totals]) => ({
+      vendor,
+      total_amount: totals.total,
+      txn_count: totals.count,
+    }))
+    .sort((a, b) => b.total_amount - a.total_amount);
+}
+
 function formatBrandingDescription(log: AdminAuditLogRow): string {
   const meta = log.meta || {};
   

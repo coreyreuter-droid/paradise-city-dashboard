@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import CardContainer from "@/components/CardContainer";
 import BudgetCharts from "@/components/Budget/BudgetCharts";
+import BudgetExplorer from "@/components/Budget/BudgetExplorer";
 import type { DepartmentSummary } from "@/components/Budget/BudgetClient";
 import SectionHeader from "@/components/SectionHeader";
 import ParadiseHomeKpiStrip from "@/components/City/HomeKpiStrip";
@@ -21,6 +22,8 @@ import type {
   PortalSettings,
   VendorYearSummary,
   BudgetActualsYearDeptRow,
+  BudgetActualsYearFundRow,
+  BudgetActualsYearFundDeptRow,
 } from "@/lib/queries";
 import type { TransactionRow, RevenueRow } from "@/lib/types";
 import type { Insight } from "@/lib/insights";
@@ -62,6 +65,9 @@ type Props = {
   revenueTotal?: number | null;
   dataFreshness?: DataFreshnessSummary;
   insights?: Insight[];
+  fundSummary?: BudgetActualsYearFundRow[];
+  fundDeptSummary?: BudgetActualsYearFundDeptRow[];
+  population?: number | null;
 };
 
 function formatFreshnessDate(iso: string | null): string | null {
@@ -87,6 +93,9 @@ export default function ParadiseHomeClient({
   revenueTotal,
   dataFreshness,
   insights = [],
+  fundSummary = [],
+  fundDeptSummary = [],
+  population,
 }: Props) {
   const searchParams = useSearchParams();
 
@@ -569,68 +578,55 @@ className="inline-flex items-center justify-center rounded-full px-3 py-1.5 text
             </CardContainer>
           )}
 
-          {/* Budget vs actuals & multi-year */}
+          {/* Interactive Budget Explorer with drill-through */}
           {enableActuals && (
-            <div className="grid gap-6 lg:grid-cols-[2fr,1.3fr]">
-              <CardContainer>
-                <section
-                  aria-label="Budget vs Actuals by Department"
-                  className="space-y-3"
-                >
+            <CardContainer>
+              <BudgetExplorer
+                fiscalYear={selectedYear ?? new Date().getFullYear()}
+                deptSummary={deptBudgetActuals}
+                fundSummary={fundSummary}
+                fundDeptSummary={fundDeptSummary}
+                population={population}
+                accentColor={accentColor}
+                hasActuals={true}
+                enableTransactions={enableTransactions}
+              />
+            </CardContainer>
+          )}
+
+          {/* Multi-year trend */}
+          {enableActuals && yearTotals.length > 1 && (
+            <CardContainer>
+              <section
+                aria-labelledby="home-multiyear-heading"
+                className="space-y-2"
+              >
+                <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
                   <div>
-                    <h2 className="text-sm font-semibold tracking-tight text-slate-900 sm:text-base">
-                      Budget vs Actuals by Department
+                    <h2
+                      id="home-multiyear-heading"
+                      className="text-sm font-semibold tracking-tight text-slate-900 sm:text-base"
+                    >
+                      Budget &amp; Spending Over Time
                     </h2>
                     <p className="text-sm text-slate-700">
-                      Showing {departmentsForYear.length} departments by budget and their corresponding
-                      spending for{" "}
-                      {yearLabel ?? "the selected year"}
-                      .
+                      Compare adopted budgets and actual spending across
+                      multiple fiscal years.
                     </p>
                   </div>
-
-                  <BudgetCharts
-                    year={selectedYear ?? new Date().getFullYear()}
-                    departments={departmentsForYear}
-                    layout="stacked"
-                    viewAllHref={cityHref("/departments")}
-                  />
-                </section>
-              </CardContainer>
-
-              <CardContainer>
-                <section
-                  aria-labelledby="home-multiyear-heading"
-                  className="space-y-2"
-                >
-                  <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-                    <div>
-                      <h2
-                        id="home-multiyear-heading"
-                        className="text-sm font-semibold tracking-tight text-slate-900 sm:text-base"
-                      >
-                        Budget &amp; Spending Over Time
-                      </h2>
-                      <p className="text-sm text-slate-700">
-                        Compare adopted budgets and actual spending across
-                        multiple fiscal years.
-                      </p>
-                    </div>
-                    <div className="text-xs text-slate-700">
-                      Showing{" "}
-                      <span className="font-semibold">
-                        {yearTotals.length}{" "}
-                        {yearTotals.length === 1 ? "year" : "years"}
-                      </span>
-
-                      .
-                    </div>
+                  <div className="text-xs text-slate-700">
+                    Showing{" "}
+                    <span className="font-semibold">
+                      {yearTotals.length}{" "}
+                      {yearTotals.length === 1 ? "year" : "years"}
+                    </span>
+                    .
                   </div>
+                </div>
 
-                  <ParadiseHomeMultiYearChart yearTotals={yearTotals} />
-                </section>
-              </CardContainer>
-            </div>
+                <ParadiseHomeMultiYearChart yearTotals={yearTotals} />
+              </section>
+            </CardContainer>
           )}
 
           {/* Departments & vendors/transactions */}

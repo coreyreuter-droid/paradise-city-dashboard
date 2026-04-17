@@ -5,6 +5,8 @@ import {
   getPortalFiscalYears,
   getBudgetActualsSummaryForYear,
   getBudgetActualsYearTotals,
+  getBudgetActualsByFundForYear,
+  getBudgetActualsByFundDeptForYear,
   getRevenuesForYear,
   getDataUploadLogs,
   getVendorSummariesForYear,
@@ -15,6 +17,8 @@ import type { TransactionRow, RevenueRow } from "@/lib/types";
 import type {
   VendorYearSummary,
   BudgetActualsYearDeptRow,
+  BudgetActualsYearFundRow,
+  BudgetActualsYearFundDeptRow,
   DataUploadLogRow,
 } from "@/lib/queries";
 
@@ -76,20 +80,26 @@ export default async function CityOverviewPage({ searchParams }: PageProps) {
   let vendorSummaries: VendorYearSummary[] = [];
   let revenues: RevenueRow[] = [];
   let revenueTotal: number | null = null;
+  let fundSummary: BudgetActualsYearFundRow[] = [];
+  let fundDeptSummary: BudgetActualsYearFundDeptRow[] = [];
 
   if (selectedYear !== undefined) {
     const enableTransactions = settings?.enable_transactions === true;
     const enableVendors = enableTransactions && settings?.enable_vendors === true;
     const enableRevenues = settings?.enable_revenues === true;
 
-    const [deptRows, recentTxRaw, vendorRaw, revenuesRaw] = await Promise.all([
+    const [deptRows, fundRows, fundDeptRows, recentTxRaw, vendorRaw, revenuesRaw] = await Promise.all([
       getBudgetActualsSummaryForYear(selectedYear),
+      getBudgetActualsByFundForYear(selectedYear),
+      getBudgetActualsByFundDeptForYear(selectedYear),
       enableTransactions ? getRecentTransactionsForYear(selectedYear, 20) : Promise.resolve([]),
       enableVendors ? getVendorSummariesForYear(selectedYear, { limit: 500 }) : Promise.resolve([]),
       enableRevenues ? getRevenuesForYear(selectedYear) : Promise.resolve([]),
     ]);
 
     deptBudgetActuals = (deptRows ?? []) as BudgetActualsYearDeptRow[];
+    fundSummary = (fundRows ?? []) as BudgetActualsYearFundRow[];
+    fundDeptSummary = (fundDeptRows ?? []) as BudgetActualsYearFundDeptRow[];
     recentTransactions = (recentTxRaw ?? []) as TransactionRow[];
     vendorSummaries = (vendorRaw ?? []) as VendorYearSummary[];
 
@@ -161,6 +171,16 @@ export default async function CityOverviewPage({ searchParams }: PageProps) {
 
   const insights = calculateInsights({ departments });
 
+  // Parse population for per-capita display
+  const populationRaw = settings?.stat_population;
+  let population: number | null = null;
+  if (populationRaw) {
+    const parsed = Number(populationRaw.replace(/[^0-9]/g, ""));
+    if (Number.isFinite(parsed) && parsed > 0) {
+      population = parsed;
+    }
+  }
+
   return (
     <ParadiseHomeClient
       deptBudgetActuals={deptBudgetActuals}
@@ -173,6 +193,9 @@ export default async function CityOverviewPage({ searchParams }: PageProps) {
       revenueTotal={revenueTotal}
       dataFreshness={dataFreshness}
       insights={insights}
+      fundSummary={fundSummary}
+      fundDeptSummary={fundDeptSummary}
+      population={population}
     />
   );
 }
