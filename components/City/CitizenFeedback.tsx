@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { usePathname } from "next/navigation";
-import { createClient } from "@/lib/supabaseClient";
+import { supabase } from "@/lib/supabase";
 
 type Props = {
   cityName?: string;
@@ -22,7 +22,7 @@ export default function CitizenFeedback({ cityName = "the city" }: Props) {
 
     setStatus("submitting");
     try {
-      const supabase = createClient();
+      
       const { error } = await supabase.from("citizen_feedback").insert({
         page_path: pathname,
         name: name.trim() || null,

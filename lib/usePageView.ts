@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
-import { createClient } from "@/lib/supabaseClient";
+import { supabase } from "@/lib/supabase";
 
 /**
  * Logs page views to Supabase. No PII — just path + timestamp + session ID.
@@ -26,7 +26,7 @@ export function usePageView() {
 
     const timer = setTimeout(async () => {
       try {
-        const supabase = createClient();
+        
         await supabase.from("page_views").insert({
           page_path: pathname,
           page_title: typeof document !== "undefined" ? document.title : null,

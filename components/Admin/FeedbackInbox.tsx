@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { createClient } from "@/lib/supabaseClient";
+import { supabase } from "@/lib/supabase";
 import type { CitizenFeedbackRow } from "@/lib/queries";
 
 type Props = {
@@ -23,7 +23,7 @@ export default function FeedbackInbox({ feedback: initialFeedback }: Props) {
 
   const updateStatus = async (id: string, newStatus: string) => {
     try {
-      const supabase = createClient();
+      
       await supabase
         .from("citizen_feedback")
         .update({ status: newStatus })
