@@ -29,26 +29,17 @@ export default async function ProjectDetailPage({ params }: PageProps) {
 
   const portalSettings = settings as PortalSettings | null;
 
-  // Check if portal is published
   if (portalSettings && portalSettings.is_published === false) {
     return <UnpublishedMessage settings={portalSettings} />;
   }
 
-  // Check if projects feature is enabled
   if (!portalSettings?.enable_projects) {
     notFound();
   }
 
-  // Check if project exists
   if (!project) {
     notFound();
   }
 
-  return (
-    <div className="min-h-screen">
-      <div className="mx-auto max-w-6xl px-4 py-8">
-        <ProjectDetail project={project} />
-      </div>
-    </div>
-  );
+  return <ProjectDetail project={project} />;
 }
