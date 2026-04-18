@@ -25,6 +25,7 @@ type PortalSettingsRow = {
   accent_color: string | null;
   background_color: string | null;
   logo_url: string | null;
+  seal_url: string | null;
 
   is_published: boolean;
   enable_actuals: boolean;
@@ -40,7 +41,7 @@ async function getPortalSettings(): Promise<PortalSettingsRow | null> {
     const { data, error } = await supabaseAdmin
       .from("portal_settings")
       .select(
-        "city_name, tagline, primary_color, accent_color, background_color, logo_url, is_published, enable_actuals, enable_transactions, enable_vendors, enable_revenues, enable_projects"
+        "city_name, tagline, primary_color, accent_color, background_color, logo_url, seal_url, is_published, enable_actuals, enable_transactions, enable_vendors, enable_revenues, enable_projects"
       )
       .eq("id", 1)
       .maybeSingle();
