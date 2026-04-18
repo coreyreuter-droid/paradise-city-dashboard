@@ -129,7 +129,7 @@ export default function CitizenFeedback({ cityName = "the city" }: Props) {
           />
         </div>
         <div className="flex items-center justify-between">
-          <p className="text-[10px] text-slate-400">
+          <p className="text-[11px] text-slate-500">
             We do not share your information with third parties.
           </p>
           <button

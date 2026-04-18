@@ -9,6 +9,7 @@ import {
   getDepartmentTransactionSummariesForYear,
   getPortalSettings,
   getDataUploadLogs,
+  getAdoptedVsAmendedForYear,
 } from "@/lib/queries";
 import type { PortalSettings, DepartmentYearTxSummary, BudgetActualsYearDeptRow, DataUploadLogRow } from "@/lib/queries";
 
@@ -82,15 +83,29 @@ export default async function DepartmentsPage({ searchParams }: PageProps) {
   let txSummaries: DepartmentYearTxSummary[] = [];
 
   if (selectedYear != null) {
-    const [deptRows, txSummariesRaw] = await Promise.all([
+    const [deptRows, txSummariesRaw, amendedRows] = await Promise.all([
       getBudgetActualsSummaryForYear(selectedYear),
       enableTransactions
         ? getDepartmentTransactionSummariesForYear(selectedYear)
         : Promise.resolve([]),
+      getAdoptedVsAmendedForYear(selectedYear),
     ]);
 
     deptBudgetActuals = (deptRows ?? []) as BudgetActualsYearDeptRow[];
     txSummaries = (txSummariesRaw ?? []) as DepartmentYearTxSummary[];
+
+    // If amended data exists, use amended amounts instead of adopted
+    const amended = (amendedRows ?? []).filter((r) => Number(r.amended_amount || 0) > 0);
+    if (amended.length > 0) {
+      const amendedMap = new Map(amended.map((r) => [r.department_name, Number(r.amended_amount)]));
+      deptBudgetActuals = deptBudgetActuals.map((row) => {
+        const amendedAmt = amendedMap.get(row.department_name ?? "");
+        if (amendedAmt != null) {
+          return { ...row, budget_amount: amendedAmt };
+        }
+        return row;
+      });
+    }
   }
 
   return (

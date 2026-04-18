@@ -245,7 +245,7 @@ export default function RevenuesDashboardClient({
       {/* KPI cards */}
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:gap-3">
         <div className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
             <FinanceTooltip term="revenue">Total revenue</FinanceTooltip>
           </p>
           <p className="mt-0.5 text-lg font-semibold text-slate-900">
@@ -258,18 +258,18 @@ export default function RevenuesDashboardClient({
           )}
         </div>
         <div className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Sources</p>
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Sources</p>
           <p className="mt-0.5 text-lg font-semibold text-slate-900">{totalSources}</p>
         </div>
         <div className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Top source</p>
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Top source</p>
           <p className="mt-0.5 text-sm font-semibold text-slate-900 truncate">{topSource ?? "—"}</p>
           {sourceRows[0] && (
             <p className="mt-0.5 text-[11px] text-slate-500">{formatCurrency(sourceRows[0].total)}</p>
           )}
         </div>
         <div className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Fiscal year</p>
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Fiscal year</p>
           <p className="mt-0.5 text-lg font-semibold text-slate-900">{yearLabel ?? "—"}</p>
         </div>
       </div>

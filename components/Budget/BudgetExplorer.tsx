@@ -119,7 +119,7 @@ function KpiStrip({
   return (
     <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:gap-3" role="group" aria-label="Key financial indicators">
       <div className="rounded-xl bg-slate-50 px-3 py-2.5">
-        <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+        <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
           Total budget
         </p>
         <p className="mt-0.5 text-base font-semibold text-slate-900 sm:text-lg">
@@ -135,7 +135,7 @@ function KpiStrip({
       {hasActuals && (
         <>
           <div className="rounded-xl bg-slate-50 px-3 py-2.5">
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
               Spent to date
             </p>
             <p className="mt-0.5 text-base font-semibold text-slate-900 sm:text-lg">
@@ -147,7 +147,7 @@ function KpiStrip({
           </div>
 
           <div className="rounded-xl bg-slate-50 px-3 py-2.5">
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
               {isUnder ? "Remaining" : "Over budget"}
             </p>
             <p
@@ -166,7 +166,7 @@ function KpiStrip({
 
       {population && population > 0 && (
         <div className="rounded-xl bg-slate-50 px-3 py-2.5">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
             Per resident
           </p>
           <p className="mt-0.5 text-base font-semibold text-slate-900 sm:text-lg">

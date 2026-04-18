@@ -162,7 +162,7 @@ export default function TaxpayerReceipt({
             Estimated property value
           </label>
           <div className="relative mt-1">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">$</span>
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-500">$</span>
             <input
               id="property-value"
               type="text"
@@ -255,7 +255,7 @@ export default function TaxpayerReceipt({
             ))}
           </div>
 
-          <p className="text-[11px] text-slate-400">
+          <p className="text-[11px] text-slate-500">
             This is an estimate based on the city&apos;s adopted budget allocation. Your actual
             tax contribution may vary based on exemptions, special assessments, and other factors.
             This tool is for informational purposes only.

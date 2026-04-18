@@ -563,28 +563,28 @@ const byYear = new Map<
         {/* KPI cards */}
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:gap-3">
           <div className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md">
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
               <FinanceTooltip term="adopted budget">Budget</FinanceTooltip>
             </p>
             <p className="mt-0.5 text-lg font-semibold text-slate-900">{formatCurrency(selectedYearTotals.budget)}</p>
             <p className="mt-0.5 text-[11px] text-slate-500">FY {selectedYear ?? "–"}</p>
           </div>
           <div className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md">
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
               <FinanceTooltip term="actuals">Spent</FinanceTooltip>
             </p>
             <p className="mt-0.5 text-lg font-semibold text-slate-900">{formatCurrency(selectedYearTotals.actuals)}</p>
             <p className="mt-0.5 text-[11px] text-slate-500">{formatPercent(selectedYearTotals.percentSpent, 1)} of budget</p>
           </div>
           <div className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md">
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
               <FinanceTooltip term="variance">{isUnderBudget ? "Remaining" : "Over budget"}</FinanceTooltip>
             </p>
             <p className={`mt-0.5 text-lg font-semibold ${isUnderBudget ? "text-emerald-700" : "text-red-700"}`}>{formatCurrency(Math.abs(selectedYearTotals.variance))}</p>
             <p className="mt-0.5 text-[11px] text-slate-500">{isUnderBudget ? "Under plan" : "Above plan"}</p>
           </div>
           <div className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md">
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Transactions</p>
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Transactions</p>
             <p className="mt-0.5 text-lg font-semibold text-slate-900">{deptTxForYear.length.toLocaleString("en-US")}</p>
             <p className="mt-0.5 text-[11px] text-slate-500">FY {selectedYear ?? "–"}</p>
           </div>
@@ -681,7 +681,7 @@ const byYear = new Map<
           <div ref={vendorModalRef} className="relative flex h-full w-full max-w-md flex-col bg-white shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="vendor-detail-heading">
             <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Vendor detail</p>
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Vendor detail</p>
                 <h2 id="vendor-detail-heading" className="text-sm font-semibold text-slate-900">{activeVendor}</h2>
                 <p className="mt-0.5 text-sm text-slate-600">{displayName} — FY {selectedYear ?? "–"}</p>
               </div>
@@ -689,7 +689,7 @@ const byYear = new Map<
             </div>
             <div className="flex-1 space-y-3 overflow-auto px-4 py-3">
               <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Total with this vendor</p>
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Total with this vendor</p>
                 <p className="mt-0.5 text-lg font-semibold text-slate-900">{formatCurrency(vendorTotal)}</p>
                 <p className="mt-0.5 text-[11px] text-slate-500">{activeVendorTx.length.toLocaleString()} transaction{activeVendorTx.length === 1 ? "" : "s"}</p>
               </div>

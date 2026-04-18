@@ -28,7 +28,7 @@ function YoyBadge({ current, prior }: { current: number; prior: number | null | 
 
   return (
     <span
-      className={`inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${
+      className={`inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[11px] font-semibold ${
         isUp
           ? "bg-amber-50 text-amber-700"
           : "bg-emerald-50 text-emerald-700"
@@ -102,7 +102,7 @@ export default function ParadiseHomeKpiStrip({
           className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md"
           style={safeAccent ? { borderLeftWidth: "3px", borderLeftColor: safeAccent, borderRadius: "12px" } : undefined}
         >
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
             <FinanceTooltip term="adopted budget">Adopted budget</FinanceTooltip>
           </p>
           <p className="mt-1 text-lg font-semibold text-slate-900">
@@ -124,7 +124,7 @@ export default function ParadiseHomeKpiStrip({
 
         {/* Posted spending */}
         <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
             <FinanceTooltip term="actuals">Spent to date</FinanceTooltip>
           </p>
           <p className="mt-1 text-lg font-semibold text-slate-900">
@@ -146,7 +146,7 @@ export default function ParadiseHomeKpiStrip({
 
         {/* Budget remaining */}
         <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
             <FinanceTooltip term="variance">
               {isUnderBudget ? "Budget remaining" : "Over budget"}
             </FinanceTooltip>
@@ -174,7 +174,7 @@ export default function ParadiseHomeKpiStrip({
 
         {/* Execution & activity */}
         <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
             <FinanceTooltip term="budget execution">Execution</FinanceTooltip>
           </p>
           <p className="mt-1 text-lg font-semibold text-slate-900">

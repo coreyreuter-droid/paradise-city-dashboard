@@ -115,7 +115,7 @@ export default function WhatChanged({
           {/* Increases */}
           {changes.increases.length > 0 && (
             <div className="rounded-xl border border-amber-200 bg-amber-50/50 px-4 py-3">
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-amber-700">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-amber-700">
                 Largest budget increases
               </p>
               <div className="mt-2 space-y-2">
@@ -145,7 +145,7 @@ export default function WhatChanged({
           {/* Decreases */}
           {changes.decreases.length > 0 && (
             <div className="rounded-xl border border-emerald-200 bg-emerald-50/50 px-4 py-3">
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-emerald-700">
                 Largest budget decreases
               </p>
               <div className="mt-2 space-y-2">

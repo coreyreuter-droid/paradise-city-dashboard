@@ -229,7 +229,7 @@ export default function BudgetPageClient({
             role="tab"
           >
             Budget vs actuals
-            <span className="ml-1.5 inline-flex items-center rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600">
+            <span className="ml-1.5 inline-flex items-center rounded-full bg-slate-100 px-1.5 py-0.5 text-[11px] font-semibold text-slate-600">
               {bvaYears.length} {bvaYears.length === 1 ? "year" : "years"}
             </span>
             {activeTab === "bva" && (

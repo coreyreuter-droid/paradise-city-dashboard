@@ -3,19 +3,17 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import UnpublishedMessage from "@/components/City/UnpublishedMessage";
 import SectionHeader from "@/components/SectionHeader";
-import CardContainer from "@/components/CardContainer";
 import ProjectsGrid from "@/components/Projects/ProjectsGrid";
 import {
   getPortalSettings,
   getPublishedProjects,
 } from "@/lib/queries";
 import type { PortalSettings } from "@/lib/queries";
-import { formatCurrency, formatDate } from "@/lib/format";
 import { cityHref } from "@/lib/cityRouting";
 
 export const revalidate = 60;
 
-type SearchParamsShape = { status?: string | string[] };
+type SearchParamsShape = { status?: string | string[]; year?: string | string[] };
 type PageProps = {
   params: { citySlug: string };
   searchParams: SearchParamsShape | Promise<SearchParamsShape>;
@@ -31,6 +29,7 @@ export default async function ProjectsPage({ params, searchParams }: PageProps) 
   const { citySlug } = await params;
   const sp = await searchParams;
   const statusFilter = pickFirst(sp.status);
+  const yearFilter = pickFirst(sp.year);
 
   const [settings, projects] = await Promise.all([
     getPortalSettings(),
@@ -47,15 +46,46 @@ export default async function ProjectsPage({ params, searchParams }: PageProps) 
     notFound();
   }
 
-  const filteredProjects = statusFilter
-    ? projects.filter((p) => p.status === statusFilter)
-    : projects;
-
   const cityName = portalSettings?.city_name ?? "our community";
+
+  // Extract completion years for filter
+  const completionYears = [...new Set(
+    projects
+      .map((p) => {
+        const d = p.actual_completion_date || p.estimated_completion_date;
+        return d ? new Date(d).getFullYear() : null;
+      })
+      .filter((y): y is number => y !== null)
+  )].sort((a, b) => b - a);
+
+  // Apply filters
+  let filtered = projects;
+  if (statusFilter) {
+    filtered = filtered.filter((p) => p.status === statusFilter);
+  }
+  if (yearFilter) {
+    const yr = Number(yearFilter);
+    if (Number.isFinite(yr)) {
+      filtered = filtered.filter((p) => {
+        const d = p.actual_completion_date || p.estimated_completion_date;
+        return d && new Date(d).getFullYear() === yr;
+      });
+    }
+  }
+
   const plannedCount = projects.filter((p) => p.status === "planned").length;
   const inProgressCount = projects.filter((p) => p.status === "in_progress").length;
   const completedCount = projects.filter((p) => p.status === "completed").length;
-  const totalInvestment = projects.reduce((s, p) => s + (p.estimated_cost || 0), 0);
+
+  // Build filter URL helper
+  function filterUrl(params: { status?: string | null; year?: string | null }) {
+    const parts: string[] = [];
+    const s = params.status !== undefined ? params.status : statusFilter;
+    const y = params.year !== undefined ? params.year : yearFilter;
+    if (s) parts.push(`status=${s}`);
+    if (y) parts.push(`year=${y}`);
+    return parts.length > 0 ? `/projects?${parts.join("&")}` : "/projects";
+  }
 
   return (
     <div className="mx-auto max-w-6xl space-y-5 px-3 py-6 sm:px-4 sm:py-8">
@@ -71,57 +101,46 @@ export default async function ProjectsPage({ params, searchParams }: PageProps) 
         <span className="font-medium text-slate-700">Projects</span>
       </nav>
 
-      {/* KPI strip */}
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:gap-3">
-        <div className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Total projects</p>
-          <p className="mt-0.5 text-lg font-semibold text-slate-900">{projects.length}</p>
+      {/* Filters */}
+      <div className="flex flex-wrap items-center gap-4">
+        {/* Status filters */}
+        <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Filter by status">
+          <span className="text-[12px] font-medium text-slate-500 mr-1">Status:</span>
+          <FilterPill href={filterUrl({ status: null })} label="All" active={!statusFilter} count={projects.length} />
+          <FilterPill href={filterUrl({ status: "planned" })} label="Planned" active={statusFilter === "planned"} count={plannedCount} />
+          <FilterPill href={filterUrl({ status: "in_progress" })} label="In progress" active={statusFilter === "in_progress"} count={inProgressCount} />
+          <FilterPill href={filterUrl({ status: "completed" })} label="Completed" active={statusFilter === "completed"} count={completedCount} />
         </div>
-        {totalInvestment > 0 && (
-          <div className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Total investment</p>
-            <p className="mt-0.5 text-lg font-semibold text-slate-900">{formatCurrency(totalInvestment)}</p>
+
+        {/* Year filter */}
+        {completionYears.length > 1 && (
+          <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Filter by completion year">
+            <span className="text-[12px] font-medium text-slate-500 mr-1">Year:</span>
+            <FilterPill href={filterUrl({ year: null })} label="All" active={!yearFilter} />
+            {completionYears.map((yr) => (
+              <FilterPill key={yr} href={filterUrl({ year: String(yr) })} label={String(yr)} active={yearFilter === String(yr)} />
+            ))}
           </div>
         )}
-        <div className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">In progress</p>
-          <p className="mt-0.5 text-lg font-semibold text-amber-700">{inProgressCount}</p>
-        </div>
-        <div className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Completed</p>
-          <p className="mt-0.5 text-lg font-semibold text-emerald-700">{completedCount}</p>
-        </div>
-      </div>
-
-      {/* Status filters */}
-      <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Filter projects by status">
-        <StatusPill href="/projects" label="All" active={!statusFilter} count={projects.length} />
-        <StatusPill href="/projects?status=planned" label="Planned" active={statusFilter === "planned"} count={plannedCount} />
-        <StatusPill href="/projects?status=in_progress" label="In progress" active={statusFilter === "in_progress"} count={inProgressCount} />
-        <StatusPill href="/projects?status=completed" label="Completed" active={statusFilter === "completed"} count={completedCount} />
       </div>
 
       {/* Projects grid */}
-      {filteredProjects.length === 0 ? (
-        <CardContainer>
-          <p className="py-8 text-center text-sm text-slate-500">
-            {statusFilter
-              ? `No ${statusFilter.replace("_", " ")} projects found.`
-              : "No projects available yet."}
-          </p>
-        </CardContainer>
+      {filtered.length === 0 ? (
+        <p className="py-12 text-center text-sm text-slate-500">
+          No projects match the selected filters.
+        </p>
       ) : (
-        <ProjectsGrid projects={filteredProjects} />
+        <ProjectsGrid projects={filtered} />
       )}
     </div>
   );
 }
 
-function StatusPill({ href, label, active, count }: { href: string; label: string; active: boolean; count: number }) {
+function FilterPill({ href, label, active, count }: { href: string; label: string; active: boolean; count?: number }) {
   return (
     <Link
       href={cityHref(href)}
-      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+      className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium transition-colors ${
         active
           ? "bg-slate-900 text-white"
           : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 shadow-sm"
@@ -129,7 +148,7 @@ function StatusPill({ href, label, active, count }: { href: string; label: strin
       aria-current={active ? "page" : undefined}
     >
       {label}
-      <span className={active ? "text-slate-400" : "text-slate-400"}>({count})</span>
+      {count != null && <span className={active ? "text-slate-300" : "text-slate-500"}>({count})</span>}
     </Link>
   );
 }

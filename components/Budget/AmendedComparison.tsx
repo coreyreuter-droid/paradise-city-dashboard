@@ -26,7 +26,7 @@ export default function AmendedComparison({ rows, fiscalYear, accentColor }: Pro
           <h2 className="text-sm font-semibold text-slate-900">
             Budget amendments — FY {fiscalYear}
           </h2>
-          <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+          <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700">
             Amended
           </span>
         </div>
@@ -38,15 +38,15 @@ export default function AmendedComparison({ rows, fiscalYear, accentColor }: Pro
       {/* Summary strip */}
       <div className="grid grid-cols-3 gap-2">
         <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Original adopted</p>
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Original adopted</p>
           <p className="mt-0.5 text-sm font-semibold text-slate-900">{formatCurrency(totalAdopted)}</p>
         </div>
         <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Current amended</p>
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Current amended</p>
           <p className="mt-0.5 text-sm font-semibold text-slate-900">{formatCurrency(totalAmended)}</p>
         </div>
         <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Net change</p>
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Net change</p>
           <p className={`mt-0.5 text-sm font-semibold ${totalChange > 0 ? "text-amber-700" : totalChange < 0 ? "text-emerald-700" : "text-slate-900"}`}>
             {totalChange > 0 ? "+" : ""}{formatCurrency(totalChange)}
             <span className="ml-1 text-[11px] font-normal text-slate-500">
@@ -91,7 +91,7 @@ export default function AmendedComparison({ rows, fiscalYear, accentColor }: Pro
                     {change !== 0 ? (
                       <span className={`font-mono font-semibold ${change > 0 ? "text-amber-700" : "text-emerald-700"}`}>
                         {change > 0 ? "+" : ""}{formatCurrency(change)}
-                        <span className="ml-1 text-[11px] font-normal text-slate-400">
+                        <span className="ml-1 text-[11px] font-normal text-slate-500">
                           {change > 0 ? "+" : ""}{changePct.toFixed(1)}%
                         </span>
                       </span>

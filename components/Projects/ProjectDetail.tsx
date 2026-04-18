@@ -73,18 +73,18 @@ export default function ProjectDetail({ project }: Props) {
       {/* Status + progress strip */}
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:gap-3">
         <div className={`rounded-xl border ${status.border} ${status.bg} px-3 py-2.5`}>
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Status</p>
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Status</p>
           <p className={`mt-0.5 text-sm font-semibold ${status.text}`}>{status.label}</p>
         </div>
         {project.estimated_cost && (
           <div className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Est. cost</p>
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Est. cost</p>
             <p className="mt-0.5 text-lg font-semibold text-slate-900">{formatCurrency(project.estimated_cost)}</p>
           </div>
         )}
         {completionDate && (
           <div className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
               {project.status === "completed" ? "Completed" : "Est. completion"}
             </p>
             <p className="mt-0.5 text-sm font-semibold text-slate-900">{formatDate(completionDate)}</p>
@@ -92,7 +92,7 @@ export default function ProjectDetail({ project }: Props) {
         )}
         {project.funding_source && (
           <div className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Funding</p>
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Funding</p>
             <p className="mt-0.5 text-sm font-semibold text-slate-900 truncate">{project.funding_source}</p>
           </div>
         )}
@@ -136,7 +136,7 @@ export default function ProjectDetail({ project }: Props) {
                     </div>
                     <p className="mt-1.5 text-[11px] font-medium text-slate-700">{ms.label}</p>
                     {ms.date && (
-                      <p className="text-[10px] text-slate-500">{formatDate(ms.date)}</p>
+                      <p className="text-[11px] text-slate-500">{formatDate(ms.date)}</p>
                     )}
                   </div>
                   {i < milestones.length - 1 && (
@@ -268,7 +268,7 @@ export default function ProjectDetail({ project }: Props) {
         </CardContainer>
       </div>
 
-      <p className="text-center text-[11px] text-slate-400">
+      <p className="text-center text-[11px] text-slate-500">
         Dates and costs are estimates and may change as the project progresses.
       </p>
     </div>

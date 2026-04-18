@@ -140,7 +140,7 @@ export default function RevenueSourceDetailClient({
       {/* KPI cards */}
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:gap-3">
         <div className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
             <FinanceTooltip term="revenue">Total revenue</FinanceTooltip>
           </p>
           <p className="mt-0.5 text-lg font-semibold text-slate-900">{formatCurrency(totalRevenue)}</p>
@@ -151,15 +151,15 @@ export default function RevenueSourceDetailClient({
           )}
         </div>
         <div className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Records</p>
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Records</p>
           <p className="mt-0.5 text-lg font-semibold text-slate-900">{recordCount.toLocaleString()}</p>
         </div>
         <div className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Avg per record</p>
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Avg per record</p>
           <p className="mt-0.5 text-lg font-semibold text-slate-900">{formatCurrency(avgPerRecord)}</p>
         </div>
         <div className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Fiscal year</p>
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Fiscal year</p>
           <p className="mt-0.5 text-lg font-semibold text-slate-900">{selectedYear}</p>
         </div>
       </div>

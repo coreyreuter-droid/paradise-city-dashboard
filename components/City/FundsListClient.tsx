@@ -79,23 +79,23 @@ export default function FundsListClient({
       {/* KPI cards */}
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:gap-3">
         <div className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
             <FinanceTooltip term="fund">Funds</FinanceTooltip>
           </p>
           <p className="mt-0.5 text-lg font-semibold text-slate-900">{funds.length}</p>
         </div>
         <div className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Total budget</p>
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Total budget</p>
           <p className="mt-0.5 text-lg font-semibold text-slate-900">{formatCurrency(totalBudget)}</p>
         </div>
         {hasActuals && (
           <>
             <div className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Total spent</p>
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Total spent</p>
               <p className="mt-0.5 text-lg font-semibold text-slate-900">{formatCurrency(totalActuals)}</p>
             </div>
             <div className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
                 <FinanceTooltip term="budget execution">Execution</FinanceTooltip>
               </p>
               <p className="mt-0.5 text-lg font-semibold text-slate-900">{formatPercent(execPct, 1)}</p>
