@@ -1,4 +1,5 @@
 // app/[citySlug]/download/page.tsx
+import type { Metadata } from "next";
 import { Suspense } from "react";
 import DownloadCenterClient from "@/components/City/DownloadCenterClient";
 import {

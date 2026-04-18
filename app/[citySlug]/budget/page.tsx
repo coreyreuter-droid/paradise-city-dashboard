@@ -1,4 +1,5 @@
 // app/[citySlug]/budget/page.tsx
+import type { Metadata } from "next";
 import BudgetPageClient from "@/components/Budget/BudgetPageClient";
 import UnpublishedMessage from "@/components/City/UnpublishedMessage";
 import DataFreshness from "@/components/DataFreshness";
