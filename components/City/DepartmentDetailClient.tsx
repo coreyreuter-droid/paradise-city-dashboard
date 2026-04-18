@@ -551,9 +551,9 @@ const byYear = new Map<
       {/* Breadcrumb */}
       <nav aria-label="Breadcrumb" className="mb-4 mt-2 flex items-center gap-1 px-1 text-xs text-slate-600">
         <Link href={cityHref("/overview")} className="hover:text-slate-800">Home</Link>
-        <span className="text-slate-400">\u203a</span>
+        <span className="text-slate-400">›</span>
         <Link href={cityHref("/departments")} className="hover:text-slate-800">Spending</Link>
-        <span className="text-slate-400">\u203a</span>
+        <span className="text-slate-400">›</span>
         <span className="font-medium text-slate-700">{displayName}</span>
       </nav>
 
@@ -567,7 +567,7 @@ const byYear = new Map<
               <FinanceTooltip term="adopted budget">Budget</FinanceTooltip>
             </p>
             <p className="mt-0.5 text-lg font-semibold text-slate-900">{formatCurrency(selectedYearTotals.budget)}</p>
-            <p className="mt-0.5 text-[11px] text-slate-500">FY {selectedYear ?? "\u2013"}</p>
+            <p className="mt-0.5 text-[11px] text-slate-500">FY {selectedYear ?? "–"}</p>
           </div>
           <div className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md">
             <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
@@ -586,7 +586,7 @@ const byYear = new Map<
           <div className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md">
             <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Transactions</p>
             <p className="mt-0.5 text-lg font-semibold text-slate-900">{deptTxForYear.length.toLocaleString("en-US")}</p>
-            <p className="mt-0.5 text-[11px] text-slate-500">FY {selectedYear ?? "\u2013"}</p>
+            <p className="mt-0.5 text-[11px] text-slate-500">FY {selectedYear ?? "–"}</p>
           </div>
         </div>
 
@@ -626,7 +626,7 @@ const byYear = new Map<
             <CardContainer>
               <section aria-label="Top vendors" className="space-y-3">
                 <div>
-                  <h2 className="text-sm font-semibold text-slate-900">Top vendors \u2014 FY {selectedYear ?? "\u2013"}</h2>
+                  <h2 className="text-sm font-semibold text-slate-900">Top vendors — FY {selectedYear ?? "–"}</h2>
                   <p className="mt-0.5 text-sm text-slate-600">Click a vendor to view transactions.</p>
                 </div>
                 {vendorDrillItems.length === 0 ? (
@@ -640,7 +640,7 @@ const byYear = new Map<
           <CardContainer>
             <section aria-label="Spending by category" className="space-y-3">
               <div>
-                <h2 className="text-sm font-semibold text-slate-900">Spending by category \u2014 FY {selectedYear ?? "\u2013"}</h2>
+                <h2 className="text-sm font-semibold text-slate-900">Spending by category — FY {selectedYear ?? "–"}</h2>
                 <p className="mt-0.5 text-sm text-slate-600">Distribution across budget categories.</p>
               </div>
               {categoryDrillItems.length === 0 ? (
@@ -656,7 +656,7 @@ const byYear = new Map<
         <CardContainer>
           <section aria-label="Transactions" className="space-y-3">
             <div>
-              <h2 className="text-sm font-semibold text-slate-900">Transactions \u2014 FY {selectedYear ?? "\u2013"}</h2>
+              <h2 className="text-sm font-semibold text-slate-900">Transactions — FY {selectedYear ?? "–"}</h2>
               <p className="mt-0.5 text-sm text-slate-600">{deptTxForYear.length.toLocaleString()} individual payments.</p>
             </div>
             {deptTxForYear.length === 0 ? (
@@ -683,7 +683,7 @@ const byYear = new Map<
               <div>
                 <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Vendor detail</p>
                 <h2 id="vendor-detail-heading" className="text-sm font-semibold text-slate-900">{activeVendor}</h2>
-                <p className="mt-0.5 text-sm text-slate-600">{displayName} \u2014 FY {selectedYear ?? "\u2013"}</p>
+                <p className="mt-0.5 text-sm text-slate-600">{displayName} — FY {selectedYear ?? "–"}</p>
               </div>
               <button ref={vendorCloseButtonRef} type="button" onClick={() => setActiveVendor(null)} className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50">Close</button>
             </div>
