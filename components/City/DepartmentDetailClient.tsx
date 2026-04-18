@@ -23,6 +23,9 @@ import CardContainer from "../CardContainer";
 import SectionHeader from "../SectionHeader";
 import NarrativeSummary from "../NarrativeSummary";
 import FiscalYearSelect from "../FiscalYearSelect";
+import DrillBarList from "../ui/DrillBarList";
+import type { DrillBarItem } from "../ui/DrillBarList";
+import FinanceTooltip from "../ui/FinanceTooltip";
 import DataTable, {
   DataTableColumn,
 } from "../DataTable";
@@ -507,516 +510,211 @@ const byYear = new Map<
     enableVendors,
   ]);
 
+
+  // DrillBarList items for vendors
+  const vendorDrillItems: DrillBarItem[] = useMemo(() => {
+    return deptVendorSummaries.map((v) => ({
+      name: v.name,
+      budget: v.total,
+      actual: 0,
+      onClick: enableVendors ? () => {
+        setActiveVendor(v.name);
+      } : undefined,
+    }));
+  }, [deptVendorSummaries, enableVendors]);
+
+  // DrillBarList items for categories
+  const categoryDrillItems: DrillBarItem[] = useMemo(() => {
+    return deptCategorySummaries.map((c) => ({
+      name: c.category,
+      budget: c.total,
+      actual: 0,
+    }));
+  }, [deptCategorySummaries]);
+
+  const isUnderBudget = selectedYearTotals.variance <= 0;
+
   return (
-    <div className="min-h-screen bg-slate-50">
-      <div className="mx-auto max-w-6xl px-4 py-8">
-        <SectionHeader
-          eyebrow="Department Overview"
-          title={displayName}
-          description={
-            enableVendors
-              ? "Multi-year trends and detailed transactions for this department."
-              : "Multi-year trends and detailed transactions for this department. Vendor names are disabled for this city."
-          }
-          rightSlot={
-            deptYears.length > 0 ? (
-              <FiscalYearSelect
-                options={deptYears}
-                label="Fiscal year"
-              />
-            ) : null
-          }
-        />
+    <div className="mx-auto max-w-6xl px-3 py-6 sm:px-4 sm:py-8">
+      <SectionHeader
+        eyebrow="Department detail"
+        title={displayName}
+        description="Budget, spending, and activity for this department."
+        rightSlot={
+          deptYears.length > 0 ? (
+            <FiscalYearSelect options={deptYears} label="Fiscal year" />
+          ) : null
+        }
+      />
 
-        {/* Narrative Summary */}
-        {narrative && <NarrativeSummary narrative={narrative} className="mb-4" />}
+      {/* Breadcrumb */}
+      <nav aria-label="Breadcrumb" className="mb-4 mt-2 flex items-center gap-1 px-1 text-xs text-slate-600">
+        <Link href={cityHref("/overview")} className="hover:text-slate-800">Home</Link>
+        <span className="text-slate-400">\u203a</span>
+        <Link href={cityHref("/departments")} className="hover:text-slate-800">Spending</Link>
+        <span className="text-slate-400">\u203a</span>
+        <span className="font-medium text-slate-700">{displayName}</span>
+      </nav>
 
-        {/* Breadcrumb */}
-        <nav
-          aria-label="Breadcrumb"
-          className="mb-4 flex items-center gap-1 px-1 text-sm text-slate-600"
-        >
-          <Link
-            href={cityHref("/overview")}
-            className="hover:text-slate-800"
-          >
-            Home
-          </Link>
-          <span className="text-slate-500">›</span>
-          <Link
-            href={cityHref("/departments")}
-            className="hover:text-slate-800"
-          >
-            Departments
-          </Link>
-          <span className="text-slate-500">›</span>
-          <span className="font-medium text-slate-700">
-            {displayName}
-          </span>
-        </nav>
+      {narrative && <NarrativeSummary narrative={narrative} className="mb-4" />}
 
-        {/* Metrics */}
-        <div className="mb-6 grid gap-4 md:grid-cols-4">
-          <CardContainer>
-            <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-600">
-              Adopted Budget ({selectedYear ?? "–"})
-            </div>
-            <div className="mt-1 text-2xl font-bold text-slate-900">
-              {formatCurrency(selectedYearTotals.budget)}
-            </div>
-          </CardContainer>
-
-          <CardContainer>
-            <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-600">
-              Total Actuals ({selectedYear ?? "–"})
-            </div>
-            <div className="mt-1 text-2xl font-bold text-slate-900">
-              {formatCurrency(selectedYearTotals.actuals)}
-            </div>
-            <div className="mt-1 text-sm text-slate-700">
-              {formatPercent(selectedYearTotals.percentSpent)} of
-              budget spent
-            </div>
-          </CardContainer>
-
-          <CardContainer>
-            <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-600">
-              Variance ({selectedYear ?? "–"})
-            </div>
-            <div
-              className={`mt-1 text-2xl font-bold ${
-                selectedYearTotals.variance > 0
-                  ? "text-red-700"
-                  : selectedYearTotals.variance < 0
-                  ? "text-emerald-700"
-                  : "text-slate-900"
-              }`}
-            >
-              {formatCurrency(
-                Math.abs(selectedYearTotals.variance)
-              )}
-            </div>
-            <div className="mt-1 text-sm text-slate-700">
-              {selectedYearTotals.variance >= 0
-                ? "Over"
-                : "Under"}{" "}
-              budget by{" "}
-              {formatPercent(
-                Math.abs(selectedYearTotals.percentSpent - 100)
-              )}
-              .
-            </div>
-          </CardContainer>
-
-          <CardContainer>
-            <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-600">
-              Transactions ({selectedYear ?? "–"})
-            </div>
-            <div className="mt-1 text-2xl font-bold text-slate-900">
-              {deptTxForYear.length.toLocaleString("en-US")}
-            </div>
-          </CardContainer>
+      <div className="space-y-5">
+        {/* KPI cards */}
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:gap-3">
+          <div className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md">
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+              <FinanceTooltip term="adopted budget">Budget</FinanceTooltip>
+            </p>
+            <p className="mt-0.5 text-lg font-semibold text-slate-900">{formatCurrency(selectedYearTotals.budget)}</p>
+            <p className="mt-0.5 text-[11px] text-slate-500">FY {selectedYear ?? "\u2013"}</p>
+          </div>
+          <div className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md">
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+              <FinanceTooltip term="actuals">Spent</FinanceTooltip>
+            </p>
+            <p className="mt-0.5 text-lg font-semibold text-slate-900">{formatCurrency(selectedYearTotals.actuals)}</p>
+            <p className="mt-0.5 text-[11px] text-slate-500">{formatPercent(selectedYearTotals.percentSpent, 1)} of budget</p>
+          </div>
+          <div className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md">
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+              <FinanceTooltip term="variance">{isUnderBudget ? "Remaining" : "Over budget"}</FinanceTooltip>
+            </p>
+            <p className={`mt-0.5 text-lg font-semibold ${isUnderBudget ? "text-emerald-700" : "text-red-700"}`}>{formatCurrency(Math.abs(selectedYearTotals.variance))}</p>
+            <p className="mt-0.5 text-[11px] text-slate-500">{isUnderBudget ? "Under plan" : "Above plan"}</p>
+          </div>
+          <div className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md">
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Transactions</p>
+            <p className="mt-0.5 text-lg font-semibold text-slate-900">{deptTxForYear.length.toLocaleString("en-US")}</p>
+            <p className="mt-0.5 text-[11px] text-slate-500">FY {selectedYear ?? "\u2013"}</p>
+          </div>
         </div>
 
-        {/* Multi-year chart */}
-        <div className="mb-6">
+        {/* Multi-year trend chart */}
+        {multiYearSeries.length > 1 && (
           <CardContainer>
-            <figure
-              role="group"
-              aria-labelledby="dept-multiyear-heading"
-              aria-describedby="dept-multiyear-desc"
-              className="space-y-3"
-            >
-              <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-                <div>
-                  <h2
-                    id="dept-multiyear-heading"
-                    className="text-sm font-semibold text-slate-800"
-                  >
-                    Multi-year Budget vs Actuals
-                  </h2>
-                  <p
-                    id="dept-multiyear-desc"
-                    className="text-sm text-slate-700"
-                  >
-                    Trend of adopted budget and actual spending for{" "}
-                    {displayName} across fiscal years.
-                  </p>
-                </div>
+            <section aria-labelledby="dept-multiyear-heading" className="space-y-3">
+              <div>
+                <h2 id="dept-multiyear-heading" className="text-sm font-semibold text-slate-900">Budget vs actuals over time</h2>
+                <p className="mt-0.5 text-sm text-slate-600">{displayName} across {multiYearSeries.length} fiscal years.</p>
               </div>
-
-              <div className="h-[280px] w-full min-w-0 overflow-hidden sm:h-[320px]">
+              <div className="h-[280px] w-full min-w-0 overflow-hidden">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart
-                    data={multiYearSeries}
-                    margin={{
-                      top: 10,
-                      right: 30,
-                      left: 10,
-                      bottom: 20,
-                    }}
-                  >
-                    <CartesianGrid
-                      strokeDasharray="3 3"
-                      stroke="#e5e7eb"
-                    />
-                    <XAxis
-                      dataKey="year"
-                      tickLine={false}
-                      axisLine={false}
-                    />
-                    <YAxis
-                      domain={multiYearDomain}
-                      tickFormatter={formatAxisCurrency}
-                      tickLine={false}
-                      axisLine={false}
-/>
-
+                  <LineChart data={multiYearSeries} margin={{ top: 10, right: 30, left: 10, bottom: 20 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                    <XAxis dataKey="year" tickLine={false} axisLine={false} />
+                    <YAxis domain={multiYearDomain} tickFormatter={formatAxisCurrency} tickLine={false} axisLine={false} />
                     <Tooltip
                       labelFormatter={(label) => `Fiscal year ${label}`}
-                      formatter={(value, name) =>
-                        typeof value === "number"
-                          ? [formatCurrency(value), String(name ?? "")]
-                          : [String(value ?? ""), String(name ?? "")]
-                      }
-                      contentStyle={{
-                        backgroundColor: "#ffffff",
-                        border: "1px solid #e2e8f0",
-                        borderRadius: "8px",
-                        boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
-                      }}
-                      labelStyle={{
-                        color: "#0f172a",
-                        fontWeight: 600,
-                        marginBottom: "4px",
-                      }}
-                      itemStyle={{
-                        color: "#334155",
-                      }}
+                      formatter={(value, name) => typeof value === "number" ? [formatCurrency(value), String(name ?? "")] : [String(value ?? ""), String(name ?? "")]}
+                      contentStyle={{ backgroundColor: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "8px", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)" }}
+                      labelStyle={{ color: "#0f172a", fontWeight: 600, marginBottom: "4px" }}
                     />
-                    <Legend
-                      verticalAlign="top"
-                      align="right"
-                      wrapperStyle={{ fontSize: 11 }}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="budget"
-                      name="Adopted Budget"
-                      dot={false}
-                      strokeWidth={2}
-                      stroke="#0f172a"
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="actuals"
-                      name="Actuals"
-                      dot={false}
-                      strokeWidth={2}
-                      stroke="#10b981"
-                    />
+                    <Legend verticalAlign="top" align="right" wrapperStyle={{ fontSize: 11 }} />
+                    <Line type="monotone" dataKey="budget" name="Budget" dot={false} strokeWidth={2} stroke="#94a3b8" />
+                    <Line type="monotone" dataKey="actuals" name="Actuals" dot={false} strokeWidth={2} stroke="#10b981" />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
-
-              {multiYearSeries.length > 0 && (
-                <div className="overflow-x-auto">
-                  <table className="mt-2 min-w-full border border-slate-200 text-sm">
-                    <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-600">
-                      <tr>
-                        <th
-                          scope="col"
-                          className="px-3 py-2 text-left"
-                        >
-                          Fiscal year
-                        </th>
-                        <th
-                          scope="col"
-                          className="px-3 py-2 text-right"
-                        >
-                          Budget
-                        </th>
-                        <th
-                          scope="col"
-                          className="px-3 py-2 text-right"
-                        >
-                          Actuals
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {multiYearSeries.map((row) => (
-                        <tr
-                          key={row.year}
-                          className="border-t border-slate-200"
-                        >
-                          <th
-                            scope="row"
-                            className="px-3 py-2 text-left font-medium text-slate-800"
-                          >
-                            {row.year}
-                          </th>
-                          <td className="px-3 py-2 text-right text-slate-700">
-                            {formatCurrency(row.budget)}
-                          </td>
-                          <td className="px-3 py-2 text-right text-slate-700">
-                            {formatCurrency(row.actuals)}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </figure>
+            </section>
           </CardContainer>
-        </div>
+        )}
 
-        {/* Vendors + categories */}
-        <div className="grid gap-6 lg:grid-cols-2">
-          {/* Vendors – only when vendor module is enabled */}
+        {/* Vendors & Categories */}
+        <div className="grid gap-5 lg:grid-cols-2">
           {enableVendors && (
             <CardContainer>
-              <div className="p-4">
-                <h2 className="mb-2 text-sm font-semibold text-slate-900">
-                  Top Vendors ({selectedYear ?? "–"})
-                </h2>
-
-                {deptVendorSummaries.length === 0 ? (
-                  <p className="text-sm text-slate-700">
-                    No vendor spending found for the selected year.
-                  </p>
+              <section aria-label="Top vendors" className="space-y-3">
+                <div>
+                  <h2 className="text-sm font-semibold text-slate-900">Top vendors \u2014 FY {selectedYear ?? "\u2013"}</h2>
+                  <p className="mt-0.5 text-sm text-slate-600">Click a vendor to view transactions.</p>
+                </div>
+                {vendorDrillItems.length === 0 ? (
+                  <p className="text-sm text-slate-600">No vendor data for this year.</p>
                 ) : (
-                  <div className="space-y-1.5 text-sm">
-                    {deptVendorSummaries.map((v) => (
-                      <div key={v.name}>
-                        <div className="flex items-center justify-between gap-2">
-                          <button
-                            type="button"
-                            onClick={(e) => openVendorModal(v.name, e.currentTarget)}
-                            className="truncate pr-2 text-left text-slate-800 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 rounded"
-                          >
-                            {v.name}
-                          </button>
-                          <span className="whitespace-nowrap font-mono text-slate-900">
-                            {formatCurrency(v.total)}
-                          </span>
-                        </div>
-                        <div className="mt-1 flex items-center gap-2">
-                          <div className="h-1.5 flex-1 rounded-full bg-slate-100">
-                            <div
-                              className="h-1.5 rounded-full bg-slate-900"
-                              style={{
-                                width: `${Math.max(
-                                  2,
-                                  Math.min(v.percent, 100)
-                                )}%`,
-                              }}
-                            />
-                          </div>
-                          <span className="w-12 text-right text-xs text-slate-700">
-                            {formatPercent(v.percent)}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                  <DrillBarList items={vendorDrillItems} showActuals={false} ariaLabel="Top vendors by spending" />
                 )}
-              </div>
+              </section>
             </CardContainer>
           )}
-
-          {/* Categories */}
           <CardContainer>
-            <div className="p-4">
-              <h2 className="mb-2 text-sm font-semibold text-slate-900">
-                Spending by category ({selectedYear ?? "–"})
-              </h2>
-
-              {deptCategorySummaries.length === 0 ? (
-                <p className="text-sm text-slate-700">
-                  No categorized spending found for the selected
-                  year.
-                </p>
+            <section aria-label="Spending by category" className="space-y-3">
+              <div>
+                <h2 className="text-sm font-semibold text-slate-900">Spending by category \u2014 FY {selectedYear ?? "\u2013"}</h2>
+                <p className="mt-0.5 text-sm text-slate-600">Distribution across budget categories.</p>
+              </div>
+              {categoryDrillItems.length === 0 ? (
+                <p className="text-sm text-slate-600">No categorized spending for this year.</p>
               ) : (
-                <div className="space-y-1.5 text-sm">
-                  {deptCategorySummaries.map((c) => (
-                    <div key={c.category}>
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="truncate pr-2 text-slate-800">
-                          {c.category}
-                        </span>
-                        <span className="whitespace-nowrap font-mono text-slate-900">
-                          {formatCurrency(c.total)}
-                        </span>
-                      </div>
-                      <div className="mt-1 flex items-center gap-2">
-                        <div className="h-1.5 flex-1 rounded-full bg-slate-100">
-                          <div
-                            className="h-1.5 rounded-full bg-emerald-500"
-                            style={{
-                              width: `${Math.max(
-                                2,
-                                Math.min(c.percent, 100)
-                              )}%`,
-                            }}
-                          />
-                        </div>
-                        <span className="w-12 text-right text-xs text-slate-700">
-                          {formatPercent(c.percent)}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                <DrillBarList items={categoryDrillItems} showActuals={false} ariaLabel="Spending categories" />
               )}
-            </div>
+            </section>
           </CardContainer>
         </div>
 
-        {/* Transactions - full width at bottom */}
-        <div className="mt-6">
-          <CardContainer>
-            <div className="p-4">
-              <h2 className="mb-2 text-sm font-semibold text-slate-900">
-                Transactions ({selectedYear ?? "–"})
-              </h2>
-              {deptTxForYear.length === 0 ? (
-                <p className="text-sm text-slate-700">
-                  No transactions found for this department in the
-                  selected year.
-                </p>
-              ) : (
-                <DataTable<TransactionRow>
-                  data={deptTxForYear}
-                  columns={transactionColumns}
-                  initialSortKey="date"
-                  initialSortDirection="desc"
-                  getRowKey={(_, index) => String(index)}
-                />
-              )}
+        {/* Transactions table */}
+        <CardContainer>
+          <section aria-label="Transactions" className="space-y-3">
+            <div>
+              <h2 className="text-sm font-semibold text-slate-900">Transactions \u2014 FY {selectedYear ?? "\u2013"}</h2>
+              <p className="mt-0.5 text-sm text-slate-600">{deptTxForYear.length.toLocaleString()} individual payments.</p>
             </div>
-          </CardContainer>
-        </div>
+            {deptTxForYear.length === 0 ? (
+              <p className="text-sm text-slate-600">No transactions for this year.</p>
+            ) : (
+              <DataTable<TransactionRow>
+                data={deptTxForYear}
+                columns={transactionColumns}
+                initialSortKey="date"
+                initialSortDirection="desc"
+                getRowKey={(_, index) => String(index)}
+              />
+            )}
+          </section>
+        </CardContainer>
       </div>
 
-      {/* Vendor detail slideout – only when vendor module is enabled */}
+      {/* Vendor detail slideout */}
       {enableVendors && activeVendor && (
         <div className="fixed inset-0 z-[9999] flex justify-end bg-black/40 backdrop-blur-sm">
-          {/* Backdrop button for click-to-close */}
-          <button
-            type="button"
-            className="absolute inset-0 h-full w-full cursor-default"
-            onClick={() => setActiveVendor(null)}
-            aria-label="Close vendor detail"
-            tabIndex={-1}
-          />
-          <div
-            ref={vendorModalRef}
-            className="relative flex h-full w-full max-w-md flex-col bg-white shadow-2xl"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="vendor-detail-heading"
-            aria-describedby="vendor-detail-subtitle"
-          >
-            {/* Header */}
+          <button type="button" className="absolute inset-0 h-full w-full cursor-default" onClick={() => setActiveVendor(null)} aria-label="Close vendor detail" tabIndex={-1} />
+          <div ref={vendorModalRef} className="relative flex h-full w-full max-w-md flex-col bg-white shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="vendor-detail-heading">
             <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-600">
-                  Vendor detail
-                </p>
-                <h2
-                  id="vendor-detail-heading"
-                  className="text-sm font-semibold text-slate-900"
-                >
-                  {activeVendor}
-                </h2>
-                <p
-                  id="vendor-detail-subtitle"
-                  className="mt-0.5 text-sm text-slate-700"
-                >
-                  {displayName} • Fiscal year {selectedYear ?? "–"}
-                </p>
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Vendor detail</p>
+                <h2 id="vendor-detail-heading" className="text-sm font-semibold text-slate-900">{activeVendor}</h2>
+                <p className="mt-0.5 text-sm text-slate-600">{displayName} \u2014 FY {selectedYear ?? "\u2013"}</p>
               </div>
-
-              <button
-                ref={vendorCloseButtonRef}
-                type="button"
-                onClick={() => setActiveVendor(null)}
-                className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
-              >
-                Close
-              </button>
+              <button ref={vendorCloseButtonRef} type="button" onClick={() => setActiveVendor(null)} className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50">Close</button>
             </div>
-
-            {/* Body */}
             <div className="flex-1 space-y-3 overflow-auto px-4 py-3">
-              <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-                <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-600">
-                  Total spent with this vendor
-                </div>
-                <div className="mt-1 text-lg font-semibold text-slate-900">
-                  {formatCurrency(vendorTotal)}
-                </div>
-                <div className="mt-1 text-sm text-slate-700">
-                  {activeVendorTx.length.toLocaleString("en-US")}{" "}
-                  transaction{activeVendorTx.length === 1 ? "" : "s"}{" "}
-                  for this department in {selectedYear ?? "–"}.
-                </div>
+              <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Total with this vendor</p>
+                <p className="mt-0.5 text-lg font-semibold text-slate-900">{formatCurrency(vendorTotal)}</p>
+                <p className="mt-0.5 text-[11px] text-slate-500">{activeVendorTx.length.toLocaleString()} transaction{activeVendorTx.length === 1 ? "" : "s"}</p>
               </div>
-
               {activeVendorTx.length === 0 ? (
-                <p className="text-sm text-slate-700">
-                  No transactions found for this vendor in the
-                  selected year.
-                </p>
+                <p className="text-sm text-slate-600">No transactions found.</p>
               ) : (
-                <div className="space-y-2">
-                  <p className="text-sm font-semibold text-slate-700">
-                    Transactions with {activeVendor}
-                  </p>
-                  <div className="overflow-x-auto">
-                    <div className="max-h-[360px] overflow-y-auto">
-                      <table className="min-w-full text-left text-sm">
-                        <thead className="border-b border-slate-200 bg-slate-50">
-                          <tr>
-                            <th className="px-2 py-2 font-semibold text-slate-700">
-                              Date
-                            </th>
-                            <th className="px-2 py-2 font-semibold text-slate-700">
-                              Description
-                            </th>
-                            <th className="px-2 py-2 text-right font-semibold text-slate-700">
-                              Amount
-                            </th>
+                <div className="overflow-x-auto">
+                  <div className="max-h-[360px] overflow-y-auto">
+                    <table className="min-w-full text-left text-xs">
+                      <thead className="border-b border-slate-200 bg-slate-50">
+                        <tr>
+                          <th className="px-2 py-2 font-semibold text-slate-600">Date</th>
+                          <th className="px-2 py-2 font-semibold text-slate-600">Description</th>
+                          <th className="px-2 py-2 text-right font-semibold text-slate-600">Amount</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {activeVendorTx.map((tx, idx) => (
+                          <tr key={`${tx.date}-${idx}`} className="border-b border-slate-100 last:border-0">
+                            <td className="px-2 py-1.5">{tx.date}</td>
+                            <td className="px-2 py-1.5">{tx.description || <span className="italic text-slate-500">No description</span>}</td>
+                            <td className="px-2 py-1.5 text-right font-mono">{formatCurrency(Number(tx.amount || 0))}</td>
                           </tr>
-                        </thead>
-                        <tbody>
-                          {activeVendorTx.map((tx, idx) => (
-                            <tr
-                              key={`${tx.date}-${idx}`}
-                              className="border-b border-slate-100 last:border-0"
-                            >
-                              <td className="px-2 py-1.5">
-                                {tx.date}
-                              </td>
-                              <td className="px-2 py-1.5">
-                                {tx.description || (
-                                  <span className="italic text-slate-600">
-                                    No description
-                                  </span>
-                                )}
-                              </td>
-                              <td className="px-2 py-1.5 text-right font-mono">
-                                {formatCurrency(
-                                  Number(tx.amount || 0)
-                                )}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
               )}

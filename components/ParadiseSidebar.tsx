@@ -12,6 +12,7 @@ const navItems = [
   { path: "/", label: "Home" },
   { path: "/overview", label: "Dashboard" },
   { path: "/budget", label: "Budget" },
+  { path: "/funds", label: "Funds" },
   { path: "/departments", label: "Spending" },
   { path: "/revenues", label: "Revenue" },
   { path: "/projects", label: "Projects" },

@@ -98,7 +98,10 @@ export default function ParadiseHomeKpiStrip({
 
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
         {/* Adopted budget */}
-        <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md">
+        <div
+          className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md"
+          style={safeAccent ? { borderLeftWidth: "3px", borderLeftColor: safeAccent, borderRadius: "12px" } : undefined}
+        >
           <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
             <FinanceTooltip term="adopted budget">Adopted budget</FinanceTooltip>
           </p>

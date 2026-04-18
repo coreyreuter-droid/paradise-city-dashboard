@@ -82,19 +82,23 @@ export default async function CityOverviewPage({ searchParams }: PageProps) {
   let revenueTotal: number | null = null;
   let fundSummary: BudgetActualsYearFundRow[] = [];
   let fundDeptSummary: BudgetActualsYearFundDeptRow[] = [];
+  let priorYearDepts: BudgetActualsYearDeptRow[] = [];
 
   if (selectedYear !== undefined) {
     const enableTransactions = settings?.enable_transactions === true;
     const enableVendors = enableTransactions && settings?.enable_vendors === true;
     const enableRevenues = settings?.enable_revenues === true;
+    const priorYear = selectedYear - 1;
+    const hasPriorYear = years.includes(priorYear);
 
-    const [deptRows, fundRows, fundDeptRows, recentTxRaw, vendorRaw, revenuesRaw] = await Promise.all([
+    const [deptRows, fundRows, fundDeptRows, recentTxRaw, vendorRaw, revenuesRaw, priorDeptRows] = await Promise.all([
       getBudgetActualsSummaryForYear(selectedYear),
       getBudgetActualsByFundForYear(selectedYear),
       getBudgetActualsByFundDeptForYear(selectedYear),
       enableTransactions ? getRecentTransactionsForYear(selectedYear, 20) : Promise.resolve([]),
       enableVendors ? getVendorSummariesForYear(selectedYear, { limit: 500 }) : Promise.resolve([]),
       enableRevenues ? getRevenuesForYear(selectedYear) : Promise.resolve([]),
+      hasPriorYear ? getBudgetActualsSummaryForYear(priorYear) : Promise.resolve([]),
     ]);
 
     deptBudgetActuals = (deptRows ?? []) as BudgetActualsYearDeptRow[];
@@ -102,6 +106,7 @@ export default async function CityOverviewPage({ searchParams }: PageProps) {
     fundDeptSummary = (fundDeptRows ?? []) as BudgetActualsYearFundDeptRow[];
     recentTransactions = (recentTxRaw ?? []) as TransactionRow[];
     vendorSummaries = (vendorRaw ?? []) as VendorYearSummary[];
+    priorYearDepts = (priorDeptRows ?? []) as BudgetActualsYearDeptRow[];
 
     revenues = (revenuesRaw ?? []) as RevenueRow[];
     revenueTotal =
@@ -196,6 +201,7 @@ export default async function CityOverviewPage({ searchParams }: PageProps) {
       fundSummary={fundSummary}
       fundDeptSummary={fundDeptSummary}
       population={population}
+      priorYearDepts={priorYearDepts}
     />
   );
 }

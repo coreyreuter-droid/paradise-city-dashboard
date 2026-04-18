@@ -1,39 +1,19 @@
 // components/SectionHeader.tsx
 import type { ReactNode } from "react";
+import ShareEmbed from "@/components/ui/ShareEmbed";
 
 type SectionHeaderProps = {
   title: string;
   description?: string;
-  /**
-   * Small label above the title, e.g. "Govwide overview" or "Department detail"
-   */
   eyebrow?: string;
-  /**
-   * Optional right-side content (filters, buttons, etc.)
-   */
   rightSlot?: ReactNode;
-  /**
-   * Optional accent color for the eyebrow + underline. This will only be
-   * used for text if it meets WCAG 2.1 AA contrast against a light background.
-   */
   accentColor?: string;
-  /**
-   * Optional fiscal-year note shown below the description, e.g.
-   * "Fiscal year runs July 1 – June 30."
-   */
   fiscalNote?: string;
-  /**
-   * Heading level (defaults to h2 so page-level h1 can live in layout/hero)
-   */
   as?: "h1" | "h2" | "h3";
-  /**
-   * Optional explicit id for the heading (used by aria-labelledby)
-   */
   id?: string;
-  /**
-   * Show a "Print / Save as PDF" button in the header
-   */
   showPrint?: boolean;
+  /** Show share/embed button */
+  showShare?: boolean;
 };
 
 function slugify(value: string) {
@@ -124,6 +104,7 @@ export default function SectionHeader({
   as = "h2",
   id,
   showPrint = false,
+  showShare = true,
 }: SectionHeaderProps) {
   const HeadingTag = as;
   const generatedId = slugify(title) || "section-heading";
@@ -215,8 +196,9 @@ export default function SectionHeader({
         )}
       </div>
 
-      {(rightSlot || PrintButton) && (
+      {(rightSlot || PrintButton || showShare) && (
         <div className="flex items-center gap-2">
+          {showShare && <ShareEmbed title={title} description={description} />}
           {PrintButton}
           {rightSlot}
         </div>

@@ -206,7 +206,7 @@ export default function BudgetCharts({
             barGap={2}
             barSize={10}
             onClick={(state) => {
-              if (state?.activeLabel) {
+              if (state?.activeLabel != null) {
                 handleBarClick({ name: String(state.activeLabel) });
               }
             }}

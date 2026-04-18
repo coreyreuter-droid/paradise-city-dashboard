@@ -14,6 +14,7 @@ import DepartmentsGrid from "@/components/City/HomeDepartmentsGrid";
 import HomeRevenueSummary from "@/components/City/HomeRevenueSummary";
 import SankeyChart from "@/components/City/SankeyChart";
 import DollarBreakdown from "@/components/City/DollarBreakdown";
+import WhatChanged from "@/components/City/WhatChanged";
 import DrillBarList from "@/components/ui/DrillBarList";
 import type { DrillBarItem } from "@/components/ui/DrillBarList";
 import NarrativeSummary from "@/components/NarrativeSummary";
@@ -71,6 +72,7 @@ type Props = {
   fundSummary?: BudgetActualsYearFundRow[];
   fundDeptSummary?: BudgetActualsYearFundDeptRow[];
   population?: number | null;
+  priorYearDepts?: BudgetActualsYearDeptRow[];
 };
 
 function formatFreshnessDate(iso: string | null): string | null {
@@ -99,6 +101,7 @@ export default function ParadiseHomeClient({
   fundSummary = [],
   fundDeptSummary = [],
   population,
+  priorYearDepts = [],
 }: Props) {
   const searchParams = useSearchParams();
 
@@ -569,6 +572,28 @@ className="inline-flex items-center justify-center rounded-full px-3 py-1.5 text
           {insights.length > 0 && selectedYear && (
             <CardContainer>
               <InsightsSection insights={insights} fiscalYear={selectedYear} />
+            </CardContainer>
+          )}
+
+          {/* What Changed — YoY budget movers */}
+          {selectedYear && yearTotals.length > 1 && (
+            <CardContainer>
+              <WhatChanged
+                fiscalYear={selectedYear}
+                currentDepts={departmentsForYear.map((d) => ({
+                  department_name: d.department_name,
+                  budget: d.budget,
+                }))}
+                priorDepts={
+                  priorYearDepts.length > 0
+                    ? priorYearDepts.map((r) => ({
+                        department_name: r.department_name || "Unspecified",
+                        budget: Number(r.budget_amount || 0),
+                      }))
+                    : null
+                }
+                yearTotals={yearTotals}
+              />
             </CardContainer>
           )}
 

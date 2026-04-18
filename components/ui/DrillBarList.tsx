@@ -3,6 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { formatCurrency, formatPercent } from "@/lib/format";
+import DepartmentIcon from "@/components/ui/DepartmentIcon";
 
 /* =============================================================================
    Types
@@ -26,6 +27,10 @@ type Props = {
   maxVisible?: number;
   /** Aria label for the section */
   ariaLabel?: string;
+  /** Show department icons next to names */
+  showIcons?: boolean;
+  /** Accent color for fallback icons */
+  accentColor?: string;
 };
 
 /* =============================================================================
@@ -49,6 +54,8 @@ export default function DrillBarList({
   showTable = false,
   maxVisible,
   ariaLabel = "Budget breakdown",
+  showIcons = false,
+  accentColor,
 }: Props) {
   const [showAll, setShowAll] = React.useState(false);
 
@@ -97,6 +104,10 @@ export default function DrillBarList({
 
           const inner = (
             <>
+              {showIcons && (
+                <DepartmentIcon name={item.name} size="sm" accentColor={accentColor} />
+              )}
+
               <span className="min-w-0 flex-shrink-0 truncate text-sm font-medium text-slate-800 sm:w-40 sm:min-w-[10rem]">
                 {item.name}
               </span>
@@ -136,7 +147,7 @@ export default function DrillBarList({
               <Link
                 key={item.name}
                 href={item.href}
-                className="group flex w-full items-center gap-2 rounded-lg px-2.5 py-2 transition-all duration-150 hover:bg-slate-50 active:scale-[0.995] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-1 sm:gap-3 sm:px-3"
+                className="group flex w-full items-center gap-2 rounded-lg border border-transparent px-2.5 py-2 transition-all duration-150 hover:border-slate-200 hover:bg-slate-50 hover:shadow-sm active:scale-[0.995] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-1 sm:gap-3 sm:px-3"
                 role="listitem"
               >
                 {inner}
@@ -150,7 +161,7 @@ export default function DrillBarList({
                 key={item.name}
                 type="button"
                 onClick={item.onClick}
-                className="group flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left transition-all duration-150 hover:bg-slate-50 active:scale-[0.995] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-1 sm:gap-3 sm:px-3"
+                className="group flex w-full items-center gap-2 rounded-lg border border-transparent px-2.5 py-2 text-left transition-all duration-150 hover:border-slate-200 hover:bg-slate-50 hover:shadow-sm active:scale-[0.995] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-1 sm:gap-3 sm:px-3"
                 role="listitem"
               >
                 {inner}

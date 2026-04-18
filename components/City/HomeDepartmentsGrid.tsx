@@ -62,6 +62,7 @@ export default function DepartmentsGrid({ year, departments }: Props) {
           showActuals={hasActuals}
           maxVisible={8}
           ariaLabel="Departments by budget"
+          showIcons={true}
         />
       )}
     </section>

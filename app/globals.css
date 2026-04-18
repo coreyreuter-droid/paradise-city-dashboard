@@ -205,6 +205,30 @@ body {
     display: none !important;
   }
 
+  /* Hide sidebar and mobile header for clean print */
+  aside,
+  [role="banner"] {
+    display: none !important;
+  }
+
+  /* Remove sidebar margin from main content */
+  main {
+    margin-left: 0 !important;
+    padding-left: 0 !important;
+  }
+
+  /* Hide share/embed buttons */
+  [aria-label="Share or embed this view"],
+  [aria-label="Share or embed this view"] + div {
+    display: none !important;
+  }
+
+  /* Ensure drill bars show their colors */
+  [role="listitem"] span {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
   /* Page setup */
   @page {
     margin: 0.5in;

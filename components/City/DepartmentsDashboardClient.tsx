@@ -288,6 +288,7 @@ export default function DepartmentsDashboardClient({
               items={drillItems}
               showActuals={hasActuals}
               ariaLabel="Departments ranked by budget"
+              showIcons={true}
             />
           </section>
         </CardContainer>
