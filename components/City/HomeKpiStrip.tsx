@@ -3,17 +3,50 @@
 
 import { formatCurrency } from "@/lib/format";
 import { AnimatedNumber } from "@/components/ui/AnimatedNumber";
+import FinanceTooltip from "@/components/ui/FinanceTooltip";
 
 type Props = {
   totalBudget: number;
   totalActuals: number;
-  variance: number; // actuals - budget (not used here but kept for compatibility)
-  execPct: number;  // 0–1 ratio
+  variance: number;
+  execPct: number; // 0–1 ratio
   deptCount: number;
   txCount: number;
   topDepartment: string | null;
   accentColor?: string;
   enableTransactions: boolean;
+  population?: number | null;
+  priorYearBudget?: number | null;
+  priorYearActuals?: number | null;
+};
+
+function YoyBadge({ current, prior }: { current: number; prior: number | null | undefined }) {
+  if (!prior || prior === 0) return null;
+  const delta = ((current - prior) / prior) * 100;
+  const sign = delta > 0 ? "+" : "";
+  const isUp = delta > 0;
+
+  return (
+    <span
+      className={`inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${
+        isUp
+          ? "bg-amber-50 text-amber-700"
+          : "bg-emerald-50 text-emerald-700"
+      }`}
+    >
+      <svg viewBox="0 0 10 10" className={`h-2.5 w-2.5 ${isUp ? "" : "rotate-180"}`} fill="none" aria-hidden="true">
+        <path d="M5 2L8.5 7H1.5L5 2Z" fill="currentColor" />
+      </svg>
+      {sign}{Math.abs(delta).toFixed(1)}% vs prior
+    </span>
+  );
+}
+
+const formatCompact = (v: number): string => {
+  if (Math.abs(v) >= 1_000_000_000) return "$" + (v / 1_000_000_000).toFixed(1) + "B";
+  if (Math.abs(v) >= 1_000_000) return "$" + (v / 1_000_000).toFixed(1) + "M";
+  if (Math.abs(v) >= 1_000) return "$" + Math.round(v / 1_000).toLocaleString() + "K";
+  return "$" + Math.round(v).toLocaleString();
 };
 
 export default function ParadiseHomeKpiStrip({
@@ -26,6 +59,9 @@ export default function ParadiseHomeKpiStrip({
   topDepartment,
   accentColor,
   enableTransactions,
+  population,
+  priorYearBudget,
+  priorYearActuals,
 }: Props) {
   const safeAccent =
     accentColor && accentColor.trim().length > 0 ? accentColor : undefined;
@@ -42,7 +78,7 @@ export default function ParadiseHomeKpiStrip({
       aria-label="Key budget and spending indicators"
       className="space-y-3"
     >
-      {/* Tiny brand hint only – not on the cards */}
+      {/* Tiny brand hint */}
       {safeAccent && (
         <div
           className="h-1 w-12 rounded-full"
@@ -55,57 +91,67 @@ export default function ParadiseHomeKpiStrip({
         <h2 className="text-sm font-semibold text-slate-900">
           Key indicators
         </h2>
-        <p className="text-sm text-slate-700">
-          A quick view of budget, posted spending, and activity for the selected
-          fiscal year.
+        <p className="text-sm text-slate-600">
+          Budget, spending, and activity for the selected fiscal year.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
         {/* Adopted budget */}
-        <div className="cursor-default rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-slate-300 hover:shadow-md">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-            Adopted budget
+        <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+            <FinanceTooltip term="adopted budget">Adopted budget</FinanceTooltip>
           </p>
-          <p className="mt-1 text-base font-semibold text-slate-900">
+          <p className="mt-1 text-lg font-semibold text-slate-900">
             {totalBudget > 0 ? (
               <AnimatedNumber value={totalBudget} formatFn={formatCurrency} />
             ) : (
               "—"
             )}
           </p>
-          <p className="mt-1 text-xs text-slate-700">
-            Sum of adopted budgets across all departments for this fiscal year.
-          </p>
+          <div className="mt-1 flex flex-wrap items-center gap-2">
+            {population && population > 0 && totalBudget > 0 && (
+              <span className="text-[11px] text-slate-500">
+                {formatCompact(totalBudget / population)} per resident
+              </span>
+            )}
+            <YoyBadge current={totalBudget} prior={priorYearBudget} />
+          </div>
         </div>
 
         {/* Posted spending */}
-        <div className="cursor-default rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-slate-300 hover:shadow-md">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-            Posted spending
+        <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+            <FinanceTooltip term="actuals">Spent to date</FinanceTooltip>
           </p>
-          <p className="mt-1 text-base font-semibold text-slate-900">
+          <p className="mt-1 text-lg font-semibold text-slate-900">
             {totalActuals > 0 ? (
               <AnimatedNumber value={totalActuals} formatFn={formatCurrency} />
             ) : (
               "—"
             )}
           </p>
-          <p className="mt-1 text-xs text-slate-700">
-            Expenses recorded against this year to date.
-          </p>
+          <div className="mt-1 flex flex-wrap items-center gap-2">
+            {population && population > 0 && totalActuals > 0 && (
+              <span className="text-[11px] text-slate-500">
+                {formatCompact(totalActuals / population)} per resident
+              </span>
+            )}
+            <YoyBadge current={totalActuals} prior={priorYearActuals} />
+          </div>
         </div>
 
-        {/* Budget remaining / over */}
-        <div className="cursor-default rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-slate-300 hover:shadow-md">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-            Budget remaining
+        {/* Budget remaining */}
+        <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+            <FinanceTooltip term="variance">
+              {isUnderBudget ? "Budget remaining" : "Over budget"}
+            </FinanceTooltip>
           </p>
           <p
-            className={[
-              "mt-1 text-base font-semibold",
-              isUnderBudget ? "text-emerald-700" : "text-red-700",
-            ].join(" ")}
+            className={`mt-1 text-lg font-semibold ${
+              isUnderBudget ? "text-emerald-700" : "text-red-700"
+            }`}
           >
             {totalBudget > 0 || totalActuals > 0 ? (
               <AnimatedNumber
@@ -116,49 +162,46 @@ export default function ParadiseHomeKpiStrip({
               "—"
             )}
           </p>
-          <p className="mt-1 text-xs text-slate-700">
+          <p className="mt-1 text-[11px] text-slate-500">
             {isUnderBudget
-              ? "Estimated capacity remaining this year."
-              : "Spending is currently ahead of the adopted budget."}
+              ? "Capacity remaining this year"
+              : "Spending ahead of plan"}
           </p>
         </div>
 
         {/* Execution & activity */}
-        <div className="cursor-default rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-slate-300 hover:shadow-md">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-            Execution &amp; activity
+        <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+            <FinanceTooltip term="budget execution">Execution</FinanceTooltip>
           </p>
-          <p className="mt-1 text-base font-semibold text-slate-900">
+          <p className="mt-1 text-lg font-semibold text-slate-900">
             <AnimatedNumber
               value={execPctClamped * 100}
               formatFn={(v) => `${v.toFixed(1)}%`}
             />
           </p>
-          <p className="mt-1 text-xs text-slate-700">
-            Departments:{" "}
-            <span className="font-semibold">
-              {deptCount > 0 ? deptCount : "—"}
+          <div className="mt-2 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-slate-500">
+            <span>
+              <FinanceTooltip term="department">Depts</FinanceTooltip>:{" "}
+              <span className="font-semibold text-slate-700">
+                {deptCount || "—"}
+              </span>
             </span>
             {enableTransactions && (
-              <>
-                {" "}
-                · Transactions:{" "}
-                <span className="font-semibold">
+              <span>
+                Txns:{" "}
+                <span className="font-semibold text-slate-700">
                   {txCount.toLocaleString("en-US")}
                 </span>
-              </>
+              </span>
             )}
-          </p>
-          <p className="mt-1 text-[11px] text-slate-600">
-            {topDepartment ? (
-              <>
-                Highest spending department:{" "}
-                <span className="font-semibold">{topDepartment}</span>.
-              </>
-            ) : (
-              "Highest spending department will appear here once data is available."
-            )}
-          </p>
+          </div>
+          {topDepartment && (
+            <p className="mt-1 text-[11px] text-slate-500">
+              Top spender:{" "}
+              <span className="font-semibold text-slate-700">{topDepartment}</span>
+            </p>
+          )}
         </div>
       </div>
     </section>

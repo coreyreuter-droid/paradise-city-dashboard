@@ -13,6 +13,7 @@ import ParadiseHomeMultiYearChart from "@/components/City/HomeMultiYearChart";
 import DepartmentsGrid from "@/components/City/HomeDepartmentsGrid";
 import HomeRevenueSummary from "@/components/City/HomeRevenueSummary";
 import SankeyChart from "@/components/City/SankeyChart";
+import DollarBreakdown from "@/components/City/DollarBreakdown";
 import NarrativeSummary from "@/components/NarrativeSummary";
 import InsightsSection from "@/components/City/InsightsSection";
 import { buildHomeNarrative } from "@/lib/narrativeHelpers";
@@ -512,6 +513,17 @@ className="inline-flex items-center justify-center rounded-full px-3 py-1.5 text
                 topDepartment={topDepartment}
                 accentColor={accentColor}
                 enableTransactions={enableTransactions}
+                population={population}
+                priorYearBudget={
+                  selectedYear && yearTotals.length > 1
+                    ? yearTotals.find((y) => y.year === selectedYear - 1)?.Budget ?? null
+                    : null
+                }
+                priorYearActuals={
+                  selectedYear && yearTotals.length > 1
+                    ? yearTotals.find((y) => y.year === selectedYear - 1)?.Actuals ?? null
+                    : null
+                }
               />
 
               {freshnessText && (
@@ -537,6 +549,18 @@ className="inline-flex items-center justify-center rounded-full px-3 py-1.5 text
           {/* Narrative Summary */}
           {narrative && (
             <NarrativeSummary narrative={narrative} />
+          )}
+
+          {/* Where Your Dollar Goes — infographic */}
+          {hasBudgetData && departmentsForYear.length > 0 && (
+            <CardContainer>
+              <DollarBreakdown
+                departments={departmentsForYear}
+                totalBudget={totalBudget}
+                fiscalYear={selectedYear}
+                accentColor={accentColor}
+              />
+            </CardContainer>
           )}
 
           {/* Key Department Insights - only shown if insights exist */}
