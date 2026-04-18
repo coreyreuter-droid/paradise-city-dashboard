@@ -392,6 +392,9 @@ export default function SankeyChart({
                 <div
                   className={`flex ${isCenter ? "flex-col items-center rounded-lg bg-white/80 backdrop-blur-sm px-3 py-1" : isRight ? "items-baseline gap-1.5" : "items-baseline gap-1.5 justify-end"} ${clickable ? "pointer-events-auto cursor-pointer" : "pointer-events-auto"}`}
                   onClick={clickable ? () => handleNodeClick(node) : undefined}
+                  onKeyDown={clickable ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleNodeClick(node); } } : undefined}
+                  tabIndex={clickable ? 0 : undefined}
+                  role={clickable ? "button" : undefined}
                   onMouseEnter={() => { setHoveredNode(node.id); showDetail(node.label, node.value, node.color, node.column); }}
                   onMouseLeave={() => { setHoveredNode(null); setActiveDetail(null); }}
                 >

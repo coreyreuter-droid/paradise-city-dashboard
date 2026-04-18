@@ -236,7 +236,7 @@ export default function RevenuesDashboardClient({
 
       <nav aria-label="Breadcrumb" className="px-1 text-xs text-slate-600">
         <Link href={cityHref("/overview")} className="hover:text-slate-800">Home</Link>
-        <span className="mx-1 text-slate-400">›</span>
+        <span className="mx-1 text-slate-400" aria-hidden="true">›</span>
         <span className="font-medium text-slate-700">Revenue</span>
       </nav>
 
@@ -316,7 +316,11 @@ export default function RevenuesDashboardClient({
               </p>
             </div>
 
-            <div className="h-64 w-full min-w-0 overflow-hidden sm:h-72">
+            <div
+              className="h-64 w-full min-w-0 overflow-hidden sm:h-72"
+              role="img"
+              aria-label="Line chart showing revenue over time"
+            >
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart
                   data={yoyTrendData}
@@ -357,6 +361,17 @@ export default function RevenuesDashboardClient({
                 </LineChart>
               </ResponsiveContainer>
             </div>
+
+            {/* Screen reader data table */}
+            <table className="sr-only">
+              <caption>Revenue by fiscal year</caption>
+              <thead><tr><th>Fiscal year</th><th>Revenue</th></tr></thead>
+              <tbody>
+                {yoyTrendData.map((row) => (
+                  <tr key={row.year}><td>{row.year}</td><td>{formatCurrency(row.Revenue)}</td></tr>
+                ))}
+              </tbody>
+            </table>
           </section>
         </CardContainer>
       )}

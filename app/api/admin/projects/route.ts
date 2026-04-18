@@ -87,7 +87,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Generate slug from title or use provided slug
-    let slug = body.slug?.trim() || generateSlug(title);
+    const slug = body.slug?.trim() || generateSlug(title);
     
     if (!slug) {
       return NextResponse.json(

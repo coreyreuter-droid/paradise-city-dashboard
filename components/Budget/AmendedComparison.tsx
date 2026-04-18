@@ -96,7 +96,7 @@ export default function AmendedComparison({ rows, fiscalYear, accentColor }: Pro
                         </span>
                       </span>
                     ) : (
-                      <span className="text-slate-400">—</span>
+                      <span className="text-slate-400" aria-hidden="true">—</span>
                     )}
                   </td>
                 </tr>

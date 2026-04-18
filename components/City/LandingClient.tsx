@@ -585,7 +585,7 @@ export default function LandingClient({ portalSettings, totalBudget, totalActual
           <section aria-label="Financial snapshot" className="mb-8">
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:gap-3">
               <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
                   {fiscalYear ? `FY ${fiscalYear} ` : ""}Budget
                 </p>
                 <p className="mt-1 text-xl font-semibold text-slate-900">
@@ -595,7 +595,7 @@ export default function LandingClient({ portalSettings, totalBudget, totalActual
 
               {totalActuals && totalActuals > 0 && (
                 <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
-                  <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
                     Spent
                   </p>
                   <p className="mt-1 text-xl font-semibold text-slate-900">
@@ -611,7 +611,7 @@ export default function LandingClient({ portalSettings, totalBudget, totalActual
 
               {departmentCount > 0 && (
                 <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
-                  <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
                     Departments
                   </p>
                   <p className="mt-1 text-xl font-semibold text-slate-900">
@@ -622,7 +622,7 @@ export default function LandingClient({ portalSettings, totalBudget, totalActual
 
               {population && population > 0 && totalBudget > 0 && (
                 <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
-                  <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
                     Per resident
                   </p>
                   <p className="mt-1 text-xl font-semibold text-slate-900">

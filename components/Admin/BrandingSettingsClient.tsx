@@ -1483,7 +1483,7 @@ export default function BrandingSettingsClient() {
                 minRows={4}
               />
               <p className="mt-1 text-xs text-slate-600">
-                Shown in the "Capital projects" card on the public landing page.
+                Shown in the &ldquo;Capital projects&rdquo; card on the public landing page.
               </p>
             </div>
 

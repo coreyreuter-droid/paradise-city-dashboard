@@ -11,7 +11,6 @@ import NarrativeSummary from "@/components/NarrativeSummary";
 import { buildBudgetNarrative } from "@/lib/narrativeHelpers";
 import { cityHref } from "@/lib/cityRouting";
 import { CITY_CONFIG } from "@/lib/cityConfig";
-import { formatCurrency, formatPercent } from "@/lib/format";
 import type {
   BudgetActualsYearDeptRow,
   BudgetActualsYearFundRow,

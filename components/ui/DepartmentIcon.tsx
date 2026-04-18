@@ -191,7 +191,7 @@ type Props = {
 };
 
 const SIZES = {
-  sm: { outer: "h-7 w-7", icon: "h-3.5 w-3.5", text: "text-[10px]" },
+  sm: { outer: "h-7 w-7", icon: "h-3.5 w-3.5", text: "text-[11px]" },
   md: { outer: "h-9 w-9", icon: "h-4 w-4", text: "text-xs" },
   lg: { outer: "h-11 w-11", icon: "h-5 w-5", text: "text-sm" },
 };

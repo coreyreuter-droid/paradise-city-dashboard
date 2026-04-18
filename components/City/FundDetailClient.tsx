@@ -65,9 +65,9 @@ export default function FundDetailClient({ fundName, years, fundDeptRows }: Prop
 
       <nav aria-label="Breadcrumb" className="px-1 text-xs text-slate-600">
         <Link href={cityHref("/overview")} className="hover:text-slate-800">Home</Link>
-        <span className="mx-1 text-slate-400">›</span>
+        <span className="mx-1 text-slate-400" aria-hidden="true">›</span>
         <Link href={cityHref(`/funds${selectedYear ? `?year=${selectedYear}` : ""}`)} className="hover:text-slate-800">Funds</Link>
-        <span className="mx-1 text-slate-400">›</span>
+        <span className="mx-1 text-slate-400" aria-hidden="true">›</span>
         <span className="font-medium text-slate-700">{fundName}</span>
       </nav>
 

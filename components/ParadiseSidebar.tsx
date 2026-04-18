@@ -390,7 +390,7 @@ export default function ParadiseSidebar({
                     {isDepartmentsItem && currentDepartmentLabel && (
                       <div className="mt-1 pl-6 pr-3">
                         <div className="truncate text-xs text-slate-500">
-                          <span className="mr-1 text-slate-400">›</span>
+                          <span className="mr-1 text-slate-400" aria-hidden="true">›</span>
                           {currentDepartmentLabel}
                         </div>
                       </div>

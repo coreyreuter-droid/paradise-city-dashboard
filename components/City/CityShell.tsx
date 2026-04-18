@@ -66,7 +66,7 @@ export default function CityShell({
         <div className="relative mx-auto max-w-6xl px-4 py-4 sm:px-6 sm:py-5 lg:px-10">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0 flex-1">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
                 Financial transparency
               </p>
               <h1 className="mt-0.5 text-lg font-semibold tracking-tight text-[rgb(var(--primary-rgb))] sm:text-xl lg:text-[1.4rem]">

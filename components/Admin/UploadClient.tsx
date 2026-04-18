@@ -298,7 +298,7 @@ export default function UploadClient() {
         setExtraColumns(data.extra_columns || []);
         
         // Auto-select the matched profile
-        let matchedProfile = mappingProfiles.find((p) => p.id === data.profile.id);
+        const matchedProfile = mappingProfiles.find((p) => p.id === data.profile.id);
         
         // If profile not found locally (race condition), reload profiles
         if (!matchedProfile) {

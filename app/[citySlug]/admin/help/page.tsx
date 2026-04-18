@@ -298,7 +298,7 @@ export default function AdminHelpPage() {
             <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs">
               <p className="font-semibold text-slate-900">Project fields</p>
               <ul className="mt-1 list-disc space-y-1 pl-5 text-slate-700">
-                <li><span className="font-semibold">Title:</span> Project name (e.g., "Main Street Reconstruction")</li>
+                <li><span className="font-semibold">Title:</span> Project name (e.g., &ldquo;Main Street Reconstruction&rdquo;)</li>
                 <li><span className="font-semibold">Description:</span> What the project delivers and its impact</li>
                 <li><span className="font-semibold">Category:</span> Infrastructure, Parks, Facilities, Utilities, Other</li>
                 <li><span className="font-semibold">Status:</span> Planning, In Progress, Completed, On Hold</li>

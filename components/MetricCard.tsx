@@ -29,7 +29,7 @@ export default function MetricCard({
     >
       <div className="flex items-start justify-between gap-3">
         <div className="space-y-1">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500 sm:text-xs">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500 sm:text-xs">
             {label}
           </p>
           <p className="text-lg font-semibold text-slate-900 sm:text-xl lg:text-2xl">

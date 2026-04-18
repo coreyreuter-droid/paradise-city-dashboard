@@ -1,7 +1,6 @@
 "use client";
 
-import React, { useMemo, useState, useCallback, useEffect } from "react";
-import Link from "next/link";
+import React, { useMemo, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { formatCurrency, formatPercent } from "@/lib/format";
 import { cityHref } from "@/lib/cityRouting";
@@ -355,14 +354,16 @@ export default function BudgetExplorer({
   });
 
   // Reset drill state when fiscal year changes
-  useEffect(() => {
+  const [prevFiscalYear, setPrevFiscalYear] = useState(fiscalYear);
+  if (fiscalYear !== prevFiscalYear) {
+    setPrevFiscalYear(fiscalYear);
     setDrill({
       level: "gov",
       departmentName: null,
       fundName: null,
       breakdownMode: "department",
     });
-  }, [fiscalYear]);
+  }
 
   /* ---- Compute rows for current drill level ---- */
 
@@ -652,8 +653,11 @@ export default function BudgetExplorer({
               return (
                 <tr
                   key={row.drillKey}
-                  className="cursor-pointer transition-colors hover:bg-slate-50"
+                  className="cursor-pointer transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-slate-900"
                   onClick={() => handleBarClick(row)}
+                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleBarClick(row); } }}
+                  tabIndex={0}
+                  role="button"
                 >
                   <td className="px-3 py-2 font-medium text-slate-800">
                     {row.name}

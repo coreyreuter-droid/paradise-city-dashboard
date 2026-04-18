@@ -4,7 +4,6 @@ import { useMemo } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import CardContainer from "@/components/CardContainer";
-import BudgetCharts from "@/components/Budget/BudgetCharts";
 import BudgetExplorer from "@/components/Budget/BudgetExplorer";
 import type { DepartmentSummary } from "@/lib/types";
 import SectionHeader from "@/components/SectionHeader";
@@ -16,7 +15,6 @@ import SankeyChart from "@/components/City/SankeyChart";
 import DollarBreakdown from "@/components/City/DollarBreakdown";
 import WhatChanged from "@/components/City/WhatChanged";
 import DrillBarList from "@/components/ui/DrillBarList";
-import type { DrillBarItem } from "@/components/ui/DrillBarList";
 import NarrativeSummary from "@/components/NarrativeSummary";
 import InsightsSection from "@/components/City/InsightsSection";
 import { buildHomeNarrative } from "@/lib/narrativeHelpers";
@@ -412,14 +410,14 @@ className="inline-flex items-center justify-center rounded-full px-3 py-1.5 text
             <div className="flex flex-col justify-between gap-3 rounded-xl bg-slate-900/60 p-3 text-xs shadow-inner sm:p-4">
               <div className="flex items-center justify-between">
                 <div
-                  className="rounded-full bg-slate-800/80 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-200"
+                  className="rounded-full bg-slate-800/80 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-200"
                   aria-live="polite"
                 >
                   Fiscal year {yearLabel ? yearLabel : "not selected"}
                 </div>
 
                 {enableActuals && hasBudgetData && (
-                  <div className="rounded-full bg-emerald-500/90 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-950">
+                  <div className="rounded-full bg-emerald-500/90 px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-emerald-950">
                     {execPctDisplay}
                   </div>
                 )}
@@ -427,7 +425,7 @@ className="inline-flex items-center justify-center rounded-full px-3 py-1.5 text
 
               <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
                 <div className="rounded-lg bg-slate-950/40 p-3">
-                  <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-300">
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-300">
                     Budget
                   </div>
                   <div className="mt-1 text-sm font-semibold text-slate-50">
@@ -442,7 +440,7 @@ className="inline-flex items-center justify-center rounded-full px-3 py-1.5 text
 
                 {enableActuals && (
                   <div className="rounded-lg bg-slate-950/40 p-3">
-                    <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-300">
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-300">
                       Spent to date
                     </div>
                     <div className="mt-1 text-sm font-semibold text-slate-50">

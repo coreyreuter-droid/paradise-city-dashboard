@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect, useMemo } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { formatCurrency } from "@/lib/format";
 import { cityHref } from "@/lib/cityRouting";
 
@@ -92,12 +93,15 @@ export default function DollarBreakdown({ departments, totalBudget, fiscalYear }
           className="relative w-full overflow-hidden rounded-lg"
           style={{ aspectRatio: "2.34 / 1" }}
         >
-          <img
+          <Image
             src="/images/dollar-bill.png"
             alt=""
             aria-hidden="true"
-            className="absolute inset-0 h-full w-full object-cover"
+            fill
+            className="object-cover"
             draggable={false}
+            sizes="(max-width: 768px) 100vw, 800px"
+            priority
           />
 
           <div className="absolute inset-0 flex">

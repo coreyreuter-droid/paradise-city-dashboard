@@ -14,7 +14,7 @@ export default function ShareEmbed({ title, description }: Props) {
   const [copied, setCopied] = useState<string | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
-  const currentUrl = typeof window !== "undefined" ? window.location.href : "";border-radius:12px;" title="${title || "CiviPortal"}"></iframe>`;
+  const currentUrl = typeof window !== "undefined" ? window.location.href : "";
 
   // Close on outside click
   useEffect(() => {

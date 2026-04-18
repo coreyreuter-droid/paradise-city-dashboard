@@ -120,7 +120,7 @@ export default function DataTable<T>({
     if (!sortKey || sortKey !== key) {
       return (
         <>
-          <span className="ml-1 text-[10px] text-slate-400" aria-hidden="true">
+          <span className="ml-1 text-[11px] text-slate-400" aria-hidden="true">
             ↕
           </span>
           <span className="sr-only">Click to sort</span>
@@ -133,7 +133,7 @@ export default function DataTable<T>({
         <>
           <span
             aria-hidden="true"
-            className="ml-1 text-[10px] text-slate-600"
+            className="ml-1 text-[11px] text-slate-600"
           >
             ▲
           </span>
@@ -146,7 +146,7 @@ export default function DataTable<T>({
       <>
         <span
           aria-hidden="true"
-          className="ml-1 text-[10px] text-slate-600"
+          className="ml-1 text-[11px] text-slate-600"
         >
           ▼
         </span>

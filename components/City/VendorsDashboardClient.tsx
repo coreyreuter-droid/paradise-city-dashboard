@@ -155,7 +155,7 @@ export default function VendorsDashboardClient({
 
       <nav aria-label="Breadcrumb" className="px-1 text-xs text-slate-600">
         <Link href={cityHref("/overview")} className="hover:text-slate-800">Home</Link>
-        <span className="mx-1 text-slate-400">›</span>
+        <span className="mx-1 text-slate-400" aria-hidden="true">›</span>
         <span className="font-medium text-slate-700">Vendors</span>
       </nav>
 

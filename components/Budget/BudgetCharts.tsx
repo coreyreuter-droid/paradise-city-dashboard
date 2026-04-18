@@ -52,12 +52,12 @@ export default function BudgetCharts({
   };
 
   // WCAG 2.1 AA: Respect reduced motion preference
-  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  });
   useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-    // Initial state sync from browser media query
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setPrefersReducedMotion(mq.matches);
     const handler = (e: MediaQueryListEvent) => setPrefersReducedMotion(e.matches);
     mq.addEventListener("change", handler);
     return () => mq.removeEventListener("change", handler);
@@ -68,9 +68,11 @@ export default function BudgetCharts({
   const [showAllTable, setShowAllTable] = useState(false);
 
   // Reset table to collapsed when departments change (e.g., year change)
-  useEffect(() => {
+  const [prevDepts, setPrevDepts] = useState(departments);
+  if (departments !== prevDepts) {
+    setPrevDepts(departments);
     setShowAllTable(false);
-  }, [departments]);
+  }
 
   const chartData = useMemo(
     () =>

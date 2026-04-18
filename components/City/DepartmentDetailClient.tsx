@@ -551,9 +551,9 @@ const byYear = new Map<
       {/* Breadcrumb */}
       <nav aria-label="Breadcrumb" className="mb-4 mt-2 flex items-center gap-1 px-1 text-xs text-slate-600">
         <Link href={cityHref("/overview")} className="hover:text-slate-800">Home</Link>
-        <span className="text-slate-400">›</span>
+        <span className="text-slate-400" aria-hidden="true">›</span>
         <Link href={cityHref("/departments")} className="hover:text-slate-800">Spending</Link>
-        <span className="text-slate-400">›</span>
+        <span className="text-slate-400" aria-hidden="true">›</span>
         <span className="font-medium text-slate-700">{displayName}</span>
       </nav>
 
@@ -598,7 +598,11 @@ const byYear = new Map<
                 <h2 id="dept-multiyear-heading" className="text-sm font-semibold text-slate-900">Budget vs actuals over time</h2>
                 <p className="mt-0.5 text-sm text-slate-600">{displayName} across {multiYearSeries.length} fiscal years.</p>
               </div>
-              <div className="h-[280px] w-full min-w-0 overflow-hidden">
+              <div
+                className="h-[280px] w-full min-w-0 overflow-hidden"
+                role="img"
+                aria-label={`Line chart: ${displayName} budget vs actuals over time`}
+              >
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={multiYearSeries} margin={{ top: 10, right: 30, left: 10, bottom: 20 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
@@ -616,6 +620,21 @@ const byYear = new Map<
                   </LineChart>
                 </ResponsiveContainer>
               </div>
+
+              {/* Screen reader data table */}
+              <table className="sr-only">
+                <caption>{displayName} budget vs actuals by fiscal year</caption>
+                <thead><tr><th>Year</th><th>Budget</th><th>Actuals</th></tr></thead>
+                <tbody>
+                  {multiYearSeries.map((row) => (
+                    <tr key={row.year}>
+                      <td>{row.year}</td>
+                      <td>{formatCurrency(Number(row.budget || 0))}</td>
+                      <td>{formatCurrency(Number(row.actuals || 0))}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </section>
           </CardContainer>
         )}
