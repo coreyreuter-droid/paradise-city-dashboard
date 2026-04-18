@@ -2,9 +2,14 @@
 "use client";
 
 import { useMemo } from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import type { RevenueRow } from "@/lib/types";
 import { formatCurrency } from "@/lib/format";
+import { cityHref } from "@/lib/cityRouting";
+import DrillBarList from "@/components/ui/DrillBarList";
+import type { DrillBarItem } from "@/components/ui/DrillBarList";
+import FinanceTooltip from "@/components/ui/FinanceTooltip";
 
 type Props = {
   revenues: RevenueRow[];
@@ -21,13 +26,10 @@ export default function HomeRevenueSummary({
 
   const selectedYear: number | null = useMemo(() => {
     if (!years.length) return null;
-
     const raw = searchParams.get("year");
     if (!raw) return years[0];
-
     const parsed = Number(raw);
     if (!Number.isFinite(parsed)) return years[0];
-
     return years.includes(parsed) ? parsed : years[0];
   }, [searchParams, years]);
 
@@ -36,79 +38,70 @@ export default function HomeRevenueSummary({
     return revenues.filter((r) => r.fiscal_year === selectedYear);
   }, [revenues, selectedYear]);
 
-  const hasRows = revenuesForYear.length > 0;
+  // Aggregate by category
+  const categoryTotals = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const r of revenuesForYear) {
+      const cat = r.category?.trim() || "Other";
+      const amt = Number(r.amount || 0);
+      if (amt > 0) {
+        map.set(cat, (map.get(cat) || 0) + amt);
+      }
+    }
+    return Array.from(map.entries())
+      .map(([name, total]) => ({ name, total }))
+      .sort((a, b) => b.total - a.total);
+  }, [revenuesForYear]);
 
-  const totalRevenue = useMemo(
-    () =>
-      revenuesForYear.reduce(
-        (sum, r) => sum + Number(r.amount || 0),
-        0
-      ),
-    [revenuesForYear]
-  );
+  const totalRevenue = categoryTotals.reduce((s, c) => s + c.total, 0);
 
-  const hasRevenueData = hasRows; // if there are rows, show the cards even if total is 0
-  const yearLabel =
-    selectedYear != null ? String(selectedYear) : "the selected year";
+  const drillItems: DrillBarItem[] = useMemo(() => {
+    return categoryTotals.map((c) => ({
+      name: c.name,
+      budget: c.total,
+      actual: 0,
+      href: cityHref(`/revenues/${encodeURIComponent(c.name)}${selectedYear ? `?year=${selectedYear}` : ""}`),
+    }));
+  }, [categoryTotals, selectedYear]);
+
+  if (categoryTotals.length === 0) {
+    return (
+      <section aria-label="Revenue summary" className="space-y-2">
+        <h2 className="text-sm font-semibold text-slate-900">Revenue sources</h2>
+        <p className="text-sm text-slate-600">
+          No revenue data available for {selectedYear ? `FY ${selectedYear}` : "the selected year"}.
+        </p>
+      </section>
+    );
+  }
 
   return (
-    <section
-      aria-label="Revenue snapshot"
-      className="flex h-full flex-col text-left"
-    >
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+    <section aria-label="Revenue summary" className="space-y-3">
+      <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h2 className="text-sm font-semibold text-slate-800">
-            Revenue snapshot
+          <h2 className="text-sm font-semibold tracking-tight text-slate-900 sm:text-base">
+            <FinanceTooltip term="revenue">Revenue sources</FinanceTooltip>
           </h2>
-          <p className="text-sm text-slate-700">
-            High-level view of total recorded revenues for{" "}
-            {yearLabel}.
+          <p className="mt-0.5 text-sm text-slate-600">
+            {categoryTotals.length} revenue categories totaling{" "}
+            <span className="font-semibold text-slate-800">{formatCurrency(totalRevenue)}</span>
+            {selectedYear ? ` for FY ${selectedYear}` : ""}.
           </p>
         </div>
-
+        <Link
+          href={cityHref(`/revenues${selectedYear ? `?year=${selectedYear}` : ""}`)}
+          className="text-xs font-medium text-slate-600 underline underline-offset-2 hover:text-slate-900 transition-colors"
+        >
+          View all revenue
+        </Link>
       </div>
 
-      <div className="mt-4 flex-1">
-        {hasRevenueData ? (
-          <div className="grid gap-4 sm:grid-cols-2">
-            {/* Total revenues */}
-            <div className="flex flex-col rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
-              <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-600">
-                Total revenues
-              </div>
-              <div className="mt-1 text-lg font-semibold text-slate-900">
-                {formatCurrency(totalRevenue)}
-              </div>
-              <p className="mt-1 text-sm text-slate-700">
-                Sum of all revenue records loaded for{" "}
-                {yearLabel}.
-              </p>
-            </div>
-
-            {/* Approx monthly */}
-            <div className="flex flex-col rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
-              <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-600">
-                Approx. monthly revenues
-              </div>
-              <div className="mt-1 text-lg font-semibold text-slate-900">
-                {formatCurrency(totalRevenue / 12)}
-              </div>
-              <p className="mt-1 text-sm text-slate-700">
-                Simple total divided by 12 months to give a
-                ballpark monthly figure.
-              </p>
-            </div>
-          </div>
-        ) : (
-          <p className="text-sm text-slate-700">
-            Revenue data for {yearLabel} has not been loaded into the
-            portal yet. Once revenue files are uploaded through the
-            admin area, this section will summarize total revenues for
-            the selected fiscal year.
-          </p>
-        )}
-      </div>
+      <DrillBarList
+        items={drillItems}
+        showActuals={false}
+        maxVisible={8}
+        ariaLabel="Revenue sources ranked by amount"
+      />
     </section>
   );
 }

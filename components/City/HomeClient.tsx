@@ -14,6 +14,8 @@ import DepartmentsGrid from "@/components/City/HomeDepartmentsGrid";
 import HomeRevenueSummary from "@/components/City/HomeRevenueSummary";
 import SankeyChart from "@/components/City/SankeyChart";
 import DollarBreakdown from "@/components/City/DollarBreakdown";
+import DrillBarList from "@/components/ui/DrillBarList";
+import type { DrillBarItem } from "@/components/ui/DrillBarList";
 import NarrativeSummary from "@/components/NarrativeSummary";
 import InsightsSection from "@/components/City/InsightsSection";
 import { buildHomeNarrative } from "@/lib/narrativeHelpers";
@@ -700,25 +702,20 @@ className="inline-flex items-center justify-center rounded-full px-3 py-1.5 text
                       </div>
 
                       {topVendors.length === 0 ? (
-                        <p className="text-sm text-slate-700">
+                        <p className="text-sm text-slate-600">
                           No vendor summary data available for this year.
                         </p>
                       ) : (
-                        <ul className="divide-y divide-slate-200 rounded-lg border border-slate-200 bg-white">
-                          {topVendors.map((v) => (
-                            <li
-                              key={v.name}
-                              className="flex items-center justify-between gap-3 px-3 py-2"
-                            >
-                              <span className="truncate text-sm text-slate-800">
-                                {v.name}
-                              </span>
-                              <span className="whitespace-nowrap font-mono text-sm text-slate-900">
-                                {formatCurrency(v.total)}
-                              </span>
-                            </li>
-                          ))}
-                        </ul>
+                        <DrillBarList
+                          items={topVendors.map((v) => ({
+                            name: v.name,
+                            budget: v.total,
+                            actual: 0,
+                            href: cityHref(`/transactions?q=${encodeURIComponent(v.name)}${selectedYear ? `&year=${selectedYear}` : ""}`),
+                          }))}
+                          showActuals={false}
+                          ariaLabel="Top vendors by spending"
+                        />
                       )}
                     </section>
                   </CardContainer>

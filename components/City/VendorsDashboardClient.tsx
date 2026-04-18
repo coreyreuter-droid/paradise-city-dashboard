@@ -7,6 +7,8 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import CardContainer from "../CardContainer";
 import SectionHeader from "../SectionHeader";
 import FiscalYearSelect from "../FiscalYearSelect";
+import DrillBarList from "../ui/DrillBarList";
+import type { DrillBarItem } from "../ui/DrillBarList";
 import DataTable, { DataTableColumn } from "../DataTable";
 import { cityHref } from "@/lib/cityRouting";
 import { formatCurrency } from "@/lib/format";
@@ -32,21 +34,15 @@ function buildSearchUrl(
   updates: { year?: string | null; q?: string | null }
 ): string {
   const params = new URLSearchParams(currentParams.toString());
-
   if (updates.year !== undefined) {
-    if (!updates.year || updates.year === "latest") {
-      params.delete("year");
-    } else {
-      params.set("year", updates.year);
-    }
+    if (!updates.year || updates.year === "latest") params.delete("year");
+    else params.set("year", updates.year);
   }
-
   if (updates.q !== undefined) {
     const trimmed = updates.q?.trim() ?? "";
     if (trimmed.length === 0) params.delete("q");
     else params.set("q", trimmed);
   }
-
   const qs = params.toString();
   return qs ? `${pathname}?${qs}` : pathname;
 }
@@ -60,47 +56,49 @@ export default function VendorsDashboardClient({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-
   const [vendorInput, setVendorInput] = useState<string>(vendorQuery ?? "");
 
-  const yearLabel =
-    selectedYear ?? (years.length > 0 ? years[0] : undefined);
+  const yearLabel = selectedYear ?? (years.length > 0 ? years[0] : undefined);
 
   const rows: VendorRow[] = useMemo(() => {
-    const base = vendorSummaries.map((s) => ({
-      name:
-        s.vendor && s.vendor.trim().length > 0
-          ? s.vendor.trim()
-          : "Unspecified",
-      total: Number(s.total_amount || 0),
-      txnCount: Number(s.txn_count || 0),
-    }));
-
-    return base
+    return vendorSummaries
+      .map((s) => ({
+        name: s.vendor && s.vendor.trim().length > 0 ? s.vendor.trim() : "Unspecified",
+        total: Number(s.total_amount || 0),
+        txnCount: Number(s.txn_count || 0),
+      }))
       .filter((r) => r.total !== 0 || r.txnCount !== 0)
       .sort((a, b) => b.total - a.total);
   }, [vendorSummaries]);
 
   const totalVendors = rows.length;
   const totalSpend = rows.reduce((sum, v) => sum + v.total, 0);
-  const topVendor = rows[0]?.name ?? null;
+  const totalTxns = rows.reduce((sum, v) => sum + v.txnCount, 0);
+
+  // Drill bar items for top vendors
+  const drillItems: DrillBarItem[] = useMemo(() => {
+    return rows.slice(0, 15).map((v) => ({
+      name: v.name,
+      budget: v.total, // use budget slot for total spend (bar visualization)
+      actual: 0,
+      href:
+        v.name !== "Unspecified"
+          ? `${cityHref("/transactions")}?q=${encodeURIComponent(v.name)}${
+              selectedYear ? `&year=${selectedYear}` : ""
+            }`
+          : undefined,
+    }));
+  }, [rows, selectedYear]);
 
   const handleVendorSearchSubmit = (e: FormEvent) => {
     e.preventDefault();
-    const url = buildSearchUrl(pathname, searchParams, {
-      q: vendorInput,
-    });
-    router.push(url);
+    router.push(buildSearchUrl(pathname, searchParams, { q: vendorInput }));
   };
 
   const handleClearFilter = () => {
     setVendorInput("");
-    const url = buildSearchUrl(pathname, searchParams, { q: null });
-    router.push(url);
+    router.push(buildSearchUrl(pathname, searchParams, { q: null }));
   };
-
-  const accentColor =
-    CITY_CONFIG.accentColor || CITY_CONFIG.primaryColor || undefined;
 
   const columns: DataTableColumn<VendorRow>[] = useMemo(
     () => [
@@ -112,13 +110,13 @@ export default function VendorsDashboardClient({
         cellClassName: "whitespace-nowrap",
         cell: (row) =>
           row.name === "Unspecified" ? (
-            <span className="italic text-slate-600">Unspecified</span>
+            <span className="italic text-slate-500">Unspecified</span>
           ) : (
             <Link
-              href={`${cityHref("/transactions")}?q=${encodeURIComponent(
-                row.name
-              )}${selectedYear ? `&year=${selectedYear}` : ""}`}
-              className="text-sm font-medium text-slate-800 underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-1 rounded"
+              href={`${cityHref("/transactions")}?q=${encodeURIComponent(row.name)}${
+                selectedYear ? `&year=${selectedYear}` : ""
+              }`}
+              className="font-medium text-slate-800 hover:underline"
             >
               {row.name}
             </Link>
@@ -131,7 +129,7 @@ export default function VendorsDashboardClient({
         sortAccessor: (row) => row.total,
         headerClassName: "text-right",
         cellClassName: "whitespace-nowrap text-right font-mono",
-        cell: (row) => <span>{formatCurrency(row.total)}</span>,
+        cell: (row) => formatCurrency(row.total),
       },
       {
         key: "txnCount",
@@ -140,170 +138,98 @@ export default function VendorsDashboardClient({
         sortAccessor: (row) => row.txnCount,
         headerClassName: "text-right",
         cellClassName: "whitespace-nowrap text-right",
-        cell: (row) => (
-          <span>{row.txnCount.toLocaleString("en-US")}</span>
-        ),
+        cell: (row) => row.txnCount.toLocaleString("en-US"),
       },
     ],
     [selectedYear]
   );
 
   return (
-    <div
-      className="mx-auto max-w-6xl space-y-6 px-3 py-6 sm:px-4 sm:py-8"
-    >
+    <div className="mx-auto max-w-6xl space-y-5 px-3 py-6 sm:px-4 sm:py-8">
       <SectionHeader
         eyebrow="Vendors"
-        title="Vendor spending explorer"
-        description="See which vendors receive the most spending for the selected fiscal year, and drill into their transactions."
-        rightSlot={
-          years.length > 0 ? (
-            <FiscalYearSelect options={years} label="Fiscal year" />
-          ) : null
-        }
-        accentColor={accentColor}
+        title="Vendor spending"
+        description="See which vendors receive the most spending. Click any vendor to view their transactions."
+        rightSlot={years.length > 0 ? <FiscalYearSelect options={years} label="Fiscal year" /> : null}
       />
 
-      {/* Breadcrumb */}
-      <nav
-        aria-label="Breadcrumb"
-        className="mb-2 px-1 text-sm text-slate-600"
-      >
-        <ol className="flex items-center gap-1">
-          <li>
-            <Link
-              href={cityHref("/overview")}
-              className="hover:text-slate-800"
-            >
-              Home
-            </Link>
-          </li>
-          <li aria-hidden="true" className="text-slate-500">
-            ›
-          </li>
-          <li aria-current="page">
-            <span className="font-medium text-slate-700">Vendors</span>
-          </li>
-        </ol>
+      <nav aria-label="Breadcrumb" className="px-1 text-xs text-slate-600">
+        <Link href={cityHref("/overview")} className="hover:text-slate-800">Home</Link>
+        <span className="mx-1 text-slate-400">›</span>
+        <span className="font-medium text-slate-700">Vendors</span>
       </nav>
 
+      {/* KPI cards */}
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:gap-3">
+        <div className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Vendors</p>
+          <p className="mt-0.5 text-lg font-semibold text-slate-900">{totalVendors.toLocaleString()}</p>
+        </div>
+        <div className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Total spend</p>
+          <p className="mt-0.5 text-lg font-semibold text-slate-900">{formatCurrency(totalSpend)}</p>
+        </div>
+        <div className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Transactions</p>
+          <p className="mt-0.5 text-lg font-semibold text-slate-900">{totalTxns.toLocaleString()}</p>
+        </div>
+      </div>
+
+      {/* Search */}
       <CardContainer>
-        <section
-          aria-label="Vendor filters and summary"
-          className="space-y-4"
-        >
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-            <div className="space-y-1">
-              <h2 className="text-sm font-semibold text-slate-900">
-                Filters
-              </h2>
-              <p className="text-sm text-slate-700">
-                Search vendors by name. Fiscal year is controlled in the
-                header above.
-              </p>
-            </div>
-
-            <form
-              onSubmit={handleVendorSearchSubmit}
-              className="flex w-full flex-col gap-1 sm:w-72"
-              aria-label="Vendor search"
-            >
-              <label
-                htmlFor="vendor-filter"
-                className="text-xs font-medium text-slate-700"
-              >
-                Vendor contains
-              </label>
-              <div className="flex gap-2">
-                <input
-                  id="vendor-filter"
-                  type="search"
-                  value={vendorInput}
-                  onChange={(e) => setVendorInput(e.target.value)}
-                  className="flex-1 rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-900 shadow-sm focus:border-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900"
-                  placeholder="e.g. Utilities Inc"
-                />
-                <button
-                  type="submit"
-                  className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-1"
-                >
-                  Apply
-                </button>
-              </div>
-              {vendorQuery && vendorQuery.trim().length > 0 && (
-                <button
-                  type="button"
-                  onClick={handleClearFilter}
-                  className="self-start text-xs font-medium text-slate-600 hover:text-slate-800"
-                >
-                  Clear vendor filter
-                </button>
-              )}
-            </form>
+        <form onSubmit={handleVendorSearchSubmit} className="flex flex-col gap-2 sm:flex-row sm:items-end" aria-label="Vendor search">
+          <div className="flex-1">
+            <label htmlFor="vendor-filter" className="text-xs font-medium text-slate-700">Search vendors</label>
+            <input
+              id="vendor-filter"
+              type="search"
+              value={vendorInput}
+              onChange={(e) => setVendorInput(e.target.value)}
+              className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900"
+              placeholder="e.g. Utilities Inc"
+            />
           </div>
-
-          <div className="grid gap-3 sm:grid-cols-3">
-            <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                Vendors with spend
-              </p>
-              <p className="mt-1 text-base font-semibold text-slate-900">
-                {totalVendors.toLocaleString("en-US")}
-              </p>
-              <p className="mt-1 text-xs text-slate-700">
-                Vendors with at least one transaction in{" "}
-                {yearLabel ?? "the selected year"}.
-              </p>
-            </div>
-
-            <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                Total spend
-              </p>
-              <p className="mt-1 text-base font-semibold text-slate-900">
-                {formatCurrency(totalSpend)}
-              </p>
-              <p className="mt-1 text-xs text-slate-700">
-                Sum of all vendor payments for{" "}
-                {yearLabel ?? "the selected year"}.
-              </p>
-            </div>
-
-            <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                Top vendor
-              </p>
-              <p className="mt-1 text-base font-semibold text-slate-900">
-                {topVendor ?? "—"}
-              </p>
-              <p className="mt-1 text-xs text-slate-700">
-                Ranked by total spend for{" "}
-                {yearLabel ?? "the selected year"}.
-              </p>
-            </div>
+          <div className="flex gap-2">
+            <button type="submit" className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-50">
+              Search
+            </button>
+            {vendorQuery && (
+              <button type="button" onClick={handleClearFilter} className="text-xs text-slate-600 hover:text-slate-900 underline underline-offset-2">
+                Clear
+              </button>
+            )}
           </div>
-        </section>
+        </form>
       </CardContainer>
 
-      <CardContainer>
-        <section aria-label="Vendor list" className="space-y-3">
-          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+      {/* Visual top vendors bar chart */}
+      {drillItems.length > 0 && (
+        <CardContainer>
+          <section aria-label="Top vendors by spend" className="space-y-3">
             <div>
               <h2 className="text-sm font-semibold text-slate-900">
-                Vendors
+                Top vendors — FY {yearLabel}
               </h2>
-              <p className="text-sm text-slate-700">
-                Click a vendor name to jump to their transactions in the
-                Transactions explorer.
+              <p className="mt-0.5 text-sm text-slate-600">
+                Click any vendor to see their transactions.
               </p>
             </div>
-          </div>
+            <DrillBarList
+              items={drillItems}
+              showActuals={false}
+              ariaLabel="Top vendors ranked by spend"
+            />
+          </section>
+        </CardContainer>
+      )}
 
+      {/* Full table */}
+      <CardContainer>
+        <section aria-label="Vendor list" className="space-y-3">
+          <h2 className="text-sm font-semibold text-slate-900">All vendors</h2>
           {rows.length === 0 ? (
-            <p className="text-sm text-slate-700">
-              No vendor summary data available for{" "}
-              {yearLabel ?? "the selected year"}. Try a different
-              fiscal year or adjust your search.
+            <p className="text-sm text-slate-600">
+              No vendor data available for {yearLabel ?? "the selected year"}.
             </p>
           ) : (
             <DataTable<VendorRow>

@@ -207,7 +207,7 @@ export default function BudgetCharts({
             barSize={10}
             onClick={(state) => {
               if (state?.activeLabel) {
-                handleBarClick({ name: state.activeLabel });
+                handleBarClick({ name: String(state.activeLabel) });
               }
             }}
             style={{ cursor: "pointer" }}
