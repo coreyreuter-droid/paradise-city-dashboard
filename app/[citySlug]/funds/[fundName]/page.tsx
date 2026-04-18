@@ -25,7 +25,6 @@ export default async function FundDetailPage({ params, searchParams }: PageProps
     getPortalFiscalYears(),
   ]);
 
-  const portalSettings = settings as PortalSettings | null;
   const sortedYears = (years ?? []).slice().sort((a, b) => b - a);
   const yearParam = sp?.year ? Number(sp.year) : NaN;
   const selectedYear =

@@ -7,7 +7,6 @@ import {
   ValidateLookupRequest,
   ValidateLookupResponse,
   LookupInputRow,
-  FundDimRow,
 } from '@/lib/lookups/types';
 import {
   validateRows,

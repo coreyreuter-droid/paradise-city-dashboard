@@ -151,7 +151,7 @@ export default async function AboutPage() {
           <ul className="space-y-2 text-sm text-slate-600">
             <li className="flex gap-2">
               <span className="text-slate-400 flex-shrink-0" aria-hidden="true">•</span>
-              <span>This portal is a transparency tool, not a substitute for the official budget document or Comprehensive Annual Financial Report (CAFR).</span>
+              <span>This portal is a transparency tool, not a substitute for the official budget document or Annual Comprehensive Financial Report (ACFR).</span>
             </li>
             <li className="flex gap-2">
               <span className="text-slate-400 flex-shrink-0" aria-hidden="true">•</span>

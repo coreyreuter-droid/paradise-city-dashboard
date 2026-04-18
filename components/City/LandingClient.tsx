@@ -496,6 +496,7 @@ export default function LandingClient({ portalSettings, totalBudget, totalActual
 
               {sealUrl && (
                 <div className="mt-6 flex items-center gap-3">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={sealUrl}
                     alt={`Official seal ${cityName}`}
@@ -724,6 +725,7 @@ export default function LandingClient({ portalSettings, totalBudget, totalActual
               >
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
                   {leaderPhotoUrl && (
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={leaderPhotoUrl}
                       alt={leaderName ? `Photo of ${leaderName}` : "Leadership photo"}
@@ -821,6 +823,7 @@ export default function LandingClient({ portalSettings, totalBudget, totalActual
                               className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
                             >
                               {imageUrl ? (
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                                 <img
                                   src={imageUrl}
                                   alt={`${title} project image`}

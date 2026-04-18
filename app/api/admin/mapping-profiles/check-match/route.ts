@@ -125,6 +125,7 @@ export async function POST(req: NextRequest) {
         
         // Get all mapped CSV column names from this profile
         const mappedColumnNames: string[] = [];
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         for (const [_targetField, csvColumnName] of Object.entries(columnMappings)) {
           if (csvColumnName && typeof csvColumnName === "string") {
             mappedColumnNames.push(csvColumnName.toLowerCase().trim());

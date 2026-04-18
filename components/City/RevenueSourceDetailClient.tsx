@@ -77,7 +77,8 @@ export default function RevenueSourceDetailClient({
         actual: 0,
       }))
       .sort((a, b) => b.budget - a.budget);
-  }, [revenues, selectedYear]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [revenues]);
 
   // Multi-year trend
   const trendData = useMemo(() => {

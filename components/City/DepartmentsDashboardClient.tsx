@@ -45,6 +45,7 @@ export default function DepartmentsDashboardClient({
 }: Props) {
   const searchParams = useSearchParams();
   const searchQuery = searchParams.get("q") || initialSearchQuery || "";
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const years = yearsProp ?? [];
 
   const selectedYear = useMemo(() => {

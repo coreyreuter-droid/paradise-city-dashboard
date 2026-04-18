@@ -1,6 +1,5 @@
 // app/[citySlug]/taxpayer-receipt/page.tsx
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
 import Link from "next/link";
 import SectionHeader from "@/components/SectionHeader";
 import TaxpayerReceipt from "@/components/City/TaxpayerReceipt";

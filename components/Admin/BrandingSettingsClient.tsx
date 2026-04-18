@@ -1687,7 +1687,7 @@ export default function BrandingSettingsClient() {
                 Feedback notification email
               </label>
               <p className="mb-1 text-[11px] text-slate-500">
-                When email notifications are configured, new feedback submissions will be forwarded to this address. Email delivery requires a mail provider to be connected.
+                Feedback is stored in the admin inbox for staff review. Email forwarding to this address is available once a mail provider is connected.
               </p>
               <input
                 id="feedback_email"
@@ -1760,7 +1760,7 @@ export default function BrandingSettingsClient() {
                   <input
                     id="meth_audit"
                     type="text"
-                    placeholder="e.g., FY2024 data is unaudited; FY2023 CAFR is available"
+                    placeholder="e.g., FY2024 data is unaudited; FY2023 ACFR is available"
                     value={settings?.methodology_audit_status ?? ""}
                     onChange={(e) =>
                       settings &&
