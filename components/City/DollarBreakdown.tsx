@@ -1,10 +1,9 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useRef, useEffect } from "react";
 import Link from "next/link";
 import { formatCurrency } from "@/lib/format";
 import { cityHref } from "@/lib/cityRouting";
-import { getDepartmentColor } from "@/components/ui/DepartmentIcon";
 
 type DeptSlice = {
   department_name: string;
@@ -18,170 +17,298 @@ type Props = {
   accentColor?: string;
 };
 
-const FALLBACK_COLORS = [
-  "#0f766e", "#1d4ed8", "#7c3aed", "#b45309",
-  "#15803d", "#be123c", "#0369a1", "#a16207",
-  "#64748b", "#4338ca", "#0891b2", "#dc2626",
+const SEGMENT_COLORS = [
+  "#1d4ed8", // blue
+  "#dc2626", // red
+  "#15803d", // green
+  "#7c3aed", // purple
+  "#b45309", // amber
+  "#0891b2", // cyan
+  "#be123c", // rose
+  "#4338ca", // indigo
+  "#0f766e", // teal
+  "#64748b", // slate (other)
 ];
 
 export default function DollarBreakdown({ departments, totalBudget, fiscalYear }: Props) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  const [tappedIndex, setTappedIndex] = useState<number | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const slices = useMemo(() => {
     if (totalBudget <= 0 || departments.length === 0) return [];
 
     const sorted = [...departments].sort((a, b) => b.budget - a.budget);
-    const items = sorted.map((d, i) => ({
+    const top = sorted.slice(0, 9);
+    const otherBudget = sorted.slice(9).reduce((s, d) => s + d.budget, 0);
+    const otherCount = sorted.length - 9;
+
+    const items = top.map((d, i) => ({
       name: d.department_name,
       budget: d.budget,
       share: d.budget / totalBudget,
       cents: Math.round((d.budget / totalBudget) * 100),
-      color: getDepartmentColor(d.department_name, FALLBACK_COLORS[i % FALLBACK_COLORS.length]),
+      color: SEGMENT_COLORS[i],
+      isOther: false,
     }));
+
+    if (otherBudget > 0 && otherCount > 0) {
+      items.push({
+        name: `Other (${otherCount} depts)`,
+        budget: otherBudget,
+        share: otherBudget / totalBudget,
+        cents: Math.round((otherBudget / totalBudget) * 100),
+        color: SEGMENT_COLORS[9],
+        isOther: true,
+      });
+    }
 
     return items;
   }, [departments, totalBudget]);
 
+  // Close tooltip on outside click (mobile)
+  useEffect(() => {
+    if (tappedIndex === null) return;
+    const handler = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setTappedIndex(null);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [tappedIndex]);
+
   if (slices.length === 0) return null;
 
-  // Build segments for the dollar bar
-  let cumulative = 0;
-  const segments = slices.map((s) => {
-    const start = cumulative;
-    cumulative += s.share * 100;
-    return { ...s, startPct: start, widthPct: s.share * 100 };
-  });
+  const activeIndex = hoveredIndex ?? tappedIndex;
 
   return (
-    <section aria-label="Where your dollar goes" className="space-y-3">
+    <section aria-label="Where your dollar goes" className="space-y-3" ref={containerRef}>
       <div>
         <h2 className="text-sm font-semibold tracking-tight text-slate-900 sm:text-base">
           Where your dollar goes
         </h2>
         <p className="mt-0.5 text-sm text-slate-600">
           For every $1.00 in the {fiscalYear ? `FY ${fiscalYear} ` : ""}budget, here is how it is allocated.
-          {" "}Hover or tap a segment to see details.
         </p>
       </div>
 
-      {/* The dollar bar */}
-      <div
-        className="relative"
-        role="img"
-        aria-label={`Dollar breakdown: ${slices.map(s => `${s.name} ${s.cents} cents`).join(", ")}`}
-      >
-        {/* Dollar sign + bar */}
-        <div className="flex items-center gap-2">
-          <span className="text-2xl font-bold text-slate-300" aria-hidden="true">$</span>
-          <div className="flex-1 overflow-hidden rounded-lg" style={{ height: 44 }}>
-            <div className="flex h-full w-full">
-              {segments.map((seg, i) => (
-                <button
-                  key={seg.name}
-                  type="button"
-                  className="relative h-full transition-all duration-150"
-                  style={{
-                    width: `${Math.max(seg.widthPct, 0.5)}%`,
-                    backgroundColor: seg.color,
-                    opacity: hoveredIndex === null || hoveredIndex === i ? 1 : 0.4,
-                    transform: hoveredIndex === i ? "scaleY(1.15)" : "scaleY(1)",
-                    transformOrigin: "bottom",
-                  }}
-                  onMouseEnter={() => setHoveredIndex(i)}
-                  onMouseLeave={() => setHoveredIndex(null)}
-                  onFocus={() => setHoveredIndex(i)}
-                  onBlur={() => setHoveredIndex(null)}
-                  aria-label={`${seg.name}: ${seg.cents} cents of every dollar, ${formatCurrency(seg.budget)}`}
-                >
-                  {/* Separator line */}
-                  {i > 0 && (
-                    <div className="absolute inset-y-0 left-0 w-px bg-white/30" aria-hidden="true" />
-                  )}
-                  {/* Label for large segments */}
-                  {seg.widthPct > 10 && (
-                    <span className="absolute inset-0 flex items-center justify-center text-[11px] font-semibold text-white/90 truncate px-1"
-                      style={{ textShadow: "0 1px 2px rgba(0,0,0,0.3)" }}
-                      aria-hidden="true"
-                    >
-                      {seg.cents}¢
-                    </span>
-                  )}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
+      {/* Dollar bill container */}
+      <div className="relative select-none" style={{ aspectRatio: "2.6 / 1", maxWidth: 620 }}>
+        {/* Bill SVG background */}
+        <DollarBillSvg />
 
-        {/* Hover tooltip */}
-        {hoveredIndex !== null && segments[hoveredIndex] && (
-          <div className="mt-2 flex items-center gap-3 rounded-lg border border-slate-200 bg-white px-4 py-2.5 shadow-sm">
-            <div
-              className="h-4 w-4 flex-shrink-0 rounded"
-              style={{ backgroundColor: segments[hoveredIndex].color }}
-              aria-hidden="true"
-            />
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-slate-900">
-                {segments[hoveredIndex].name}
-              </p>
-            </div>
-            <div className="text-right">
-              <p className="text-sm font-semibold text-slate-900">
-                {segments[hoveredIndex].cents}¢
-              </p>
-              <p className="text-[11px] text-slate-500">
-                {formatCurrency(segments[hoveredIndex].budget)}
-              </p>
-            </div>
-          </div>
-        )}
+        {/* Colored overlay segments */}
+        <div className="absolute inset-0 flex" style={{ borderRadius: 6, overflow: "hidden" }}>
+          {slices.map((seg, i) => {
+            const isActive = activeIndex === i;
+            const isDimmed = activeIndex !== null && activeIndex !== i;
 
-        {/* Default state — show top departments as a compact legend */}
-        {hoveredIndex === null && (
-          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
-            {slices.slice(0, 6).map((s) => (
+            return (
               <Link
-                key={s.name}
-                href={cityHref(`/departments/${encodeURIComponent(s.name)}`)}
-                className="flex items-center gap-1.5 text-[12px] text-slate-600 hover:text-slate-900 transition-colors"
+                key={seg.name}
+                href={seg.isOther ? cityHref("/departments") : cityHref(`/departments/${encodeURIComponent(seg.name)}`)}
+                className="relative block h-full transition-all duration-200 ease-out"
+                style={{
+                  width: `${Math.max(seg.share * 100, 0.8)}%`,
+                  backgroundColor: seg.color + "55",
+                  opacity: isDimmed ? 0.5 : 1,
+                  transform: isActive ? "translateY(-6px)" : "translateY(0)",
+                  borderLeft: i > 0 ? "2px solid rgba(255,255,255,0.85)" : "none",
+                  zIndex: isActive ? 10 : 1,
+                }}
+                onMouseEnter={() => setHoveredIndex(i)}
+                onMouseLeave={() => setHoveredIndex(null)}
+                onClick={(e) => {
+                  // On mobile, first tap shows tooltip, second tap navigates
+                  if (tappedIndex !== i && "ontouchstart" in window) {
+                    e.preventDefault();
+                    setTappedIndex(i);
+                  }
+                }}
+                aria-label={`${seg.name}: ${seg.cents} cents of every dollar, ${formatCurrency(seg.budget)}`}
               >
-                <span
-                  className="inline-block h-2.5 w-2.5 rounded-sm flex-shrink-0"
-                  style={{ backgroundColor: s.color }}
-                  aria-hidden="true"
-                />
-                <span className="truncate">{s.name}</span>
-                <span className="font-semibold text-slate-800">{s.cents}¢</span>
+                {/* Cents label for wide segments */}
+                {seg.share > 0.08 && (
+                  <span
+                    className="absolute inset-0 flex items-center justify-center text-white font-bold pointer-events-none"
+                    style={{
+                      fontSize: seg.share > 0.15 ? 16 : 13,
+                      textShadow: "0 1px 4px rgba(0,0,0,0.5)",
+                      letterSpacing: "0.02em",
+                    }}
+                    aria-hidden="true"
+                  >
+                    {seg.cents}¢
+                  </span>
+                )}
               </Link>
-            ))}
-            {slices.length > 6 && (
-              <span className="text-[12px] text-slate-500">
-                +{slices.length - 6} more
-              </span>
-            )}
-          </div>
-        )}
+            );
+          })}
+        </div>
       </div>
 
-      {/* Screen reader accessible table */}
+      {/* Active tooltip */}
+      {activeIndex !== null && slices[activeIndex] && (
+        <div className="flex items-center gap-3 rounded-lg border border-slate-200 bg-white px-4 py-2.5 shadow-sm" style={{ maxWidth: 620 }}>
+          <div
+            className="h-4 w-4 flex-shrink-0 rounded"
+            style={{ backgroundColor: slices[activeIndex].color }}
+            aria-hidden="true"
+          />
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-slate-900">{slices[activeIndex].name}</p>
+          </div>
+          <div className="text-right flex-shrink-0">
+            <span className="text-sm font-bold text-slate-900">{slices[activeIndex].cents}¢</span>
+            <span className="ml-2 text-[12px] text-slate-500">{formatCurrency(slices[activeIndex].budget)}</span>
+          </div>
+        </div>
+      )}
+
+      {/* Legend — visible when nothing is hovered */}
+      {activeIndex === null && (
+        <div className="flex flex-wrap gap-x-4 gap-y-1.5" style={{ maxWidth: 620 }}>
+          {slices.map((s) => (
+            <span key={s.name} className="flex items-center gap-1.5 text-[12px] text-slate-700">
+              <span
+                className="inline-block h-2.5 w-2.5 rounded-sm flex-shrink-0"
+                style={{ backgroundColor: s.color }}
+                aria-hidden="true"
+              />
+              <span className="truncate max-w-[140px]">{s.name}</span>
+              <span className="font-semibold">{s.cents}¢</span>
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* Screen reader table */}
       <table className="sr-only" aria-label="Dollar breakdown by department">
-        <thead>
-          <tr>
-            <th>Department</th>
-            <th>Cents per dollar</th>
-            <th>Budget amount</th>
-          </tr>
-        </thead>
+        <thead><tr><th>Department</th><th>Cents per dollar</th><th>Budget</th></tr></thead>
         <tbody>
           {slices.map((s) => (
-            <tr key={s.name}>
-              <td>{s.name}</td>
-              <td>{s.cents}¢</td>
-              <td>{formatCurrency(s.budget)}</td>
-            </tr>
+            <tr key={s.name}><td>{s.name}</td><td>{s.cents}¢</td><td>{formatCurrency(s.budget)}</td></tr>
           ))}
         </tbody>
       </table>
     </section>
+  );
+}
+
+/* ===========================================================================
+   SVG Dollar Bill Illustration
+   Stylized, clearly illustrated, educational use
+=========================================================================== */
+
+function DollarBillSvg() {
+  return (
+    <svg
+      viewBox="0 0 620 238"
+      className="absolute inset-0 h-full w-full"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+      style={{ borderRadius: 6 }}
+    >
+      {/* Background */}
+      <rect width="620" height="238" rx="6" fill="#3d6b3d" />
+      <rect x="4" y="4" width="612" height="230" rx="4" fill="#4a7c4a" />
+
+      {/* Inner border */}
+      <rect x="14" y="14" width="592" height="210" rx="3" fill="none" stroke="#2d5a2d" strokeWidth="1.5" />
+      <rect x="18" y="18" width="584" height="202" rx="2" fill="none" stroke="#5a9a5a" strokeWidth="0.75" strokeDasharray="4 2" />
+
+      {/* Corner 1s */}
+      <g fill="#2d5a2d">
+        {/* Top-left */}
+        <rect x="22" y="22" width="44" height="50" rx="4" fill="#3a6a3a" stroke="#2d5a2d" strokeWidth="0.75" />
+        <text x="44" y="56" textAnchor="middle" fontSize="30" fontWeight="bold" fontFamily="serif" fill="#c5d8c5">1</text>
+        {/* Top-right */}
+        <rect x="554" y="22" width="44" height="50" rx="4" fill="#3a6a3a" stroke="#2d5a2d" strokeWidth="0.75" />
+        <text x="576" y="56" textAnchor="middle" fontSize="30" fontWeight="bold" fontFamily="serif" fill="#c5d8c5">1</text>
+        {/* Bottom-left */}
+        <rect x="22" y="166" width="44" height="50" rx="4" fill="#3a6a3a" stroke="#2d5a2d" strokeWidth="0.75" />
+        <text x="44" y="200" textAnchor="middle" fontSize="30" fontWeight="bold" fontFamily="serif" fill="#c5d8c5">1</text>
+        {/* Bottom-right */}
+        <rect x="554" y="166" width="44" height="50" rx="4" fill="#3a6a3a" stroke="#2d5a2d" strokeWidth="0.75" />
+        <text x="576" y="200" textAnchor="middle" fontSize="30" fontWeight="bold" fontFamily="serif" fill="#c5d8c5">1</text>
+      </g>
+
+      {/* Header text */}
+      <text x="310" y="38" textAnchor="middle" fontSize="8" fontWeight="bold" fontFamily="serif" fill="#c5d8c5" letterSpacing="3">
+        FEDERAL RESERVE NOTE
+      </text>
+      <text x="310" y="58" textAnchor="middle" fontSize="12" fontWeight="bold" fontFamily="serif" fill="#d4e4d4" letterSpacing="1.5">
+        THE UNITED STATES OF AMERICA
+      </text>
+
+      {/* Legal text */}
+      <text x="310" y="72" textAnchor="middle" fontSize="5" fontFamily="serif" fill="#8ab88a" letterSpacing="0.5">
+        THIS NOTE IS LEGAL TENDER FOR ALL DEBTS, PUBLIC AND PRIVATE
+      </text>
+
+      {/* Central portrait area */}
+      <ellipse cx="310" cy="132" rx="52" ry="58" fill="#3a6a3a" stroke="#2d5a2d" strokeWidth="1" />
+      <ellipse cx="310" cy="132" rx="48" ry="54" fill="#436e43" stroke="#5a9a5a" strokeWidth="0.5" />
+
+      {/* Washington silhouette (simplified) */}
+      <g transform="translate(310,125)" fill="#3a6a3a">
+        {/* Head shape */}
+        <ellipse cx="0" cy="-12" rx="18" ry="22" fill="#3d6b3d" />
+        {/* Shoulders */}
+        <path d="M-22,16 Q-22,6 -14,-2 Q-6,-6 0,-4 Q6,-6 14,-2 Q22,6 22,16 Q22,30 16,38 L-16,38 Q-22,30 -22,16Z" fill="#3d6b3d" />
+        {/* Hair silhouette */}
+        <path d="M-14,-28 Q-18,-20 -18,-10 Q-20,-16 -16,-28 Q-10,-34 0,-36 Q10,-34 16,-28 Q20,-16 18,-10 Q18,-20 14,-28 Q8,-32 0,-34 Q-8,-32 -14,-28Z" fill="#365e36" />
+      </g>
+
+      {/* Treasury seal (left) */}
+      <circle cx="140" cy="130" r="22" fill="none" stroke="#2d5a2d" strokeWidth="1.5" />
+      <circle cx="140" cy="130" r="18" fill="none" stroke="#2d5a2d" strokeWidth="0.75" />
+      <circle cx="140" cy="130" r="8" fill="none" stroke="#2d5a2d" strokeWidth="0.75" />
+      <text x="140" y="133" textAnchor="middle" fontSize="7" fontWeight="bold" fontFamily="serif" fill="#2d5a2d">T</text>
+
+      {/* Federal seal (right) */}
+      <circle cx="480" cy="130" r="22" fill="none" stroke="#4a9a5a" strokeWidth="1.5" />
+      <circle cx="480" cy="130" r="18" fill="none" stroke="#4a9a5a" strokeWidth="0.75" />
+      <circle cx="480" cy="130" r="8" fill="#4a9a5a" opacity="0.3" />
+      <text x="480" y="133" textAnchor="middle" fontSize="7" fontWeight="bold" fontFamily="serif" fill="#4a9a5a">F</text>
+
+      {/* Serial numbers */}
+      <text x="160" y="100" fontSize="7" fontFamily="monospace" fill="#4a9a5a" letterSpacing="1">L 88888888 A</text>
+      <text x="410" y="100" fontSize="7" fontFamily="monospace" fill="#4a9a5a" letterSpacing="1">L 88888888 A</text>
+
+      {/* District numbers */}
+      <text x="100" y="100" fontSize="8" fontFamily="serif" fill="#c5d8c5">12</text>
+      <text x="520" y="100" fontSize="8" fontFamily="serif" fill="#c5d8c5">12</text>
+      <text x="100" y="170" fontSize="8" fontFamily="serif" fill="#c5d8c5">12</text>
+      <text x="520" y="170" fontSize="8" fontFamily="serif" fill="#c5d8c5">12</text>
+
+      {/* "WASHINGTON, D.C." text */}
+      <text x="460" y="112" fontSize="4.5" fontFamily="serif" fill="#c5d8c5" letterSpacing="0.5">WASHINGTON, D.C.</text>
+
+      {/* Series text */}
+      <text x="280" y="186" fontSize="5" fontFamily="serif" fill="#8ab88a">SERIES</text>
+      <text x="284" y="193" fontSize="6" fontWeight="bold" fontFamily="serif" fill="#8ab88a">2024</text>
+
+      {/* Laurel branches */}
+      <g stroke="#5a9a5a" strokeWidth="0.75" fill="none" opacity="0.6">
+        {/* Left branch */}
+        <path d="M240,190 Q250,178 260,185 Q255,175 265,180 Q260,172 270,175 Q268,168 278,172" />
+        <path d="M240,190 Q248,195 255,188 Q253,196 260,192 Q260,198 268,195 Q270,200 276,196" />
+        {/* Right branch */}
+        <path d="M380,190 Q370,178 360,185 Q365,175 355,180 Q360,172 350,175 Q352,168 342,172" />
+        <path d="M380,190 Q372,195 365,188 Q367,196 360,192 Q360,198 352,195 Q350,200 344,196" />
+      </g>
+
+      {/* Bottom banner */}
+      <rect x="200" y="202" width="220" height="22" rx="2" fill="#3a6a3a" stroke="#2d5a2d" strokeWidth="0.75" />
+      <text x="310" y="218" textAnchor="middle" fontSize="12" fontWeight="bold" fontFamily="serif" fill="#c5d8c5" letterSpacing="4">
+        ONE DOLLAR
+      </text>
+
+      {/* Signature line */}
+      <line x1="370" y1="192" x2="430" y2="192" stroke="#5a9a5a" strokeWidth="0.5" />
+      <path d="M375,190 Q385,185 395,189 Q405,186 415,190 Q420,188 425,190" fill="none" stroke="#5a9a5a" strokeWidth="0.6" />
+    </svg>
   );
 }
