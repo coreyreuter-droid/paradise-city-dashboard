@@ -28,7 +28,7 @@ export default function AdminFeedbackPage() {
 
   return (
     <AdminGuard>
-      <AdminShell>
+      <AdminShell title="Citizen Feedback">
         <div className="space-y-6">
           <div>
             <h2 className="text-lg font-semibold text-slate-900">Citizen Feedback</h2>

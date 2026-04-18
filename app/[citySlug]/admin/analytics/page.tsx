@@ -47,7 +47,7 @@ export default function AdminAnalyticsPage() {
 
   return (
     <AdminGuard>
-      <AdminShell>
+      <AdminShell title="Portal Analytics">
         <div className="space-y-6">
           <div>
             <h2 className="text-lg font-semibold text-slate-900">Portal Analytics</h2>
