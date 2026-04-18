@@ -24,7 +24,7 @@ Financial transparency platform for local governments.
 
 ## Tech Stack
 
-- **Framework:** Next.js 15 (App Router)
+- **Framework:** Next.js 16 (App Router)
 - **Database:** Supabase (PostgreSQL + Auth + Storage)
 - **Hosting:** Vercel
 - **Charts:** Recharts

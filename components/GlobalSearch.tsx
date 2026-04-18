@@ -505,11 +505,13 @@ export default function GlobalSearch({ fiscalYear, className = "" }: Props) {
                 aria-activedescendant={
                   activeIndex >= 0 ? `search-result-${activeIndex}` : undefined
                 }
+                role="combobox"
+                aria-haspopup="listbox"
                 autoFocus
               />
               {/* Search icon */}
               <svg
-                className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400"
+                className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -691,7 +693,7 @@ export default function GlobalSearch({ fiscalYear, className = "" }: Props) {
         />
         {/* Search icon */}
         <svg
-          className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+          className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"

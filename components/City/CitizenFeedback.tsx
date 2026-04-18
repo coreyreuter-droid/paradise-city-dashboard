@@ -2,7 +2,6 @@
 
 import React, { useState } from "react";
 import { usePathname } from "next/navigation";
-import { supabase } from "@/lib/supabase";
 
 type Props = {
   cityName?: string;
@@ -22,14 +21,18 @@ export default function CitizenFeedback({ cityName = "the city" }: Props) {
 
     setStatus("submitting");
     try {
-      
-      const { error } = await supabase.from("citizen_feedback").insert({
-        page_path: pathname,
-        name: name.trim() || null,
-        email: email.trim() || null,
-        message: message.trim(),
+      const res = await fetch("/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          page_path: pathname,
+          name: name.trim() || null,
+          email: email.trim() || null,
+          message: message.trim(),
+          website: "", // honeypot field — bots fill this
+        }),
       });
-      if (error) throw error;
+      if (!res.ok) throw new Error("Failed");
       setStatus("success");
       setName("");
       setEmail("");

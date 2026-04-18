@@ -133,14 +133,27 @@ function MultiSelect({
         {label}
       </label>
       
-      <button
-        type="button"
+      <div
+        role="combobox"
         id={id}
+        tabIndex={0}
+        aria-expanded={isOpen}
+        aria-haspopup="listbox"
         onClick={() => {
           setIsOpen(!isOpen);
           if (!isOpen) setTimeout(() => inputRef.current?.focus(), 50);
         }}
-        className={`w-full flex items-center justify-between gap-2 rounded-lg border bg-white px-3 py-2 text-sm text-left shadow-sm transition focus:outline-none focus:ring-2 focus:ring-slate-500 ${
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            setIsOpen(!isOpen);
+            if (!isOpen) setTimeout(() => inputRef.current?.focus(), 50);
+          }
+          if (e.key === "Escape" && isOpen) {
+            setIsOpen(false);
+          }
+        }}
+        className={`w-full flex items-center justify-between gap-2 rounded-lg border bg-white px-3 py-2 text-sm text-left shadow-sm transition cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-1 ${
           isOpen ? "border-slate-500 ring-1 ring-slate-500" : "border-slate-300"
         }`}
       >
@@ -171,7 +184,7 @@ function MultiSelect({
             <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
           </svg>
         </div>
-      </button>
+      </div>
 
       {isOpen && (
         <div className="absolute z-50 mt-1 w-full rounded-lg border border-slate-200 bg-white shadow-lg">

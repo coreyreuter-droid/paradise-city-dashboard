@@ -14,8 +14,7 @@ export default function ShareEmbed({ title, description }: Props) {
   const [copied, setCopied] = useState<string | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
-  const currentUrl = typeof window !== "undefined" ? window.location.href : "";
-  const embedCode = `<iframe src="${currentUrl}" width="100%" height="600" frameborder="0" style="border:1px solid #e2e8f0;border-radius:12px;" title="${title || "CiviPortal"}"></iframe>`;
+  const currentUrl = typeof window !== "undefined" ? window.location.href : "";border-radius:12px;" title="${title || "CiviPortal"}"></iframe>`;
 
   // Close on outside click
   useEffect(() => {
@@ -66,7 +65,7 @@ export default function ShareEmbed({ title, description }: Props) {
         onClick={() => setOpen(!open)}
         className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 shadow-sm transition-all hover:border-slate-300 hover:text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-1"
         aria-expanded={open}
-        aria-label="Share or embed this view"
+        aria-label="Share this view"
       >
         <svg viewBox="0 0 16 16" fill="none" className="h-3.5 w-3.5" aria-hidden="true">
           <path d="M6 10L10 6M10 6H6.5M10 6V9.5M13.5 8.5V12.5C13.5 13.05 13.05 13.5 12.5 13.5H3.5C2.95 13.5 2.5 13.05 2.5 12.5V3.5C2.5 2.95 2.95 2.5 3.5 2.5H7.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -78,7 +77,7 @@ export default function ShareEmbed({ title, description }: Props) {
         <div className="absolute right-0 top-full z-40 mt-2 w-80 rounded-xl border border-slate-200 bg-white p-4 shadow-lg">
           <p className="text-sm font-semibold text-slate-900">Share this view</p>
           <p className="mt-0.5 text-xs text-slate-500">
-            Share a link or embed this page on your city&apos;s website.
+            Share a link to this page or post it on social media.
           </p>
 
           {/* Copy link */}
@@ -89,7 +88,7 @@ export default function ShareEmbed({ title, description }: Props) {
                 type="text"
                 readOnly
                 value={currentUrl}
-                className="flex-1 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs text-slate-700 focus:outline-none"
+                className="flex-1 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-1"
                 onClick={(e) => (e.target as HTMLInputElement).select()}
               />
               <button
@@ -98,27 +97,6 @@ export default function ShareEmbed({ title, description }: Props) {
                 className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-50"
               >
                 {copied === "link" ? "Copied!" : "Copy"}
-              </button>
-            </div>
-          </div>
-
-          {/* Embed code */}
-          <div className="mt-3 space-y-2">
-            <label className="text-[11px] font-medium text-slate-600">Embed on your website</label>
-            <div className="flex gap-1.5">
-              <input
-                type="text"
-                readOnly
-                value={embedCode}
-                className="flex-1 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs text-slate-700 font-mono focus:outline-none"
-                onClick={(e) => (e.target as HTMLInputElement).select()}
-              />
-              <button
-                type="button"
-                onClick={() => copyToClipboard(embedCode, "embed")}
-                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-50"
-              >
-                {copied === "embed" ? "Copied!" : "Copy"}
               </button>
             </div>
           </div>

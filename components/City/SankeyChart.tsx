@@ -357,10 +357,10 @@ export default function SankeyChart({
         {/* Text labels */}
         <div className="pointer-events-none absolute inset-0" aria-hidden="true">
           {/* Column labels */}
-          <div className="absolute top-0 left-0 text-[11px] font-medium uppercase tracking-wide text-slate-400" style={{ width: "22%" }}>
+          <div className="absolute top-0 left-0 text-[11px] font-medium uppercase tracking-wide text-slate-500" style={{ width: "22%" }}>
             <span className="float-right">Where it comes from</span>
           </div>
-          <div className="absolute top-0 right-0 text-[11px] font-medium uppercase tracking-wide text-slate-400" style={{ width: "22%" }}>
+          <div className="absolute top-0 right-0 text-[11px] font-medium uppercase tracking-wide text-slate-500" style={{ width: "22%" }}>
             Where it goes
           </div>
           {nodes.map((node) => {

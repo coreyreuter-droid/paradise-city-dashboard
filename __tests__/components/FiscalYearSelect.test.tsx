@@ -16,9 +16,9 @@ describe("FiscalYearSelect", () => {
   it("renders year buttons when 6 or fewer options", () => {
     render(<FiscalYearSelect options={defaultOptions} />);
     
-    expect(screen.getByRole("button", { name: "2024" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "2023" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "2022" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Select fiscal year 2024" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Select fiscal year 2023" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Select fiscal year 2022" })).toBeInTheDocument();
   });
 
   it("renders dropdown when more than 6 options", () => {
@@ -32,11 +32,11 @@ describe("FiscalYearSelect", () => {
     render(<FiscalYearSelect options={defaultOptions} />);
     
     // Current year (2024) should have aria-pressed="true"
-    const activeButton = screen.getByRole("button", { name: "2024" });
+    const activeButton = screen.getByRole("button", { name: "Select fiscal year 2024" });
     expect(activeButton).toHaveAttribute("aria-pressed", "true");
     
     // Other years should have aria-pressed="false"
-    const inactiveButton = screen.getByRole("button", { name: "2023" });
+    const inactiveButton = screen.getByRole("button", { name: "Select fiscal year 2023" });
     expect(inactiveButton).toHaveAttribute("aria-pressed", "false");
   });
 
@@ -64,7 +64,7 @@ describe("FiscalYearSelect", () => {
   it("has focus-visible styles for keyboard navigation", () => {
     render(<FiscalYearSelect options={defaultOptions} />);
     
-    const button = screen.getByRole("button", { name: "2024" });
+    const button = screen.getByRole("button", { name: "Select fiscal year 2024" });
     expect(button).toHaveClass("focus-visible:ring-2");
   });
 });

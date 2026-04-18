@@ -2,11 +2,11 @@
 
 import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
-import { supabase } from "@/lib/supabase";
 
 /**
- * Logs page views to Supabase. No PII — just path + timestamp + session ID.
- * Skips admin pages. Debounced to avoid rapid-nav spam.
+ * Logs page views through a server API route.
+ * No direct DB access from the browser.
+ * Skips admin and login pages. Debounced at 500ms.
  */
 export function usePageView() {
   const pathname = usePathname();
@@ -26,12 +26,15 @@ export function usePageView() {
 
     const timer = setTimeout(async () => {
       try {
-        
-        await supabase.from("page_views").insert({
-          page_path: pathname,
-          page_title: typeof document !== "undefined" ? document.title : null,
-          referrer: typeof document !== "undefined" ? document.referrer || null : null,
-          session_id: sessionId.current,
+        await fetch("/api/pageview", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            page_path: pathname,
+            page_title: typeof document !== "undefined" ? document.title : null,
+            referrer: typeof document !== "undefined" ? document.referrer || null : null,
+            session_id: sessionId.current,
+          }),
         });
       } catch {
         // Silent fail — analytics should never break the app
