@@ -75,9 +75,6 @@ export default function RevenueSourceDetailClient({
         name,
         budget: total,
         actual: 0,
-        href: name !== "Unspecified"
-          ? cityHref(`/departments/${encodeURIComponent(name)}?year=${selectedYear}`)
-          : undefined,
       }))
       .sort((a, b) => b.budget - a.budget);
   }, [revenues, selectedYear]);
