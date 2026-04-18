@@ -247,7 +247,7 @@ export default function AdminProjectsPage() {
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-3">
                             {project.images[0] ? (
-                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              // eslint-disable-next-line @next/next/no-img-element
                               <img
                                 src={project.images[0].image_url}
                                 alt={`${project.title} thumbnail`}
