@@ -97,7 +97,7 @@ export default function FinanceTooltip({ term, children }: Props) {
         <svg
           viewBox="0 0 12 12"
           fill="none"
-          className="ml-0.5 h-3 w-3 flex-shrink-0 text-slate-400"
+          className="ml-0.5 h-3 w-3 flex-shrink-0 text-slate-500"
           aria-hidden="true"
         >
           <circle cx="6" cy="6" r="5" stroke="currentColor" strokeWidth="1" />

@@ -608,14 +608,15 @@ className="inline-flex items-center justify-center rounded-full px-3 py-1.5 text
                     Follow the Money
                   </h2>
                   <p className="text-sm text-slate-700">
-                    See how revenue flows through our government to departments for{" "}
+                    See how revenue flows through {cityName} to departments for{" "}
                     {yearLabel ?? "the selected year"}.
                   </p>
                 </div>
                 <SankeyChart
                   revenues={revenues}
                   departments={departmentsForYear}
-                  height={480}
+                  cityName={cityName}
+                  height={600}
                 />
               </section>
             </CardContainer>

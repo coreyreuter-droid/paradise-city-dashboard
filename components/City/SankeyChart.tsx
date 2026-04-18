@@ -5,12 +5,10 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatCurrency } from "@/lib/format";
 import { cityHref } from "@/lib/cityRouting";
-import { SANKEY_COLORS } from "@/lib/chartConfig";
 
 type SankeyNode = {
   id: string;
   label: string;
-  fullLabel: string;
   value: number;
   color: string;
   column: number;
@@ -25,93 +23,91 @@ type SankeyLink = {
 type Props = {
   revenues: Array<{ category?: string | null; amount?: number | string | null }>;
   departments: Array<{ department_name: string; actuals: number; budget: number }>;
+  cityName?: string;
   height?: number;
 };
 
-// Use centralized colors
-const COLORS = SANKEY_COLORS;
+const REV_COLORS = [
+  "#3b82a6", "#5b7fa6", "#4a8b7f", "#5a7a96",
+  "#6a7b8c", "#4b8f8f", "#5c7fa0", "#6e8495",
+];
+const DEPT_COLORS = [
+  "#6b8e5e", "#8a9a5e", "#a09060", "#b08a5a",
+  "#9a7a6a", "#8a7080", "#7a6a90", "#7080a0",
+  "#5a8a7a", "#8a6a5a", "#6a7a8a",
+];
+const OTHER_COLOR = "#94a3b8";
+const CENTER_COLOR = "#475569";
 
-const CURRENCY_COMPACT = new Intl.NumberFormat("en-US", {
+const FMT = new Intl.NumberFormat("en-US", {
   notation: "compact",
   compactDisplay: "short",
   maximumFractionDigits: 1,
 });
+function fmtC(v: number) { return `$${FMT.format(v)}`; }
 
-function formatCompact(value: number): string {
-  return `$${CURRENCY_COMPACT.format(value)}`;
-}
-
-export default function SankeyChart({ revenues, departments, height = 400 }: Props) {
+export default function SankeyChart({
+  revenues,
+  departments,
+  cityName = "Your City",
+  height = 600,
+}: Props) {
   const router = useRouter();
-  const [hoveredLink, setHoveredLink] = useState<string | null>(null);
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
-  const [tooltip, setTooltip] = useState<{ x: number; y: number; content: string } | null>(null);
+  const [hoveredLink, setHoveredLink] = useState<string | null>(null);
+  const [activeDetail, setActiveDetail] = useState<{
+    label: string;
+    value: number;
+    pct: string;
+    color: string;
+  } | null>(null);
 
-  // Process data into Sankey format
   const { nodes, links, totalRevenue, totalSpending } = useMemo(() => {
-    // Aggregate revenues by category
     const revenueMap = new Map<string, number>();
     for (const r of revenues) {
       const cat = r.category?.trim() || "Other Revenue";
       const amt = Number(r.amount || 0);
-      if (amt > 0) {
-        revenueMap.set(cat, (revenueMap.get(cat) || 0) + amt);
-      }
+      if (amt > 0) revenueMap.set(cat, (revenueMap.get(cat) || 0) + amt);
     }
 
-    // Sort and take top 5 revenue sources, combine rest into "Other"
-    const revenueSorted = Array.from(revenueMap.entries())
-      .sort((a, b) => b[1] - a[1]);
-    
-      const topRevenues = revenueSorted.slice(0, 8);
-      const otherRevenueTotal = revenueSorted.slice(8).reduce((sum, [, v]) => sum + v, 0);
-    if (otherRevenueTotal > 0) {
-      topRevenues.push(["Other Sources", otherRevenueTotal]);
-    }
+    const revSorted = Array.from(revenueMap.entries()).sort((a, b) => b[1] - a[1]);
+    const topRev = revSorted.slice(0, 8);
+    const otherRevTotal = revSorted.slice(8).reduce((s, [, v]) => s + v, 0);
+    if (otherRevTotal > 0) topRev.push(["Other Sources", otherRevTotal]);
 
-    // Sort departments and take top 8, combine rest into "Other"
     const deptSorted = [...departments].sort((a, b) => b.actuals - a.actuals);
-    const topDepts = deptSorted.slice(0, 8);
-    const otherDeptTotal = deptSorted.slice(8).reduce((sum, d) => sum + d.actuals, 0);
+    const topDept = deptSorted.slice(0, 11);
+    const otherDeptTotal = deptSorted.slice(11).reduce((s, d) => s + d.actuals, 0);
 
-    const totalRevenue = topRevenues.reduce((sum, [, v]) => sum + v, 0);
-    const totalSpending = topDepts.reduce((sum, d) => sum + d.actuals, 0) + otherDeptTotal;
+    const totalRevenue = topRev.reduce((s, [, v]) => s + (v as number), 0);
+    const totalSpending = topDept.reduce((s, d) => s + d.actuals, 0) + otherDeptTotal;
 
-    // Build nodes
     const nodes: SankeyNode[] = [];
-    
-    // Revenue nodes (left column)
-    topRevenues.forEach(([name, value], i) => {
+
+    topRev.forEach(([name, value], i) => {
       nodes.push({
         id: `rev-${i}`,
-        label: name.length > 18 ? name.slice(0, 16) + "…" : name,
-        fullLabel: name,
-        value,
-        color: COLORS.revenue[i % COLORS.revenue.length],
+        label: name as string,
+        value: value as number,
+        color: name === "Other Sources" ? OTHER_COLOR : REV_COLORS[i % REV_COLORS.length],
         column: 0,
       });
     });
 
-    // Center node (Government Fund)
     nodes.push({
       id: "center",
-      label: "Government Fund",
-      fullLabel: "Government Fund",
+      label: cityName,
       value: Math.max(totalRevenue, totalSpending),
-      color: COLORS.center,
+      color: CENTER_COLOR,
       column: 1,
     });
 
-    // Department nodes (right column)
-    topDepts.forEach((dept, i) => {
+    topDept.forEach((dept, i) => {
       nodes.push({
         id: `dept-${i}`,
-        label: dept.department_name.length > 18 
-          ? dept.department_name.slice(0, 16) + "…" 
-          : dept.department_name,
-        fullLabel: dept.department_name,
+        label: dept.department_name,
         value: dept.actuals,
-        color: COLORS.departments[i % COLORS.departments.length],
+        color: DEPT_COLORS[i % DEPT_COLORS.length],
         column: 2,
       });
     });
@@ -119,241 +115,141 @@ export default function SankeyChart({ revenues, departments, height = 400 }: Pro
     if (otherDeptTotal > 0) {
       nodes.push({
         id: "dept-other",
-        label: "Other Depts",
-        fullLabel: "Other Depts",
+        label: "Other Departments",
         value: otherDeptTotal,
-        color: "#64748b",
+        color: OTHER_COLOR,
         column: 2,
       });
     }
 
-    // Build links
     const links: SankeyLink[] = [];
-
-    // Revenue → Center
-    topRevenues.forEach(([, value], i) => {
-      links.push({
-        source: `rev-${i}`,
-        target: "center",
-        value,
-      });
+    topRev.forEach(([, value], i) => {
+      links.push({ source: `rev-${i}`, target: "center", value: value as number });
     });
-
-    // Center → Departments
-    topDepts.forEach((dept, i) => {
-      links.push({
-        source: "center",
-        target: `dept-${i}`,
-        value: dept.actuals,
-      });
+    topDept.forEach((dept, i) => {
+      links.push({ source: "center", target: `dept-${i}`, value: dept.actuals });
     });
-
     if (otherDeptTotal > 0) {
-      links.push({
-        source: "center",
-        target: "dept-other",
-        value: otherDeptTotal,
-      });
+      links.push({ source: "center", target: "dept-other", value: otherDeptTotal });
     }
 
     return { nodes, links, totalRevenue, totalSpending };
-  }, [revenues, departments]);
+  }, [revenues, departments, cityName]);
 
-  // Calculate positions - all in absolute coordinates
   const layout = useMemo(() => {
-    const padding = 20;
-    const nodeWidth = 24;
-    const nodePadding = 8;
-    const width = 800; // Fixed internal width for calculations
-    
-    // Column X positions
-    const columnX = [0, (width - nodeWidth) / 2, width - nodeWidth];
+    const pad = 16;
+    const nodeW = 14;
+    const gap = 8;
+    const W = 900;
+    const labelSpace = 200;
 
-    // Group nodes by column
+    const colX = [labelSpace, (W - nodeW) / 2, W - labelSpace - nodeW];
     const columns: SankeyNode[][] = [[], [], []];
-    nodes.forEach(node => {
-      columns[node.column].push(node);
-    });
+    nodes.forEach((n) => columns[n.column].push(n));
 
-    // Calculate vertical positions for each column
-    const nodePositions = new Map<string, { x: number; y: number; height: number }>();
-    
-    columns.forEach((column, colIndex) => {
-      const totalValue = column.reduce((sum, n) => sum + n.value, 0);
-      const availableHeight = height - padding * 2 - (column.length - 1) * nodePadding;
-      
-      let currentY = padding;
-      column.forEach(node => {
-        const nodeHeight = Math.max(24, (node.value / totalValue) * availableHeight);
-        nodePositions.set(node.id, {
-          x: columnX[colIndex],
-          y: currentY,
-          height: nodeHeight,
-        });
-        currentY += nodeHeight + nodePadding;
+    const positions = new Map<string, { x: number; y: number; h: number }>();
+
+    columns.forEach((col, ci) => {
+      const total = col.reduce((s, n) => s + n.value, 0);
+      const available = height - pad * 2 - (col.length - 1) * gap;
+      let cy = pad;
+      col.forEach((n) => {
+        const h = Math.max(18, (n.value / total) * available);
+        positions.set(n.id, { x: colX[ci], y: cy, h });
+        cy += h + gap;
       });
     });
 
-    // Track Y offsets for links
-    const sourceOffsets = new Map<string, number>();
-    const targetOffsets = new Map<string, number>();
-    nodes.forEach(n => {
-      sourceOffsets.set(n.id, 0);
-      targetOffsets.set(n.id, 0);
-    });
+    const srcOff = new Map<string, number>();
+    const tgtOff = new Map<string, number>();
+    nodes.forEach((n) => { srcOff.set(n.id, 0); tgtOff.set(n.id, 0); });
 
-    // Calculate link paths
-    const linkPaths = links.map(link => {
-      const sourcePos = nodePositions.get(link.source)!;
-      const targetPos = nodePositions.get(link.target)!;
-      const sourceNode = nodes.find(n => n.id === link.source)!;
-      const targetNode = nodes.find(n => n.id === link.target)!;
+    const ribbons = links.map((link) => {
+      const sp = positions.get(link.source)!;
+      const tp = positions.get(link.target)!;
+      const sn = nodes.find((n) => n.id === link.source)!;
+      const tn = nodes.find((n) => n.id === link.target)!;
 
-      // Calculate link thickness
-      const sourceTotal = links
-        .filter(l => l.source === link.source)
-        .reduce((sum, l) => sum + l.value, 0);
-      const targetTotal = links
-        .filter(l => l.target === link.target)
-        .reduce((sum, l) => sum + l.value, 0);
+      const sTotal = links.filter((l) => l.source === link.source).reduce((s, l) => s + l.value, 0);
+      const tTotal = links.filter((l) => l.target === link.target).reduce((s, l) => s + l.value, 0);
 
-      const sourceRatio = link.value / sourceTotal;
-      const targetRatio = link.value / targetTotal;
-      
-      const linkHeightSource = sourcePos.height * sourceRatio;
-      const linkHeightTarget = targetPos.height * targetRatio;
+      const sH = sp.h * (link.value / sTotal);
+      const tH = tp.h * (link.value / tTotal);
 
-      // Get current offsets
-      const sourceYOffset = sourceOffsets.get(link.source) || 0;
-      const targetYOffset = targetOffsets.get(link.target) || 0;
+      const sOff = srcOff.get(link.source) || 0;
+      const tOff = tgtOff.get(link.target) || 0;
+      srcOff.set(link.source, sOff + sH);
+      tgtOff.set(link.target, tOff + tH);
 
-      // Update offsets for next link
-      sourceOffsets.set(link.source, sourceYOffset + linkHeightSource);
-      targetOffsets.set(link.target, targetYOffset + linkHeightTarget);
+      const x0 = sp.x + nodeW;
+      const y0s = sp.y + sOff, y0e = y0s + sH;
+      const x1 = tp.x;
+      const y1s = tp.y + tOff, y1e = y1s + tH;
 
-      // Calculate path coordinates
-      const x0 = sourcePos.x + nodeWidth;
-      const y0Start = sourcePos.y + sourceYOffset;
-      const y0End = y0Start + linkHeightSource;
-      
-      const x1 = targetPos.x;
-      const y1Start = targetPos.y + targetYOffset;
-      const y1End = y1Start + linkHeightTarget;
+      const cx0 = x0 + (x1 - x0) * 0.4;
+      const cx1 = x1 - (x1 - x0) * 0.4;
 
-      // Control points for bezier curve
-      const midX = (x0 + x1) / 2;
-
-      // Create a filled path (like a ribbon)
-      const path = `
-        M ${x0} ${y0Start}
-        C ${midX} ${y0Start}, ${midX} ${y1Start}, ${x1} ${y1Start}
-        L ${x1} ${y1End}
-        C ${midX} ${y1End}, ${midX} ${y0End}, ${x0} ${y0End}
-        Z
-      `;
+      const path = `M${x0},${y0s} C${cx0},${y0s} ${cx1},${y1s} ${x1},${y1s} L${x1},${y1e} C${cx1},${y1e} ${cx0},${y0e} ${x0},${y0e} Z`;
 
       return {
-        ...link,
-        path,
-        sourceColor: sourceNode.color,
-        targetColor: targetNode.color,
         id: `${link.source}-${link.target}`,
+        source: link.source, target: link.target,
+        value: link.value, path,
+        sColor: sn.color, tColor: tn.color,
       };
     });
 
-    return { nodePositions, linkPaths, width };
+    return { positions, ribbons, W, nodeW };
   }, [nodes, links, height]);
 
-  // Check if a link should be highlighted (hovered directly or connected to hovered node)
-  const isLinkHighlighted = (linkId: string, source: string, target: string) => {
-    if (hoveredLink === linkId) return true;
-    if (hoveredNode && (source === hoveredNode || target === hoveredNode)) return true;
+  const hasHover = hoveredNode !== null || hoveredLink !== null;
+
+  const isHighlighted = (src: string, tgt: string) => {
+    if (hoveredLink === `${src}-${tgt}`) return true;
+    if (hoveredNode && (src === hoveredNode || tgt === hoveredNode)) return true;
     return false;
   };
 
-  // Check if anything is being hovered
-  const hasHover = hoveredLink !== null || hoveredNode !== null;
-
-  const handleLinkHover = (linkId: string | null, event?: React.MouseEvent) => {
-    setHoveredLink(linkId);
-    if (linkId && event) {
-      const link = links.find(l => `${l.source}-${l.target}` === linkId);
-      if (link) {
-        const sourceNode = nodes.find(n => n.id === link.source);
-        const targetNode = nodes.find(n => n.id === link.target);
-        setTooltip({
-          x: event.clientX,
-          y: event.clientY,
-          content: `${sourceNode?.fullLabel} → ${targetNode?.fullLabel}: ${formatCurrency(link.value)}`,
-        });
-      }
-    } else {
-      setTooltip(null);
-    }
-  };
-
-  const handleNodeHover = (nodeId: string | null, event?: React.MouseEvent) => {
-    setHoveredNode(nodeId);
-    if (nodeId && event) {
-      const node = nodes.find(n => n.id === nodeId);
-      if (node) {
-        setTooltip({
-          x: event.clientX,
-          y: event.clientY,
-          content: `${node.fullLabel}: ${formatCurrency(node.value)}`,
-        });
-      }
-    } else {
-      setTooltip(null);
-    }
+  const isNodeLit = (nodeId: string) => {
+    if (hoveredNode === nodeId) return true;
+    return layout.ribbons.some((r) => isHighlighted(r.source, r.target) && (r.source === nodeId || r.target === nodeId));
   };
 
   const handleNodeClick = (node: SankeyNode) => {
-    if (node.column === 0 && node.fullLabel !== "Other Sources") {
-      // Revenue source - go to revenue source detail page
-      const sourceSlug = node.fullLabel.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/-+$/, "");
-      router.push(cityHref(`/revenues/${encodeURIComponent(sourceSlug)}`));
+    if (node.column === 0 && node.label !== "Other Sources") {
+      const slug = node.label.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/-+$/, "");
+      router.push(cityHref(`/revenues/${encodeURIComponent(slug)}`));
     } else if (node.column === 2 && node.id !== "dept-other") {
-      // Department - go to department detail (use full name, not slug)
-      router.push(cityHref(`/departments/${encodeURIComponent(node.fullLabel)}`));
+      router.push(cityHref(`/departments/${encodeURIComponent(node.label)}`));
     }
   };
 
-  const handleLinkClick = (source: string, target: string) => {
-    // Left ribbons (revenue → center): navigate to revenue source detail
-    if (source.startsWith("rev-")) {
-      const node = nodes.find(n => n.id === source);
-      if (node && node.fullLabel !== "Other Sources") {
-        const sourceSlug = node.fullLabel.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/-+$/, "");
-        router.push(cityHref(`/revenues/${encodeURIComponent(sourceSlug)}`));
+  const handleRibbonClick = (src: string, tgt: string) => {
+    if (src.startsWith("rev-")) {
+      const n = nodes.find((nd) => nd.id === src);
+      if (n && n.label !== "Other Sources") {
+        const slug = n.label.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/-+$/, "");
+        router.push(cityHref(`/revenues/${encodeURIComponent(slug)}`));
       }
-    }
-    // Right ribbons (center → department): navigate to department
-    else if (target.startsWith("dept-") && target !== "dept-other") {
-      const node = nodes.find(n => n.id === target);
-      if (node) {
-        // Use full name, not slug
-        router.push(cityHref(`/departments/${encodeURIComponent(node.fullLabel)}`));
-      }
+    } else if (tgt.startsWith("dept-") && tgt !== "dept-other") {
+      const n = nodes.find((nd) => nd.id === tgt);
+      if (n) router.push(cityHref(`/departments/${encodeURIComponent(n.label)}`));
     }
   };
 
   const isClickable = (node: SankeyNode) => {
-    if (node.column === 0 && node.fullLabel !== "Other Sources") return true;
+    if (node.column === 0 && node.label !== "Other Sources") return true;
     if (node.column === 2 && node.id !== "dept-other") return true;
     return false;
   };
 
-  const isLinkClickable = (source: string, target: string) => {
-    if (source.startsWith("rev-")) {
-      const node = nodes.find(n => n.id === source);
-      return node && node.fullLabel !== "Other Sources";
-    }
-    if (target.startsWith("dept-") && target !== "dept-other") {
-      return true;
-    }
-    return false;
+  const showDetail = (label: string, value: number, color: string, col: number) => {
+    const base = col === 0 ? totalRevenue : totalSpending;
+    const pct = base > 0 ? ((value / base) * 100).toFixed(1) + "% of " + (col === 0 ? "revenue" : "spending") : "";
+    setActiveDetail({ label, value, pct, color });
   };
+
+  const surplus = totalRevenue - totalSpending;
 
   if (nodes.length === 0 || links.length === 0) {
     return (
@@ -364,138 +260,155 @@ export default function SankeyChart({ revenues, departments, height = 400 }: Pro
   }
 
   return (
-    <div className="relative">
-      {/* Column labels */}
-      <div className="mb-3 flex justify-between text-xs font-semibold uppercase tracking-wide text-slate-500">
-        <span>Revenue Sources</span>
-        <span>Government Fund</span>
-        <span>Departments</span>
-      </div>
+    <div className="space-y-3">
+      {/* Explainer */}
+      <p className="text-center text-[12px] text-slate-500">
+        Widths represent dollars. Click any source or department to explore.
+      </p>
 
-      <div 
-        className="relative w-full" 
+      {/* Chart */}
+      <div
+        className="relative w-full"
         style={{ height }}
         role="img"
-        aria-label={`Sankey diagram showing money flow: ${formatCompact(totalRevenue)} in revenue flowing through our government to departments spending ${formatCompact(totalSpending)}`}
+        aria-label={`Money flow: ${fmtC(totalRevenue)} revenue flows through ${cityName} to departments spending ${fmtC(totalSpending)}`}
       >
-        <svg 
-          width="100%" 
-          height="100%" 
-          viewBox={`0 0 ${layout.width} ${height}`}
+        <svg
+          width="100%"
+          height="100%"
+          viewBox={`0 0 ${layout.W} ${height}`}
           preserveAspectRatio="xMidYMid meet"
           className="overflow-visible"
         >
           <defs>
-            {layout.linkPaths.map(link => (
-              <linearGradient
-                key={`grad-${link.id}`}
-                id={`grad-${link.id}`}
-                x1="0%"
-                y1="0%"
-                x2="100%"
-                y2="0%"
-              >
-                <stop offset="0%" stopColor={link.sourceColor} />
-                <stop offset="100%" stopColor={link.targetColor} />
+            {layout.ribbons.map((r) => (
+              <linearGradient key={`g-${r.id}`} id={`g-${r.id}`} x1="0%" x2="100%">
+                <stop offset="0%" stopColor={r.sColor} stopOpacity="0.45" />
+                <stop offset="100%" stopColor={r.tColor} stopOpacity="0.45" />
               </linearGradient>
             ))}
           </defs>
 
-          {/* Links (flows) */}
-          {layout.linkPaths.map(link => {
-            const highlighted = isLinkHighlighted(link.id, link.source, link.target);
-            const clickable = isLinkClickable(link.source, link.target);
-            
+          {/* Ribbons */}
+          {layout.ribbons.map((r) => {
+            const lit = isHighlighted(r.source, r.target);
             return (
               <path
-                key={link.id}
-                d={link.path}
-                fill={`url(#grad-${link.id})`}
-                opacity={!hasHover || highlighted ? 0.6 : 0.15}
+                key={r.id}
+                d={r.path}
+                fill={`url(#g-${r.id})`}
+                opacity={!hasHover ? 0.55 : lit ? 0.75 : 0.06}
                 className="transition-opacity duration-200"
-                onMouseEnter={(e) => handleLinkHover(link.id, e)}
-                onMouseMove={(e) => {
-                  if (hoveredLink === link.id) {
-                    setTooltip(prev => prev ? { ...prev, x: e.clientX, y: e.clientY } : null);
+                style={{ cursor: "pointer" }}
+                onMouseEnter={() => {
+                  setHoveredLink(r.id);
+                  const sn = nodes.find((n) => n.id === r.source);
+                  const tn = nodes.find((n) => n.id === r.target);
+                  if (sn && tn) {
+                    const base = sn.column === 0 ? totalRevenue : totalSpending;
+                    const pct = base > 0 ? ((r.value / base) * 100).toFixed(1) + "%" : "";
+                    setActiveDetail({
+                      label: `${sn.label} → ${tn.label}`,
+                      value: r.value,
+                      pct,
+                      color: r.sColor,
+                    });
                   }
                 }}
-                onMouseLeave={() => handleLinkHover(null)}
-                onClick={clickable ? () => handleLinkClick(link.source, link.target) : undefined}
-                style={{ cursor: clickable ? "pointer" : "default" }}
+                onMouseLeave={() => { setHoveredLink(null); setActiveDetail(null); }}
+                onClick={() => handleRibbonClick(r.source, r.target)}
               />
             );
           })}
 
-          {/* Nodes */}
-          {nodes.map(node => {
-            const pos = layout.nodePositions.get(node.id);
+          {/* Node bars */}
+          {nodes.map((node) => {
+            const pos = layout.positions.get(node.id);
             if (!pos) return null;
             const clickable = isClickable(node);
+            const lit = !hasHover || isNodeLit(node.id);
 
             return (
               <rect
                 key={node.id}
                 x={pos.x}
                 y={pos.y}
-                width={24}
-                height={pos.height}
+                width={layout.nodeW}
+                height={pos.h}
                 fill={node.color}
-                rx={4}
+                rx={3}
+                opacity={lit ? 1 : 0.35}
+                className="transition-opacity duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
+                style={{ cursor: clickable ? "pointer" : "default" }}
+                tabIndex={clickable ? 0 : undefined}
+                role={clickable ? "button" : undefined}
+                aria-label={clickable ? `${node.label}: ${formatCurrency(node.value)}. Click to explore.` : undefined}
                 onClick={clickable ? () => handleNodeClick(node) : undefined}
-                onMouseEnter={(e) => handleNodeHover(node.id, e)}
-                onMouseLeave={() => handleNodeHover(null)}
-                className={clickable ? "cursor-pointer transition-opacity hover:opacity-80" : ""}
+                onKeyDown={clickable ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleNodeClick(node); } } : undefined}
+                onMouseEnter={() => { setHoveredNode(node.id); showDetail(node.label, node.value, node.color, node.column); }}
+                onMouseLeave={() => { setHoveredNode(null); setActiveDetail(null); }}
+                onFocus={() => { setHoveredNode(node.id); showDetail(node.label, node.value, node.color, node.column); }}
+                onBlur={() => { setHoveredNode(null); setActiveDetail(null); }}
               />
             );
           })}
         </svg>
 
-        {/* HTML Labels */}
+        {/* Text labels */}
         <div className="pointer-events-none absolute inset-0" aria-hidden="true">
-          {nodes.map(node => {
-            const pos = layout.nodePositions.get(node.id);
+          {/* Column labels */}
+          <div className="absolute top-0 left-0 text-[11px] font-medium uppercase tracking-wide text-slate-400" style={{ width: "22%" }}>
+            <span className="float-right">Where it comes from</span>
+          </div>
+          <div className="absolute top-0 right-0 text-[11px] font-medium uppercase tracking-wide text-slate-400" style={{ width: "22%" }}>
+            Where it goes
+          </div>
+          {nodes.map((node) => {
+            const pos = layout.positions.get(node.id);
             if (!pos) return null;
 
             const isLeft = node.column === 0;
             const isRight = node.column === 2;
             const isCenter = node.column === 1;
             const clickable = isClickable(node);
+            const dimmed = hasHover && !isNodeLit(node.id);
 
-            // Convert coordinates to percentages for positioning
-            const leftPercent = (pos.x / layout.width) * 100;
-            const rightPercent = ((layout.width - pos.x - 24) / layout.width) * 100;
+            const pctX = (pos.x / layout.W) * 100;
+            const pctXR = ((layout.W - pos.x - layout.nodeW) / layout.W) * 100;
 
             return (
               <div
-                key={`label-${node.id}`}
-                className="absolute flex items-center"
+                key={`lbl-${node.id}`}
+                className="absolute flex items-center transition-opacity duration-200"
                 style={{
-                  left: isLeft ? `calc(${leftPercent}% + 32px)` : 
-                        isCenter ? '50%' : undefined,
-                  right: isRight ? `calc(${rightPercent}% + 32px)` : undefined,
-                  top: pos.y,
-                  height: pos.height,
-                  transform: isCenter ? 'translateX(-50%)' : undefined,
+                  top: isCenter ? Math.max(0, pos.y - 32) : pos.y,
+                  height: isCenter ? "auto" : pos.h,
+                  opacity: dimmed ? 0.25 : 1,
+                  ...(isLeft && { right: `calc(${100 - pctX}% + 6px)` }),
+                  ...(isRight && { left: `calc(${100 - pctXR}% + 6px)` }),
+                  ...(isCenter && { left: "50%", transform: "translateX(-50%)" }),
                 }}
               >
-                <div 
-                  className={`flex flex-col rounded bg-white border border-slate-200 shadow-sm px-1.5 py-0.5 max-w-[120px] sm:max-w-none ${isRight ? 'items-end text-right' : isCenter ? 'items-center text-center' : 'items-start'} ${clickable ? 'pointer-events-auto cursor-pointer hover:bg-slate-50 hover:border-slate-300 transition-colors' : 'pointer-events-auto'}`}
+                <div
+                  className={`flex ${isCenter ? "flex-col items-center rounded-lg bg-white/80 backdrop-blur-sm px-3 py-1" : isRight ? "items-baseline gap-1.5" : "items-baseline gap-1.5 justify-end"} ${clickable ? "pointer-events-auto cursor-pointer" : "pointer-events-auto"}`}
                   onClick={clickable ? () => handleNodeClick(node) : undefined}
-                  onMouseEnter={(e) => handleNodeHover(node.id, e)}
-                  onMouseMove={(e) => {
-                    if (hoveredNode === node.id) {
-                      setTooltip(prev => prev ? { ...prev, x: e.clientX, y: e.clientY } : null);
-                    }
-                  }}
-                  onMouseLeave={() => handleNodeHover(null)}
+                  onMouseEnter={() => { setHoveredNode(node.id); showDetail(node.label, node.value, node.color, node.column); }}
+                  onMouseLeave={() => { setHoveredNode(null); setActiveDetail(null); }}
                 >
-                  <span className="text-[11px] sm:text-xs font-semibold text-slate-900 leading-tight whitespace-nowrap truncate max-w-full">
-                    {node.label}
-                  </span>
-                  {pos.height > 28 && (
-                    <span className="text-[10px] font-medium text-slate-700 leading-tight">
-                      {formatCompact(node.value)}
-                    </span>
+                  {isCenter ? (
+                    <>
+                      <span className="text-[13px] font-semibold text-slate-800 whitespace-nowrap">{cityName}</span>
+                      <span className="text-[12px] font-medium text-slate-500">{fmtC(node.value)}</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-[12px] font-semibold text-slate-800 whitespace-nowrap leading-tight">
+                        {node.label}
+                      </span>
+                      <span className="text-[11px] font-medium whitespace-nowrap leading-tight" style={{ color: node.color }}>
+                        {fmtC(node.value)}
+                      </span>
+                    </>
                   )}
                 </div>
               </div>
@@ -504,50 +417,43 @@ export default function SankeyChart({ revenues, departments, height = 400 }: Pro
         </div>
       </div>
 
-      {/* Tooltip */}
-      {tooltip && (
-        <div
-          className="pointer-events-none fixed z-50 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-900 shadow-lg"
-          style={{
-            left: tooltip.x + 12,
-            top: tooltip.y - 10,
-          }}
-        >
-          {tooltip.content}
+      {/* Inline detail card / summary footer */}
+      {activeDetail ? (
+        <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-2.5 shadow-sm">
+          <div className="h-4 w-4 flex-shrink-0 rounded" style={{ backgroundColor: activeDetail.color }} aria-hidden="true" />
+          <p className="flex-1 text-sm font-semibold text-slate-900">{activeDetail.label}</p>
+          <div className="text-right flex-shrink-0">
+            <span className="text-sm font-semibold text-slate-900">{formatCurrency(activeDetail.value)}</span>
+            {activeDetail.pct && (
+              <span className="ml-2 text-[12px] text-slate-500">{activeDetail.pct}</span>
+            )}
+          </div>
+        </div>
+      ) : (
+        <div className="flex items-center justify-between border-t border-slate-100 pt-2.5 text-sm">
+          <div className="text-slate-600">
+            <span className="font-semibold text-slate-900">{fmtC(totalRevenue)}</span> total revenue
+          </div>
+          {surplus !== 0 && (
+            <div className={`text-[12px] ${surplus > 0 ? "text-emerald-700" : "text-red-600"}`}>
+              {surplus > 0 ? "+" : ""}{fmtC(surplus)} {surplus > 0 ? "surplus" : "deficit"}
+            </div>
+          )}
+          <div className="text-slate-600">
+            <span className="font-semibold text-slate-900">{fmtC(totalSpending)}</span> total spending
+          </div>
         </div>
       )}
 
-      {/* Summary footer */}
-      <div className="mt-4 flex justify-between border-t border-slate-100 pt-3 text-sm">
-        <div className="text-slate-700">
-          <span className="font-semibold text-slate-900">{formatCompact(totalRevenue)}</span> total revenue
-        </div>
-        <div className="text-slate-700">
-          <span className="font-semibold text-slate-900">{formatCompact(totalSpending)}</span> total spending
-        </div>
-      </div>
-
       {/* Screen reader table */}
       <table className="sr-only">
-        <caption>Money flow from revenue sources to departments</caption>
-        <thead>
-          <tr>
-            <th>From</th>
-            <th>To</th>
-            <th>Amount</th>
-          </tr>
-        </thead>
+        <caption>Money flow from revenue sources through {cityName} to departments</caption>
+        <thead><tr><th>From</th><th>To</th><th>Amount</th></tr></thead>
         <tbody>
           {links.map((link, i) => {
-            const sourceNode = nodes.find(n => n.id === link.source);
-            const targetNode = nodes.find(n => n.id === link.target);
-            return (
-              <tr key={i}>
-                <td>{sourceNode?.label}</td>
-                <td>{targetNode?.label}</td>
-                <td>{formatCurrency(link.value)}</td>
-              </tr>
-            );
+            const sn = nodes.find((n) => n.id === link.source);
+            const tn = nodes.find((n) => n.id === link.target);
+            return (<tr key={i}><td>{sn?.label}</td><td>{tn?.label}</td><td>{formatCurrency(link.value)}</td></tr>);
           })}
         </tbody>
       </table>
