@@ -6,6 +6,7 @@ import CardContainer from "@/components/CardContainer";
 import SectionHeader from "@/components/SectionHeader";
 import FiscalYearSelect from "@/components/FiscalYearSelect";
 import BudgetExplorer from "@/components/Budget/BudgetExplorer";
+import AmendedComparison from "@/components/Budget/AmendedComparison";
 import NarrativeSummary from "@/components/NarrativeSummary";
 import { buildBudgetNarrative } from "@/lib/narrativeHelpers";
 import { cityHref } from "@/lib/cityRouting";
@@ -15,6 +16,7 @@ import type {
   BudgetActualsYearDeptRow,
   BudgetActualsYearFundRow,
   BudgetActualsYearFundDeptRow,
+  AdoptedVsAmendedRow,
 } from "@/lib/queries";
 import Link from "next/link";
 
@@ -43,6 +45,8 @@ type Props = {
   hasActualsForSelectedYear?: boolean;
   /** Whether transactions module is enabled */
   enableTransactions?: boolean;
+  /** Adopted vs amended comparison rows (empty if no amendments) */
+  amendedComparison?: AdoptedVsAmendedRow[];
 };
 
 /* =============================================================================
@@ -59,6 +63,7 @@ export default function BudgetPageClient({
   accentColor,
   hasActualsForSelectedYear = false,
   enableTransactions = false,
+  amendedComparison = [],
 }: Props) {
   const searchParams = useSearchParams();
   const pathname = usePathname();
@@ -273,6 +278,17 @@ export default function BudgetPageClient({
               />
             )}
           </CardContainer>
+
+          {/* Amended budget comparison — only on adopted tab, only when amendments exist */}
+          {activeTab === "adopted" && amendedComparison.length > 0 && selectedYear !== null && (
+            <CardContainer>
+              <AmendedComparison
+                rows={amendedComparison}
+                fiscalYear={selectedYear}
+                accentColor={accentColor}
+              />
+            </CardContainer>
+          )}
 
           {/* Fund explorer link */}
           <div className="flex items-center justify-center py-2">

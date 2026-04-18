@@ -11,6 +11,7 @@ import {
   getBudgetActualsByFundDeptForYear,
   getDataUploadLogs,
   getActualOnlyYears,
+  getAdoptedVsAmendedForYear,
 } from "@/lib/queries";
 import type {
   PortalSettings,
@@ -18,6 +19,7 @@ import type {
   BudgetActualsYearFundRow,
   BudgetActualsYearFundDeptRow,
   DataUploadLogRow,
+  AdoptedVsAmendedRow,
 } from "@/lib/queries";
 
 export const revalidate = 60;
@@ -90,17 +92,23 @@ export default async function BudgetPage({ searchParams }: PageProps) {
   let deptBudgetActuals: BudgetActualsYearDeptRow[] = [];
   let fundSummary: BudgetActualsYearFundRow[] = [];
   let fundDeptSummary: BudgetActualsYearFundDeptRow[] = [];
+  let amendedComparison: AdoptedVsAmendedRow[] = [];
 
   if (selectedYear != null) {
-    const [deptRows, fundRows, fundDeptRows] = await Promise.all([
+    const [deptRows, fundRows, fundDeptRows, amendedRows] = await Promise.all([
       getBudgetActualsSummaryForYear(selectedYear),
       getBudgetActualsByFundForYear(selectedYear),
       getBudgetActualsByFundDeptForYear(selectedYear),
+      getAdoptedVsAmendedForYear(selectedYear),
     ]);
 
     deptBudgetActuals = (deptRows ?? []) as BudgetActualsYearDeptRow[];
     fundSummary = (fundRows ?? []) as BudgetActualsYearFundRow[];
     fundDeptSummary = (fundDeptRows ?? []) as BudgetActualsYearFundDeptRow[];
+    // Only show amended comparison if any row actually has amended data
+    const rawAmended = (amendedRows ?? []) as AdoptedVsAmendedRow[];
+    const hasAmended = rawAmended.some((r) => Number(r.amended_amount || 0) > 0);
+    amendedComparison = hasAmended ? rawAmended : [];
   }
 
   // Parse population from portal settings
@@ -136,6 +144,7 @@ export default async function BudgetPage({ searchParams }: PageProps) {
         accentColor={accentColor}
         hasActualsForSelectedYear={hasActualsForSelectedYear}
         enableTransactions={enableTransactions}
+        amendedComparison={amendedComparison}
       />
     </>
   );

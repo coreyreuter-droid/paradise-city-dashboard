@@ -11,6 +11,7 @@ import { supabaseAdmin } from "@/lib/supabaseService";
 import CityShell from "@/components/City/CityShell";
 import { generateThemeVars } from "@/lib/theme";
 import LegalFooter from "@/components/LegalFooter";
+import PageViewTracker from "@/components/PageViewTracker";
 import { isValidSlug } from "@/lib/tenant";
 
 import { unstable_noStore as noStore } from "next/cache";
@@ -142,6 +143,9 @@ export default async function CityLayout({
       >
         Skip to main content
       </a>
+
+      {/* Page view tracking — logs visits to Supabase for admin analytics */}
+      <PageViewTracker />
 
       {/* Shared sidebar navigation */}
       <ParadiseSidebar

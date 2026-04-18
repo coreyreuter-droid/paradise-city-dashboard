@@ -1514,3 +1514,125 @@ function formatBrandingDescription(log: AdminAuditLogRow): string {
       return log.action;
   }
 }
+
+/* =============================================================================
+   AMENDED BUDGET QUERIES
+============================================================================= */
+
+export type AdoptedVsAmendedRow = {
+  fiscal_year: number;
+  department_name: string;
+  adopted_amount: number;
+  amended_amount: number;
+  change_amount: number;
+};
+
+export async function getAdoptedVsAmendedForYear(
+  year: number
+): Promise<AdoptedVsAmendedRow[]> {
+  const { data, error } = await supabase
+    .from("v_budget_adopted_vs_amended")
+    .select("*")
+    .eq("fiscal_year", year)
+    .order("adopted_amount", { ascending: false });
+
+  if (error) {
+    console.error("getAdoptedVsAmendedForYear error:", error);
+    return [];
+  }
+  return (data ?? []) as AdoptedVsAmendedRow[];
+}
+
+export async function getAmendedBudgetYears(): Promise<number[]> {
+  const { data, error } = await supabase
+    .from("v_budget_types_by_year")
+    .select("fiscal_year")
+    .eq("budget_type", "amended");
+
+  if (error) {
+    console.error("getAmendedBudgetYears error:", error);
+    return [];
+  }
+  const years = (data ?? []).map((r: { fiscal_year: number }) => r.fiscal_year);
+  return [...new Set(years)].sort((a, b) => b - a);
+}
+
+/* =============================================================================
+   PAGE VIEW TRACKING
+============================================================================= */
+
+export async function getPageViewSummary(days: number = 30): Promise<
+  Array<{ page_path: string; view_count: number }>
+> {
+  const since = new Date();
+  since.setDate(since.getDate() - days);
+
+  const { data, error } = await supabase
+    .from("page_views")
+    .select("page_path")
+    .gte("created_at", since.toISOString());
+
+  if (error) {
+    console.error("getPageViewSummary error:", error);
+    return [];
+  }
+  const counts = new Map<string, number>();
+  for (const row of (data ?? [])) {
+    counts.set(row.page_path, (counts.get(row.page_path) ?? 0) + 1);
+  }
+  return Array.from(counts.entries())
+    .map(([page_path, view_count]) => ({ page_path, view_count }))
+    .sort((a, b) => b.view_count - a.view_count);
+}
+
+export async function getTotalPageViews(days: number = 30): Promise<number> {
+  const since = new Date();
+  since.setDate(since.getDate() - days);
+
+  const { count, error } = await supabase
+    .from("page_views")
+    .select("id", { count: "exact", head: true })
+    .gte("created_at", since.toISOString());
+
+  if (error) {
+    console.error("getTotalPageViews error:", error);
+    return 0;
+  }
+  return count ?? 0;
+}
+
+/* =============================================================================
+   CITIZEN FEEDBACK
+============================================================================= */
+
+export type CitizenFeedbackRow = {
+  id: string;
+  page_path: string | null;
+  name: string | null;
+  email: string | null;
+  message: string;
+  status: string;
+  admin_response: string | null;
+  responded_at: string | null;
+  created_at: string;
+};
+
+export async function getCitizenFeedback(
+  status?: string
+): Promise<CitizenFeedbackRow[]> {
+  let query = supabase
+    .from("citizen_feedback")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (status) {
+    query = query.eq("status", status);
+  }
+
+  const { data, error } = await query;
+  if (error) {
+    console.error("getCitizenFeedback error:", error);
+    return [];
+  }
+  return (data ?? []) as CitizenFeedbackRow[];
+}

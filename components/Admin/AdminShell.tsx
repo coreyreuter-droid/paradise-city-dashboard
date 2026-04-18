@@ -31,6 +31,8 @@ const NAV_ROW_2: { href: string; label: string }[] = [
   { href: "lookups", label: "Lookup tables" },
   { href: "users", label: "Users & roles" },
   { href: "publish", label: "Publish status" },
+  { href: "analytics", label: "Portal analytics" },
+  { href: "feedback", label: "Citizen feedback" },
   { href: "onboarding", label: "Onboarding checklist" },
   { href: "help", label: "Help & FAQs" },
 ];

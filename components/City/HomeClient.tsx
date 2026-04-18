@@ -21,6 +21,7 @@ import NarrativeSummary from "@/components/NarrativeSummary";
 import InsightsSection from "@/components/City/InsightsSection";
 import { buildHomeNarrative } from "@/lib/narrativeHelpers";
 import { CITY_CONFIG } from "@/lib/cityConfig";
+import CitizenFeedback from "@/components/City/CitizenFeedback";
 import { cityHref } from "@/lib/cityRouting";
 import type {
   PortalSettings,
@@ -751,6 +752,9 @@ className="inline-flex items-center justify-center rounded-full px-3 py-1.5 text
           </div>
         </>
       )}
+
+      {/* Citizen feedback */}
+      <CitizenFeedback cityName={cityName} />
     </div>
   );
 }
