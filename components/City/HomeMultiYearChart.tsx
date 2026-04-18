@@ -121,8 +121,8 @@ export default function ParadiseHomeMultiYearChart({ yearTotals }: Props) {
               width={52}
             />
             <RTooltip
-              formatter={(value: number, name: string) => [
-                formatCurrency(value),
+              formatter={(value, name) => [
+                formatCurrency(Number(value ?? 0)),
                 name === "actuals" ? "Actual spending" : "Adopted budget",
               ]}
               labelFormatter={(label) => `FY ${label}`}
