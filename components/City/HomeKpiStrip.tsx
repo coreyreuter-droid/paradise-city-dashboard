@@ -52,6 +52,7 @@ const formatCompact = (v: number): string => {
 export default function ParadiseHomeKpiStrip({
   totalBudget,
   totalActuals,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   variance: _variance,
   execPct,
   deptCount,

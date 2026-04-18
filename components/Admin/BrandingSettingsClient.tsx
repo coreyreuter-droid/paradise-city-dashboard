@@ -491,6 +491,7 @@ export default function BrandingSettingsClient() {
     );
 
     setColorWarnings(result.warnings);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     settings?.primary_color,
     settings?.accent_color,
@@ -837,6 +838,7 @@ export default function BrandingSettingsClient() {
         <div className="space-y-1">
           <p className="text-xs font-medium text-slate-700">{label}</p>
           <div className="relative group inline-block">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={imageUrl}
               alt={label}

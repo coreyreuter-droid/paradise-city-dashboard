@@ -20,6 +20,7 @@ type Props = {
 export default function HomeRevenueSummary({
   revenues,
   years,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   accentColor: _accentColor,
 }: Props) {
   const searchParams = useSearchParams();

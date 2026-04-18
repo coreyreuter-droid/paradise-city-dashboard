@@ -4,7 +4,7 @@ import {
   getPortalFiscalYears,
   getBudgetActualsByFundDeptForYear,
 } from "@/lib/queries";
-import type { PortalSettings, BudgetActualsYearFundDeptRow } from "@/lib/queries";
+import type { BudgetActualsYearFundDeptRow } from "@/lib/queries";
 import FundDetailClient from "@/components/City/FundDetailClient";
 
 export const revalidate = 60;
@@ -20,7 +20,7 @@ export default async function FundDetailPage({ params, searchParams }: PageProps
 
   const fundName = decodeURIComponent(p.fundName);
 
-  const [settings, years] = await Promise.all([
+  const [, years] = await Promise.all([
     getPortalSettings(),
     getPortalFiscalYears(),
   ]);

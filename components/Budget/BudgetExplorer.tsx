@@ -58,6 +58,7 @@ const formatCompact = (v: number): string => {
   return "$" + Math.round(v).toLocaleString();
 };
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const pctChange = (current: number, prior: number): string | null => {
   if (prior === 0) return null;
   const delta = ((current - prior) / prior) * 100;
@@ -342,6 +343,7 @@ export default function BudgetExplorer({
   population,
   accentColor,
   hasActuals = true,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   enableTransactions = false,
 }: Props) {
   const router = useRouter();

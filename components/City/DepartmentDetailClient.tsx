@@ -122,6 +122,7 @@ export default function DepartmentDetailClient({
   }, [activeVendor]);
 
   // Handler to open vendor modal and store trigger ref
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const openVendorModal = useCallback((vendorName: string, triggerElement: HTMLButtonElement) => {
     vendorTriggerRef.current = triggerElement;
     setActiveVendor(vendorName);

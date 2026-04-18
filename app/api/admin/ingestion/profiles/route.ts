@@ -9,7 +9,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { requireCsrf } from "@/lib/csrf";
 import { supabaseAdmin } from "@/lib/supabaseService";
-import { DatasetType, IngestionProfile } from "@/lib/ingestion/types";
+import { DatasetType } from "@/lib/ingestion/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

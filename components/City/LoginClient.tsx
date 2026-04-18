@@ -12,6 +12,7 @@ type Props = {
   cityName?: string | null;
 };
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export default function LoginClient({ redirect: _redirect, cityName }: Props) {
   const [email, setEmail] = useState("");
   const [sending, setSending] = useState(false);
