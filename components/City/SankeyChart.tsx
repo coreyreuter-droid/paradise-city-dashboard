@@ -73,7 +73,7 @@ export default function SankeyChart({
     const revSorted = Array.from(revenueMap.entries()).sort((a, b) => b[1] - a[1]);
     const topRev = revSorted.slice(0, 8);
     const otherRevTotal = revSorted.slice(8).reduce((s, [, v]) => s + v, 0);
-    if (otherRevTotal > 0) topRev.push(["Other Sources", otherRevTotal]);
+    if (otherRevTotal > 0) topRev.push(["Other Sources →", otherRevTotal]);
 
     const deptSorted = [...departments].sort((a, b) => b.actuals - a.actuals);
     const topDept = deptSorted.slice(0, 11);
@@ -89,7 +89,7 @@ export default function SankeyChart({
         id: `rev-${i}`,
         label: name as string,
         value: value as number,
-        color: name === "Other Sources" ? OTHER_COLOR : REV_COLORS[i % REV_COLORS.length],
+        color: (name as string).startsWith("Other") ? OTHER_COLOR : REV_COLORS[i % REV_COLORS.length],
         column: 0,
       });
     });
@@ -115,7 +115,7 @@ export default function SankeyChart({
     if (otherDeptTotal > 0) {
       nodes.push({
         id: "dept-other",
-        label: "Other Departments",
+        label: "Other Departments →",
         value: otherDeptTotal,
         color: OTHER_COLOR,
         column: 2,
@@ -216,30 +216,48 @@ export default function SankeyChart({
   };
 
   const handleNodeClick = (node: SankeyNode) => {
-    if (node.column === 0 && node.label !== "Other Sources") {
-      const slug = node.label.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/-+$/, "");
-      router.push(cityHref(`/revenues/${encodeURIComponent(slug)}`));
-    } else if (node.column === 2 && node.id !== "dept-other") {
-      router.push(cityHref(`/departments/${encodeURIComponent(node.label)}`));
+    if (node.column === 0) {
+      if (node.label === "Other Sources →") {
+        router.push(cityHref("/revenues"));
+      } else {
+        const slug = node.label.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/-+$/, "");
+        router.push(cityHref(`/revenues/${encodeURIComponent(slug)}`));
+      }
+    } else if (node.column === 2) {
+      if (node.id === "dept-other") {
+        router.push(cityHref("/departments"));
+      } else {
+        router.push(cityHref(`/departments/${encodeURIComponent(node.label)}`));
+      }
     }
   };
 
   const handleRibbonClick = (src: string, tgt: string) => {
     if (src.startsWith("rev-")) {
       const n = nodes.find((nd) => nd.id === src);
-      if (n && n.label !== "Other Sources") {
-        const slug = n.label.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/-+$/, "");
-        router.push(cityHref(`/revenues/${encodeURIComponent(slug)}`));
+      if (n) {
+        if (n.label === "Other Sources →") {
+          router.push(cityHref("/revenues"));
+        } else {
+          const slug = n.label.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/-+$/, "");
+          router.push(cityHref(`/revenues/${encodeURIComponent(slug)}`));
+        }
       }
-    } else if (tgt.startsWith("dept-") && tgt !== "dept-other") {
+    } else if (tgt.startsWith("dept-")) {
       const n = nodes.find((nd) => nd.id === tgt);
-      if (n) router.push(cityHref(`/departments/${encodeURIComponent(n.label)}`));
+      if (n) {
+        if (n.id === "dept-other") {
+          router.push(cityHref("/departments"));
+        } else {
+          router.push(cityHref(`/departments/${encodeURIComponent(n.label)}`));
+        }
+      }
     }
   };
 
   const isClickable = (node: SankeyNode) => {
-    if (node.column === 0 && node.label !== "Other Sources") return true;
-    if (node.column === 2 && node.id !== "dept-other") return true;
+    if (node.column === 0) return true;  // All revenue sources including "Other"
+    if (node.column === 2) return true;  // All departments including "Other"
     return false;
   };
 

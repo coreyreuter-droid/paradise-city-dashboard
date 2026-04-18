@@ -5,9 +5,9 @@ import { rateLimitAsync } from "@/lib/rateLimit";
 import { rateLimitKey } from "@/lib/rateLimitKey";
 
 export async function POST(request: NextRequest) {
-  // Rate limit: 60 page views per minute per client (generous for normal browsing)
+  // Rate limit: 60 page views per minute (window: 60000ms) per client (generous for normal browsing)
   const key = rateLimitKey(request, "pageview");
-  const rl = await rateLimitAsync(`pageview:${key}`, 60, 60);
+  const rl = await rateLimitAsync(`pageview:${key}`, 60, 60 * 1000);
   if (!rl.allowed) {
     return NextResponse.json({ error: "Rate limited." }, { status: 429 });
   }

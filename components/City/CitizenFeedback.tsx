@@ -64,7 +64,7 @@ export default function CitizenFeedback({ cityName = "the city" }: Props) {
       <div className="mx-auto max-w-lg rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-center">
         <p className="text-sm font-semibold text-emerald-800">Thank you for your feedback!</p>
         <p className="mt-1 text-xs text-emerald-700">
-          Your message has been submitted to {cityName}&apos;s finance department.
+          Thank you! Your message has been received and will be reviewed by {cityName} staff.
         </p>
         <button
           type="button"
@@ -84,14 +84,14 @@ export default function CitizenFeedback({ cityName = "the city" }: Props) {
         <button
           type="button"
           onClick={() => setIsOpen(false)}
-          className="text-slate-400 hover:text-slate-600"
+          className="rounded-md p-0.5 text-slate-500 hover:text-slate-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-1"
           aria-label="Close feedback form"
         >
           <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4"><path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" /></svg>
         </button>
       </div>
       <p className="mt-1 text-xs text-slate-500">
-        Your message will be sent to {cityName}&apos;s finance department. A response is not guaranteed.
+        Your message will be submitted for review by {cityName} staff. Responses are not guaranteed but all feedback is read.
       </p>
 
       <form onSubmit={handleSubmit} className="mt-4 space-y-3">

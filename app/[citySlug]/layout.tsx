@@ -13,6 +13,7 @@ import { generateThemeVars } from "@/lib/theme";
 import LegalFooter from "@/components/LegalFooter";
 import PageViewTracker from "@/components/PageViewTracker";
 import ScrollToTop from "@/components/ScrollToTop";
+import PublishGate from "@/components/PublishGate";
 import { isValidSlug } from "@/lib/tenant";
 
 import { unstable_noStore as noStore } from "next/cache";
@@ -161,14 +162,20 @@ export default async function CityLayout({
         aria-label={`${displayName} financial transparency content`}
         className="flex-1 pt-12 sm:pt-0"
       >
-        <CityShell
-          accent={accent}
-          displayName={displayName}
-          tagline={tagline}
+        <PublishGate
+          isPublished={initialIsPublished}
+          cityName={displayName}
+          sealUrl={settings?.seal_url ?? null}
         >
-          {children}
-        </CityShell>
-        <LegalFooter />
+          <CityShell
+            accent={accent}
+            displayName={displayName}
+            tagline={tagline}
+          >
+            {children}
+          </CityShell>
+          <LegalFooter />
+        </PublishGate>
       </main>
     </div>
   );

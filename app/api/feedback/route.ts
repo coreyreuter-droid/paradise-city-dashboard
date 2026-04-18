@@ -5,9 +5,9 @@ import { rateLimitAsync } from "@/lib/rateLimit";
 import { rateLimitKey } from "@/lib/rateLimitKey";
 
 export async function POST(request: NextRequest) {
-  // Rate limit: 5 submissions per hour per client
+  // Rate limit: 5 submissions per hour (window: 3600000ms) per client
   const key = rateLimitKey(request, "feedback");
-  const rl = await rateLimitAsync(`feedback:${key}`, 5, 3600);
+  const rl = await rateLimitAsync(`feedback:${key}`, 5, 60 * 60 * 1000);
   if (!rl.allowed) {
     return NextResponse.json(
       { error: "Too many submissions. Please try again later." },
@@ -57,6 +57,30 @@ export async function POST(request: NextRequest) {
   if (error) {
     console.error("Feedback insert error:", error);
     return NextResponse.json({ error: "Failed to submit feedback." }, { status: 500 });
+  }
+
+  // Attempt to notify staff (non-blocking — feedback is saved regardless)
+  try {
+    const { data: settings } = await supabaseAdmin
+      .from("portal_settings")
+      .select("feedback_notification_email, city_name")
+      .maybeSingle();
+
+    const notifyEmail = settings?.feedback_notification_email?.trim();
+    if (notifyEmail) {
+      // TODO: Wire to your email provider (SendGrid, Resend, SES, etc.)
+      // For now, log that a notification would be sent
+      console.log(
+        `[Feedback Notification] Would send to: ${notifyEmail}`,
+        `| City: ${settings?.city_name}`,
+        `| From: ${name || "Anonymous"}`,
+        `| Page: ${pagePath}`,
+        `| Message: ${message.slice(0, 100)}...`
+      );
+    }
+  } catch (notifyError) {
+    // Never fail the response due to notification issues
+    console.error("Feedback notification error (non-blocking):", notifyError);
   }
 
   return NextResponse.json({ success: true });

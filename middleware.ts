@@ -43,14 +43,23 @@ export function middleware(request: NextRequest) {
   // Routes are like /sample-city/budget, /sample-city/transactions, etc.
   const pathParts = pathname.split("/").filter(Boolean);
   
-  // Need at least 2 parts: [citySlug, route] or just citySlug for home
+  // Need at least 1 part (citySlug)
   if (pathParts.length === 0) {
     return NextResponse.next();
   }
   
-  // Check if second part is a public route, or if it's just the city home page
+  // pathParts[0] = citySlug
+  // pathParts[1] = route segment (admin, budget, departments, etc.)
+  const routeSegment = pathParts[1] || "";
+  
+  // Skip admin and auth routes based on segment position, not substring
+  if (routeSegment === "admin" || routeSegment === "login" || routeSegment === "auth") {
+    return NextResponse.next();
+  }
+  
+  // Check if second segment is a public route, or if it's just the city home page
   const isPublicRoute = pathParts.length === 1 || // City home page
-    PUBLIC_ROUTES.some(route => pathname.includes(route));
+    PUBLIC_ROUTES.some(route => routeSegment === route.replace("/", ""));
   
   if (!isPublicRoute) {
     return NextResponse.next();

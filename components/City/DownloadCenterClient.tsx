@@ -82,6 +82,7 @@ function MultiSelect({
 }: MultiSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [focusedIdx, setFocusedIdx] = useState(-1);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -140,6 +141,7 @@ function MultiSelect({
         aria-expanded={isOpen}
         aria-haspopup="listbox"
         aria-controls={`${id}-listbox`}
+        aria-activedescendant={isOpen && focusedIdx >= 0 ? `${id}-option-${focusedIdx}` : undefined}
         onClick={() => {
           setIsOpen(!isOpen);
           if (!isOpen) setTimeout(() => inputRef.current?.focus(), 50);
@@ -152,6 +154,19 @@ function MultiSelect({
           }
           if (e.key === "Escape" && isOpen) {
             setIsOpen(false);
+            setFocusedIdx(-1);
+          }
+          if (e.key === "ArrowDown" && isOpen) {
+            e.preventDefault();
+            setFocusedIdx((prev) => Math.min(prev + 1, filteredOptions.length - 1));
+          }
+          if (e.key === "ArrowUp" && isOpen) {
+            e.preventDefault();
+            setFocusedIdx((prev) => Math.max(prev - 1, 0));
+          }
+          if ((e.key === "Enter" || e.key === " ") && isOpen && focusedIdx >= 0) {
+            e.preventDefault();
+            toggleOption(filteredOptions[focusedIdx]);
           }
         }}
         className={`w-full flex items-center justify-between gap-2 rounded-lg border bg-white px-3 py-2 text-sm text-left shadow-sm transition cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-1 ${
@@ -188,14 +203,14 @@ function MultiSelect({
       </div>
 
       {isOpen && (
-        <div id={`${id}-listbox`} role="listbox" className="absolute z-50 mt-1 w-full rounded-lg border border-slate-200 bg-white shadow-lg">
+        <div id={`${id}-listbox`} role="listbox" aria-multiselectable="true" className="absolute z-50 mt-1 w-full rounded-lg border border-slate-200 bg-white shadow-lg">
           {options.length > 8 && (
             <div className="border-b border-slate-100 p-2">
               <input
                 ref={inputRef}
                 type="text"
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => { setSearch(e.target.value); setFocusedIdx(-1); }}
                 placeholder="Type to search..."
                 aria-label="Search options"
                 className="w-full rounded-md border border-slate-200 px-3 py-1.5 text-sm focus:border-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400"
@@ -222,16 +237,21 @@ function MultiSelect({
             {filteredOptions.length === 0 ? (
               <div className="px-3 py-3 text-sm text-slate-600 text-center">No matches found</div>
             ) : (
-              filteredOptions.map((option) => {
+              filteredOptions.map((option, optIdx) => {
                 const isSelected = selected.includes(option);
+                const isFocused = focusedIdx === optIdx;
                 return (
-                  <button
+                  <div
                     key={option}
-                    type="button"
+                    role="option"
+                    id={`${id}-option-${optIdx}`}
+                    aria-selected={isSelected}
+                    tabIndex={-1}
                     onClick={() => toggleOption(option)}
-                    className={`flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm text-left transition ${
+                    onMouseEnter={() => setFocusedIdx(optIdx)}
+                    className={`flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm text-left transition cursor-pointer ${
                       isSelected ? "bg-blue-50 text-slate-900" : "text-slate-700 hover:bg-slate-50"
-                    }`}
+                    } ${isFocused ? "ring-2 ring-inset ring-slate-900" : ""}`}
                   >
                     <span
                       className={`flex h-4 w-4 flex-shrink-0 items-center justify-center rounded border transition ${
@@ -245,7 +265,7 @@ function MultiSelect({
                       )}
                     </span>
                     <span className="truncate">{option}</span>
-                  </button>
+                  </div>
                 );
               })
             )}

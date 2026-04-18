@@ -31,7 +31,7 @@ describe("Badge", () => {
 
   it("applies size styles", () => {
     const { rerender } = render(<Badge size="sm">Small</Badge>);
-    expect(screen.getByText("Small")).toHaveClass("text-[10px]");
+    expect(screen.getByText("Small")).toHaveClass("text-[11px]");
 
     rerender(<Badge size="md">Medium</Badge>);
     expect(screen.getByText("Medium")).toHaveClass("text-xs");

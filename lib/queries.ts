@@ -88,6 +88,19 @@ export type PortalSettings = {
   show_capital_projects: boolean | null;
   show_stats: boolean | null;
   show_projects: boolean | null;
+
+  // Budget document link
+  budget_document_url: string | null;
+
+  // Methodology / About page customization
+  methodology_data_source: string | null;
+  methodology_accounting_basis: string | null;
+  methodology_update_schedule: string | null;
+  methodology_exclusions: string | null;
+  methodology_audit_status: string | null;
+
+  // Feedback notification
+  feedback_notification_email: string | null;
 };
 
 export async function getPortalSettings(): Promise<PortalSettings | null> {
@@ -155,6 +168,24 @@ export async function getPortalFiscalYears(): Promise<number[]> {
     .filter((y) => Number.isFinite(y))
     .sort((a, b) => b - a);
 }
+
+/**
+ * Years that have budget+actuals data (for Spending page).
+ * Only returns years where at least one department has budget data.
+ */
+export async function getBudgetActualsFiscalYears(): Promise<number[]> {
+  const { data, error } = await supabase
+    .from("budget_actuals_year_totals")
+    .select("fiscal_year");
+
+  if (error || !data) return [];
+  return [...new Set((data as FiscalYearRow[]).map((r) => Number(r.fiscal_year)))]
+    .filter((y) => Number.isFinite(y))
+    .sort((a, b) => b - a);
+}
+
+// Note: getRevenueYears() and getTransactionYears() already exist below
+// and are used by the revenue and transaction pages respectively.
 
 
 

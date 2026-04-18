@@ -5,7 +5,7 @@ import DepartmentsDashboardClient from "@/components/City/DepartmentsDashboardCl
 import UnpublishedMessage from "@/components/City/UnpublishedMessage";
 import DataFreshness from "@/components/DataFreshness";
 import {
-  getPortalFiscalYears,
+  getBudgetActualsFiscalYears,
   getBudgetActualsSummaryForYear,
   getDepartmentTransactionSummariesForYear,
   getPortalSettings,
@@ -46,7 +46,7 @@ export default async function DepartmentsPage({ searchParams }: PageProps) {
   const sp = await searchParams;
 
   const [yearsRaw, settings, uploadLogsRaw] = await Promise.all([
-    getPortalFiscalYears(),
+    getBudgetActualsFiscalYears(),
     getPortalSettings(),
     getDataUploadLogs(),
   ]);

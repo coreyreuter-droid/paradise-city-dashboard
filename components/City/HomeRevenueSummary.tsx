@@ -55,14 +55,12 @@ export default function HomeRevenueSummary({
 
   const totalRevenue = categoryTotals.reduce((s, c) => s + c.total, 0);
 
-  const drillItems: DrillBarItem[] = useMemo(() => {
-    return categoryTotals.map((c) => ({
-      name: c.name,
-      budget: c.total,
-      actual: 0,
-      href: cityHref(`/revenues/${encodeURIComponent(c.name)}${selectedYear ? `?year=${selectedYear}` : ""}`),
-    }));
-  }, [categoryTotals, selectedYear]);
+  const drillItems: DrillBarItem[] = categoryTotals.map((c) => ({
+    name: c.name,
+    budget: c.total,
+    actual: 0,
+    href: cityHref(`/revenues/${encodeURIComponent(c.name)}${selectedYear ? `?year=${selectedYear}` : ""}`),
+  }));
 
   if (categoryTotals.length === 0) {
     return (

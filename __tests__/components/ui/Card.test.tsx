@@ -92,7 +92,7 @@ describe("CardDescription", () => {
 
   it("applies text styles", () => {
     render(<CardDescription>Styled</CardDescription>);
-    expect(screen.getByText("Styled")).toHaveClass("text-sm", "text-slate-600");
+    expect(screen.getByText("Styled")).toHaveClass("text-sm", "text-slate-700");
   });
 });
 
