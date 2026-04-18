@@ -1,6 +1,7 @@
 // components/LegalFooter.tsx
 import Link from "next/link";
 import { cityHref } from "@/lib/cityRouting";
+import StaffLink from "@/components/StaffLink";
 
 interface LegalFooterProps {
   className?: string;
@@ -46,7 +47,7 @@ export default function LegalFooter({ className = "" }: LegalFooterProps) {
             </Link>
           </div>
 
-          {/* Legal links */}
+          {/* Legal links + staff access */}
           <div className="flex items-center gap-3 text-sm text-slate-600">
             <span suppressHydrationWarning>© {currentYear} CiviPortal LLC</span>
             <span className="text-slate-300" aria-hidden="true">•</span>
@@ -57,6 +58,8 @@ export default function LegalFooter({ className = "" }: LegalFooterProps) {
             <Link href="/privacy" className="hover:text-slate-700 transition-colors rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2">
               Privacy
             </Link>
+            <span className="text-slate-300" aria-hidden="true">•</span>
+            <StaffLink />
           </div>
         </div>
       </div>
