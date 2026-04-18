@@ -22,7 +22,7 @@ export default function AdminProjectsPage() {
   const [state, setState] = useState<LoadState>("idle");
   const [projects, setProjects] = useState<CapitalProjectWithImages[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [authToken, setAuthToken] = useState<string | null>(null);
+  const [, setAuthToken] = useState<string | null>(null);
 
   // Check if feature is enabled, then load projects
   useEffect(() => {
@@ -247,6 +247,7 @@ export default function AdminProjectsPage() {
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-3">
                             {project.images[0] ? (
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
                               <img
                                 src={project.images[0].image_url}
                                 alt={`${project.title} thumbnail`}

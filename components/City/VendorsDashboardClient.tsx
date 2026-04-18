@@ -13,7 +13,6 @@ import DataTable, { DataTableColumn } from "../DataTable";
 import { cityHref } from "@/lib/cityRouting";
 import { formatCurrency } from "@/lib/format";
 import type { VendorYearSummary } from "@/lib/queries";
-import { CITY_CONFIG } from "@/lib/cityConfig";
 
 type Props = {
   years: number[];

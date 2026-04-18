@@ -622,6 +622,7 @@ export default function AdminProjectEditorPage() {
                       key={image.id}
                       className="relative group"
                     >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={image.image_url}
                         alt={image.alt_text}

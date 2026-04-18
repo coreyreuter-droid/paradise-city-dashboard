@@ -9,11 +9,7 @@
 
 import { normalizeCode, normalizeLabel } from '../normalizeCode';
 import {
-  parseAmount,
-  parseDate,
-  parsePeriod,
   deriveFiscalYear,
-  deriveFiscalPeriod,
   applyTransform,
   TransformName,
 } from './transforms';
@@ -21,7 +17,6 @@ import {
   DatasetType,
   ColumnMappings,
   COAConfig,
-  COASegment,
   ParsedRow,
   RowError,
   ErrorCodes,

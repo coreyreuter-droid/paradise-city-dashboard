@@ -23,7 +23,7 @@ type Props = {
 export default function FundsListClient({
   years,
   fundSummary,
-  fundDeptSummary,
+  // fundDeptSummary, // currently unused
   accentColor,
 }: Props) {
   const searchParams = useSearchParams();

@@ -1687,7 +1687,7 @@ export default function BrandingSettingsClient() {
                 Feedback notification email
               </label>
               <p className="mb-1 text-[11px] text-slate-500">
-                When citizens submit feedback, a notification will be sent to this address.
+                When email notifications are configured, new feedback submissions will be forwarded to this address. Email delivery requires a mail provider to be connected.
               </p>
               <input
                 id="feedback_email"

@@ -21,6 +21,13 @@ export default async function AboutPage() {
   const settings = await getPortalSettings();
   const cityName = settings?.city_name?.trim() || "Our community";
 
+  // City-specific methodology overrides
+  const dataSource = settings?.methodology_data_source?.trim() || null;
+  const accountingBasis = settings?.methodology_accounting_basis?.trim() || null;
+  const updateSchedule = settings?.methodology_update_schedule?.trim() || null;
+  const exclusions = settings?.methodology_exclusions?.trim() || null;
+  const auditStatus = settings?.methodology_audit_status?.trim() || null;
+
   return (
     <div className="mx-auto max-w-4xl space-y-5 px-3 py-6 sm:px-4 sm:py-8">
       <SectionHeader
@@ -38,49 +45,81 @@ export default async function AboutPage() {
       <CardContainer>
         <section className="space-y-4">
           <h2 className="text-sm font-semibold text-slate-900">Data sources</h2>
-          <p className="text-sm leading-relaxed text-slate-600">
-            The financial data on this portal comes directly from {cityName}&apos;s official accounting and budgeting
-            systems. Budget figures represent the amounts approved by the governing body. Actual expenditures
-            and revenues reflect recorded transactions from the city&apos;s financial system.
-          </p>
-          <p className="text-sm leading-relaxed text-slate-600">
-            Data is uploaded by authorized finance staff through a secure administrative portal.
-            Each upload is validated, mapped to the standard chart of accounts, and reviewed before
-            being published to the public site.
-          </p>
+          {dataSource ? (
+            <p className="text-sm leading-relaxed text-slate-600">{dataSource}</p>
+          ) : (
+            <>
+              <p className="text-sm leading-relaxed text-slate-600">
+                The financial data on this portal comes directly from {cityName}&apos;s official accounting and budgeting
+                systems. Budget figures represent the amounts approved by the governing body. Actual expenditures
+                and revenues reflect recorded transactions from the city&apos;s financial system.
+              </p>
+              <p className="text-sm leading-relaxed text-slate-600">
+                Data is uploaded by authorized finance staff through a secure administrative portal.
+                Each upload is validated, mapped to the standard chart of accounts, and reviewed before
+                being published to the public site.
+              </p>
+            </>
+          )}
         </section>
       </CardContainer>
 
       <CardContainer>
         <section className="space-y-4">
           <h2 className="text-sm font-semibold text-slate-900">Accounting basis</h2>
-          <p className="text-sm leading-relaxed text-slate-600">
-            Municipal governments typically use modified accrual accounting for governmental funds
-            and full accrual accounting for enterprise (business-type) funds, in accordance with
-            standards set by the Governmental Accounting Standards Board (GASB).
-          </p>
-          <p className="text-sm leading-relaxed text-slate-600">
-            The budget figures shown on this portal represent appropriations — the authorized spending
-            limits approved by the governing body. Actual figures represent recorded expenditures and
-            revenues as of the most recent data upload.
-          </p>
+          {accountingBasis ? (
+            <p className="text-sm leading-relaxed text-slate-600">{accountingBasis}</p>
+          ) : (
+            <>
+              <p className="text-sm leading-relaxed text-slate-600">
+                Municipal governments typically use modified accrual accounting for governmental funds
+                and full accrual accounting for enterprise (business-type) funds, in accordance with
+                standards set by the Governmental Accounting Standards Board (GASB).
+              </p>
+              <p className="text-sm leading-relaxed text-slate-600">
+                The budget figures shown on this portal represent appropriations — the authorized spending
+                limits approved by the governing body. Actual figures represent recorded expenditures and
+                revenues as of the most recent data upload.
+              </p>
+            </>
+          )}
+          {auditStatus && (
+            <p className="text-sm leading-relaxed text-slate-600">
+              <span className="font-medium">Audit status:</span> {auditStatus}
+            </p>
+          )}
         </section>
       </CardContainer>
 
       <CardContainer>
         <section className="space-y-4">
           <h2 className="text-sm font-semibold text-slate-900">Update schedule</h2>
-          <p className="text-sm leading-relaxed text-slate-600">
-            Financial data is typically updated after month-end or quarter-end close processes.
-            The &ldquo;Last updated&rdquo; indicator shown on each page reflects when the most recent
-            data was uploaded to the portal.
-          </p>
-          <p className="text-sm leading-relaxed text-slate-600">
-            Budget data is updated when the annual budget is adopted and whenever budget amendments
-            are approved by the governing body. Transaction-level data may be updated more frequently.
-          </p>
+          {updateSchedule ? (
+            <p className="text-sm leading-relaxed text-slate-600">{updateSchedule}</p>
+          ) : (
+            <>
+              <p className="text-sm leading-relaxed text-slate-600">
+                Financial data is typically updated after month-end or quarter-end close processes.
+                The &ldquo;Last updated&rdquo; indicator shown on each page reflects when the most recent
+                data was uploaded to the portal.
+              </p>
+              <p className="text-sm leading-relaxed text-slate-600">
+                Budget data is updated when the annual budget is adopted and whenever budget amendments
+                are approved by the governing body. Transaction-level data may be updated more frequently.
+              </p>
+            </>
+          )}
         </section>
       </CardContainer>
+
+      {exclusions && (
+        <CardContainer>
+          <section className="space-y-4">
+            <h2 className="text-sm font-semibold text-slate-900">What is not included</h2>
+            <p className="text-sm leading-relaxed text-slate-600">{exclusions}</p>
+          </section>
+        </CardContainer>
+      )}
 
       <CardContainer>
         <section className="space-y-4">

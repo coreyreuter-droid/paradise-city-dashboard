@@ -176,31 +176,31 @@ function MultiSelect({
         <span className={`truncate ${selected.length === 0 ? "text-slate-500" : "text-slate-900"}`}>
           {displayText}
         </span>
-        <div className="flex items-center gap-1.5">
-          {selected.length > 0 && (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                clearAll();
-              }}
-              className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-200 text-slate-600 hover:bg-slate-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
-              aria-label="Clear selection"
-            >
-              <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          )}
-          <svg
-            className={`h-4 w-4 text-slate-400 transition-transform ${isOpen ? "rotate-180" : ""}`}
-            fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"
-            aria-hidden="true"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
-          </svg>
-        </div>
+        <svg
+          className={`h-4 w-4 flex-shrink-0 text-slate-400 transition-transform ${isOpen ? "rotate-180" : ""}`}
+          fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"
+          aria-hidden="true"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+        </svg>
       </div>
+
+      {/* Clear button — sibling of combobox, not nested inside it */}
+      {selected.length > 0 && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            clearAll();
+          }}
+          className="absolute right-8 top-[2.05rem] z-10 flex h-5 w-5 items-center justify-center rounded-full bg-slate-200 text-slate-600 hover:bg-slate-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
+          aria-label="Clear selection"
+        >
+          <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      )}
 
       {isOpen && (
         <div id={`${id}-listbox`} role="listbox" aria-multiselectable="true" className="absolute z-50 mt-1 w-full rounded-lg border border-slate-200 bg-white shadow-lg">
@@ -770,7 +770,7 @@ export default function DownloadCenterClient({
 
   // Async loading of record counts
   const [recordCounts, setRecordCounts] = useState<RecordCounts | null>(null);
-  const [countsLoading, setCountsLoading] = useState(true);
+  const [/* countsLoading */, setCountsLoading] = useState(true);
 
   useEffect(() => {
     async function fetchCounts() {

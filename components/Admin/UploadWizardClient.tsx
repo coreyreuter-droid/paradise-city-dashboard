@@ -223,7 +223,7 @@ export default function UploadWizardClient() {
 
   // Mapping profiles (loaded per dataset type)
   const [mappingProfiles, setMappingProfiles] = useState<MappingProfile[]>([]);
-  const [profilesLoading, setProfilesLoading] = useState(false);
+  const [/* profilesLoading */, setProfilesLoading] = useState(false);
 
   // Wizard state
   const [wizard, setWizard] = useState<WizardState>(getInitialWizardState());

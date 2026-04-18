@@ -64,7 +64,7 @@ export default function CitizenFeedback({ cityName = "the city" }: Props) {
       <div className="mx-auto max-w-lg rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-center">
         <p className="text-sm font-semibold text-emerald-800">Thank you for your feedback!</p>
         <p className="mt-1 text-xs text-emerald-700">
-          Thank you! Your message has been received and will be reviewed by {cityName} staff.
+          Thank you! Your message has been saved and may be reviewed by {cityName} staff.
         </p>
         <button
           type="button"

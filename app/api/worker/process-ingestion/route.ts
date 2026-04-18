@@ -14,7 +14,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { waitUntil } from "@vercel/functions";
 import Papa from "papaparse";
 import { supabaseAdmin } from "@/lib/supabaseService";
-import { normalizeCode, normalizeLabel } from "@/lib/normalizeCode";
 import { logAuditEvent } from "@/lib/auditLog";
 import {
   DatasetType,

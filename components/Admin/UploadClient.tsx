@@ -11,7 +11,6 @@ import {
   TABLE_SCHEMAS,
   validateAndBuildRecords,
   buildTemplateCsv,
-  type ValidationIssue,
 } from "@/lib/uploadValidation";
 
 type Mode = "append" | "replace_year" | "replace_table";
@@ -97,7 +96,7 @@ function getMissingMappedColumns(
   }
 
   // Check that all mapped columns exist in the CSV
-  for (const [field, csvColumn] of Object.entries(columnMappings)) {
+  for (const [, csvColumn] of Object.entries(columnMappings)) {
     if (csvColumn) {
       const normalizedExpected = csvColumn.toLowerCase().trim();
       if (!normalizedHeaders.has(normalizedExpected)) {
@@ -138,8 +137,8 @@ export default function UploadClient() {
   // --- Mapping profile state ---
   const [mappingProfiles, setMappingProfiles] = useState<MappingProfile[]>([]);
   const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);
-  const [profilesLoading, setProfilesLoading] = useState(false);
-  const [profileError, setProfileError] = useState<string | null>(null);
+  const [/* profilesLoading */, setProfilesLoading] = useState(false);
+  const [/* profileError */, setProfileError] = useState<string | null>(null);
 
   // --- Auto-match state ---
   const [matchStatus, setMatchStatus] = useState<"checking" | "matched" | "matched_extra" | "no_match" | null>(null);

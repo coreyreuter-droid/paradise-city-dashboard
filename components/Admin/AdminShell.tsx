@@ -131,7 +131,7 @@ export default function AdminShell({
     const active = isActive(item.href);
 
     const base =
-      "block text-center whitespace-nowrap px-2 py-2.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent-rgb))] focus-visible:ring-offset-2 focus-visible:ring-offset-white";
+      "block text-center whitespace-nowrap px-3 py-2.5 text-xs font-medium transition-colors flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent-rgb))] focus-visible:ring-offset-2 focus-visible:ring-offset-white";
 
     // Active: accent underline + subtle accent tint + primary text
     const activeClasses =
@@ -251,12 +251,12 @@ export default function AdminShell({
               aria-label="Admin navigation"
               className="mb-6"
             >
-              {/* Row 1 — Data & content (5 tabs) */}
-              <div className="grid grid-cols-5 border-b border-slate-200">
+              {/* Row 1 — Data & content */}
+              <div className="flex overflow-x-auto border-b border-slate-200 sm:grid sm:grid-cols-5 sm:overflow-visible">
                 {NAV_ROW_1.map(renderNavItem)}
               </div>
-              {/* Row 2 — Portal & admin (6 tabs) */}
-              <div className="grid grid-cols-6 border-b border-slate-200">
+              {/* Row 2 — Portal & admin */}
+              <div className="flex overflow-x-auto border-b border-slate-200 sm:grid sm:grid-cols-6 sm:overflow-visible">
                 {NAV_ROW_2.map(renderNavItem)}
               </div>
             </nav>

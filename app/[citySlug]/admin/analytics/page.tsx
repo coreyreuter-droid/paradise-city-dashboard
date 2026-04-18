@@ -15,42 +15,45 @@ export default function AdminAnalyticsPage() {
   const [total30, setTotal30] = useState(0);
   const [total7, setTotal7] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
       try {
-        // Use server-side aggregation views instead of pulling raw rows
-        const [summaryRes, dailyRes] = await Promise.all([
-          supabase.from("v_page_views_summary").select("*").limit(25),
-          supabase.from("v_page_views_daily")
-            .select("view_date, view_count, unique_sessions")
-            .order("view_date", { ascending: false })
-            .limit(30),
-        ]);
+        // Get auth token for the API route
+        const { data: { session } } = await supabase.auth.getSession();
+        const token = session?.access_token;
+        if (!token) { setError("Not authenticated"); setLoading(false); return; }
 
-      const rows = (summaryRes.data ?? []) as SummaryRow[];
-      setSummary(rows);
-      setTotal30(rows.reduce((s, r) => s + r.total_views, 0));
+        const res = await fetch("/api/admin/analytics", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
 
-      const daily = (dailyRes.data ?? []) as DailyRow[];
-      setDailyTotals(daily);
+        if (!res.ok) { setError("Failed to load analytics"); setLoading(false); return; }
 
-      // 7-day total from daily aggregates
-      const now = new Date();
-      const d7 = new Date(now);
-      d7.setDate(d7.getDate() - 7);
-      const last7 = daily
-        .filter((d) => new Date(d.view_date) >= d7)
-        .reduce((s, d) => s + d.view_count, 0);
-      setTotal7(last7);
+        const data = await res.json();
+        const rows = (data.summary ?? []) as SummaryRow[];
+        const daily = (data.daily ?? []) as DailyRow[];
 
+        setSummary(rows);
+        setTotal30(rows.reduce((s, r) => s + r.total_views, 0));
+        setDailyTotals(daily);
+
+        // 7-day total from daily aggregates
+        const d7 = new Date();
+        d7.setDate(d7.getDate() - 7);
+        setTotal7(
+          daily
+            .filter((d) => new Date(d.view_date) >= d7)
+            .reduce((s, d) => s + d.view_count, 0)
+        );
       } catch (err) {
         console.error("Analytics load error:", err);
+        setError("Failed to load analytics");
       } finally {
         setLoading(false);
       }
     }
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     load();
   }, []);
 
@@ -63,12 +66,14 @@ export default function AdminAnalyticsPage() {
           <div>
             <h2 className="text-lg font-semibold text-slate-900">Portal Analytics</h2>
             <p className="mt-1 text-sm text-slate-600">
-              Page view data from citizen visits. Aggregated server-side for performance.
+              Page view data from citizen visits.
             </p>
           </div>
 
           {loading ? (
             <p className="text-sm text-slate-500">Loading analytics...</p>
+          ) : error ? (
+            <p className="text-sm text-red-600">{error}</p>
           ) : (
             <>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -131,7 +136,7 @@ export default function AdminAnalyticsPage() {
               </div>
 
               <p className="text-center text-xs text-slate-500">
-                Analytics data is collected anonymously. No personally identifiable information is stored.
+                Analytics are collected in aggregate and are not intended to identify individual residents.
               </p>
             </>
           )}
