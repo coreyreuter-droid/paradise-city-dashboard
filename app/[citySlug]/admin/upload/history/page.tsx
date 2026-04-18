@@ -278,7 +278,7 @@ export default function UploadHistoryPage() {
   return (
     <AdminGuard>
       <AdminShell
-        title="Activity history"
+        title="Upload history"
         description="Review all admin actions including data uploads, user management, and branding changes."
       >
         <div className="space-y-6">

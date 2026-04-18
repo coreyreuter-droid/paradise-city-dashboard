@@ -9,7 +9,7 @@ export default function LookupsPage() {
   return (
     <AdminGuard>
       <AdminShell
-        title="Lookup tables"
+        title="Category names"
         description="Manage fund and department name mappings. These labels appear in the public portal when codes are displayed."
       >
         <LookupsClient />

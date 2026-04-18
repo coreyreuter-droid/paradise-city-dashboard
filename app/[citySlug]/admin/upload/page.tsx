@@ -9,7 +9,7 @@ export default function UploadPage() {
   return (
     <AdminGuard>
       <AdminShell
-        title="Data upload"
+        title="Upload file"
         description="Upload CSV files for budgets, actuals, transactions, and revenues."
       >
         <UploadWizardClient />

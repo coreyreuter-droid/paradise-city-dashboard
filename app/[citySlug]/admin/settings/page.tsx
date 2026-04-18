@@ -9,7 +9,7 @@ export default function BrandingSettingsPage() {
   return (
     <AdminGuard>
       <AdminShell
-        title="Branding & settings"
+        title="Homepage & branding"
         description="Control how your CiviPortal looks: logo, colors, hero image, and key messaging."
       >
         <BrandingSettingsClient />

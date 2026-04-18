@@ -2,231 +2,235 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
+import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import AdminGuard from "@/components/Auth/AdminGuard";
 import AdminShell from "@/components/Admin/AdminShell";
+import { cityHref } from "@/lib/cityRouting";
 
 type PublishState = "loading" | "published" | "unpublished" | "error";
+type DatasetInfo = { table: string; date: string | null; rows: number | null; isNew: boolean };
+
+function fmtDate(iso: string | null): string {
+  if (!iso) return "Never";
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? "Unknown" : d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" });
+}
+
+function fmtShort(iso: string | null): string {
+  if (!iso) return "Never";
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? "Unknown" : d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
 
 export default function PublishPage() {
   const [state, setState] = useState<PublishState>("loading");
   const [settingsId, setSettingsId] = useState<number | null>(null);
+  const [lastPublished, setLastPublished] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [isError, setIsError] = useState(false);
-
+  const [datasets, setDatasets] = useState<DatasetInfo[]>([]);
+  const [showConfirm, setShowConfirm] = useState(false);
   const messageRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    let cancelled = false;
-
     async function load() {
       try {
-        const { data, error } = await supabase
-          .from("portal_settings")
-          .select("id, is_published")
-          .maybeSingle();
+        const [settingsRes, uploadsRes] = await Promise.all([
+          supabase.from("portal_settings").select("id, is_published, updated_at").maybeSingle(),
+          supabase.from("data_uploads").select("table_name, created_at, row_count").order("created_at", { ascending: false }).limit(50),
+        ]);
 
-        if (cancelled) return;
-
-        if (error) {
-          console.error("PublishPage: load error", error);
-          setState("error");
-          setIsError(true);
-          setMessage("Failed to load publish status.");
-          return;
+        if (settingsRes.error || !settingsRes.data) {
+          setState("error"); setIsError(true); setMessage("Could not load portal settings."); return;
         }
 
-        if (!data) {
-          setState("error");
-          setIsError(true);
-          setMessage("No portal settings row found.");
-          return;
-        }
+        const s = settingsRes.data;
+        setSettingsId(s.id as number);
+        setState(s.is_published ? "published" : "unpublished");
+        setLastPublished(s.updated_at ?? null);
 
-        setSettingsId(data.id as number);
-        setState(data.is_published ? "published" : "unpublished");
-        setIsError(false);
-        setMessage(null);
-      } catch (err: unknown) {
-        if (!cancelled) {
-          console.error("PublishPage: unexpected load error", err);
-          setState("error");
-          setIsError(true);
-          setMessage("Unexpected error loading publish status.");
+        const publishedAt = s.updated_at ? new Date(s.updated_at) : null;
+        const seen = new Set<string>();
+        const items: DatasetInfo[] = [];
+        for (const row of uploadsRes.data ?? []) {
+          if (!seen.has(row.table_name)) {
+            seen.add(row.table_name);
+            const uploadDate = row.created_at ? new Date(row.created_at) : null;
+            items.push({
+              table: row.table_name,
+              date: row.created_at,
+              rows: row.row_count,
+              isNew: !!(uploadDate && publishedAt && uploadDate > publishedAt),
+            });
+          }
         }
+        setDatasets(items);
+      } catch {
+        setState("error"); setIsError(true); setMessage("Unexpected error.");
       }
     }
-
     load();
-
-    return () => {
-      cancelled = true;
-    };
   }, []);
 
-  useEffect(() => {
-    if (message && messageRef.current) {
-      messageRef.current.focus();
-    }
-  }, [message]);
+  useEffect(() => { if (message && messageRef.current) messageRef.current.focus(); }, [message]);
 
-  async function handleToggle() {
-    if (settingsId == null) {
-      setIsError(true);
-      setMessage(
-        "Cannot update publish status because the portal settings record could not be identified."
-      );
-      return;
-    }
-
-    setSaving(true);
-    setMessage(null);
-    setIsError(false);
-
+  async function handlePublish() {
+    if (settingsId == null) return;
+    setSaving(true); setMessage(null); setIsError(false); setShowConfirm(false);
     try {
       const { data, error } = await supabase
         .from("portal_settings")
-        .update({
-          // Flip based on the current stored value in DB via RETURNING
-          is_published: state !== "published",
-        })
+        .update({ is_published: state !== "published" })
         .eq("id", settingsId)
-        .select("id, is_published")
+        .select("id, is_published, updated_at")
         .maybeSingle();
-
-      if (error) {
-        console.error("PublishPage: update error", error);
-        setIsError(true);
-        setMessage("Failed to update publish status.");
-        setSaving(false);
-        return;
-      }
-
-      if (!data) {
-        setIsError(true);
-        setMessage("No portal settings row found to update.");
-        setSaving(false);
-        return;
-      }
-
-      setSettingsId(data.id as number);
-      const newState: PublishState = data.is_published
-        ? "published"
-        : "unpublished";
-      setState(newState);
-
-      setIsError(false);
-      setMessage(
-        data.is_published
-          ? "Portal is now marked as published. Residents can see the public site without logging in."
-          : "Portal is now marked as unpublished. Only authenticated admins can view the portal."
-      );
-    } catch (err: unknown) {
-      console.error("PublishPage: unexpected error", err);
-      setIsError(true);
-      setMessage("Unexpected error updating publish status.");
-    } finally {
-      setSaving(false);
-    }
+      if (error || !data) { setIsError(true); setMessage("Failed to update."); setSaving(false); return; }
+      setState(data.is_published ? "published" : "unpublished");
+      setLastPublished(data.updated_at ?? null);
+      // Clear "new" flags after publish
+      if (data.is_published) setDatasets((prev) => prev.map((d) => ({ ...d, isNew: false })));
+      setMessage(data.is_published ? "Portal is now live." : "Portal is now unpublished.");
+    } catch { setIsError(true); setMessage("Unexpected error."); }
+    finally { setSaving(false); }
   }
 
-  function renderStatusBadge() {
-    if (state === "loading") {
-      return (
-        <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">
-          Loading…
-        </span>
-      );
-    }
-
-    if (state === "error") {
-      return (
-        <span className="inline-flex items-center rounded-full bg-red-100 px-2.5 py-1 text-xs font-medium text-red-800">
-          Error
-        </span>
-      );
-    }
-
-    if (state === "published") {
-      return (
-        <span className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
-          Published
-        </span>
-      );
-    }
-
-    return (
-      <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">
-        Unpublished
-      </span>
-    );
-  }
-
-  const isDisabled =
-    saving || state === "loading" || state === "error" || settingsId == null;
-
-  const buttonLabel =
-    state === "published" ? "Mark as Unpublished" : "Mark as Published";
+  const isPublished = state === "published";
+  const hasNewData = datasets.some((d) => d.isNew);
+  const hasAnyData = datasets.length > 0;
 
   return (
     <AdminGuard>
-      <AdminShell
-        title="Publish status"
-        description="Control whether your CiviPortal is visible to the public or kept in admin-only review mode."
-      >
-        <div className="space-y-4 text-sm text-slate-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-semibold text-slate-900">
-                Current status
-              </p>
-              <p className="text-xs text-slate-600">
-                When the portal is{" "}
-                <span className="font-semibold">unpublished</span>, only
-                authenticated admins can view the site. When it&apos;s{" "}
-                <span className="font-semibold">published</span>, anyone
-                with the link can access it without logging in.
-              </p>
+      <AdminShell title="Review and publish" description="Check what has changed, preview the site, and publish when ready.">
+        <div className="space-y-5 text-sm text-slate-700">
+
+          {/* Current status */}
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
+            <div className="flex items-center gap-3">
+              <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${
+                isPublished ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-amber-50 text-amber-800 border-amber-200"
+              }`}>
+                {isPublished ? "Live" : "Draft"}
+              </span>
+              <span className="text-sm text-slate-700">
+                {isPublished ? "The public portal is visible to residents." : "Only admins can see the portal right now."}
+              </span>
             </div>
-            {renderStatusBadge()}
+            <div className="flex gap-2">
+              <Link
+                href={cityHref("/")}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 shadow-sm hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
+              >
+                Preview site ↗
+              </Link>
+            </div>
           </div>
 
-          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-700">
-            <p>
-              Use this control once your budgets, actuals, and other
-              datasets are loaded and branding is configured. You can
-              switch between draft and published at any time — it doesn&apos;t
-              change the underlying data.
-            </p>
+          {/* What changed since last publish */}
+          <div className="rounded-xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              {isPublished ? "Currently live" : "What will be published"}
+            </h3>
+            {lastPublished && (
+              <p className="mt-1 text-xs text-slate-500">Last published: {fmtDate(lastPublished)}</p>
+            )}
+
+            {!hasAnyData ? (
+              <p className="mt-3 text-xs text-slate-500">No data uploaded yet. Upload financial data before publishing.</p>
+            ) : (
+              <div className="mt-3 space-y-1.5">
+                {datasets.map((d) => (
+                  <div key={d.table} className={`flex items-center justify-between rounded-lg px-3 py-2 ${
+                    d.isNew ? "border border-emerald-200 bg-emerald-50" : "border border-slate-100 bg-slate-50"
+                  }`}>
+                    <div className="flex items-center gap-2">
+                      {d.isNew && (
+                        <span className="inline-flex items-center rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">
+                          Updated
+                        </span>
+                      )}
+                      <span className="text-xs font-medium text-slate-700 capitalize">{d.table}</span>
+                    </div>
+                    <span className="text-xs text-slate-500">
+                      {d.rows?.toLocaleString()} rows · {fmtShort(d.date)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {hasNewData && !isPublished && (
+              <p className="mt-3 text-xs text-emerald-700 font-medium">
+                New data has been uploaded since the last publish. Review above and publish when ready.
+              </p>
+            )}
           </div>
 
-          <div>
-            <button
-              type="button"
-              onClick={handleToggle}
-              disabled={isDisabled}
-              className="inline-flex items-center rounded-md bg-slate-900 px-3 py-2 text-xs font-medium text-white shadow-sm hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
-            >
-              {saving ? "Saving…" : buttonLabel}
-            </button>
-          </div>
+          {/* Reassurance */}
+          <p className="rounded-lg border border-blue-100 bg-blue-50/50 px-4 py-2.5 text-xs text-blue-800">
+            {isPublished
+              ? "The portal is live. You can unpublish at any time to make changes privately."
+              : "Nothing is public yet. Preview the site above to check everything before publishing."}
+          </p>
 
+          {/* Status messages */}
           {message && (
-            <div
-              ref={messageRef}
-              tabIndex={-1}
-              className={`mt-2 rounded-md border px-3 py-2 text-xs ${
-                isError
-                  ? "border-red-200 bg-red-50 text-red-700"
-                  : "border-emerald-200 bg-emerald-50 text-emerald-700"
-              }`}
-              role={isError ? "alert" : "status"}
-              aria-live={isError ? "assertive" : "polite"}
-            >
+            <div ref={messageRef} tabIndex={-1} role="status" className={`rounded-md px-4 py-2.5 text-xs font-medium ${
+              isError ? "bg-red-50 text-red-800 border border-red-200" : "bg-emerald-50 text-emerald-800 border border-emerald-200"
+            }`}>
               {message}
             </div>
           )}
+
+          {/* Publish action */}
+          {!showConfirm ? (
+            <button
+              type="button"
+              disabled={saving || state === "loading" || state === "error" || (!hasAnyData && !isPublished)}
+              onClick={() => setShowConfirm(true)}
+              className={`rounded-md px-5 py-2.5 text-sm font-medium shadow-sm transition disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${
+                isPublished
+                  ? "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 focus-visible:ring-slate-900"
+                  : "bg-emerald-600 text-white hover:bg-emerald-700 focus-visible:ring-emerald-600"
+              }`}
+            >
+              {isPublished ? "Unpublish portal" : "Publish to the public"}
+            </button>
+          ) : (
+            <div className="rounded-xl border border-slate-200 bg-slate-50 px-5 py-4 space-y-3">
+              <p className="text-sm font-medium text-slate-900">
+                {isPublished ? "Unpublish the portal?" : "Publish the portal?"}
+              </p>
+              <p className="text-xs text-slate-600">
+                {isPublished
+                  ? "The public portal will be hidden. Only logged-in admins can view it."
+                  : "All uploaded data and content will become visible to anyone who visits the portal."}
+              </p>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  disabled={saving}
+                  onClick={handlePublish}
+                  className={`rounded-md px-4 py-2 text-sm font-medium shadow-sm disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${
+                    isPublished ? "bg-slate-900 text-white hover:bg-slate-800 focus-visible:ring-slate-900" : "bg-emerald-600 text-white hover:bg-emerald-700 focus-visible:ring-emerald-600"
+                  }`}
+                >
+                  {saving ? "Saving..." : isPublished ? "Yes, unpublish" : "Yes, publish now"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowConfirm(false)}
+                  className="rounded-md border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+
         </div>
       </AdminShell>
     </AdminGuard>

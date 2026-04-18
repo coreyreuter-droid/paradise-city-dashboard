@@ -61,7 +61,7 @@ export default function AdminAnalyticsPage() {
 
   return (
     <AdminGuard>
-      <AdminShell title="Portal Analytics">
+      <AdminShell title="Portal analytics">
         <div className="space-y-6">
           <div>
             <h2 className="text-lg font-semibold text-slate-900">Portal Analytics</h2>
@@ -119,7 +119,7 @@ export default function AdminAnalyticsPage() {
                       <tbody>
                         {summary.map((row) => {
                           const pct = total30 > 0 ? ((row.total_views / total30) * 100).toFixed(1) : "0";
-                          const label = row.page_path.replace(/^\/[^/]+/, "").replace(/^\/?$/, "/home").replace(/^\//, "");
+                          const label = decodeURIComponent(row.page_path).replace(/^\/[^/]+/, "").replace(/^\/?$/, "/home").replace(/^\//, "");
                           return (
                             <tr key={row.page_path} className="border-b border-slate-100 last:border-0">
                               <td className="px-3 py-2 font-medium text-slate-800">/{label}</td>

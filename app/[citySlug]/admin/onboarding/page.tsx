@@ -421,7 +421,7 @@ export default function AdminOnboardingPage() {
   return (
     <AdminGuard>
       <AdminShell
-        title="Onboarding Checklist"
+        title="Setup checklist"
         description="A guided checklist to get your CiviPortal ready for residents."
       >
         <div className="flex flex-col gap-6">

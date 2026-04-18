@@ -82,7 +82,7 @@ export default function AdminProjectsPage() {
     return (
       <AdminGuard>
         <AdminShell
-          title="Capital Projects"
+          title="Projects"
           description="Showcase major community improvements and infrastructure investments"
         >
           <div className="mx-auto max-w-xl py-12">
@@ -145,7 +145,7 @@ export default function AdminProjectsPage() {
   return (
     <AdminGuard>
       <AdminShell
-        title="Capital Projects"
+        title="Projects"
         description="Manage capital improvement projects for your portal"
         actions={
           <Link

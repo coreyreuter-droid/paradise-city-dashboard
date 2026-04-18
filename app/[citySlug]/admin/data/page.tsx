@@ -1163,7 +1163,7 @@ export default function AdminDataManagementPage() {
   return (
     <AdminGuard>
       <AdminShell
-        title="Data management"
+        title="Review data"
         description="Delete fiscal-year data, manage lookup tables, clear mapping profiles, and clean up system files."
         actions={
           <a

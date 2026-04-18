@@ -9,7 +9,7 @@ export default function MappingPage() {
   return (
     <AdminGuard>
       <AdminShell
-        title="CSV mapping upload"
+        title="Review matches"
         description="Upload CSV files with flexible column mapping. Map your columns to the correct fields, validate, and import."
       >
         <MappingUploadClient />

@@ -8,413 +8,149 @@ import AdminShell from "@/components/Admin/AdminShell";
 import { cityHref } from "@/lib/cityRouting";
 import { supabase } from "@/lib/supabase";
 
-type PublishStatusState =
-  | "loading"
-  | "published"
-  | "draft"
-  | "unknown";
+type PortalStatus = "loading" | "published" | "draft" | "unknown";
+type UploadInfo = { table: string; lastUploadAt: string | null; rowCount: number | null };
 
-type PublishSummary = {
-  state: PublishStatusState;
+type DashboardState = {
+  portalStatus: PortalStatus;
   cityName: string | null;
-  lastUpdatedAt: string | null;
+  uploads: Record<string, UploadInfo>;
+  feedbackCount: number;
 };
 
-type UploadFreshness = {
-  table: string;
-  fiscalYear: number | null;
-  rowCount: number | null;
-  lastUploadAt: string | null;
-};
-
-type UploadSummary = {
-  budgets: UploadFreshness | null;
-  actuals: UploadFreshness | null;
-  transactions: UploadFreshness | null;
-  revenues: UploadFreshness | null;
-};
-
-function formatDate(iso: string | null | undefined): string | null {
-  if (!iso) return null;
+function formatDate(iso: string | null): string {
+  if (!iso) return "Never";
   const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return null;
-  return d.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
+  return Number.isNaN(d.getTime()) ? "Unknown" : d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
-export default function AdminOverviewPage() {
-  const [publishSummary, setPublishSummary] = useState<PublishSummary>({
-    state: "loading",
-    cityName: null,
-    lastUpdatedAt: null,
-  });
+function daysAgo(iso: string | null): number | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? null : Math.floor((Date.now() - d.getTime()) / 86400000);
+}
 
-  const [uploadSummary, setUploadSummary] = useState<UploadSummary>({
-    budgets: null,
-    actuals: null,
-    transactions: null,
-    revenues: null,
+export default function AdminDashboardPage() {
+  const [state, setState] = useState<DashboardState>({
+    portalStatus: "loading", cityName: null, uploads: {}, feedbackCount: 0,
   });
-
-  const [loadingUploads, setLoadingUploads] =
-    useState<boolean>(true);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let cancelled = false;
-
-    async function loadPublish() {
+    async function load() {
       try {
-        const { data, error } = await supabase
-          .from("portal_settings")
-          .select("city_name, is_published, updated_at")
-          .maybeSingle();
-
-        if (cancelled) return;
-
-        if (error || !data) {
-          setPublishSummary({
-            state: "unknown",
-            cityName: null,
-            lastUpdatedAt: null,
-          });
-          return;
+        const [settingsRes, uploadsRes, feedbackRes] = await Promise.all([
+          supabase.from("portal_settings").select("city_name, is_published").maybeSingle(),
+          supabase.from("data_uploads").select("table_name, created_at, row_count").order("created_at", { ascending: false }).limit(100),
+          supabase.from("citizen_feedback").select("id", { count: "exact", head: true }).eq("status", "new"),
+        ]);
+        const s = settingsRes.data;
+        const rows = uploadsRes.data ?? [];
+        const uploads: Record<string, UploadInfo> = {};
+        for (const t of ["budgets", "actuals", "transactions", "revenues"]) {
+          const latest = rows.find((r) => r.table_name === t);
+          uploads[t] = { table: t, lastUploadAt: latest?.created_at ?? null, rowCount: latest?.row_count ?? null };
         }
-
-        setPublishSummary({
-          state: data.is_published ? "published" : "draft",
-          cityName: data.city_name ?? null,
-          lastUpdatedAt: data.updated_at ?? null,
+        setState({
+          portalStatus: s ? (s.is_published ? "published" : "draft") : "unknown",
+          cityName: s?.city_name ?? null,
+          uploads,
+          feedbackCount: feedbackRes.count ?? 0,
         });
-      } catch {
-        if (!cancelled) {
-          setPublishSummary({
-            state: "unknown",
-            cityName: null,
-            lastUpdatedAt: null,
-          });
-        }
-      }
+      } catch (err) { console.error("Dashboard:", err); }
+      finally { setLoading(false); }
     }
-
-    async function loadUploads() {
-      setLoadingUploads(true);
-      try {
-        const { data, error } = await supabase
-          .from("data_uploads")
-          .select("*")
-          .order("created_at", { ascending: false })
-          .limit(100);
-
-        if (cancelled) return;
-
-        if (error || !data) {
-          setUploadSummary({
-            budgets: null,
-            actuals: null,
-            transactions: null,
-            revenues: null,
-          });
-          setLoadingUploads(false);
-          return;
-        }
-
-        const tables: Array<
-          keyof UploadSummary
-        > = ["budgets", "actuals", "transactions", "revenues"];
-
-        const next: UploadSummary = {
-          budgets: null,
-          actuals: null,
-          transactions: null,
-          revenues: null,
-        };
-
-        tables.forEach((tableName) => {
-          const tableLogs = data.filter(
-            (log) => log?.table_name === tableName
-          );
-          if (!tableLogs.length) {
-            next[tableName] = null;
-            return;
-          }
-
-          const latest = tableLogs[0];
-
-          next[tableName] = {
-            table: tableName,
-            fiscalYear:
-              typeof latest?.fiscal_year === "number"
-                ? latest.fiscal_year
-                : latest?.fiscal_year
-                ? Number(latest.fiscal_year)
-                : null,
-            rowCount:
-              typeof latest?.row_count === "number"
-                ? latest.row_count
-                : latest?.row_count
-                ? Number(latest.row_count)
-                : null,
-            lastUploadAt: latest?.created_at ?? null,
-          };
-        });
-
-        setUploadSummary(next);
-        setLoadingUploads(false);
-      } catch {
-        if (!cancelled) {
-          setUploadSummary({
-            budgets: null,
-            actuals: null,
-            transactions: null,
-            revenues: null,
-          });
-          setLoadingUploads(false);
-        }
-      }
-    }
-
-    loadPublish();
-    loadUploads();
-
-    return () => {
-      cancelled = true;
-    };
+    load();
   }, []);
 
-  const publishLabel = (() => {
-    switch (publishSummary.state) {
-      case "loading":
-        return "Checking publish status…";
-      case "published":
-        return "Published";
-      case "draft":
-        return "Draft (not yet public)";
-      default:
-        return "Status unknown";
-    }
-  })();
+  // Smart next step
+  const hasNever = Object.values(state.uploads).some((u) => !u.lastUploadAt);
+  const oldestDays = Object.values(state.uploads).reduce<number | null>((max, u) => {
+    const d = daysAgo(u.lastUploadAt);
+    if (d === null) return max;
+    return max === null ? d : Math.max(max, d);
+  }, null);
 
-  const publishBadgeClasses = (() => {
-    switch (publishSummary.state) {
-      case "published":
-        return "bg-emerald-50 text-emerald-700 border-emerald-200";
-      case "draft":
-        return "bg-amber-50 text-amber-800 border-amber-200";
-      case "loading":
-        return "bg-slate-50 text-slate-600 border-slate-200";
-      default:
-        return "bg-slate-50 text-slate-600 border-slate-200";
-    }
-  })();
+  let nextStep = { text: "Upload your latest financial data", href: cityHref("/admin/upload") };
+  if (hasNever) nextStep = { text: "Get started — upload your first financial file", href: cityHref("/admin/upload") };
+  else if (state.feedbackCount > 0) nextStep = { text: `Review ${state.feedbackCount} resident message${state.feedbackCount !== 1 ? "s" : ""}`, href: cityHref("/admin/feedback") };
+  else if (oldestDays !== null && oldestDays > 30) nextStep = { text: `Data is ${oldestDays} days old — time for a refresh`, href: cityHref("/admin/upload") };
+  else if (state.portalStatus === "draft") nextStep = { text: "Portal is in draft — ready to publish?", href: cityHref("/admin/publish") };
 
-  const renderUploadRow = (
-    label: string,
-    entry: UploadFreshness | null
-  ) => {
-    const date = entry ? formatDate(entry.lastUploadAt) : null;
-    const fy = entry?.fiscalYear ?? null;
-    const count = entry?.rowCount ?? null;
-
-    return (
-      <div className="flex items-center justify-between gap-2 text-xs">
-        <div className="flex flex-col">
-          <span className="font-medium text-slate-800">
-            {label}
-          </span>
-          {entry ? (
-            <span className="text-slate-600">
-              {fy
-                ? `FY ${fy}`
-                : "Fiscal year not recorded"}
-              {" · "}
-              {count != null ? `${count} rows` : "Row count N/A"}
-            </span>
-          ) : (
-            <span className="text-slate-600">
-              No uploads recorded yet.
-            </span>
-          )}
-        </div>
-        <div className="text-[11px] text-slate-600">
-          {date ? `Last upload ${date}` : "—"}
-        </div>
-      </div>
-    );
-  };
+  const statusColor = state.portalStatus === "published" ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+    : state.portalStatus === "draft" ? "bg-amber-50 text-amber-800 border-amber-200"
+    : "bg-slate-50 text-slate-600 border-slate-200";
+  const statusLabel = state.portalStatus === "published" ? "Live" : state.portalStatus === "draft" ? "Draft" : "...";
 
   return (
     <AdminGuard>
-      <AdminShell
-        title=" "
+      <AdminShell title=" ">
+        {loading ? <p className="text-sm text-slate-500 py-8 text-center">Loading...</p> : (
+          <div className="space-y-6">
 
-      >
-        <div className="space-y-6">
-          {/* Status cards */}
-          <section
-            aria-label="Portal status"
-            className="grid gap-4 md:grid-cols-[minmax(0,1.3fr)_minmax(0,1.7fr)]"
-          >
-            {/* Publish status */}
-            <div className="flex flex-col rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-700 shadow-sm">
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <h2 className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-                    Public site
-                  </h2>
-                  <p className="mt-1 text-sm font-semibold text-slate-900">
-                    {publishSummary.cityName || "Your city"}
-                  </p>
-                </div>
-                <span
-                  className={`inline-flex items-center rounded-full border px-2 py-1 text-[11px] font-medium ${publishBadgeClasses}`}
-                >
-                  {publishLabel}
-                </span>
+            {/* Status + recommended action */}
+            <div className="rounded-xl border border-slate-200 bg-white px-5 py-5 shadow-sm">
+              <div className="flex items-center gap-3">
+                <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${statusColor}`}>{statusLabel}</span>
+                <span className="text-sm font-medium text-slate-900">{state.cityName || "Your city"}</span>
               </div>
-              <p className="mt-2 text-xs text-slate-700">
-                {publishSummary.state === "published"
-                  ? "Residents and stakeholders can access the public portal."
-                  : publishSummary.state === "draft"
-                  ? "Only admins can access the site until it is published."
-                  : "Once portal settings are completed, you can choose when to publish the site."}
-              </p>
-
+              <p className="mt-3 text-sm text-slate-700">{nextStep.text}</p>
+              <Link href={nextStep.href} className="mt-3 inline-flex items-center rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2">
+                Continue →
+              </Link>
             </div>
 
-            {/* Data health */}
-            <div className="flex flex-col rounded-2xl border border-slate-200 bg-white px-4 py-4 text-sm text-slate-700 shadow-sm">
-              <div className="mb-2 flex items-start justify-between gap-2">
-                <div>
-                  <h2 className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-                    Data health
-                  </h2>
-                  <p className="mt-1 text-sm font-semibold text-slate-900">
-                    Core financial datasets
-                  </p>
-                </div>
-                <Link
-                  href={cityHref("/admin/upload/history")}
-                  className="mt-1 text-xs font-semibold text-slate-800 underline-offset-2 hover:underline"
-                >
-                  View history
-                </Link>
-              </div>
+            {/* Reassurance */}
+            <p className="rounded-lg border border-blue-100 bg-blue-50/50 px-4 py-2.5 text-xs text-blue-800">
+              Nothing public changes until you publish. You can always preview first.
+            </p>
 
-              {loadingUploads ? (
-                <p className="text-xs text-slate-600">
-                  Checking recent uploads…
-                </p>
-              ) : (
-                <div className="space-y-2 text-xs">
-                  {renderUploadRow("Budgets", uploadSummary.budgets)}
-                  {renderUploadRow("Actuals", uploadSummary.actuals)}
-                  {renderUploadRow(
-                    "Transactions",
-                    uploadSummary.transactions
-                  )}
-                  {renderUploadRow(
-                    "Revenues",
-                    uploadSummary.revenues
-                  )}
-                </div>
-              )}
+            {/* Monthly update steps */}
+            <div>
+              <h2 className="text-sm font-semibold text-slate-900">Monthly update</h2>
+              <ol className="mt-3 space-y-2">
+                <Step n={1} title="Upload latest file" href={cityHref("/admin/upload")} />
+                <Step n={2} title="Review data and category names" href={cityHref("/admin/data")} />
+                <Step n={3} title="Update projects or homepage notes" href={cityHref("/admin/settings")} optional />
+                <Step n={4} title="Preview and publish" href={cityHref("/admin/publish")} accent />
+              </ol>
+            </div>
 
-              <div className="mt-3 flex flex-wrap gap-2 text-xs">
-                <Link
-                  href={cityHref("/admin/upload")}
-                  className="font-semibold text-slate-800 underline-offset-2 hover:underline"
-                >
-                  Upload data →
-                </Link>
+            {/* Data freshness — compact */}
+            <div>
+              <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-500">Data freshness</h2>
+              <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {(["budgets", "actuals", "transactions", "revenues"] as const).map((t) => {
+                  const info = state.uploads[t];
+                  const d = daysAgo(info?.lastUploadAt);
+                  return (
+                    <div key={t} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-center">
+                      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 capitalize">{t}</p>
+                      <p className={`mt-0.5 text-sm font-semibold ${d !== null && d > 30 ? "text-amber-700" : "text-slate-900"}`}>
+                        {info?.lastUploadAt ? formatDate(info.lastUploadAt) : "—"}
+                      </p>
+                    </div>
+                  );
+                })}
               </div>
             </div>
-          </section>
 
-          {/* Quick actions */}
-          <section
-            aria-label="Admin quick actions"
-            className="space-y-3"
-          >
-            <h2 className="text-sm font-semibold text-slate-900">
-              Quick actions
-            </h2>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <AdminTile
-                title="Data & imports"
-                description="Load and monitor the core financial datasets that power this portal."
-                links={[
-                  { label: "Upload data", href: cityHref("/admin/upload") },
-                  { label: "CSV mapping", href: cityHref("/admin/mapping") },
-                  { label: "Upload history", href: cityHref("/admin/upload/history") },
-                ]}
-              />
-              <AdminTile
-                title="Portal settings"
-                description="Control branding, methodology, and when the portal is visible to the public."
-                links={[
-                  { label: "Settings", href: cityHref("/admin/settings") },
-                  { label: "Publish status", href: cityHref("/admin/publish") },
-                ]}
-              />
-              <AdminTile
-                title="Engagement"
-                description="Track how residents use the portal and what feedback they leave."
-                links={[
-                  { label: "Analytics", href: cityHref("/admin/analytics") },
-                  { label: "Feedback inbox", href: cityHref("/admin/feedback") },
-                ]}
-              />
-              <AdminTile
-                title="Access & setup"
-                description="Manage who can log in and complete initial setup tasks."
-                links={[
-                  { label: "Users & roles", href: cityHref("/admin/users") },
-                  { label: "Onboarding checklist", href: cityHref("/admin/onboarding") },
-                  { label: "Help & FAQs", href: cityHref("/admin/help") },
-                ]}
-              />
-            </div>
-          </section>
-        </div>
+          </div>
+        )}
       </AdminShell>
     </AdminGuard>
   );
 }
 
-type TileLink = {
-  label: string;
-  href: string;
-};
-
-type TileProps = {
-  title: string;
-  description: string;
-  links: TileLink[];
-};
-
-function AdminTile({ title, description, links }: TileProps) {
+function Step({ n, title, href, optional, accent }: { n: number; title: string; href: string; optional?: boolean; accent?: boolean }) {
   return (
-    <div className="flex h-full flex-col rounded-2xl border border-slate-200 bg-white px-4 py-4 text-left text-sm text-slate-700 shadow-sm transition hover:border-slate-300 hover:shadow-md focus-within:ring-2 focus-within:ring-slate-900 focus-within:ring-offset-2">
-      <div className="mt-1 text-sm font-semibold text-slate-900">
-        {title}
-      </div>
-      <p className="mt-1 flex-1 text-xs text-slate-700">
-        {description}
-      </p>
-      <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-xs">
-        {links.map((link) => (
-          <Link
-            key={link.href}
-            href={link.href}
-            className="font-semibold text-slate-800 underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
-          >
-            {link.label} →
-          </Link>
-        ))}
-      </div>
-    </div>
+    <li>
+      <Link href={href} className="flex items-center gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3 shadow-sm transition hover:border-slate-300 hover:shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2">
+        <span className={`flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold ${accent ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>{n}</span>
+        <span className="text-sm font-medium text-slate-800">{title}</span>
+        {optional && <span className="ml-auto text-[11px] text-slate-400">if needed</span>}
+        <svg className="ml-auto h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+      </Link>
+    </li>
   );
 }
