@@ -71,6 +71,19 @@ type PortalSettings = {
 
   // publish state
   is_published: boolean | null;
+
+  // budget document link
+  budget_document_url: string | null;
+
+  // methodology / about page
+  methodology_data_source: string | null;
+  methodology_accounting_basis: string | null;
+  methodology_update_schedule: string | null;
+  methodology_exclusions: string | null;
+  methodology_audit_status: string | null;
+
+  // feedback notification
+  feedback_notification_email: string | null;
 };
 
 type ProjectTitleKey = "project1_title" | "project2_title" | "project3_title";
