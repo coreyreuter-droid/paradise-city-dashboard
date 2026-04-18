@@ -1,7 +1,6 @@
 // app/[citySlug]/revenues/[source]/page.tsx
 
 import { notFound } from "next/navigation";
-import UnpublishedMessage from "@/components/City/UnpublishedMessage";
 import RevenueSourceDetailClient from "@/components/City/RevenueSourceDetailClient";
 import {
   getPortalSettings,
@@ -46,11 +45,6 @@ export default async function RevenueSourceDetailPage({ params, searchParams }: 
   ]);
 
   const settings = settingsRaw as PortalSettings | null;
-
-  if (settings && settings.is_published === false) {
-    return <UnpublishedMessage settings={settings} />;
-  }
-
   // Check if revenues module is enabled
   const enableRevenues = settings?.enable_revenues === true;
   if (settings && !enableRevenues) {

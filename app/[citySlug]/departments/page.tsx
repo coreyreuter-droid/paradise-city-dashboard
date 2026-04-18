@@ -2,7 +2,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import DepartmentsDashboardClient from "@/components/City/DepartmentsDashboardClient";
-import UnpublishedMessage from "@/components/City/UnpublishedMessage";
 import DataFreshness from "@/components/DataFreshness";
 import {
   getBudgetActualsFiscalYears,
@@ -61,11 +60,6 @@ export default async function DepartmentsPage({ searchParams }: PageProps) {
   const lastUploadAt = deptLogs.length > 0
     ? deptLogs.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]?.created_at
     : null;
-
-  if (portalSettings && portalSettings.is_published === false) {
-    return <UnpublishedMessage settings={portalSettings} />;
-  }
-
   const enableActuals =
     portalSettings?.enable_actuals === null || portalSettings?.enable_actuals === undefined
       ? true

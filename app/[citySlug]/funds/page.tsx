@@ -6,7 +6,6 @@ import {
   getBudgetActualsByFundDeptForYear,
 } from "@/lib/queries";
 import type { PortalSettings, BudgetActualsYearFundRow, BudgetActualsYearFundDeptRow } from "@/lib/queries";
-import UnpublishedMessage from "@/components/City/UnpublishedMessage";
 import FundsListClient from "@/components/City/FundsListClient";
 
 export const revalidate = 60;
@@ -23,11 +22,6 @@ export default async function FundsPage({ searchParams }: PageProps) {
   ]);
 
   const portalSettings = settings as PortalSettings | null;
-
-  if (portalSettings && portalSettings.is_published === false) {
-    return <UnpublishedMessage settings={portalSettings} />;
-  }
-
   const sortedYears = (years ?? []).slice().sort((a, b) => b - a);
   const yearParam = sp?.year ? Number(sp.year) : NaN;
   const selectedYear =

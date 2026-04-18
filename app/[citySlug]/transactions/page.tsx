@@ -1,6 +1,5 @@
 // app/[citySlug]/transactions/page.tsx
 import TransactionsDashboardClient from "@/components/City/TransactionsDashboardClient";
-import UnpublishedMessage from "@/components/City/UnpublishedMessage";
 import DataFreshness from "@/components/DataFreshness";
 import {
   getTransactionYears,
@@ -65,11 +64,6 @@ export default async function TransactionsPage({
   const lastUploadAt = txLogs.length > 0
     ? txLogs.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]?.created_at
     : null;
-
-  if (portalSettings && portalSettings.is_published === false) {
-    return <UnpublishedMessage settings={portalSettings} />;
-  }
-
   const fiscalYearNote = getFiscalYearLabel(portalSettings);
 
   const enableTransactions = portalSettings?.enable_transactions === true;

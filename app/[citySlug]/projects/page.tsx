@@ -2,7 +2,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import UnpublishedMessage from "@/components/City/UnpublishedMessage";
 import SectionHeader from "@/components/SectionHeader";
 import ProjectsGrid from "@/components/Projects/ProjectsGrid";
 import {
@@ -48,11 +47,6 @@ export default async function ProjectsPage({ params, searchParams }: PageProps) 
   ]);
 
   const portalSettings = settings as PortalSettings | null;
-
-  if (portalSettings && portalSettings.is_published === false) {
-    return <UnpublishedMessage settings={portalSettings} />;
-  }
-
   if (!portalSettings?.enable_projects) {
     notFound();
   }

@@ -1,6 +1,5 @@
 // app/[citySlug]/projects/[slug]/page.tsx
 import { notFound } from "next/navigation";
-import UnpublishedMessage from "@/components/City/UnpublishedMessage";
 import ProjectDetail from "@/components/Projects/ProjectDetail";
 import {
   getPortalSettings,
@@ -28,11 +27,6 @@ export default async function ProjectDetailPage({ params }: PageProps) {
   ]);
 
   const portalSettings = settings as PortalSettings | null;
-
-  if (portalSettings && portalSettings.is_published === false) {
-    return <UnpublishedMessage settings={portalSettings} />;
-  }
-
   if (!portalSettings?.enable_projects) {
     notFound();
   }

@@ -2,7 +2,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import UnpublishedMessage from "@/components/City/UnpublishedMessage";
 import SectionHeader from "@/components/SectionHeader";
 import TaxpayerReceipt from "@/components/City/TaxpayerReceipt";
 import {
@@ -32,11 +31,6 @@ export default async function TaxpayerReceiptPage() {
   ]);
 
   const portalSettings = settings as PortalSettings | null;
-
-  if (portalSettings && portalSettings.is_published === false) {
-    return <UnpublishedMessage settings={portalSettings} />;
-  }
-
   const years = (yearsRaw ?? []).slice().sort((a, b) => b - a);
   const latestYear = years[0] ?? null;
 

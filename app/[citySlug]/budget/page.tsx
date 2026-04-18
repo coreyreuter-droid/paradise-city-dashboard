@@ -1,7 +1,6 @@
 // app/[citySlug]/budget/page.tsx
 import type { Metadata } from "next";
 import BudgetPageClient from "@/components/Budget/BudgetPageClient";
-import UnpublishedMessage from "@/components/City/UnpublishedMessage";
 import DataFreshness from "@/components/DataFreshness";
 import {
   getPortalSettings,
@@ -77,11 +76,6 @@ export default async function BudgetPage({ searchParams }: PageProps) {
             new Date(a.created_at).getTime()
         )[0]?.created_at
       : null;
-
-  if (portalSettings && portalSettings.is_published === false) {
-    return <UnpublishedMessage settings={portalSettings} />;
-  }
-
   const budgetYears = (budgetYearsRaw ?? []).slice().sort((a, b) => b - a);
   const bvaYears = (bvaYearsRaw ?? []).slice().sort((a, b) => b - a);
   const actualYears = new Set(actualYearsRaw ?? []);

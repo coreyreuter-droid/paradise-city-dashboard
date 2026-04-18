@@ -768,6 +768,13 @@ export default function BrandingSettingsClient() {
               ? settings.fiscal_year_label.trim()
               : null,
           is_published: settings.is_published ?? false,
+          budget_document_url: settings.budget_document_url?.trim() || null,
+          methodology_data_source: settings.methodology_data_source?.trim() || null,
+          methodology_accounting_basis: settings.methodology_accounting_basis?.trim() || null,
+          methodology_update_schedule: settings.methodology_update_schedule?.trim() || null,
+          methodology_exclusions: settings.methodology_exclusions?.trim() || null,
+          methodology_audit_status: settings.methodology_audit_status?.trim() || null,
+          feedback_notification_email: settings.feedback_notification_email?.trim() || null,
         })
         .eq("id", settings.id)
         .select(SELECT_FIELDS)
@@ -1631,6 +1638,138 @@ export default function BrandingSettingsClient() {
                 <p className="mt-1 text-xs text-slate-600">
                   Shown to residents if set.
                 </p>
+              </div>
+            </div>
+          </div>
+        </CollapsibleSection>
+
+        {/* Portal Configuration */}
+        <CollapsibleSection
+          title="Portal configuration"
+          description="Budget document link, methodology text, and feedback notifications"
+        >
+          <div className="space-y-4">
+            <div>
+              <label htmlFor="budget_doc_url" className="block text-xs font-semibold text-slate-700">
+                Budget document URL
+              </label>
+              <p className="mb-1 text-[11px] text-slate-500">
+                Link to the city&apos;s official adopted budget PDF. Shown on the Budget page.
+              </p>
+              <input
+                id="budget_doc_url"
+                type="url"
+                placeholder="https://example.com/budget-2025.pdf"
+                value={settings?.budget_document_url ?? ""}
+                onChange={(e) =>
+                  settings &&
+                  setSettings({ ...settings, budget_document_url: e.target.value })
+                }
+                className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="feedback_email" className="block text-xs font-semibold text-slate-700">
+                Feedback notification email
+              </label>
+              <p className="mb-1 text-[11px] text-slate-500">
+                When citizens submit feedback, a notification will be sent to this address.
+              </p>
+              <input
+                id="feedback_email"
+                type="email"
+                placeholder="finance@cityname.gov"
+                value={settings?.feedback_notification_email ?? ""}
+                onChange={(e) =>
+                  settings &&
+                  setSettings({ ...settings, feedback_notification_email: e.target.value })
+                }
+                className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
+              />
+            </div>
+
+            <hr className="border-slate-200" />
+
+            <div>
+              <p className="mb-2 text-xs font-semibold text-slate-700">
+                About this data — methodology overrides
+              </p>
+              <p className="mb-3 text-[11px] text-slate-500">
+                Customize the &ldquo;About this data&rdquo; page with your city&apos;s specific information. Leave blank to use defaults.
+              </p>
+
+              <div className="space-y-3">
+                <div>
+                  <label htmlFor="meth_source" className="block text-[11px] font-medium text-slate-600">Data sources</label>
+                  <textarea
+                    id="meth_source"
+                    rows={2}
+                    placeholder="Describe where your financial data comes from..."
+                    value={settings?.methodology_data_source ?? ""}
+                    onChange={(e) =>
+                      settings &&
+                      setSettings({ ...settings, methodology_data_source: e.target.value })
+                    }
+                    className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="meth_basis" className="block text-[11px] font-medium text-slate-600">Accounting basis</label>
+                  <textarea
+                    id="meth_basis"
+                    rows={2}
+                    placeholder="e.g., Modified accrual for governmental funds..."
+                    value={settings?.methodology_accounting_basis ?? ""}
+                    onChange={(e) =>
+                      settings &&
+                      setSettings({ ...settings, methodology_accounting_basis: e.target.value })
+                    }
+                    className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="meth_schedule" className="block text-[11px] font-medium text-slate-600">Update schedule</label>
+                  <input
+                    id="meth_schedule"
+                    type="text"
+                    placeholder="e.g., Monthly after close, typically by the 15th"
+                    value={settings?.methodology_update_schedule ?? ""}
+                    onChange={(e) =>
+                      settings &&
+                      setSettings({ ...settings, methodology_update_schedule: e.target.value })
+                    }
+                    className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="meth_audit" className="block text-[11px] font-medium text-slate-600">Audit status</label>
+                  <input
+                    id="meth_audit"
+                    type="text"
+                    placeholder="e.g., FY2024 data is unaudited; FY2023 CAFR is available"
+                    value={settings?.methodology_audit_status ?? ""}
+                    onChange={(e) =>
+                      settings &&
+                      setSettings({ ...settings, methodology_audit_status: e.target.value })
+                    }
+                    className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="meth_exclusions" className="block text-[11px] font-medium text-slate-600">What is not included</label>
+                  <textarea
+                    id="meth_exclusions"
+                    rows={2}
+                    placeholder="e.g., This portal does not include pension fund assets, fiduciary funds, or component unit financials"
+                    value={settings?.methodology_exclusions ?? ""}
+                    onChange={(e) =>
+                      settings &&
+                      setSettings({ ...settings, methodology_exclusions: e.target.value })
+                    }
+                    className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
+                  />
+                </div>
               </div>
             </div>
           </div>

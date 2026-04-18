@@ -1,6 +1,5 @@
 // app/[citySlug]/page.tsx
 import LandingClient from "@/components/City/LandingClient";
-import UnpublishedMessage from "@/components/City/UnpublishedMessage";
 import {
   getPortalSettings,
   getPortalFiscalYears,
@@ -17,11 +16,6 @@ export default async function CityLandingPage() {
   ]);
 
   const portalSettings = settings as PortalSettings | null;
-
-  if (portalSettings && portalSettings.is_published === false) {
-    return <UnpublishedMessage settings={portalSettings} />;
-  }
-
   // Get the most recent fiscal year and calculate totals
   const years = (portalYears ?? []).slice().sort((a, b) => b - a);
   const latestYear = years[0] ?? null;

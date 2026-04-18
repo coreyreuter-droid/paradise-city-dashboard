@@ -16,25 +16,21 @@ type Props = {
 };
 
 // Use *relative* admin paths. "" means /admin (overview)
-// Split into two rows for cleaner layout
 const NAV_ROW_1: { href: string; label: string }[] = [
   { href: "", label: "Overview" },
-  { href: "upload", label: "Data upload" },
-  { href: "mapping", label: "CSV mapping" },
-  { href: "upload/history", label: "Upload history" },
+  { href: "upload", label: "Upload data" },
   { href: "data", label: "Data management" },
   { href: "projects", label: "Projects" },
+  { href: "lookups", label: "Lookup tables" },
 ];
 
 const NAV_ROW_2: { href: string; label: string }[] = [
-  { href: "settings", label: "Branding & settings" },
-  { href: "lookups", label: "Lookup tables" },
+  { href: "settings", label: "Settings" },
+  { href: "publish", label: "Publish" },
+  { href: "analytics", label: "Analytics" },
+  { href: "feedback", label: "Feedback" },
   { href: "users", label: "Users & roles" },
-  { href: "publish", label: "Publish status" },
-  { href: "analytics", label: "Portal analytics" },
-  { href: "feedback", label: "Citizen feedback" },
-  { href: "onboarding", label: "Onboarding checklist" },
-  { href: "help", label: "Help & FAQs" },
+  { href: "help", label: "Help" },
 ];
 
 
@@ -67,8 +63,8 @@ export default function AdminShell({
       return pathname === full;
     }
 
-    // Other tabs: consider exact path only for clarity
-    return pathname === full;
+    // Match exact path or sub-paths (e.g., "upload" matches "upload/history")
+    return pathname === full || pathname.startsWith(full + "/");
   };
 
   useEffect(() => {
@@ -255,11 +251,11 @@ export default function AdminShell({
               aria-label="Admin navigation"
               className="mb-6"
             >
-              {/* Row 1 - 6 tabs */}
-              <div className="grid grid-cols-6 border-b border-slate-200">
+              {/* Row 1 — Data & content (5 tabs) */}
+              <div className="grid grid-cols-5 border-b border-slate-200">
                 {NAV_ROW_1.map(renderNavItem)}
               </div>
-              {/* Row 2 - 6 tabs */}
+              {/* Row 2 — Portal & admin (6 tabs) */}
               <div className="grid grid-cols-6 border-b border-slate-200">
                 {NAV_ROW_2.map(renderNavItem)}
               </div>

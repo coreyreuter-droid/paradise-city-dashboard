@@ -1,7 +1,6 @@
 // app/[citySlug]/vendors/page.tsx
 import { notFound } from "next/navigation";
 import VendorsDashboardClient from "@/components/City/VendorsDashboardClient";
-import UnpublishedMessage from "@/components/City/UnpublishedMessage";
 import DataFreshness from "@/components/DataFreshness";
 import {
   getPortalFiscalYears,
@@ -46,11 +45,6 @@ export default async function VendorsPage({ searchParams }: PageProps) {
   const lastUploadAt = txLogs.length > 0
     ? txLogs.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]?.created_at
     : null;
-
-  if (portalSettings && portalSettings.is_published === false) {
-    return <UnpublishedMessage settings={portalSettings} />;
-  }
-
   // Strict feature gating: vendors require transactions + vendors flag
   const enableTransactions = portalSettings?.enable_transactions === true;
   const enableVendors = enableTransactions && portalSettings?.enable_vendors === true;

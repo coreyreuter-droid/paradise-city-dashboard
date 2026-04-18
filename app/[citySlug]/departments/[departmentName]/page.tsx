@@ -1,7 +1,6 @@
 // app/[citySlug]/departments/[departmentName]/page.tsx
 
 import { notFound } from "next/navigation";
-import UnpublishedMessage from "@/components/City/UnpublishedMessage";
 import DepartmentDetailClient from "@/components/City/DepartmentDetailClient";
 import {
   getPortalFiscalYears,
@@ -48,11 +47,6 @@ export default async function DepartmentDetailPage({ params, searchParams }: Pag
   ]);
 
   const settings = settingsRaw as PortalSettings | null;
-
-  if (settings && settings.is_published === false) {
-    return <UnpublishedMessage settings={settings} />;
-  }
-
   const enableTransactions = settings?.enable_transactions === true;
   const enableVendors = enableTransactions && settings?.enable_vendors === true;
 

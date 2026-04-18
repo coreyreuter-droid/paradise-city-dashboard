@@ -1,6 +1,5 @@
 // app/[citySlug]/revenues/page.tsx
 import RevenuesDashboardClient from "@/components/City/RevenuesDashboardClient";
-import UnpublishedMessage from "@/components/City/UnpublishedMessage";
 import DataFreshness from "@/components/DataFreshness";
 import {
   getRevenueYears,
@@ -66,11 +65,6 @@ export default async function RevenuesPage({
   const lastUploadAt = revenueLogs.length > 0
     ? revenueLogs.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]?.created_at
     : null;
-
-  if (portalSettings && portalSettings.is_published === false) {
-    return <UnpublishedMessage settings={portalSettings} />;
-  }
-
   const fiscalYearNote = getFiscalYearLabel(portalSettings);
 
   // Strict module gate: Revenues require enable_revenues = true.

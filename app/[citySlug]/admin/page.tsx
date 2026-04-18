@@ -341,47 +341,39 @@ export default function AdminOverviewPage() {
             <h2 className="text-sm font-semibold text-slate-900">
               Quick actions
             </h2>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <AdminTile
                 title="Data & imports"
                 description="Load and monitor the core financial datasets that power this portal."
                 links={[
-                  {
-                    label: "Upload data",
-                    href: cityHref("/admin/upload"),
-                  },
-                  {
-                    label: "Upload history",
-                    href: cityHref("/admin/upload/history"),
-                  },
+                  { label: "Upload data", href: cityHref("/admin/upload") },
+                  { label: "CSV mapping", href: cityHref("/admin/mapping") },
+                  { label: "Upload history", href: cityHref("/admin/upload/history") },
                 ]}
               />
               <AdminTile
-                title="Branding & visibility"
-                description="Control how the portal looks and when it is visible to the public."
+                title="Portal settings"
+                description="Control branding, methodology, and when the portal is visible to the public."
                 links={[
-                  {
-                    label: "Branding & settings",
-                    href: cityHref("/admin/settings"),
-                  },
-                  {
-                    label: "Publish status",
-                    href: cityHref("/admin/publish"),
-                  },
+                  { label: "Settings", href: cityHref("/admin/settings") },
+                  { label: "Publish status", href: cityHref("/admin/publish") },
+                ]}
+              />
+              <AdminTile
+                title="Engagement"
+                description="Track how residents use the portal and what feedback they leave."
+                links={[
+                  { label: "Analytics", href: cityHref("/admin/analytics") },
+                  { label: "Feedback inbox", href: cityHref("/admin/feedback") },
                 ]}
               />
               <AdminTile
                 title="Access & setup"
-                description="Manage who can log in and track remaining setup tasks."
+                description="Manage who can log in and complete initial setup tasks."
                 links={[
-                  {
-                    label: "Users & roles",
-                    href: cityHref("/admin/users"),
-                  },
-                  {
-                    label: "Onboarding checklist",
-                    href: cityHref("/admin/onboarding"),
-                  },
+                  { label: "Users & roles", href: cityHref("/admin/users") },
+                  { label: "Onboarding checklist", href: cityHref("/admin/onboarding") },
+                  { label: "Help & FAQs", href: cityHref("/admin/help") },
                 ]}
               />
             </div>
