@@ -6,7 +6,7 @@ import { rateLimitKey } from "@/lib/rateLimitKey";
 
 export async function POST(request: NextRequest) {
   // Rate limit: 5 submissions per hour per client
-  const key = rateLimitKey(request);
+  const key = rateLimitKey(request, "feedback");
   const rl = await rateLimitAsync(`feedback:${key}`, 5, 3600);
   if (!rl.allowed) {
     return NextResponse.json(
