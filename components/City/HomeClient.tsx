@@ -6,7 +6,7 @@ import { useSearchParams } from "next/navigation";
 import CardContainer from "@/components/CardContainer";
 import BudgetCharts from "@/components/Budget/BudgetCharts";
 import BudgetExplorer from "@/components/Budget/BudgetExplorer";
-import type { DepartmentSummary } from "@/components/Budget/BudgetClient";
+import type { DepartmentSummary } from "@/lib/types";
 import SectionHeader from "@/components/SectionHeader";
 import ParadiseHomeKpiStrip from "@/components/City/HomeKpiStrip";
 import ParadiseHomeMultiYearChart from "@/components/City/HomeMultiYearChart";
@@ -505,6 +505,24 @@ className="inline-flex items-center justify-center rounded-full px-3 py-1.5 text
         </CardContainer>
       ) : (
         <>
+          {/* Data freshness badge — prominent, above all content */}
+          {freshnessText && (
+            <p
+              className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[11px] text-slate-600 shadow-sm"
+              aria-label={`Data freshness: ${freshnessText}`}
+            >
+              <span
+                className="h-1.5 w-1.5 rounded-full bg-emerald-500"
+                aria-hidden="true"
+              />
+              <span className="font-semibold text-slate-700">
+                Last updated
+              </span>
+              <span aria-hidden="true">·</span>
+              <span>{freshnessText}</span>
+            </p>
+          )}
+
           {/* KPI strip */}
           {enableActuals && (
             <CardContainer>
@@ -530,23 +548,6 @@ className="inline-flex items-center justify-center rounded-full px-3 py-1.5 text
                     : null
                 }
               />
-
-              {freshnessText && (
-                <p
-                  className="mt-2 inline-flex items-center gap-2 rounded-full bg-slate-50 px-3 py-1 text-[11px] text-slate-600"
-                  aria-label={`Data coverage for this dashboard: ${freshnessText}`}
-                >
-                  <span
-                    className="h-1.5 w-1.5 rounded-full bg-emerald-500"
-                    aria-hidden="true"
-                  />
-                  <span className="font-medium text-slate-700">
-                    Data coverage
-                  </span>
-                  <span aria-hidden="true">·</span>
-                  <span>{freshnessText}</span>
-                </p>
-              )}
             </CardContainer>
             
           )}

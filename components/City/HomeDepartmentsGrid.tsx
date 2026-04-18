@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import type { DepartmentSummary } from "@/components/Budget/BudgetClient";
+import type { DepartmentSummary } from "@/lib/types";
 import DrillBarList from "@/components/ui/DrillBarList";
 import type { DrillBarItem } from "@/components/ui/DrillBarList";
 import { cityHref } from "@/lib/cityRouting";

@@ -285,30 +285,30 @@ export default function TransactionsDashboardClient({
           }
         />
 
-        {/* Breadcrumb */}
-        <nav
-          aria-label="Breadcrumb"
-          className="mb-4 px-1 text-sm text-slate-600"
-        >
-          <ol className="flex items-center gap-1">
-            <li>
-              <Link
-                href={cityHref("/overview")}
-                className="hover:text-slate-800"
-              >
-                Home
-              </Link>
-            </li>
-            <li aria-hidden="true" className="text-slate-500">
-              ›
-            </li>
-            <li aria-current="page">
-              <span className="font-medium text-slate-700">
-                Transactions
-              </span>
-            </li>
-          </ol>
-        </nav>
+        {/* Breadcrumb + vendor link */}
+        <div className="mb-4 flex items-center justify-between px-1">
+          <nav aria-label="Breadcrumb" className="text-sm text-slate-600">
+            <ol className="flex items-center gap-1">
+              <li>
+                <Link href={cityHref("/overview")} className="hover:text-slate-800">
+                  Home
+                </Link>
+              </li>
+              <li aria-hidden="true" className="text-slate-500">›</li>
+              <li aria-current="page">
+                <span className="font-medium text-slate-700">Transactions</span>
+              </li>
+            </ol>
+          </nav>
+          {enableVendors && (
+            <Link
+              href={cityHref("/vendors")}
+              className="text-xs font-medium text-slate-500 hover:text-slate-800 transition-colors"
+            >
+              View top vendors →
+            </Link>
+          )}
+        </div>
 
         <div className="space-y-6">
           {/* Filters + summary */}

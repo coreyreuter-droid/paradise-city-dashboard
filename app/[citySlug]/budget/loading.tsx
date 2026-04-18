@@ -1,5 +1,5 @@
 // Delayed loading skeleton for Budget page - prevents flash on fast navigations.
-// Mirrors: BudgetClient (SectionHeader + year selector + charts + table)
+// Mirrors: BudgetPageClient layout
 
 export default function Loading() {
   return (

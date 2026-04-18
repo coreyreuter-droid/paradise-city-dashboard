@@ -13,6 +13,10 @@ import { getFiscalYearLabel } from "@/lib/fiscalYear";
 type Props = {
   portalSettings: PortalSettings | null;
   totalBudget: number | null;
+  totalActuals?: number | null;
+  departmentCount?: number;
+  population?: number | null;
+  fiscalYear?: number | null;
 };
 
 /* ---------- Small inline icons (no deps) ---------- */
@@ -257,7 +261,7 @@ type QuickLink = {
   sublabel: string;
 };
 
-export default function LandingClient({ portalSettings, totalBudget }: Props) {
+export default function LandingClient({ portalSettings, totalBudget, totalActuals, departmentCount = 0, population, fiscalYear }: Props) {
   const cityName = portalSettings?.city_name || CITY_CONFIG.displayName || "Your City";
 
   const tagline =
@@ -576,6 +580,63 @@ export default function LandingClient({ portalSettings, totalBudget }: Props) {
 
       {/* MAIN */}
       <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-10">
+        {/* At-a-glance data snapshot */}
+        {totalBudget && totalBudget > 0 && (
+          <section aria-label="Financial snapshot" className="mb-8">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:gap-3">
+              <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                  {fiscalYear ? `FY ${fiscalYear} ` : ""}Budget
+                </p>
+                <p className="mt-1 text-xl font-semibold text-slate-900">
+                  {formatCurrency(totalBudget)}
+                </p>
+              </div>
+
+              {totalActuals && totalActuals > 0 && (
+                <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                    Spent
+                  </p>
+                  <p className="mt-1 text-xl font-semibold text-slate-900">
+                    {formatCurrency(totalActuals)}
+                  </p>
+                  {totalBudget > 0 && (
+                    <p className="mt-0.5 text-[11px] text-slate-500">
+                      {Math.round((totalActuals / totalBudget) * 100)}% of budget
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {departmentCount > 0 && (
+                <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                    Departments
+                  </p>
+                  <p className="mt-1 text-xl font-semibold text-slate-900">
+                    {departmentCount}
+                  </p>
+                </div>
+              )}
+
+              {population && population > 0 && totalBudget > 0 && (
+                <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                    Per resident
+                  </p>
+                  <p className="mt-1 text-xl font-semibold text-slate-900">
+                    {formatCurrency(Math.round(totalBudget / population))}
+                  </p>
+                  <p className="mt-0.5 text-[11px] text-slate-500">
+                    Pop. {formatNumber(population)}
+                  </p>
+                </div>
+              )}
+            </div>
+          </section>
+        )}
+
         {/* START HERE tiles */}
         <section aria-label="Start here" className="mb-8">
           <div className="mb-3 flex items-end justify-between gap-4">

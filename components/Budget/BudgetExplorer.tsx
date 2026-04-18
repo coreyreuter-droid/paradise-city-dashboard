@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { formatCurrency, formatPercent } from "@/lib/format";
 import { cityHref } from "@/lib/cityRouting";
+import DepartmentIcon from "@/components/ui/DepartmentIcon";
 import type { BudgetActualsYearDeptRow, BudgetActualsYearFundRow, BudgetActualsYearFundDeptRow } from "@/lib/queries";
 
 /* =============================================================================
@@ -186,12 +187,16 @@ function DrillBar({
   hasActuals,
   onClick,
   showArrow = true,
+  showIcon = false,
+  accentColor,
 }: {
   row: BarRow;
   maxBudget: number;
   hasActuals: boolean;
   onClick: () => void;
   showArrow?: boolean;
+  showIcon?: boolean;
+  accentColor?: string;
 }) {
   const budgetPct = maxBudget > 0 ? Math.min((row.budget / maxBudget) * 100, 100) : 0;
   const actualPct = maxBudget > 0 ? Math.min((row.actual / maxBudget) * 100, 100) : 0;
@@ -201,9 +206,14 @@ function DrillBar({
     <button
       type="button"
       onClick={onClick}
-      className="group flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left transition-all duration-150 hover:bg-slate-50 active:scale-[0.995] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-1 sm:gap-3 sm:px-3"
+      className="group flex w-full items-center gap-2 rounded-lg border border-transparent px-2.5 py-2 text-left transition-all duration-150 hover:border-slate-200 hover:bg-slate-50 hover:shadow-sm active:scale-[0.995] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-1 sm:gap-3 sm:px-3"
       aria-label={`${row.name}: budget ${formatCurrency(row.budget)}${hasActuals ? `, actual ${formatCurrency(row.actual)}` : ""}. Click to drill down.`}
     >
+      {/* Icon */}
+      {showIcon && (
+        <DepartmentIcon name={row.name} size="sm" accentColor={accentColor} />
+      )}
+
       {/* Name */}
       <span className="min-w-0 flex-shrink-0 truncate text-sm font-medium text-slate-800 sm:w-40 sm:min-w-[10rem]">
         {row.name}
@@ -605,6 +615,11 @@ export default function BudgetExplorer({
             hasActuals={showActuals}
             onClick={() => handleBarClick(row)}
             showArrow={drill.level !== "fund-dept"}
+            showIcon={
+              drill.level === "gov" && drill.breakdownMode === "department" ||
+              drill.level === "fund"
+            }
+            accentColor={accentColor}
           />
         ))}
       </div>

@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useMemo } from "react";
+import { useSearchParams, usePathname, useRouter } from "next/navigation";
 import CardContainer from "@/components/CardContainer";
 import SectionHeader from "@/components/SectionHeader";
 import FiscalYearSelect from "@/components/FiscalYearSelect";
@@ -61,12 +61,33 @@ export default function BudgetPageClient({
   enableTransactions = false,
 }: Props) {
   const searchParams = useSearchParams();
+  const pathname = usePathname();
+  const router = useRouter();
 
-  // Determine active sub-tab
-  const tabParam = searchParams.get("view");
-  const [activeTab, setActiveTab] = useState<BudgetSubTab>(
-    tabParam === "bva" && bvaYears.length > 0 ? "bva" : "adopted"
-  );
+  // Tab is URL-driven via ?view= param — shareable and bookmarkable
+  const activeTab: BudgetSubTab = useMemo(() => {
+    const param = searchParams.get("view");
+    if (param === "bva" && bvaYears.length > 0) return "bva";
+    return "adopted";
+  }, [searchParams, bvaYears]);
+
+  // Switch tab by updating URL (preserves year if valid for new tab)
+  const switchTab = (tab: BudgetSubTab) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (tab === "adopted") {
+      params.delete("view");
+    } else {
+      params.set("view", "bva");
+    }
+    // If current year isn't valid for the new tab, drop it so it falls to default
+    const currentYear = params.get("year");
+    const targetYears = tab === "bva" ? bvaYears : budgetYears;
+    if (currentYear && !targetYears.includes(Number(currentYear))) {
+      params.delete("year");
+    }
+    const qs = params.toString();
+    router.push(qs ? `${pathname}?${qs}` : pathname);
+  };
 
   // Which years to show depends on tab
   const yearsForTab = activeTab === "bva" ? bvaYears : budgetYears;
@@ -172,7 +193,7 @@ export default function BudgetPageClient({
       <div className="flex items-center gap-1 border-b border-slate-200">
         <button
           type="button"
-          onClick={() => setActiveTab("adopted")}
+          onClick={() => switchTab("adopted")}
           className={`relative px-4 py-2.5 text-sm font-medium transition-colors ${
             activeTab === "adopted"
               ? "text-slate-900"
@@ -193,7 +214,7 @@ export default function BudgetPageClient({
         {bvaYears.length > 0 && (
           <button
             type="button"
-            onClick={() => setActiveTab("bva")}
+            onClick={() => switchTab("bva")}
             className={`relative px-4 py-2.5 text-sm font-medium transition-colors ${
               activeTab === "bva"
                 ? "text-slate-900"
@@ -252,6 +273,17 @@ export default function BudgetPageClient({
               />
             )}
           </CardContainer>
+
+          {/* Fund explorer link */}
+          <div className="flex items-center justify-center py-2">
+            <Link
+              href={cityHref(`/funds${selectedYear ? `?year=${selectedYear}` : ""}`)}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 shadow-sm transition-all hover:border-slate-300 hover:text-slate-900 hover:shadow-md"
+            >
+              Browse by fund
+              <span className="text-slate-400" aria-hidden="true">→</span>
+            </Link>
+          </div>
         </>
       )}
     </div>

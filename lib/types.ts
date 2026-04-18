@@ -8,3 +8,9 @@ export type {
   RevenueRow,
 } from "./schema";
 
+export type DepartmentSummary = {
+  department_name: string;
+  budget: number;
+  actuals: number;
+  percentSpent: number;
+};

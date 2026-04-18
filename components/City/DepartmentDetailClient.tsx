@@ -511,26 +511,27 @@ const byYear = new Map<
   ]);
 
 
-  // DrillBarList items for vendors
+  // DrillBarList items for vendors — link to transactions filtered by vendor
   const vendorDrillItems: DrillBarItem[] = useMemo(() => {
     return deptVendorSummaries.map((v) => ({
       name: v.name,
       budget: v.total,
       actual: 0,
-      onClick: enableVendors ? () => {
-        setActiveVendor(v.name);
-      } : undefined,
+      href: v.name !== "Unspecified"
+        ? cityHref(`/transactions?q=${encodeURIComponent(v.name)}${selectedYear ? `&year=${selectedYear}` : ""}`)
+        : undefined,
     }));
-  }, [deptVendorSummaries, enableVendors]);
+  }, [deptVendorSummaries, selectedYear]);
 
-  // DrillBarList items for categories
+  // DrillBarList items for categories — link to transactions filtered by department
   const categoryDrillItems: DrillBarItem[] = useMemo(() => {
     return deptCategorySummaries.map((c) => ({
       name: c.category,
       budget: c.total,
       actual: 0,
+      href: cityHref(`/transactions?department=${encodeURIComponent(displayName)}${selectedYear ? `&year=${selectedYear}` : ""}`),
     }));
-  }, [deptCategorySummaries]);
+  }, [deptCategorySummaries, selectedYear, displayName]);
 
   const isUnderBudget = selectedYearTotals.variance <= 0;
 
