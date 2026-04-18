@@ -40,6 +40,16 @@ function pickFirst(value: string | string[] | undefined): string | undefined {
   return undefined;
 }
 
+
+export async function generateMetadata(): Promise<Metadata> {
+  const ps = await getPortalSettings();
+  const city = ps?.city_name?.trim() || "Our City";
+  return {
+    title: `Budget – ${city} Financial Transparency`,
+    description: `Explore ${city}'s adopted and amended budgets by department, fund, and fiscal year.`,
+  };
+}
+
 export default async function BudgetPage({ searchParams }: PageProps) {
   const sp = await searchParams;
 

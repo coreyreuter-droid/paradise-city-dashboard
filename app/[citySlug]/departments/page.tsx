@@ -1,4 +1,5 @@
 // app/[citySlug]/departments/page.tsx
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import DepartmentsDashboardClient from "@/components/City/DepartmentsDashboardClient";
 import UnpublishedMessage from "@/components/City/UnpublishedMessage";
@@ -29,6 +30,16 @@ function pickFirst(value: string | string[] | undefined): string | undefined {
   if (typeof value === "string") return value;
   if (Array.isArray(value) && value.length > 0) return value[0];
   return undefined;
+}
+
+
+export async function generateMetadata(): Promise<Metadata> {
+  const ps = await getPortalSettings();
+  const city = ps?.city_name?.trim() || "Our City";
+  return {
+    title: `Spending – ${city} Financial Transparency`,
+    description: `See how ${city} allocates and spends public funds across departments.`,
+  };
 }
 
 export default async function DepartmentsPage({ searchParams }: PageProps) {

@@ -12,6 +12,7 @@ import {
 import type { TransactionRow } from "@/lib/types";
 import type { PortalSettings, DataUploadLogRow } from "@/lib/queries";
 import { getFiscalYearLabel } from "@/lib/fiscalYear";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 export const revalidate = 0;
@@ -33,6 +34,16 @@ function pickFirst(value: string | string[] | undefined) {
   if (typeof value === "string") return value;
   if (Array.isArray(value) && value.length > 0) return value[0];
   return undefined;
+}
+
+
+export async function generateMetadata(): Promise<Metadata> {
+  const ps = await getPortalSettings();
+  const city = ps?.city_name?.trim() || "Our City";
+  return {
+    title: `Transactions – ${city} Financial Transparency`,
+    description: `Browse ${city}'s individual financial transactions with vendor and department detail.`,
+  };
 }
 
 export default async function TransactionsPage({

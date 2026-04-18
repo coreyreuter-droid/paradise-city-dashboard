@@ -1,4 +1,5 @@
 // app/[citySlug]/projects/page.tsx
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import UnpublishedMessage from "@/components/City/UnpublishedMessage";
@@ -23,6 +24,16 @@ function pickFirst(value: string | string[] | undefined): string | undefined {
   if (typeof value === "string") return value;
   if (Array.isArray(value) && value.length > 0) return value[0];
   return undefined;
+}
+
+
+export async function generateMetadata(): Promise<Metadata> {
+  const ps = await getPortalSettings();
+  const city = ps?.city_name?.trim() || "Our City";
+  return {
+    title: `Capital Projects – ${city} Financial Transparency`,
+    description: `Track ${city}'s major improvement projects, timelines, and investments.`,
+  };
 }
 
 export default async function ProjectsPage({ params, searchParams }: PageProps) {

@@ -77,6 +77,16 @@ async function getRevenueSources(): Promise<string[]> {
 
 // Record counts are now loaded client-side for faster page load
 
+
+export async function generateMetadata(): Promise<Metadata> {
+  const ps = await getPortalSettings();
+  const city = ps?.city_name?.trim() || "Our City";
+  return {
+    title: `Download Center – ${city} Financial Transparency`,
+    description: `Download ${city}'s financial data in CSV format for your own analysis.`,
+  };
+}
+
 export default async function DownloadPage() {
   const [settings, years, departments, vendors, revenueSources] =
     await Promise.all([

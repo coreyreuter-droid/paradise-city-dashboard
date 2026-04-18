@@ -1,5 +1,6 @@
 // components/LegalFooter.tsx
 import Link from "next/link";
+import { cityHref } from "@/lib/cityRouting";
 
 interface LegalFooterProps {
   className?: string;
@@ -30,6 +31,21 @@ export default function LegalFooter({ className = "" }: LegalFooterProps) {
             <span className="sr-only">(opens in new tab)</span>
           </a>
           
+          {/* Resource links */}
+          <div className="flex items-center gap-3 text-sm text-slate-600">
+            <Link href={cityHref("/taxpayer-receipt")} className="hover:text-slate-700 transition-colors rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2">
+              Taxpayer receipt
+            </Link>
+            <span className="text-slate-300" aria-hidden="true">•</span>
+            <Link href={cityHref("/glossary")} className="hover:text-slate-700 transition-colors rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2">
+              Glossary
+            </Link>
+            <span className="text-slate-300" aria-hidden="true">•</span>
+            <Link href={cityHref("/about")} className="hover:text-slate-700 transition-colors rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2">
+              About this data
+            </Link>
+          </div>
+
           {/* Legal links */}
           <div className="flex items-center gap-3 text-sm text-slate-600">
             <span suppressHydrationWarning>© {currentYear} CiviPortal LLC</span>

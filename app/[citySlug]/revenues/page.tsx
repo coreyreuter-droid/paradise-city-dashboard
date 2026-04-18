@@ -11,6 +11,7 @@ import {
 import type { RevenueRow } from "@/lib/types";
 import type { PortalSettings, DataUploadLogRow } from "@/lib/queries";
 import { getFiscalYearLabel } from "@/lib/fiscalYear";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 export const revalidate = 0;
@@ -35,6 +36,16 @@ type YearTotal = {
   year: number;
   total: number;
 };
+
+
+export async function generateMetadata(): Promise<Metadata> {
+  const ps = await getPortalSettings();
+  const city = ps?.city_name?.trim() || "Our City";
+  return {
+    title: `Revenue – ${city} Financial Transparency`,
+    description: `Explore ${city}'s revenue sources including taxes, fees, grants, and other income.`,
+  };
+}
 
 export default async function RevenuesPage({
   searchParams,
